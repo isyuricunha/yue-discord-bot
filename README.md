@@ -32,6 +32,16 @@ packages/
 - **TailwindCSS**: 4+
 - **ESLint**: 9
 
+## Security model (high level)
+
+- **Auth**: the Web UI authenticates primarily via an **httpOnly cookie** (`yuebot_token`).
+- **CORS**: allowlist-based. In production, localhost is not included by default.
+- **CSRF**: state-changing requests authenticated via cookie must include a valid `Origin` that matches the configured CORS allowlist.
+- **Error responses**:
+  - In production, validation details are hidden.
+  - Generic 5xx messages are preferred (detailed messages are only exposed in development).
+- **CI guardrails**: CI fails if a tracked `.env` (non-example) or private key files are committed.
+
 ## Local development
 
 ### Requirements
@@ -49,7 +59,7 @@ pnpm install
 
 ### 2) Configure environment variables
 
-This repo uses a root `.env`.
+This repo uses a root `.env` (for the API, bot and database package scripts).
 
 ```bash
 cp .env.example .env
@@ -128,6 +138,7 @@ Notes:
 - `DISCORD_REDIRECT_URI` must match the API callback route: `/api/auth/callback`.
 - `JWT_SECRET` must be **at least 32 characters**.
 - In dev mode, the frontend can use `VITE_API_URL=http://localhost:3000`.
+- In production, `WEB_URL` (or `FRONTEND_URL`) and `DISCORD_REDIRECT_URI` are required.
 
 ## Docker (single-container production)
 
@@ -141,6 +152,7 @@ Relevant files:
 - `nginx.conf` (proxies `/api` to `localhost:3000`)
 - `docker-entrypoint.sh` (waits for DB and runs `prisma migrate deploy`)
 - `inject-env.sh` (writes `/usr/share/nginx/html/env.js`)
+- `supervisord.conf` (runs API + bot + nginx)
 
 ### 1) Create the Docker env file
 
@@ -175,6 +187,16 @@ docker compose --env-file .env.docker up -d --build
 docker compose --env-file .env.docker logs -f
 ```
 
+To map to random host ports (example):
+
+```bash
+HOST_WEB_PORT=$(shuf -i 20000-60000 -n 1)
+HOST_API_PORT=$(shuf -i 20000-60000 -n 1)
+
+HOST_WEB_PORT=$HOST_WEB_PORT HOST_API_PORT=$HOST_API_PORT \
+  docker compose --env-file .env.docker up -d --build
+```
+
 ### Port mapping
 
 The compose file maps host ports via:
@@ -189,6 +211,11 @@ In Docker, the frontend reads runtime configuration from `window.__ENV__` loaded
 - `VITE_API_URL` is injected to `window.__ENV__.apiUrl`
   - Set it to an empty string to use **same-origin** requests (recommended behind nginx). In that case, frontend requests will be relative (e.g. `/api/auth/me`).
 - `VITE_DISCORD_CLIENT_ID` is injected to `window.__ENV__.discordClientId`
+
+### Health endpoints
+
+- API: `GET /health` (container healthcheck uses `http://localhost:3000/health` inside the container)
+- Nginx: `GET /health` returns a plain `200` for basic probing
 
 ## Scripts
 
