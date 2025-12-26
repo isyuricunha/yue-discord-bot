@@ -36,8 +36,10 @@ jobs:
           fi
 
           echo "Checking for private key markers in tracked files..."
-          if git grep -n "BEGIN PRIVATE KEY" -- .; then
+          markers=$(git grep -n "BEGIN PRIVATE KEY" -- . ':(exclude).github/workflows/ci.yml' || true)
+          if [ -n "$markers" ]; then
             echo "ERROR: private key marker detected in tracked file(s)."
+            echo "$markers"
             exit 1
           fi
 
