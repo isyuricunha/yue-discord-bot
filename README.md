@@ -1,24 +1,25 @@
-# Yue Bot Discord
+# Yue Discord Bot (YueBot)
 
-Bot para Discord com:
+This repository contains a **pnpm monorepo** with:
 
-- **Bot** (Discord.js) para moderação e sorteios
-- **API** (Fastify) consumida pelo painel
-- **Web UI** (React + Vite) para gerenciar/configurar
+- **Bot** (`discord.js`) for moderation, giveaways and community automation
+- **API** (`fastify`) used by the admin panel
+- **Web UI** (`react` + `vite`) admin panel
+- **Database package** (`prisma`) shared by bot and API
 
-Monorepo `pnpm` com workspaces:
+## Repository layout
 
-```
+```text
 apps/
   api/   (Fastify)
   bot/   (Discord.js)
   web/   (React + Vite)
 packages/
-  database/ (Prisma)
-  shared/   (utils/schemas compartilhados)
+  database/ (Prisma client + migrations)
+  shared/   (shared utilities/schemas)
 ```
 
-## Stack (atual)
+## Tech stack
 
 - **Node.js**: 24+
 - **pnpm**: 10+
@@ -29,170 +30,166 @@ packages/
 - **React**: 19+
 - **Vite**: 7+
 - **TailwindCSS**: 4+
-- **ESLint**: 9 (flat config)
+- **ESLint**: 9
 
-## 🚀 Quick Start
+## Local development
 
-### Pré-requisitos
+### Requirements
 
 - Node.js 24+
 - pnpm 10+
-- PostgreSQL (local ou remoto)
-- App do Discord (token/clientId/clientSecret)
+- PostgreSQL (local or remote)
+- A Discord application (bot token + OAuth client id/secret)
 
-### 1) Instalar dependências
+### 1) Install dependencies
 
 ```bash
 pnpm install
 ```
 
-### 2) Configurar `.env`
+### 2) Configure environment variables
+
+This repo uses a root `.env`.
 
 ```bash
 cp .env.example .env
-# Edite .env com suas credenciais
 ```
 
-⚠️ Importante (monorepo): o **Web UI (Vite)** carrega variáveis de ambiente a partir de `apps/web/.env` (diretório do app), e **não** herda automaticamente o `.env` da raiz.
-
-Para o painel:
-
-```bash
-cp apps/web/.env.example apps/web/.env
-# Edite apps/web/.env (VITE_*) se necessário
-```
-
-### `.env.local` (opcional) - override local
-
-Se você quiser rodar em ambiente local (HTTP) sem mexer no `.env` base (que pode estar configurado com URLs HTTPS/domínio), use um `.env.local`.
-
-O loader do projeto carrega o `.env` e, se existir, carrega o `.env.local` em seguida (sobrescrevendo as variáveis).
+Optionally, you can create a `.env.local` to override `.env` values locally (the loader reads `.env` first, then `.env.local` and overrides values).
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-- `/.env.example`: exemplo com **HTTPS + domínio** (produção/ambiente realista)
-- `/.env.local.example`: exemplo com **HTTP + IP/IP:porta** (dev/local)
+Important: the Web UI is a Vite app. In dev mode, Vite resolves env variables from the app folder (`apps/web`).
 
-### 3) Banco de dados (Prisma)
+```bash
+cp apps/web/.env.example apps/web/.env
+```
+
+### 3) Database (Prisma)
 
 ```bash
 pnpm db:generate
 
-# Para desenvolvimento (cria/atualiza schema direto)
+# Development schema sync
 pnpm db:push
 
-# Para migrations (cria/aplica migrations)
+# Migrations
 pnpm db:migrate
 
-# UI do Prisma
+# Prisma Studio
 pnpm db:studio
 ```
 
-### 4) Rodar em desenvolvimento
+### 4) Run dev servers
 
 ```bash
-# Tudo em paralelo (bot + api + web)
+# Run bot + api + web in parallel
 pnpm dev
 
-# Ou individual
+# Or individually
 pnpm dev:bot
 pnpm dev:api
 pnpm dev:web
 ```
 
-### 5) URLs
+### 5) Default URLs
 
 - Web UI: `http://localhost:5173`
 - API: `http://localhost:3000`
 
-## Variáveis de ambiente (root)
+## Environment variables overview
 
-O projeto usa um `.env` na raiz. Comece copiando `.env.example`.
-
-### Web UI (Vite) - `.env` próprio
-
-O app do painel (`apps/web`) usa Vite, então as variáveis do frontend precisam:
-
-- Estar no arquivo `apps/web/.env` (copie de `apps/web/.env.example`), e
-- Começar com o prefixo `VITE_` (ex: `VITE_API_URL`).
-
-Se você apenas definir `VITE_API_URL` no `.env` da raiz, **não é garantido** que o Vite vá ler, porque ele resolve o `.env` relativo ao diretório do app.
-
-Obrigatórias para rodar tudo local:
+The main required variables for a complete setup are:
 
 ```env
+DATABASE_URL=
+
 DISCORD_TOKEN=
+DISCORD_BOT_TOKEN=
 DISCORD_CLIENT_ID=
 DISCORD_CLIENT_SECRET=
-DATABASE_URL=
+DISCORD_REDIRECT_URI=
+
 JWT_SECRET=
 INTERNAL_API_SECRET=
+
+WEB_URL=
+API_URL=
+FRONTEND_URL=
+
+VITE_API_URL=
+VITE_DISCORD_CLIENT_ID=
 ```
 
-Observações:
+Notes:
 
-- `DISCORD_REDIRECT_URI` precisa bater com a rota de callback OAuth da API (`/api/auth/callback`).
-- `WEB_URL` e `API_URL` são usados para CORS e redirects.
+- `DISCORD_REDIRECT_URI` must match the API callback route: `/api/auth/callback`.
+- `JWT_SECRET` must be **at least 32 characters**.
+- In dev mode, the frontend can use `VITE_API_URL=http://localhost:3000`.
 
-## Scripts (monorepo)
+## Docker (single-container production)
+
+This repo ships a single container with **nginx + API + bot** (via `supervisord`).
+
+Relevant files:
+
+- `Dockerfile`
+- `docker-compose.yml`
+- `nginx.conf` (proxies `/api` to `localhost:3000`)
+- `docker-entrypoint.sh` (waits for DB and runs `prisma migrate deploy`)
+- `inject-env.sh` (writes `/usr/share/nginx/html/env.js`)
+
+### 1) Create the Docker env file
 
 ```bash
-pnpm dev
-pnpm build
+cp .env.docker.example .env.docker
+```
+
+### 2) Start containers
+
+```bash
+docker compose up -d --build
+docker compose logs -f
+```
+
+### Port mapping
+
+The compose file maps host ports via:
+
+- `HOST_WEB_PORT` (default `80`) -> container `80`
+- `HOST_API_PORT` (default `3000`) -> container `3000`
+
+### Frontend runtime config (`/env.js`)
+
+In Docker, the frontend reads runtime configuration from `window.__ENV__` loaded from `/env.js`.
+
+- `VITE_API_URL` is injected to `window.__ENV__.apiUrl`
+  - Set it to an empty string to use **same-origin** requests (recommended behind nginx). In that case, frontend requests will be relative (e.g. `/api/auth/me`).
+- `VITE_DISCORD_CLIENT_ID` is injected to `window.__ENV__.discordClientId`
+
+## Scripts
+
+```bash
 pnpm lint
 pnpm type-check
+pnpm build
 
+pnpm dev
 pnpm dev:bot
 pnpm dev:api
 pnpm dev:web
-
-pnpm db:generate
-pnpm db:push
-pnpm db:migrate
-pnpm db:studio
 ```
 
-## Deploy de Slash Commands
+## Slash commands
 
-Quando você criar/alterar comandos do bot, registre no Discord:
+Whenever you add or change bot commands, deploy them to Discord:
 
 ```bash
 pnpm --filter @yuebot/bot deploy-commands
 ```
 
-## Docker (produção)
+## License
 
-Este repo inclui um container único com **nginx + api + bot** (supervisor).
-
-Arquivos relevantes:
-
-- `Dockerfile`
-- `docker-compose.yml`
-- `docker-entrypoint.sh` (aguarda DB e roda `prisma migrate deploy`)
-- `inject-env.sh` (gera `/usr/share/nginx/html/env.js`)
-
-### Como rodar
-
-1) Copie `.env.docker.example` (ou configure as env vars no compose).
-
-2) Suba o compose:
-
-```bash
-docker-compose up -d
-docker-compose logs -f
-```
-
-### Runtime env no frontend
-
-No Docker, o frontend lê a configuração em tempo de execução via `window.__ENV__` carregado de `/env.js`.
-
-- `VITE_API_URL` -> `window.__ENV__.apiUrl`
-- `VITE_DISCORD_CLIENT_ID` -> `window.__ENV__.discordClientId`
-
-## Troubleshooting
-
-- Se o bot não responder a slash commands, rode `deploy-commands`.
-- Se `pnpm db:generate` falhar por env, confirme `DATABASE_URL` no `.env`.
-- No Docker, a API é servida atrás do nginx em `/api` e o frontend precisa de `VITE_API_URL` apontando para o host correto.
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See `LICENSE`.
