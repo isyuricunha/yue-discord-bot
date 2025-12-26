@@ -113,17 +113,33 @@ export async function statsRoutes(fastify: FastifyInstance) {
       // Fetch total members from Discord API
       let totalMembers = 0
       try {
+        const bot_token = process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN
+        if (!bot_token) {
+          throw new Error('Missing Discord bot token')
+        }
+
         const discordResponse = await axios.get(
           `https://discord.com/api/v10/guilds/${guildId}?with_counts=true`,
           {
             headers: {
-              Authorization: `Bot ${process.env.DISCORD_TOKEN}`,
+              Authorization: `Bot ${bot_token}`,
             },
           }
         )
         totalMembers = discordResponse.data.approximate_member_count || 0
       } catch (error: unknown) {
-        fastify.log.error({ error }, 'Erro ao buscar membros do Discord')
+        if (axios.isAxiosError(error)) {
+          fastify.log.error(
+            {
+              message: error.message,
+              code: error.code,
+              status: error.response?.status,
+            },
+            'Erro ao buscar membros do Discord'
+          )
+        } else {
+          fastify.log.error({ err: error }, 'Erro ao buscar membros do Discord')
+        }
       }
 
       return reply.send({
