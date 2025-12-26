@@ -15,6 +15,32 @@ jobs:
       - name: Check out the repo
         uses: actions/checkout@v4
 
+      - name: Security - fail on committed secrets
+        run: |
+          set -euo pipefail
+
+          echo "Checking for committed .env files (non-example)..."
+          env_files=$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v -E '\.example$' || true)
+          if [ -n "$env_files" ]; then
+            echo "ERROR: committed .env files detected:"
+            echo "$env_files"
+            exit 1
+          fi
+
+          echo "Checking for committed private key files..."
+          key_files=$(git ls-files | grep -E '(\.(pem|key|p12)$|(^|/)id_rsa($|\.)|(^|/)id_ed25519($|\.))' || true)
+          if [ -n "$key_files" ]; then
+            echo "ERROR: committed key files detected:"
+            echo "$key_files"
+            exit 1
+          fi
+
+          echo "Checking for private key markers in tracked files..."
+          if git grep -n "BEGIN PRIVATE KEY" -- .; then
+            echo "ERROR: private key marker detected in tracked file(s)."
+            exit 1
+          fi
+
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
 
