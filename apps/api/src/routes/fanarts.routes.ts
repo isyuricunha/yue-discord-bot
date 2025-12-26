@@ -8,9 +8,9 @@ function require_fanart_reviewer(fastify: FastifyInstance, user_id: string): boo
   return true
 }
 
-function get_fanart_reviewer_forbidden_error(fastify: FastifyInstance) {
+function get_fanart_reviewer_forbidden_error(fastify: FastifyInstance, viewer_is_owner: boolean) {
   const allowlist = fastify.config?.admin?.fanArtReviewerUserIds as string[] | undefined
-  if (!allowlist || allowlist.length === 0) {
+  if (viewer_is_owner && (!allowlist || allowlist.length === 0)) {
     return {
       error: 'Forbidden',
       details: 'Fan art reviewer is not configured. Set FAN_ART_REVIEWER_USER_IDS in the API environment.',
@@ -80,7 +80,7 @@ export async function fanartsRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     if (!require_fanart_reviewer(fastify, request.user.userId)) {
-      return reply.code(403).send(get_fanart_reviewer_forbidden_error(fastify))
+      return reply.code(403).send(get_fanart_reviewer_forbidden_error(fastify, request.user.isOwner))
     }
 
     const { limit = 50, offset = 0 } = request.query as { limit?: number; offset?: number }
@@ -104,7 +104,7 @@ export async function fanartsRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     if (!require_fanart_reviewer(fastify, request.user.userId)) {
-      return reply.code(403).send(get_fanart_reviewer_forbidden_error(fastify))
+      return reply.code(403).send(get_fanart_reviewer_forbidden_error(fastify, request.user.isOwner))
     }
 
     const { fanArtId } = request.params as { fanArtId: string }

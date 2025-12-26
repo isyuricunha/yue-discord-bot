@@ -9,9 +9,9 @@ function require_badge_admin(fastify: FastifyInstance, user_id: string): boolean
   return true
 }
 
-function get_badge_admin_forbidden_error(fastify: FastifyInstance) {
+function get_badge_admin_forbidden_error(fastify: FastifyInstance, viewer_is_owner: boolean) {
   const allowlist = fastify.config?.admin?.badgeAdminUserIds as string[] | undefined
-  if (!allowlist || allowlist.length === 0) {
+  if (viewer_is_owner && (!allowlist || allowlist.length === 0)) {
     return { error: 'Forbidden', details: 'Badge admin is not configured. Set BADGE_ADMIN_USER_IDS in the API environment.' }
   }
   return { error: 'Forbidden' }
@@ -35,7 +35,7 @@ export async function badgesRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     if (!require_badge_admin(fastify, request.user.userId)) {
-      return reply.code(403).send(get_badge_admin_forbidden_error(fastify))
+      return reply.code(403).send(get_badge_admin_forbidden_error(fastify, request.user.isOwner))
     }
 
     const { badgeId } = request.params as { badgeId: string }
@@ -71,7 +71,7 @@ export async function badgesRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     if (!require_badge_admin(fastify, request.user.userId)) {
-      return reply.code(403).send(get_badge_admin_forbidden_error(fastify))
+      return reply.code(403).send(get_badge_admin_forbidden_error(fastify, request.user.isOwner))
     }
 
     const parsed = badgeUpsertSchema.safeParse(request.body)
@@ -107,7 +107,7 @@ export async function badgesRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     if (!require_badge_admin(fastify, request.user.userId)) {
-      return reply.code(403).send(get_badge_admin_forbidden_error(fastify))
+      return reply.code(403).send(get_badge_admin_forbidden_error(fastify, request.user.isOwner))
     }
 
     const parsed = userBadgeGrantSchema.safeParse(request.body)
@@ -162,7 +162,7 @@ export async function badgesRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     if (!require_badge_admin(fastify, request.user.userId)) {
-      return reply.code(403).send(get_badge_admin_forbidden_error(fastify))
+      return reply.code(403).send(get_badge_admin_forbidden_error(fastify, request.user.isOwner))
     }
 
     const parsed = userBadgeRevokeSchema.safeParse(request.body)

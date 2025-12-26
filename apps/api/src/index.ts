@@ -82,6 +82,32 @@ app.addHook('onRequest', async (_request, reply) => {
     .header('x-dns-prefetch-control', 'off');
 });
 
+app.addHook('onRequest', async (request, reply) => {
+  const method = request.method.toUpperCase()
+  const is_state_changing = method !== 'GET' && method !== 'HEAD' && method !== 'OPTIONS'
+  if (!is_state_changing) return
+
+  const auth_header = request.headers.authorization
+  const using_bearer = typeof auth_header === 'string' && auth_header.toLowerCase().startsWith('bearer ')
+
+  const cookies = request.cookies as Record<string, string | undefined> | undefined
+  const has_auth_cookie = Boolean(cookies?.yuebot_token)
+
+  // If the request is authenticated via cookie (no Bearer token), enforce Origin checks
+  // to mitigate CSRF when COOKIE_SAMESITE=none.
+  if (!using_bearer && has_auth_cookie) {
+    const origin = request.headers.origin
+    if (typeof origin !== 'string' || !origin.trim()) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const normalized = origin.replace(/\/$/, '')
+    if (!allowedCorsOrigins.includes(normalized)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+  }
+})
+
 app.setNotFoundHandler(async (_request, reply) => {
   return reply.code(404).send({ error: 'Not found' });
 });
