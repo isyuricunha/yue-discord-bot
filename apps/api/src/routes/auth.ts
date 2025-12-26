@@ -137,7 +137,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           {
             message: error.message,
             status: error.response?.status,
-            data: error.response?.data,
+            code: error.code,
           },
           'Erro no OAuth callback (axios)'
         );

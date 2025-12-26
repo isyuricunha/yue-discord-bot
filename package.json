@@ -4,7 +4,7 @@
   "private": true,
   "description": "Bot Discord multifuncional com Web UI - Moderação e Sorteios",
   "author": "Yue Bot Team",
-  "license": "MIT",
+  "license": "AGPL-3.0-only",
   "workspaces": [
     "apps/*",
     "packages/*"

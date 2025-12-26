@@ -7,7 +7,7 @@ env_file="/usr/share/nginx/html/env.js"
 
 cat > "$env_file" <<EOF
 window.__ENV__ = {
-  apiUrl: "${VITE_API_URL:-http://localhost:3000}",
+  apiUrl: "${VITE_API_URL:-}",
   discordClientId: "${VITE_DISCORD_CLIENT_ID:-}",
 };
 EOF

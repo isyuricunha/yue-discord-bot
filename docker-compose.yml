@@ -5,8 +5,8 @@ services:
     container_name: yuebot
     restart: unless-stopped
     ports:
-      - "${WEB_PORT:-80}:80"      # Web frontend (nginx)
-      - "${API_PORT:-3000}:3000"  # API backend
+      - "${HOST_WEB_PORT:-80}:80"      # Web frontend (nginx)
+      - "${HOST_API_PORT:-3000}:3000"  # API backend
     env_file:
       - ./.env.docker
     environment:
