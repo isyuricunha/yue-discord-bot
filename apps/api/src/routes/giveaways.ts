@@ -4,6 +4,7 @@ import { createGiveawaySchema } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
 import { validation_error_details } from '../utils/validation_error'
+import { public_error_message } from '../utils/public_error'
 
 export default async function giveawayRoutes(fastify: FastifyInstance) {
   // Criar sorteio via Web
@@ -48,7 +49,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       return { success: true, giveaway };
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to create giveaway');
-      return reply.code(500).send({ error: 'Failed to create giveaway' });
+      return reply.code(500).send({ error: public_error_message(fastify, 'Failed to create giveaway') });
     }
   });
 

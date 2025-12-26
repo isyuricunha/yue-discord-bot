@@ -5,6 +5,7 @@ import { get_guild_channels, get_guild_roles, send_guild_message } from '../inte
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
 import { validation_error_details } from '../utils/validation_error'
+import { public_error_message } from '../utils/public_error'
 
 export default async function guildRoutes(fastify: FastifyInstance) {
   const message_rate_limit = new Map<string, { count: number; windowStart: number }>();
@@ -647,7 +648,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return { channels: data.channels };
     } catch (error: unknown) {
       request.log.error({ err: safe_error_details(error) }, 'Failed to fetch channels from bot internal API');
-      return reply.code(502).send({ error: 'Failed to fetch channels' });
+      return reply.code(502).send({ error: public_error_message(fastify, 'Failed to fetch channels', 'Bad gateway') });
     }
   });
 
@@ -667,7 +668,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return { roles: data.roles };
     } catch (error: unknown) {
       request.log.error({ err: safe_error_details(error) }, 'Failed to fetch roles from bot internal API');
-      return reply.code(502).send({ error: 'Failed to fetch roles' });
+      return reply.code(502).send({ error: public_error_message(fastify, 'Failed to fetch roles', 'Bad gateway') });
     }
   });
 }

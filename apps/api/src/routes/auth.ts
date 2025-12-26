@@ -4,6 +4,7 @@ import crypto from 'node:crypto';
 import { CONFIG } from '../config';
 import { is_owner } from '../utils/permissions';
 import { safe_error_details } from '../utils/safe_error'
+import { public_error_message } from '../utils/public_error'
 
 interface DiscordUser {
   id: string;
@@ -256,7 +257,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       return { success: true }
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to refresh token');
-      return reply.code(500).send({ error: 'Failed to refresh token' });
+      return reply.code(500).send({ error: public_error_message(fastify, 'Failed to refresh token') });
     }
   });
 
