@@ -41,5 +41,12 @@
     "node": ">=24.0.0",
     "pnpm": ">=10.0.0"
   },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@prisma/engines",
+      "esbuild",
+      "prisma"
+    ]
+  },
   "packageManager": "pnpm@10.11.0"
 }
