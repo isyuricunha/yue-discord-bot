@@ -143,7 +143,10 @@ export default async function authRoutes(fastify: FastifyInstance) {
           'Erro no OAuth callback (axios)'
         );
 
-        return reply.code(500).send({ error: 'Authentication failed', details: error.message });
+        const include_details = CONFIG.environment === 'development'
+        return reply.code(500).send(include_details
+          ? { error: 'Authentication failed', details: error.message }
+          : { error: 'Authentication failed' });
       }
 
       fastify.log.error({ err: safe_error_details(error) }, 'Erro no OAuth callback');
