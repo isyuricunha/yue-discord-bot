@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database';
 import { createGiveawaySchema } from '@yuebot/shared';
+import { safe_error_details } from '../utils/safe_error'
 
 export default async function giveawayRoutes(fastify: FastifyInstance) {
   // Criar sorteio via Web
@@ -43,7 +44,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
 
       return { success: true, giveaway };
     } catch (error: unknown) {
-      fastify.log.error(error as Error);
+      fastify.log.error({ err: safe_error_details(error) }, 'Failed to create giveaway');
       return reply.code(500).send({ error: 'Failed to create giveaway' });
     }
   });
@@ -172,7 +173,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
 
       return reply.send(entry)
     } catch (error: unknown) {
-      fastify.log.error(error as Error)
+      fastify.log.error({ err: safe_error_details(error) }, 'Failed to add giveaway entry')
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
@@ -216,7 +217,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
 
       return reply.send(entry)
     } catch (error: unknown) {
-      fastify.log.error(error as Error)
+      fastify.log.error({ err: safe_error_details(error) }, 'Failed to update giveaway entry choices')
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })

@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '@yuebot/database';
 import { autoModConfigSchema, guildAutoroleConfigSchema, guildXpConfigSchema, xpResetSchema } from '@yuebot/shared';
 import { get_guild_channels, get_guild_roles, send_guild_message } from '../internal/bot_internal_api';
+import { safe_error_details } from '../utils/safe_error'
 
 export default async function guildRoutes(fastify: FastifyInstance) {
   type auth_user = {
@@ -635,7 +636,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       const data = await get_guild_channels(guildId, request.log);
       return { channels: data.channels };
     } catch (error: unknown) {
-      request.log.error({ err: error }, 'Failed to fetch channels from bot internal API');
+      request.log.error({ err: safe_error_details(error) }, 'Failed to fetch channels from bot internal API');
       return reply.code(502).send({ error: 'Failed to fetch channels' });
     }
   });
@@ -655,7 +656,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       const data = await get_guild_roles(guildId, request.log);
       return { roles: data.roles };
     } catch (error: unknown) {
-      request.log.error({ err: error }, 'Failed to fetch roles from bot internal API');
+      request.log.error({ err: safe_error_details(error) }, 'Failed to fetch roles from bot internal API');
       return reply.code(502).send({ error: 'Failed to fetch roles' });
     }
   });

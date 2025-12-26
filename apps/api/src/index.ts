@@ -15,6 +15,7 @@ import { membersRoutes } from './routes/members.routes';
 import { profileRoutes } from './routes/profile.routes'
 import { badgesRoutes } from './routes/badges.routes'
 import { fanartsRoutes } from './routes/fanarts.routes'
+import { safe_error_details } from './utils/safe_error'
 
 const app = Fastify({
   trustProxy: CONFIG.api.trustProxy,
@@ -86,7 +87,7 @@ app.setNotFoundHandler(async (_request, reply) => {
 });
 
 app.setErrorHandler(async (error, request, reply) => {
-  request.log.error({ err: error }, 'Unhandled error');
+  request.log.error({ err: safe_error_details(error) }, 'Unhandled error');
 
   const statusCode =
     typeof (error as { statusCode?: unknown }).statusCode === 'number'
@@ -148,7 +149,7 @@ const start = async () => {
       app.log.info(app.printRoutes());
     }
   } catch (err: unknown) {
-    app.log.error(err as Error);
+    app.log.error({ err: safe_error_details(err) }, 'Failed to start API');
     process.exit(1);
   }
 };

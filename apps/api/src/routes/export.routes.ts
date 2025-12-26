@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database'
+import { safe_error_details } from '../utils/safe_error'
 
 export async function exportRoutes(fastify: FastifyInstance) {
   // Export giveaway entries
@@ -83,7 +84,7 @@ export async function exportRoutes(fastify: FastifyInstance) {
           .send(data)
       }
     } catch (error: unknown) {
-      fastify.log.error(error as Error)
+      fastify.log.error({ err: safe_error_details(error) }, 'Failed to export giveaway entries')
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
@@ -144,7 +145,7 @@ export async function exportRoutes(fastify: FastifyInstance) {
           .send(data)
       }
     } catch (error: unknown) {
-      fastify.log.error(error as Error)
+      fastify.log.error({ err: safe_error_details(error) }, 'Failed to export modlogs')
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })

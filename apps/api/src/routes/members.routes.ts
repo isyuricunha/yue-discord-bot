@@ -1,6 +1,7 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
 import { get_guild_members } from '../internal/bot_internal_api'
+import { safe_error_details } from '../utils/safe_error'
 
 export async function membersRoutes(fastify: FastifyInstance) {
   // Get all members for a guild
@@ -48,7 +49,7 @@ export async function membersRoutes(fastify: FastifyInstance) {
 
       return reply.send(members)
     } catch (error: unknown) {
-      fastify.log.error(error as Error)
+      fastify.log.error({ err: safe_error_details(error) }, 'Failed to list guild members')
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
@@ -86,7 +87,7 @@ export async function membersRoutes(fastify: FastifyInstance) {
 
       return reply.send(member)
     } catch (error: unknown) {
-      fastify.log.error(error as Error)
+      fastify.log.error({ err: safe_error_details(error) }, 'Failed to get member details')
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
@@ -121,7 +122,7 @@ export async function membersRoutes(fastify: FastifyInstance) {
         return reply.code(404).send({ error: 'Member not found' })
       }
 
-      fastify.log.error(error as Error)
+      fastify.log.error({ err: safe_error_details(error) }, 'Failed to update member notes')
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
