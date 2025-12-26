@@ -10,6 +10,22 @@ const allow_token_storage = import.meta.env.DEV
 
 axios.defaults.withCredentials = true
 
+function error_details(error: unknown) {
+  if (axios.isAxiosError(error)) {
+    return {
+      message: error.message,
+      status: error.response?.status,
+      code: error.code,
+    }
+  }
+
+  if (error instanceof Error) {
+    return { message: error.message }
+  }
+
+  return { message: 'Unknown error' }
+}
+
 interface User {
   userId: string
   username: string
@@ -129,7 +145,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       const response = await axios.get(`${API_URL}/api/auth/me`)
       set({ user: response.data, isLoading: false })
     } catch (error) {
-      if (is_dev) console.error('[AuthStore] Erro ao carregar usuário:', error)
+      if (is_dev) console.error('[AuthStore] Erro ao carregar usuário:', error_details(error))
       set({ token: null, user: null, isLoading: false })
       if (allow_token_storage) localStorage.removeItem(STORAGE_KEY)
       delete axios.defaults.headers.common['Authorization']
@@ -162,7 +178,7 @@ export const useAuthStore = create<AuthStore>((set, get) => ({
       isRefreshingToken = false
       return true
     } catch (error) {
-      if (is_dev) console.error('[AuthStore] Erro ao renovar token:', error)
+      if (is_dev) console.error('[AuthStore] Erro ao renovar token:', error_details(error))
       set({ isRefreshing: false })
       get().logout()
       isRefreshingToken = false
