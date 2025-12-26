@@ -20,9 +20,39 @@ interface DiscordGuild {
   permissions: string;
 }
 
+type rate_limit_entry = {
+  count: number
+  windowStart: number
+}
+
+const rate_limit_state = new Map<string, rate_limit_entry>()
+
+function allow_request_rate_limited(key: string, max: number, window_ms: number): boolean {
+  const now = Date.now()
+  const existing = rate_limit_state.get(key)
+  if (!existing || now - existing.windowStart > window_ms) {
+    rate_limit_state.set(key, { count: 1, windowStart: now })
+    return true
+  }
+
+  if (existing.count >= max) return false
+  existing.count += 1
+  return true
+}
+
+function rate_limit_key(prefix: string, request: { ip: string }) {
+  return `${prefix}:${request.ip}`
+}
+
 export default async function authRoutes(fastify: FastifyInstance) {
   // Login - Redireciona para Discord OAuth
   fastify.get('/login', async (_request, reply) => {
+    const request = _request
+    const key = rate_limit_key('auth:login', request)
+    if (!allow_request_rate_limited(key, 30, 60_000)) {
+      return reply.code(429).send({ error: 'Too many requests' })
+    }
+
     const state = crypto.randomBytes(16).toString('hex');
 
     reply.setCookie('oauth_state', state, {
@@ -47,6 +77,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
 
   // Callback - Recebe code do Discord
   fastify.get('/callback', async (request, reply) => {
+    const key = rate_limit_key('auth:callback', request)
+    if (!allow_request_rate_limited(key, 30, 60_000)) {
+      return reply.code(429).send({ error: 'Too many requests' })
+    }
+
     const { code, state } = request.query as { code?: string; state?: string };
 
     if (!code) {
@@ -165,6 +200,11 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/refresh', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
+    const key = rate_limit_key('auth:refresh', request)
+    if (!allow_request_rate_limited(key, 60, 60_000)) {
+      return reply.code(429).send({ error: 'Too many requests' })
+    }
+
     try {
       const user = request.user;
       
@@ -208,6 +248,12 @@ export default async function authRoutes(fastify: FastifyInstance) {
   fastify.post('/logout', {
     preHandler: [fastify.authenticate],
   }, async (_request, reply) => {
+    const request = _request
+    const key = rate_limit_key('auth:logout', request)
+    if (!allow_request_rate_limited(key, 60, 60_000)) {
+      return reply.code(429).send({ error: 'Too many requests' })
+    }
+
     reply.clearCookie('yuebot_token', {
       path: '/',
       domain: CONFIG.cookies.domain,
