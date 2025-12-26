@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
+import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { CONFIG } from './config';
@@ -36,6 +37,24 @@ app.decorate('config', CONFIG);
 
 // Plugins
 app.register(cookie);
+
+app.register(helmet, {
+  // This is a JSON API; enabling CSP here often causes more harm than good.
+  contentSecurityPolicy: false,
+
+  // Avoid cross-origin policy surprises for an API behind reverse proxies.
+  crossOriginEmbedderPolicy: false,
+  crossOriginOpenerPolicy: false,
+  crossOriginResourcePolicy: false,
+
+  referrerPolicy: { policy: 'no-referrer' },
+
+  // Enable HSTS only in production.
+  // Note: HSTS is only effective over HTTPS.
+  hsts: CONFIG.environment === 'production'
+    ? { maxAge: 60 * 60 * 24 * 180 }
+    : false,
+});
 
 const defaultCorsOrigins = CONFIG.environment === 'development'
   ? [CONFIG.web.url, 'http://localhost:5173']
@@ -74,14 +93,6 @@ app.decorate('authenticate', async function (request: FastifyRequest, reply: Fas
     await reply.code(401).send({ error: 'Unauthorized' });
     return;
   }
-});
-
-app.addHook('onRequest', async (_request, reply) => {
-  reply
-    .header('x-content-type-options', 'nosniff')
-    .header('x-frame-options', 'DENY')
-    .header('referrer-policy', 'no-referrer')
-    .header('x-dns-prefetch-control', 'off');
 });
 
 app.addHook('onRequest', async (request, reply) => {
