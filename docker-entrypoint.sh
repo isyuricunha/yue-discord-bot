@@ -1,10 +1,17 @@
 #!/bin/bash
-set -e
+set -euo pipefail
 
 echo "🚀 Starting Yue Bot..."
 
+if [ -z "${DATABASE_URL:-}" ]; then
+  echo "ERROR: DATABASE_URL is not set"
+  exit 1
+fi
+
 # Wait for PostgreSQL
 echo "⏳ Waiting for PostgreSQL..."
+attempt=0
+max_attempts=60
 until node -e "
   const net = require('node:net');
   const { URL } = require('node:url');
@@ -31,6 +38,11 @@ until node -e "
     process.exit(1);
   });
 "; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge "$max_attempts" ]; then
+    echo "ERROR: PostgreSQL did not become ready in time"
+    exit 1
+  fi
   echo "PostgreSQL is unavailable - sleeping"
   sleep 2
 done
