@@ -2,6 +2,22 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 
+function safe_error_details(error) {
+  if (error && typeof error === 'object') {
+    return {
+      name: typeof error.name === 'string' ? error.name : undefined,
+      message: typeof error.message === 'string' ? error.message : 'Unknown error',
+      code: typeof error.code === 'string' ? error.code : undefined,
+    };
+  }
+
+  if (typeof error === 'string') {
+    return { message: error };
+  }
+
+  return { message: 'Unknown error' };
+}
+
 const rootEnvPath = path.resolve(__dirname, '../../../.env');
 const rootEnvLocalPath = path.resolve(__dirname, '../../../.env.local');
 
@@ -68,7 +84,7 @@ function runPrisma(args, opts = {}) {
 
   if (result.error) {
     // eslint-disable-next-line no-console
-    console.error('Failed to run prisma:', result.error);
+    console.error('Failed to run prisma:', safe_error_details(result.error));
     process.exit(1);
   }
 

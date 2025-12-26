@@ -1,5 +1,34 @@
 import { prisma } from '../src/index';
 
+type safe_error_details_payload = {
+  name?: string
+  message: string
+  code?: string
+}
+
+function safe_error_details(error: unknown): safe_error_details_payload {
+  if (error instanceof Error) {
+    const any_error = error as unknown as { code?: unknown }
+
+    const details: safe_error_details_payload = {
+      name: error.name,
+      message: error.message,
+    }
+
+    if (typeof any_error.code === 'string') {
+      details.code = any_error.code
+    }
+
+    return details
+  }
+
+  if (typeof error === 'string') {
+    return { message: error }
+  }
+
+  return { message: 'Unknown error' }
+}
+
 async function main() {
   await prisma.$connect();
 
@@ -68,7 +97,7 @@ async function main() {
 
 main().catch(async (err) => {
   // eslint-disable-next-line no-console
-  console.error(err);
+  console.error(safe_error_details(err));
 
   try {
     await prisma.$disconnect();
