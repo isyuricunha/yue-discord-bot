@@ -133,12 +133,21 @@ app.setErrorHandler(async (error, request, reply) => {
       ? (error as { statusCode: number }).statusCode
       : 500;
 
+  const default_message_by_status: Record<number, string> = {
+    400: 'Bad request',
+    401: 'Unauthorized',
+    403: 'Forbidden',
+    404: 'Not found',
+    429: 'Too many requests',
+  };
+
+  const should_expose_message = CONFIG.environment === 'development' && statusCode < 500;
   const message =
     statusCode >= 500
       ? 'Internal server error'
-      : typeof (error as { message?: unknown }).message === 'string'
+      : should_expose_message && typeof (error as { message?: unknown }).message === 'string'
           ? (error as { message: string }).message
-          : 'Bad request';
+          : (default_message_by_status[statusCode] ?? 'Bad request');
 
   return reply.code(statusCode).send({ error: message });
 });
