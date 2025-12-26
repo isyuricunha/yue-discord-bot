@@ -3,18 +3,9 @@ import { prisma } from '@yuebot/database';
 import { autoModConfigSchema, guildAutoroleConfigSchema, guildXpConfigSchema, xpResetSchema } from '@yuebot/shared';
 import { get_guild_channels, get_guild_roles, send_guild_message } from '../internal/bot_internal_api';
 import { safe_error_details } from '../utils/safe_error'
+import { can_access_guild } from '../utils/guild_access'
 
 export default async function guildRoutes(fastify: FastifyInstance) {
-  type auth_user = {
-    userId: string;
-    guilds: string[];
-    isOwner: boolean;
-  };
-
-  function can_access_guild(user: auth_user, guild_id: string) {
-    return Boolean(user.isOwner) || user.guilds.includes(guild_id);
-  }
-
   const message_rate_limit = new Map<string, { count: number; windowStart: number }>();
   function can_send_message_now(user_id: string) {
     const window_ms = 10_000;
@@ -142,7 +133,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const configData = parsed.data;
 
     // Verificar permissão
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -254,7 +245,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const { limit = 50, offset = 0 } = request.query as { limit?: number; offset?: number };
     const user = request.user;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -320,7 +311,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const { guildId } = request.params as { guildId: string };
     const user = request.user;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -343,7 +334,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const { guildId } = request.params as { guildId: string };
     const user = request.user;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -374,7 +365,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
     }
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -437,7 +428,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
     }
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -517,7 +508,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const { limit = 25, offset = 0 } = request.query as { limit?: number; offset?: number };
     const user = request.user;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -562,7 +553,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const { guildId } = request.params as { guildId: string };
     const user = request.user;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -601,7 +592,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
     }
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -628,7 +619,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const { guildId } = request.params as { guildId: string };
     const user = request.user;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -648,7 +639,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const { guildId } = request.params as { guildId: string };
     const user = request.user;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 

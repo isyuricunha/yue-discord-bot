@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database';
 import { createGiveawaySchema } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
+import { can_access_guild } from '../utils/guild_access'
 
 export default async function giveawayRoutes(fastify: FastifyInstance) {
   // Criar sorteio via Web
@@ -18,7 +19,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
 
     const data = parsed.data;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -56,7 +57,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     const { guildId } = request.params as { guildId: string };
     const user = request.user;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -83,7 +84,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     const { guildId, giveawayId } = request.params as { guildId: string; giveawayId: string };
     const user = request.user;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -112,7 +113,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     const { guildId, giveawayId } = request.params as { guildId: string; giveawayId: string };
     const user = request.user;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
@@ -144,7 +145,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     const { userId, username, choices } = request.body as { userId: string; username: string; choices?: string[] }
     const user = request.user
 
-    if (!user.guilds?.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 
@@ -186,7 +187,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     const { choices } = request.body as { choices: string[] }
     const user = request.user
 
-    if (!user.guilds?.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 
@@ -233,7 +234,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     };
     const user = request.user;
 
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 

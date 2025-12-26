@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
 import { get_guild_members } from '../internal/bot_internal_api'
 import { safe_error_details } from '../utils/safe_error'
+import { can_access_guild } from '../utils/guild_access'
 
 export async function membersRoutes(fastify: FastifyInstance) {
   // Get all members for a guild
@@ -11,7 +12,7 @@ export async function membersRoutes(fastify: FastifyInstance) {
     const { guildId } = request.params as { guildId: string }
     const user = request.user
 
-    if (!user.guilds?.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 
@@ -61,7 +62,7 @@ export async function membersRoutes(fastify: FastifyInstance) {
     const { guildId, userId } = request.params as { guildId: string; userId: string }
     const user = request.user
 
-    if (!user.guilds?.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 
@@ -100,7 +101,7 @@ export async function membersRoutes(fastify: FastifyInstance) {
     const { notes } = request.body as { notes: string }
     const user = request.user
 
-    if (!user.guilds?.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 

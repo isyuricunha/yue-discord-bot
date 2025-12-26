@@ -1,6 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
 import axios from 'axios'
+import { can_access_guild } from '../utils/guild_access'
+import { safe_error_details } from '../utils/safe_error'
 
 export async function statsRoutes(fastify: FastifyInstance) {
   // Get guild statistics
@@ -11,7 +13,7 @@ export async function statsRoutes(fastify: FastifyInstance) {
     const user = request.user
 
     // Verificar permissão
-    if (!user.guilds.includes(guildId)) {
+    if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 
@@ -138,7 +140,7 @@ export async function statsRoutes(fastify: FastifyInstance) {
             'Erro ao buscar membros do Discord'
           )
         } else {
-          fastify.log.error({ err: error }, 'Erro ao buscar membros do Discord')
+          fastify.log.error({ err: safe_error_details(error) }, 'Erro ao buscar membros do Discord')
         }
       }
 
@@ -153,7 +155,7 @@ export async function statsRoutes(fastify: FastifyInstance) {
         actionsByType,
       })
     } catch (error: unknown) {
-      fastify.log.error(error as Error)
+      fastify.log.error({ err: safe_error_details(error) }, 'Failed to build guild stats')
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
