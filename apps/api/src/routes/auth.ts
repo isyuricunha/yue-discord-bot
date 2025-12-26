@@ -3,6 +3,7 @@ import axios from 'axios';
 import crypto from 'node:crypto';
 import { CONFIG } from '../config';
 import { is_owner } from '../utils/permissions';
+import { safe_error_details } from '../utils/safe_error'
 
 interface DiscordUser {
   id: string;
@@ -145,7 +146,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
         return reply.code(500).send({ error: 'Authentication failed', details: error.message });
       }
 
-      fastify.log.error(error as Error, 'Erro no OAuth callback');
+      fastify.log.error({ err: safe_error_details(error) }, 'Erro no OAuth callback');
       return reply.code(500).send({ error: 'Authentication failed' });
     }
   });
@@ -186,10 +187,16 @@ export default async function authRoutes(fastify: FastifyInstance) {
         path: '/',
         maxAge: 60 * 60 * 24 * 7,
       });
-      
-      return { token: newToken };
+
+      const auth_header = request.headers.authorization
+      const using_bearer_token = typeof auth_header === 'string' && auth_header.toLowerCase().startsWith('bearer ')
+      if (using_bearer_token) {
+        return { token: newToken }
+      }
+
+      return { success: true }
     } catch (error: unknown) {
-      fastify.log.error(error as Error);
+      fastify.log.error({ err: safe_error_details(error) }, 'Failed to refresh token');
       return reply.code(500).send({ error: 'Failed to refresh token' });
     }
   });
