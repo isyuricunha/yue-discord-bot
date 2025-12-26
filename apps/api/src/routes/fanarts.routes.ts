@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database'
 import { fanArtReviewSchema, fanArtStatusSchema, fanArtSubmitSchema } from '@yuebot/shared'
+import { validation_error_details } from '../utils/validation_error'
 
 function require_fanart_reviewer(fastify: FastifyInstance, user_id: string): boolean {
   const allowlist = fastify.config?.admin?.fanArtReviewerUserIds as string[] | undefined
@@ -45,7 +46,8 @@ export async function fanartsRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const parsed = fanArtSubmitSchema.safeParse(request.body)
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() })
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
     }
 
     const input = parsed.data
@@ -111,7 +113,8 @@ export async function fanartsRoutes(fastify: FastifyInstance) {
 
     const parsed = fanArtReviewSchema.safeParse(request.body)
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() })
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
     }
 
     const input = parsed.data

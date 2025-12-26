@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '@yuebot/database';
 import { globalXpResetSchema } from '@yuebot/shared';
 import { CONFIG } from '../config';
+import { validation_error_details } from '../utils/validation_error';
 
 export default async function xpRoutes(fastify: FastifyInstance) {
   fastify.get('/global-me', {
@@ -64,7 +65,8 @@ export default async function xpRoutes(fastify: FastifyInstance) {
 
     const parsed = globalXpResetSchema.safeParse(request.body ?? {});
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+      const details = validation_error_details(fastify, parsed.error);
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' });
     }
 
     const { scope, userId } = parsed.data;

@@ -3,6 +3,7 @@ import { prisma, Prisma } from '@yuebot/database';
 import { createGiveawaySchema } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
+import { validation_error_details } from '../utils/validation_error'
 
 export default async function giveawayRoutes(fastify: FastifyInstance) {
   // Criar sorteio via Web
@@ -14,7 +15,8 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     const parsed = createGiveawaySchema.safeParse(request.body);
 
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' });
     }
 
     const data = parsed.data;

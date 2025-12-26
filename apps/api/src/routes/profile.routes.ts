@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
 import { profileUpdateSchema } from '@yuebot/shared'
+import { validation_error_details } from '../utils/validation_error'
 
 function is_badge_admin(fastify: FastifyInstance, user_id: string): boolean {
   const allowlist = fastify.config?.admin?.badgeAdminUserIds as string[] | undefined
@@ -71,7 +72,8 @@ export async function profileRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const parsed = profileUpdateSchema.safeParse(request.body)
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() })
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
     }
 
     const user_id = request.user.userId

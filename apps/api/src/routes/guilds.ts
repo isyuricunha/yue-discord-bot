@@ -4,6 +4,7 @@ import { autoModConfigSchema, guildAutoroleConfigSchema, guildXpConfigSchema, xp
 import { get_guild_channels, get_guild_roles, send_guild_message } from '../internal/bot_internal_api';
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
+import { validation_error_details } from '../utils/validation_error'
 
 export default async function guildRoutes(fastify: FastifyInstance) {
   const message_rate_limit = new Map<string, { count: number; windowStart: number }>();
@@ -127,7 +128,8 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const parsed = autoModConfigSchema.safeParse(request.body);
 
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' });
     }
 
     const configData = parsed.data;
@@ -362,7 +364,8 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const parsed = guildAutoroleConfigSchema.safeParse(request.body);
 
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' });
     }
 
     if (!can_access_guild(user, guildId)) {
@@ -425,7 +428,8 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const parsed = guildXpConfigSchema.safeParse(request.body);
 
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' });
     }
 
     if (!can_access_guild(user, guildId)) {
@@ -589,7 +593,8 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const parsed = xpResetSchema.safeParse(request.body ?? {});
 
     if (!parsed.success) {
-      return reply.code(400).send({ error: 'Invalid body', details: parsed.error.flatten() });
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' });
     }
 
     if (!can_access_guild(user, guildId)) {

@@ -2,6 +2,8 @@ import type { FastifyReply, FastifyRequest } from 'fastify'
 import 'fastify'
 import '@fastify/jwt'
 
+type app_config = typeof import('../config').CONFIG
+
 type jwt_guild_data = {
   id: string
   name: string
@@ -34,13 +36,6 @@ declare module '@fastify/jwt' {
 declare module 'fastify' {
   interface FastifyInstance {
     authenticate: (request: FastifyRequest, reply: FastifyReply) => Promise<void>
-    config: {
-      admin: {
-        badgeAdminUserIds: string[]
-        fanArtReviewerUserIds: string[]
-        globalXpResetUserIds: string[]
-        ownerUserIds: string[]
-      }
-    }
+    config: app_config
   }
 }
