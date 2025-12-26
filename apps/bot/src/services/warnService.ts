@@ -3,6 +3,7 @@ import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { warnThresholdsSchema } from '@yuebot/shared'
 import { moderationLogService } from './moderationLog.service'
+import { safe_error_details } from '../utils/safe_error'
 
 export class WarnService {
   constructor(private client: Client) {}
@@ -111,7 +112,7 @@ export class WarnService {
 
       logger.info(`Ação ${triggeredThreshold.action} aplicada para ${userId} após ${currentWarns} warns`)
     } catch (error) {
-      logger.error({ err: error }, 'Erro ao verificar thresholds')
+      logger.error({ err: safe_error_details(error) }, 'Erro ao verificar thresholds')
     }
   }
 
@@ -121,7 +122,7 @@ export class WarnService {
       await member.timeout(duration_ms, '[AutoMod] Threshold de warns atingido')
       logger.info(`Timeout aplicado para ${member.id} por ${duration}`)
     } catch (error) {
-      logger.error({ err: error }, 'Erro ao aplicar timeout')
+      logger.error({ err: safe_error_details(error) }, 'Erro ao aplicar timeout')
     }
   }
 
@@ -130,7 +131,7 @@ export class WarnService {
       await member.kick('[AutoMod] Threshold de warns atingido')
       logger.info(`Kick aplicado para ${member.id}`)
     } catch (error) {
-      logger.error({ err: error }, 'Erro ao aplicar kick')
+      logger.error({ err: safe_error_details(error) }, 'Erro ao aplicar kick')
     }
   }
 
@@ -139,7 +140,7 @@ export class WarnService {
       await member.ban({ reason: '[AutoMod] Threshold de warns atingido' })
       logger.info(`Ban aplicado para ${member.id}`)
     } catch (error) {
-      logger.error({ err: error }, 'Erro ao aplicar ban')
+      logger.error({ err: safe_error_details(error) }, 'Erro ao aplicar ban')
     }
   }
 }

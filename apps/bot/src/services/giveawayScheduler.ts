@@ -2,6 +2,7 @@ import { Client, EmbedBuilder } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { getSendableChannel } from '../utils/discord'
+import { safe_error_details } from '../utils/safe_error'
 
 export class GiveawayScheduler {
   private client: Client
@@ -47,7 +48,7 @@ export class GiveawayScheduler {
         await this.endGiveaway(giveaway)
       }
     } catch (error) {
-      logger.error({ err: error }, 'Erro ao verificar sorteios')
+      logger.error({ err: safe_error_details(error) }, 'Erro ao verificar sorteios')
     }
   }
 
@@ -110,7 +111,7 @@ export class GiveawayScheduler {
       // Enviar DM para vencedores
       await this.notifyWinners(giveaway, winnersData)
     } catch (error) {
-      logger.error({ err: error }, `Erro ao finalizar sorteio ${giveaway.id}`)
+      logger.error({ err: safe_error_details(error) }, `Erro ao finalizar sorteio ${giveaway.id}`)
     }
   }
 
@@ -184,7 +185,7 @@ export class GiveawayScheduler {
         
         logger.info(`DM enviado para vencedor ${winner.username}`)
       } catch (error) {
-        logger.error({ err: error }, `Erro ao enviar DM para ${winner.username}`)
+        logger.error({ err: safe_error_details(error) }, `Erro ao enviar DM para ${winner.username}`)
       }
     }
   }
@@ -236,11 +237,11 @@ export class GiveawayScheduler {
             await message.edit({ embeds: [newEmbed] })
           }
         } catch (error) {
-          logger.warn({ err: error }, 'Não foi possível editar mensagem do sorteio')
+          logger.warn({ err: safe_error_details(error) }, 'Não foi possível editar mensagem do sorteio')
         }
       }
     } catch (error) {
-      logger.error({ err: error }, 'Erro ao anunciar vencedores')
+      logger.error({ err: safe_error_details(error) }, 'Erro ao anunciar vencedores')
     }
   }
 
@@ -258,7 +259,7 @@ export class GiveawayScheduler {
 
       await sendableChannel.send({ embeds: [embed] })
     } catch (error) {
-      logger.error({ err: error }, 'Erro ao anunciar sorteio sem vencedores')
+      logger.error({ err: safe_error_details(error) }, 'Erro ao anunciar sorteio sem vencedores')
     }
   }
 }

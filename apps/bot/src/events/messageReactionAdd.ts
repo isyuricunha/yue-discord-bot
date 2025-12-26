@@ -1,17 +1,10 @@
 import { Events, MessageReaction, User, PartialMessageReaction, PartialUser } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
+import { safe_error_details } from '../utils/safe_error'
 
 export const name = Events.MessageReactionAdd
 export const once = false
-
-function error_details(error: unknown) {
-  if (error instanceof Error) {
-    return { name: error.name, message: error.message }
-  }
-
-  return { message: 'Unknown error' }
-}
 
 export async function execute(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
   // Ignorar bots
@@ -22,7 +15,7 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
     try {
       await reaction.fetch()
     } catch (error) {
-      logger.warn({ err: error_details(error) }, 'Erro ao buscar reaction')
+      logger.warn({ err: safe_error_details(error) }, 'Erro ao buscar reaction')
       return
     }
   }
@@ -31,7 +24,7 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
     try {
       await user.fetch()
     } catch (error) {
-      logger.warn({ err: error_details(error) }, 'Erro ao buscar user')
+      logger.warn({ err: safe_error_details(error) }, 'Erro ao buscar user')
       return
     }
   }
@@ -75,7 +68,7 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
         return
       }
     } catch (error) {
-      logger.warn({ err: error_details(error) }, 'Erro ao verificar cargo')
+      logger.warn({ err: safe_error_details(error) }, 'Erro ao verificar cargo')
       return
     }
   }

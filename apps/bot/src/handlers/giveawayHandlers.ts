@@ -11,14 +11,7 @@ import {
 import { prisma } from '@yuebot/database'
 import { COLORS, EMOJIS } from '@yuebot/shared'
 import { logger } from '../utils/logger'
-
-function error_details(error: unknown) {
-  if (error instanceof Error) {
-    return { name: error.name, message: error.message }
-  }
-
-  return { message: 'Unknown error' }
-}
+import { safe_error_details } from '../utils/safe_error'
 
 export async function handleGiveawayParticipate(interaction: ButtonInteraction) {
   const giveaway = await prisma.giveaway.findFirst({
@@ -156,7 +149,7 @@ export async function handleGiveawayItemsSelect(interaction: StringSelectMenuInt
       await message.edit({ embeds: [newEmbed] })
     }
   } catch (error) {
-    logger.warn({ err: error_details(error) }, 'Erro ao atualizar embed')
+    logger.warn({ err: safe_error_details(error) }, 'Erro ao atualizar embed')
   }
 
   await interaction.editReply(
@@ -295,7 +288,7 @@ export async function handleGiveawayChoicesModal(interaction: ModalSubmitInterac
       }
     }
   } catch (error) {
-    logger.warn({ err: error_details(error) }, 'Erro ao atualizar embed')
+    logger.warn({ err: safe_error_details(error) }, 'Erro ao atualizar embed')
   }
 
   await interaction.editReply(

@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { logger } from './logger'
+import { safe_error_details } from './safe_error'
 
 // Lista de serviços conhecidos de encurtamento de URLs
 const URL_SHORTENERS = [
@@ -85,7 +86,10 @@ export async function expandUrl(shortUrl: string, maxRedirects = 5): Promise<str
     logger.warn(`Max redirects (${maxRedirects}) reached for ${shortUrl}`)
     return currentUrl
   } catch (error: any) {
-    logger.error({ err: error }, `Error expanding URL ${shortUrl}: ${error?.message ?? 'unknown error'}`)
+    logger.error(
+      { err: safe_error_details(error) },
+      `Error expanding URL ${shortUrl}: ${error?.message ?? 'unknown error'}`
+    )
     // Em caso de erro, retornar a URL original
     return shortUrl
   }

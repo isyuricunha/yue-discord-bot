@@ -2,6 +2,7 @@ import { Client } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { moderationLogService } from './moderationLog.service'
+import { safe_error_details } from '../utils/safe_error'
 
 export class WarnExpirationService {
   private intervalId: NodeJS.Timeout | null = null
@@ -43,7 +44,7 @@ export class WarnExpirationService {
         await this.expireWarnsForGuild(config.guildId, config.warnExpiration)
       }
     } catch (error) {
-      logger.error({ err: error }, 'Erro ao verificar warns expirados')
+      logger.error({ err: safe_error_details(error) }, 'Erro ao verificar warns expirados')
     }
   }
 
@@ -162,7 +163,7 @@ export class WarnExpirationService {
 
       logger.info(`Guild ${guildId}: ${warnsByUser.size} usuário(s) com warns expirados`)
     } catch (error) {
-      logger.error({ err: error }, `Erro ao expirar warns da guild ${guildId}`)
+      logger.error({ err: safe_error_details(error) }, `Erro ao expirar warns da guild ${guildId}`)
     }
   }
 }

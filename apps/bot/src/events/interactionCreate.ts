@@ -1,6 +1,7 @@
 import type { Interaction } from 'discord.js';
 import { logger } from '../utils/logger';
 import { EMOJIS } from '@yuebot/shared';
+import { safe_error_details } from '../utils/safe_error'
 
 export async function handleInteractionCreate(interaction: Interaction) {
   // Handle slash commands
@@ -15,7 +16,7 @@ export async function handleInteractionCreate(interaction: Interaction) {
     try {
       await command.execute(interaction);
     } catch (error) {
-      logger.error({ err: error, command: interaction.commandName }, 'Erro ao executar comando');
+      logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao executar comando');
 
       const errorMessage = {
         content: `${EMOJIS.ERROR} Ocorreu um erro ao executar este comando!`,
@@ -42,7 +43,7 @@ export async function handleInteractionCreate(interaction: Interaction) {
     try {
       await command.execute(interaction);
     } catch (error) {
-      logger.error({ err: error, command: interaction.commandName }, 'Erro ao executar context menu comando');
+      logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao executar context menu comando');
 
       const errorMessage = {
         content: `${EMOJIS.ERROR} Ocorreu um erro ao executar este comando!`,

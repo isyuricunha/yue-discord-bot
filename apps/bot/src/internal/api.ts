@@ -1,6 +1,7 @@
 import http from 'node:http';
 import type { Client, GuildBasedChannel, GuildMember, Role } from 'discord.js';
 import { logger } from '../utils/logger';
+import { safe_error_details } from '../utils/safe_error';
 
 type internal_api_options = {
   host: string;
@@ -15,14 +16,6 @@ type api_error_body = {
 type send_message_body = {
   content: string;
 };
-
-function error_details(error: unknown) {
-  if (error instanceof Error) {
-    return { name: error.name, message: error.message }
-  }
-
-  return { message: 'Unknown error' }
-}
 
 function send_json(reply: http.ServerResponse, statusCode: number, body: unknown) {
   const payload = JSON.stringify(body);
@@ -171,7 +164,7 @@ export function start_internal_api(client: Client, options: internal_api_options
 
       return send_json(res, 200, { roles: result });
     } catch (error) {
-      logger.error({ err: error_details(error) }, 'Internal API error');
+      logger.error({ err: safe_error_details(error) }, 'Internal API error');
       return send_json(res, 500, { error: 'Internal server error' } satisfies api_error_body);
     }
   });
