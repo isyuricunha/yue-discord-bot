@@ -69,6 +69,9 @@ COPY --from=builder /app/apps/web/dist ./apps/web/dist
 # Copy Prisma schema for migrations
 COPY packages/database/prisma ./packages/database/prisma
 
+# Copy Prisma config (required for prisma migrate deploy in Prisma 7)
+COPY packages/database/prisma.config.ts ./packages/database/prisma.config.ts
+
 # Generate Prisma Client (prisma already in node_modules from install)
 RUN cd packages/database && pnpm exec prisma generate
 

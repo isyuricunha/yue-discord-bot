@@ -5,7 +5,32 @@ echo "🚀 Starting Yue Bot..."
 
 # Wait for PostgreSQL
 echo "⏳ Waiting for PostgreSQL..."
-until pnpm --filter @yuebot/database exec prisma migrate status 2>/dev/null; do
+until node -e "
+  const net = require('node:net');
+  const { URL } = require('node:url');
+  const databaseUrl = process.env.DATABASE_URL;
+  if (!databaseUrl) process.exit(1);
+  const u = new URL(databaseUrl);
+  const host = u.hostname;
+  const port = Number(u.port || 5432);
+
+  const socket = net.connect({ host, port });
+  const timeout = setTimeout(() => {
+    socket.destroy();
+    process.exit(1);
+  }, 2000);
+
+  socket.on('connect', () => {
+    clearTimeout(timeout);
+    socket.end();
+    process.exit(0);
+  });
+
+  socket.on('error', () => {
+    clearTimeout(timeout);
+    process.exit(1);
+  });
+"; do
   echo "PostgreSQL is unavailable - sleeping"
   sleep 2
 done

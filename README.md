@@ -132,6 +132,7 @@ Notes:
 ## Docker (single-container production)
 
 This repo ships a single container with **nginx + API + bot** (via `supervisord`).
+The provided `docker-compose.yml` also includes a **PostgreSQL** service (`db`) for a self-contained setup.
 
 Relevant files:
 
@@ -147,11 +148,31 @@ Relevant files:
 cp .env.docker.example .env.docker
 ```
 
+Update the following variables in `.env.docker` at minimum:
+
+```env
+POSTGRES_USER=
+POSTGRES_PASSWORD=
+POSTGRES_DB=
+DATABASE_URL=
+
+DISCORD_CLIENT_ID=
+DISCORD_CLIENT_SECRET=
+JWT_SECRET=
+INTERNAL_API_SECRET=
+```
+
+If you want to run only API + web (smoke tests) without a real Discord bot token, set:
+
+```env
+ENABLE_BOT=false
+```
+
 ### 2) Start containers
 
 ```bash
-docker compose up -d --build
-docker compose logs -f
+docker compose --env-file .env.docker up -d --build
+docker compose --env-file .env.docker logs -f
 ```
 
 ### Port mapping
