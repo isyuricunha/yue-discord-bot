@@ -23,20 +23,36 @@ interface DiscordGuild {
 type rate_limit_entry = {
   count: number
   windowStart: number
+  lastSeen: number
 }
 
 const rate_limit_state = new Map<string, rate_limit_entry>()
 
 function allow_request_rate_limited(key: string, max: number, window_ms: number): boolean {
   const now = Date.now()
+
+  // Best-effort pruning to avoid unbounded growth.
+  // This is an in-memory limiter only; it is not intended to be perfectly precise.
+  if (rate_limit_state.size > 5000) {
+    const prune_before = now - Math.max(window_ms * 10, 60 * 60 * 1000)
+    for (const [k, entry] of rate_limit_state.entries()) {
+      if (entry.lastSeen < prune_before) rate_limit_state.delete(k)
+    }
+
+    if (rate_limit_state.size > 10000) {
+      rate_limit_state.clear()
+    }
+  }
+
   const existing = rate_limit_state.get(key)
   if (!existing || now - existing.windowStart > window_ms) {
-    rate_limit_state.set(key, { count: 1, windowStart: now })
+    rate_limit_state.set(key, { count: 1, windowStart: now, lastSeen: now })
     return true
   }
 
   if (existing.count >= max) return false
   existing.count += 1
+  existing.lastSeen = now
   return true
 }
 
