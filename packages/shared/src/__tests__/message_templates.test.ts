@@ -1,0 +1,79 @@
+import test from 'node:test'
+import assert from 'node:assert/strict'
+
+import { render_discord_message_template, render_placeholders } from '../message_templates'
+
+test('render_placeholders: replaces known placeholders and keeps unknown ones', () => {
+  const rendered = render_placeholders('Oi {user}! {unknown}', {
+    user: { id: '1', username: 'alice' },
+  })
+
+  assert.equal(rendered, 'Oi alice! {unknown}')
+})
+
+test('render_discord_message_template: plain text template', () => {
+  const rendered = render_discord_message_template('Hello {@user}, level {level}', {
+    user: { id: '123', username: 'bob' },
+    level: 5,
+  })
+
+  assert.deepEqual(rendered, { content: 'Hello <@123>, level 5' })
+})
+
+test('render_discord_message_template: experience placeholders', () => {
+  const rendered = render_discord_message_template(
+    'rank #{experience.ranking} next={experience.next-level} need={experience.next-level.required-xp} total={experience.next-level.total-xp}',
+    {
+      experience: {
+        ranking: 3,
+        nextLevel: {
+          level: 11,
+          requiredXp: 250,
+          totalXp: 11000,
+        },
+      },
+    }
+  )
+
+  assert.deepEqual(rendered, {
+    content: 'rank #3 next=11 need=250 total=11000',
+  })
+})
+
+test('render_discord_message_template: extended JSON template (content + embed)', () => {
+  const template = JSON.stringify({
+    content: '{@user}',
+    embed: {
+      title: 'Level up!',
+      description: '{user.tag} virou nível {level}',
+      color: 16773632,
+      footer: { text: 'guild: {guild}' },
+    },
+  })
+
+  const rendered = render_discord_message_template(template, {
+    user: { id: '7', username: 'carol', tag: 'carol#0001' },
+    guild: { id: 'g1', name: 'my guild' },
+    level: 10,
+  })
+
+  assert.deepEqual(rendered, {
+    content: '<@7>',
+    embeds: [
+      {
+        title: 'Level up!',
+        description: 'carol#0001 virou nível 10',
+        color: 16773632,
+        footer: { text: 'guild: my guild' },
+      },
+    ],
+  })
+})
+
+test('render_discord_message_template: invalid JSON should be treated as plain text', () => {
+  const rendered = render_discord_message_template('{not json}', {
+    user: { id: '1', username: 'alice' },
+  })
+
+  assert.deepEqual(rendered, { content: '{not json}' })
+})

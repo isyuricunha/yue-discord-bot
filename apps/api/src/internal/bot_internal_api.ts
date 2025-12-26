@@ -1,0 +1,227 @@
+import { CONFIG } from '../config';
+import type { FastifyBaseLogger } from 'fastify';
+
+type guild_channels_response = {
+  channels: Array<{ id: string; name: string; type: number }>;
+};
+
+type guild_roles_response = {
+  roles: Array<{ id: string; name: string; color: number; position: number; managed: boolean }>;
+};
+
+type guild_members_response = {
+  members: Array<{ userId: string; username: string; avatar: string | null; joinedAt: string | null }>;
+};
+
+type send_message_response = {
+  messageId: string;
+};
+
+type cache_entry<T> = {
+  value: T;
+  expires_at: number;
+};
+
+type internal_cache_key = string;
+
+type resource = 'channels' | 'roles' | 'members';
+
+type cache_state = {
+  cache: Map<internal_cache_key, cache_entry<unknown>>;
+  in_flight: Map<internal_cache_key, Promise<unknown>>;
+};
+
+const state: cache_state = {
+  cache: new Map(),
+  in_flight: new Map(),
+};
+
+function now_ms() {
+  return Date.now();
+}
+
+async function fetch_with_timeout_ms(url: string, log: FastifyBaseLogger, timeout_ms: number) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeout_ms);
+
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        authorization: `Bearer ${CONFIG.internalApi.secret}`,
+      },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      log.warn({ status: res.status, url }, 'Internal bot API returned error');
+      throw new Error(`Internal bot API returned ${res.status}`);
+    }
+
+    return (await res.json()) as unknown;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function fetch_json_with_timeout_ms(
+  url: string,
+  log: FastifyBaseLogger,
+  timeout_ms: number,
+  init: RequestInit
+) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeout_ms);
+
+  try {
+    const res = await fetch(url, {
+      ...init,
+      headers: {
+        authorization: `Bearer ${CONFIG.internalApi.secret}`,
+        'content-type': 'application/json',
+        ...(init.headers ?? {}),
+      },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      log.warn({ status: res.status, url }, 'Internal bot API returned error');
+      throw new Error(`Internal bot API returned ${res.status}`);
+    }
+
+    return (await res.json()) as unknown;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function build_key(resource: resource, guild_id: string) {
+  return `${resource}:${guild_id}`;
+}
+
+function internal_cache_ttl_ms() {
+  const env = process.env.INTERNAL_API_CACHE_TTL_MS;
+  if (!env) return 20_000;
+
+  const parsed = Number.parseInt(env, 10);
+  if (Number.isNaN(parsed) || parsed <= 0) return 20_000;
+
+  return parsed;
+}
+
+function prune_cache() {
+  const now = now_ms();
+
+  for (const [key, entry] of state.cache.entries()) {
+    if (entry.expires_at <= now) {
+      state.cache.delete(key);
+    }
+  }
+
+  const max_entries_env = process.env.INTERNAL_API_CACHE_MAX_ENTRIES;
+  const max_entries = max_entries_env ? Number.parseInt(max_entries_env, 10) : 500;
+
+  if (!Number.isFinite(max_entries) || max_entries <= 0) return;
+
+  while (state.cache.size > max_entries) {
+    const first = state.cache.keys().next();
+    if (first.done) break;
+    state.cache.delete(first.value);
+  }
+}
+
+async function fetch_with_timeout(url: string, log: FastifyBaseLogger) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 5_000);
+
+  try {
+    const res = await fetch(url, {
+      method: 'GET',
+      headers: {
+        authorization: `Bearer ${CONFIG.internalApi.secret}`,
+      },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      log.warn({ status: res.status, url }, 'Internal bot API returned error');
+      throw new Error(`Internal bot API returned ${res.status}`);
+    }
+
+    return (await res.json()) as unknown;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+async function get_cached<T>(key: internal_cache_key, load: () => Promise<T>) {
+  prune_cache();
+
+  const cached = state.cache.get(key);
+  const now = now_ms();
+
+  if (cached && cached.expires_at > now) {
+    return cached.value as T;
+  }
+
+  const existing_in_flight = state.in_flight.get(key);
+  if (existing_in_flight) {
+    return (await existing_in_flight) as T;
+  }
+
+  const in_flight = load()
+    .then((value) => {
+      state.cache.set(key, {
+        value,
+        expires_at: now_ms() + internal_cache_ttl_ms(),
+      });
+      return value;
+    })
+    .finally(() => {
+      state.in_flight.delete(key);
+    });
+
+  state.in_flight.set(key, in_flight);
+
+  return (await in_flight) as T;
+}
+
+export async function get_guild_channels(guild_id: string, log: FastifyBaseLogger) {
+  const key = build_key('channels', guild_id);
+
+  return await get_cached<guild_channels_response>(key, async () => {
+    const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/channels`;
+    return (await fetch_with_timeout(url, log)) as guild_channels_response;
+  });
+}
+
+export async function send_guild_message(
+  guild_id: string,
+  channel_id: string,
+  content: string,
+  log: FastifyBaseLogger
+) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/channels/${channel_id}/messages`;
+  return (await fetch_json_with_timeout_ms(url, log, 20_000, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  })) as send_message_response;
+}
+
+export async function get_guild_roles(guild_id: string, log: FastifyBaseLogger) {
+  const key = build_key('roles', guild_id);
+
+  return await get_cached<guild_roles_response>(key, async () => {
+    const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/roles`;
+    return (await fetch_with_timeout(url, log)) as guild_roles_response;
+  });
+}
+
+export async function get_guild_members(guild_id: string, log: FastifyBaseLogger) {
+  const key = build_key('members', guild_id);
+
+  return await get_cached<guild_members_response>(key, async () => {
+    const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/members`;
+    return (await fetch_with_timeout_ms(url, log, 20_000)) as guild_members_response;
+  });
+}

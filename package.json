@@ -1,0 +1,45 @@
+{
+  "name": "yue-bot-discord",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bot Discord multifuncional com Web UI - Moderação e Sorteios",
+  "author": "Yue Bot Team",
+  "license": "MIT",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "pnpm --parallel --stream run dev",
+    "dev:bot": "pnpm --filter bot dev",
+    "dev:api": "pnpm --filter api dev",
+    "dev:web": "pnpm --filter web dev",
+    "bot:deploy-commands": "pnpm --filter bot deploy-commands",
+    "bot:lint": "pnpm --filter bot lint",
+    "bot:type-check": "pnpm --filter bot type-check",
+    "build": "pnpm -r run build",
+    "build:bot": "pnpm --filter bot build",
+    "build:api": "pnpm --filter api build",
+    "build:web": "pnpm --filter web build",
+    "db:generate": "pnpm --filter database db:generate",
+    "db:push": "pnpm --filter database db:push",
+    "db:migrate": "pnpm --filter database db:migrate",
+    "db:studio": "pnpm --filter database db:studio",
+    "lint": "pnpm -r run lint",
+    "type-check": "pnpm -r run type-check",
+    "clean": "pnpm -r run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "@typescript-eslint/eslint-plugin": "^8.50.0",
+    "@typescript-eslint/parser": "^8.50.0",
+    "eslint": "^9.39.2",
+    "globals": "^14.0.0",
+    "prettier": "^3.7.4",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=24.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "packageManager": "pnpm@10.11.0"
+}

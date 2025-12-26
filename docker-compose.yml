@@ -1,0 +1,41 @@
+services:
+  yuebot:
+    image: isyuricunha/yue-bot-discord:latest  # Trocar 'latest' pela tag específica se necessário
+    container_name: yuebot
+    restart: unless-stopped
+    ports:
+      - "8164:80"      # Web frontend (nginx)
+      - "9845:3000"  # API backend
+    environment:
+      # Node
+      NODE_ENV: production
+      
+      # Database (EXTERNO) - Configure sua connection string aqui
+      DATABASE_URL: postgresql://user:password@host:5432/database?schema=public
+      
+      # Discord - Pegue esses valores no Discord Developer Portal
+      DISCORD_TOKEN: seu_bot_token_aqui
+      DISCORD_CLIENT_ID: seu_client_id_aqui
+      DISCORD_CLIENT_SECRET: seu_client_secret_aqui
+      DISCORD_REDIRECT_URI: https://seu-dominio.com/api/auth/callback
+      
+      # API
+      PORT: 3000
+      JWT_SECRET: seu_jwt_secret_super_seguro_aqui
+      FRONTEND_URL: https://seu-dominio.com
+
+      # Internal API (API <-> Bot)
+      INTERNAL_API_SECRET: change_me_to_a_long_random_secret
+      BOT_INTERNAL_HOST: 127.0.0.1
+      BOT_INTERNAL_PORT: 3100
+      
+      # Web (Frontend build-time variables - injected at runtime)
+      VITE_API_URL: http://100.72.24.67:9845
+      VITE_DISCORD_CLIENT_ID: 1434271732507611289
+    
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
