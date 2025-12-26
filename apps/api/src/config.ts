@@ -65,6 +65,17 @@ export const CONFIG = {
   environment: process.env.NODE_ENV || 'development',
 } as const;
 
+if (CONFIG.environment === 'production') {
+  const has_web_url = Boolean(process.env.WEB_URL || process.env.FRONTEND_URL)
+  if (!has_web_url) {
+    throw new Error('WEB_URL (or FRONTEND_URL) must be set in production')
+  }
+
+  if (!process.env.DISCORD_REDIRECT_URI) {
+    throw new Error('DISCORD_REDIRECT_URI must be set in production')
+  }
+}
+
 // Validação
 const requiredVars = ['DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'JWT_SECRET', 'DATABASE_URL', 'INTERNAL_API_SECRET'];
 const missing = requiredVars.filter((key) => !process.env[key]);

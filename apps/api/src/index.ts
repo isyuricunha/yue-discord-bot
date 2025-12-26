@@ -37,7 +37,9 @@ app.decorate('config', CONFIG);
 // Plugins
 app.register(cookie);
 
-const defaultCorsOrigins = [CONFIG.web.url, 'http://localhost:5173'];
+const defaultCorsOrigins = CONFIG.environment === 'development'
+  ? [CONFIG.web.url, 'http://localhost:5173']
+  : [CONFIG.web.url];
 const allowedCorsOrigins = (CONFIG.cors.origins.length > 0 ? CONFIG.cors.origins : defaultCorsOrigins)
   .map((origin) => origin.replace(/\/$/, ''));
 
