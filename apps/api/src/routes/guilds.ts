@@ -13,6 +13,20 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const max_per_window = 5;
 
     const now = Date.now();
+
+    // Best-effort pruning to avoid unbounded growth.
+    // This is an in-memory limiter only; it is not intended to be perfectly precise.
+    if (message_rate_limit.size > 5000) {
+      const prune_before = now - Math.max(window_ms * 10, 60 * 60 * 1000);
+      for (const [key, entry] of message_rate_limit.entries()) {
+        if (entry.windowStart < prune_before) message_rate_limit.delete(key);
+      }
+
+      if (message_rate_limit.size > 10000) {
+        message_rate_limit.clear();
+      }
+    }
+
     const existing = message_rate_limit.get(user_id);
     if (!existing || now - existing.windowStart > window_ms) {
       message_rate_limit.set(user_id, { count: 1, windowStart: now });
