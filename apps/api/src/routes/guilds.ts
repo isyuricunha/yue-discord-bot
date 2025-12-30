@@ -47,7 +47,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
 
     if (user.isOwner) {
       const installed = await prisma.guild.findMany({
-        select: { id: true, name: true, icon: true },
+        select: { id: true, name: true, icon: true, ownerId: true, addedAt: true },
         orderBy: { name: 'asc' },
       });
       return { guilds: installed };
