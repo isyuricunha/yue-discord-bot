@@ -37,10 +37,10 @@ model GuildConfig {
   
   // Canais
   modLogChannelId   String?
-  announcementChannelId String?
   giveawayChannelId String?
   welcomeChannelId  String?
   leaveChannelId    String?
+  announcementChannelId String?
 
   // Mensagens automáticas (texto ou JSON com embed)
   welcomeMessage String?
