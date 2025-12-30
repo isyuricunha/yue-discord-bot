@@ -14,6 +14,8 @@ import GiveawaysPage from './pages/Giveaways'
 import GiveawayDetailsPage from './pages/GiveawayDetails'
 import CreateGiveawayPage from './pages/CreateGiveaway'
 import SettingsPage from './pages/Settings'
+import ModerationPage from './pages/Moderation'
+import WelcomePage from './pages/Welcome'
 import XpLevelsPage from './pages/XpLevels'
 import AutorolePage from './pages/Autorole'
 import BadgesPage from './pages/Badges'
@@ -71,6 +73,8 @@ function App() {
           <Route path="/guild/:guildId/giveaways/:giveawayId" element={<GiveawayDetailsPage />} />
           <Route path="/guild/:guildId/xp" element={<XpLevelsPage />} />
           <Route path="/guild/:guildId/autorole" element={<AutorolePage />} />
+          <Route path="/guild/:guildId/moderation" element={<ModerationPage />} />
+          <Route path="/guild/:guildId/welcome" element={<WelcomePage />} />
           <Route path="/guild/:guildId/settings" element={<SettingsPage />} />
           <Route path="/badges" element={<BadgesPage />} />
           <Route path="/fanarts" element={<FanArtsPage />} />

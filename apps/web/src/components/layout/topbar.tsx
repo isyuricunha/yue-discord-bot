@@ -26,9 +26,11 @@ export function Topbar() {
     if (path.includes('/overview')) return 'Visão geral'
     if (path.includes('/automod')) return 'AutoMod'
     if (path.includes('/modlogs')) return 'Logs'
+    if (path.includes('/moderation')) return 'Moderação'
     if (path.includes('/members')) return 'Membros'
     if (path.includes('/giveaways')) return 'Sorteios'
     if (path.includes('/settings')) return 'Configurações'
+    if (path.includes('/welcome')) return 'Boas-vindas'
 
     return 'Painel'
   }, [location.pathname, guildId])

@@ -1,13 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import { Save, Settings as SettingsIcon } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Card, CardContent, ErrorState, Input, Select, Skeleton, Button, Textarea } from '../components/ui'
+import { Card, CardContent, ErrorState, Input, Select, Skeleton, Button } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
-import { validate_extended_template } from '../lib/message_template'
 
 const API_URL = getApiUrl()
 
@@ -15,29 +14,6 @@ interface GuildConfig {
   prefix: string
   locale: string
   timezone: string
-  welcomeChannelId?: string
-  leaveChannelId?: string
-  welcomeMessage?: string | null
-  leaveMessage?: string | null
-  muteRoleId?: string
-}
-
-type api_channel = {
-  id: string
-  name: string
-  type: number
-}
-
-type api_role = {
-  id: string
-  name: string
-  color: number
-  position: number
-  managed: boolean
-}
-
-function channel_label(channel: api_channel) {
-  return `#${channel.name}`
 }
 
 export default function SettingsPage() {
@@ -60,46 +36,10 @@ export default function SettingsPage() {
   const [prefix, setPrefix] = useState('')
   const [locale, setLocale] = useState('pt-BR')
   const [timezone, setTimezone] = useState('America/Sao_Paulo')
-  const [welcomeChannelId, setWelcomeChannelId] = useState('')
-  const [leaveChannelId, setLeaveChannelId] = useState('')
-  const [welcomeMessage, setWelcomeMessage] = useState('')
-  const [leaveMessage, setLeaveMessage] = useState('')
-  const [muteRoleId, setMuteRoleId] = useState('')
 
   const has_initialized = useRef(false)
 
   const config = guild?.guild?.config as GuildConfig | undefined
-
-  // Buscar canais da guild
-  const { data: channels_data, isLoading: is_channels_loading } = useQuery({
-    queryKey: ['channels', guildId],
-    queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`)
-      return response.data as { channels: api_channel[] }
-    },
-  })
-
-  // Buscar cargos da guild
-  const { data: roles_data, isLoading: is_roles_loading } = useQuery({
-    queryKey: ['roles', guildId],
-    queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/roles`)
-      return response.data as { roles: api_role[] }
-    },
-  })
-
-  const available_channels = useMemo(() => {
-    const channels = channels_data?.channels ?? []
-    return channels.slice().sort((a, b) => a.name.localeCompare(b.name))
-  }, [channels_data])
-
-  const available_roles = useMemo(() => {
-    const roles = roles_data?.roles ?? []
-    return roles
-      .filter((r) => !r.managed)
-      .slice()
-      .sort((a, b) => b.position - a.position)
-  }, [roles_data])
 
   useEffect(() => {
     if (!config) return
@@ -110,11 +50,6 @@ export default function SettingsPage() {
     setPrefix(config.prefix || '/')
     setLocale(config.locale || 'pt-BR')
     setTimezone(config.timezone || 'America/Sao_Paulo')
-    setWelcomeChannelId(config.welcomeChannelId || '')
-    setLeaveChannelId(config.leaveChannelId || '')
-    setWelcomeMessage(config.welcomeMessage || '')
-    setLeaveMessage(config.leaveMessage || '')
-    setMuteRoleId(config.muteRoleId || '')
   }, [config])
 
   const updateMutation = useMutation({
@@ -136,23 +71,8 @@ export default function SettingsPage() {
       prefix,
       locale,
       timezone,
-      welcomeChannelId: welcomeChannelId || undefined,
-      leaveChannelId: leaveChannelId || undefined,
-      welcomeMessage: welcomeMessage || null,
-      leaveMessage: leaveMessage || null,
-      muteRoleId: muteRoleId || undefined,
     })
   }
-
-  const welcome_validation = useMemo(() => {
-    if (!welcomeMessage.trim()) return null
-    return validate_extended_template(welcomeMessage)
-  }, [welcomeMessage])
-
-  const leave_validation = useMemo(() => {
-    if (!leaveMessage.trim()) return null
-    return validate_extended_template(leaveMessage)
-  }, [leaveMessage])
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
@@ -233,116 +153,6 @@ export default function SettingsPage() {
             </div>
           </div>
 
-          <div className="border-t border-border/80 pt-6">
-            <div className="text-sm font-semibold">Canais do sistema</div>
-            <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
-              <div>
-                <div className="text-sm font-medium">Canal de boas-vindas</div>
-                <div className="mt-2">
-                  {is_channels_loading ? (
-                    <Skeleton className="h-11 w-full" />
-                  ) : (
-                    <Select value={welcomeChannelId} onValueChange={(value) => setWelcomeChannelId(value)}>
-                      <option value="">Desativado</option>
-                      {available_channels.map((ch) => (
-                        <option key={ch.id} value={ch.id}>
-                          {channel_label(ch)}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-medium">Canal de saída</div>
-                <div className="mt-2">
-                  {is_channels_loading ? (
-                    <Skeleton className="h-11 w-full" />
-                  ) : (
-                    <Select value={leaveChannelId} onValueChange={(value) => setLeaveChannelId(value)}>
-                      <option value="">Desativado</option>
-                      {available_channels.map((ch) => (
-                        <option key={ch.id} value={ch.id}>
-                          {channel_label(ch)}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-border/80 pt-6">
-            <div className="text-sm font-semibold">Mensagens automáticas</div>
-            <div className="mt-4 grid grid-cols-1 gap-6">
-              <div>
-                <div className="text-sm font-medium">Mensagem de boas-vindas</div>
-                <div className="mt-2">
-                  {is_guild_loading ? (
-                    <Skeleton className="h-32 w-full" />
-                  ) : (
-                    <Textarea
-                      value={welcomeMessage}
-                      onChange={(e) => setWelcomeMessage(e.target.value)}
-                      placeholder="Texto ou JSON (content + embed). Ex: Olá {@user}!"
-                      rows={5}
-                    />
-                  )}
-                </div>
-                {welcome_validation && (
-                  <div className="mt-2 text-xs text-red-500">JSON inválido: {welcome_validation}</div>
-                )}
-                <div className="mt-2 text-xs text-muted-foreground">
-                  Suporta placeholders e JSON com embed.
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-medium">Mensagem de saída</div>
-                <div className="mt-2">
-                  {is_guild_loading ? (
-                    <Skeleton className="h-32 w-full" />
-                  ) : (
-                    <Textarea
-                      value={leaveMessage}
-                      onChange={(e) => setLeaveMessage(e.target.value)}
-                      placeholder="Texto ou JSON (content + embed). Ex: {user} saiu do servidor."
-                      rows={5}
-                    />
-                  )}
-                </div>
-                {leave_validation && (
-                  <div className="mt-2 text-xs text-red-500">JSON inválido: {leave_validation}</div>
-                )}
-                <div className="mt-2 text-xs text-muted-foreground">
-                  Suporta placeholders e JSON com embed.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-border/80 pt-6">
-            <div className="text-sm font-semibold">Cargos do sistema</div>
-            <div className="mt-4">
-              <div className="text-sm font-medium">Cargo de mute</div>
-              <div className="mt-2">
-                {is_roles_loading ? (
-                  <Skeleton className="h-11 w-full" />
-                ) : (
-                  <Select value={muteRoleId} onValueChange={(value) => setMuteRoleId(value)}>
-                    <option value="">Desativado</option>
-                    {available_roles.map((role) => (
-                      <option key={role.id} value={role.id}>
-                        {role.name}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </div>
-            </div>
-          </div>
         </CardContent>
       </Card>
 
