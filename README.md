@@ -1,13 +1,18 @@
 # Yue Discord Bot (YueBot)
 
-This repository contains a **pnpm monorepo** with:
+Este repositório é um monorepo (pnpm workspaces) com:
 
-- **Bot** (`discord.js`) for moderation, giveaways and community automation
-- **API** (`fastify`) used by the admin panel
-- **Web UI** (`react` + `vite`) admin panel
-- **Database package** (`prisma`) shared by bot and API
+- **Bot**: `discord.js`.
+- **API**: `fastify` (back-end do painel).
+- **Web UI**: `react` + `vite` (painel de administração).
+- **Database package**: `prisma` (cliente + migrations compartilhado pelo bot e pela API).
 
-## Repository layout
+O projeto também inclui uma imagem Docker de produção em **um único container** (nginx + API + bot via supervisord), e exemplos de Docker Compose para:
+
+- **DB interno** (PostgreSQL dentro do compose)
+- **DB externo** (exemplo apontando para um Postgres fora do compose)
+
+## Estrutura do repositório
 
 ```text
 apps/
@@ -16,206 +21,345 @@ apps/
   web/   (React + Vite)
 packages/
   database/ (Prisma client + migrations)
-  shared/   (shared utilities/schemas)
+  shared/   (utilitários/schemas compartilhados)
 ```
 
-## Tech stack
+## Stack
 
-- **Node.js**: 24+
-- **pnpm**: 10+
-- **TypeScript**: 5.9+
-- **Prisma**: 7+
-- **Fastify**: 5+
-- **Discord.js**: 14+
-- **React**: 19+
-- **Vite**: 7+
-- **TailwindCSS**: 4+
-- **ESLint**: 9
+- Node.js: 24+
+- pnpm: 10+
+- TypeScript: 5.9+
+- Prisma: 7+
+- Fastify: 5+
+- Discord.js: 14+
+- React: 19+
+- Vite: 7+
+- TailwindCSS: 4+
+- ESLint: 9
 
-## Security model (high level)
+## Componentes e responsabilidades
 
-- **Auth**: the Web UI authenticates primarily via an **httpOnly cookie** (`yuebot_token`).
-- **CORS**: allowlist-based. In production, localhost is not included by default.
-- **CSRF**: state-changing requests authenticated via cookie must include a valid `Origin` that matches the configured CORS allowlist.
-- **Error responses**:
-  - In production, validation details are hidden.
-  - Generic 5xx messages are preferred (detailed messages are only exposed in development).
-- **CI guardrails**: CI fails if a tracked `.env` (non-example) or private key files are committed.
+### Bot (apps/bot)
 
-## Local development
+Responsável por:
 
-### Requirements
+- Moderação e automação
+- Rotinas agendadas (sorteios, expiração de warns, autorole)
+- API interna (HTTP) consumida pela API para ações que exigem contexto do Discord
+
+Comandos (visão geral):
+
+- **Moderação**
+  - `ban`, `kick`, `mute`, `unmute`, `warn`, `unwarn`, `modlog`, `baninfo`
+- **Utilidade**
+  - `limpar`, `lock`, `unlock`, `painel`, `say`
+- **Sorteios**
+  - `giveaway`, `sorteio-wizard`, `sorteio-lista`
+- **XP/Levels**
+  - `rank`, `leaderboard`
+- **Perfil**
+  - `profile`, `badges`
+- **Fan art**
+  - `fanart`
+- **Economia**
+  - `luazinhas`
+- **Jogos**
+  - `coinflip`
+- **Comandos autenticados (mensagem/context menu)**
+  - `verify_message` (slash)
+  - `save_message_here`, `save_message_dm` (context menu)
+
+### API (apps/api)
+
+Responsável por:
+
+- Autenticação via Discord OAuth
+- Cookie de sessão (`yuebot_token`) e endpoints do painel
+- Acesso ao banco (Prisma)
+- Integração com o bot via **Internal API** (HTTP) para:
+  - listar canais/roles/members
+  - enviar mensagem em canal
+
+Endpoints (alto nível):
+
+- **Saúde**
+  - `GET /health`
+- **Auth** (`/api/auth`)
+  - `GET /login`
+  - `GET /callback`
+  - `GET /me`
+  - `POST /refresh`
+  - `POST /logout`
+- **Guilds e configurações** (`/api/guilds`)
+  - listar guilds acessíveis
+  - ler/atualizar configuração
+  - enviar mensagem
+  - modlogs
+  - autorole config
+  - xp config + leaderboard + reset
+  - canais/roles (via internal API do bot)
+- **XP global** (`/api/xp`)
+  - `GET /global-me`
+  - `GET /global-leaderboard`
+  - `POST /global-reset` (restrito por allowlist)
+- **Sorteios** (`/api/guilds/:guildId/giveaways`)
+  - criar/listar/detalhar/cancelar
+  - gerenciar entries (inclui disqualify)
+- **Stats**
+  - `GET /api/guilds/:guildId/stats`
+- **Export**
+  - export de entries de sorteio
+  - export de modlogs
+- **Members**
+  - listagem e detalhe de membros
+  - atualização de notas
+- **Profile/Badges/FanArts**
+  - endpoints para perfil
+  - administração de badges (restrito)
+  - submissão e revisão de fan arts (restrito)
+
+### Web UI (apps/web)
+
+Painel web (React + Vite) para gerenciar:
+
+- Overview/Dashboard
+- Guild view
+- AutoMod
+- Autorole
+- Mod logs
+- Members e detalhes
+- XP/Levels
+- Giveaways (lista, criação e detalhes)
+- Badges
+- Fan arts
+- Settings
+- Login (Discord OAuth)
+
+### Banco de dados (packages/database)
+
+Prisma + Postgres. Modelos principais (visão geral):
+
+- Guild e GuildConfig
+- ModLog
+- Giveaway, GiveawayEntry, GiveawayWinner
+- GuildMember
+- XP (GuildXpConfig, GuildXpMember, GlobalXpMember, GuildLevelRoleReward)
+- Autorole (GuildAutoroleConfig, GuildAutoroleRole, GuildAutorolePending)
+- Perfil/Badges/FanArts
+- Economia e coinflip
+
+## Variáveis de ambiente
+
+O projeto valida variáveis obrigatórias em produção. Os arquivos de compose deste repositório já incluem um conjunto completo com valores placeholder.
+
+### Obrigatórias (produção)
+
+API/Bot:
+
+- `DATABASE_URL`
+- `DISCORD_CLIENT_ID`
+- `DISCORD_CLIENT_SECRET`
+- `DISCORD_REDIRECT_URI`
+- `JWT_SECRET` (mínimo 32 caracteres)
+- `INTERNAL_API_SECRET`
+
+Frontend (runtime em Docker):
+
+- `VITE_API_URL`
+- `VITE_DISCORD_CLIENT_ID`
+
+### Importantes (recomendadas)
+
+- `CORS_ORIGINS` (lista separada por vírgula)
+- `WEB_URL` e/ou `FRONTEND_URL`
+- `COOKIE_SAMESITE`, `COOKIE_SECURE`, `COOKIE_DOMAIN`
+
+### Opcionais
+
+- `ENABLE_BOT` (defina `false` para subir apenas nginx + API + web)
+- `INTERNAL_API_CACHE_TTL_MS`, `INTERNAL_API_CACHE_MAX_ENTRIES`
+- Allowlists administrativas (separadas por vírgula)
+  - `BADGE_ADMIN_USER_IDS`
+  - `FAN_ART_REVIEWER_USER_IDS`
+  - `OWNER_USER_IDS`
+  - `GLOBAL_XP_RESET_USER_IDS`
+
+## Desenvolvimento local
+
+### Requisitos
 
 - Node.js 24+
 - pnpm 10+
-- PostgreSQL (local or remote)
-- A Discord application (bot token + OAuth client id/secret)
+- PostgreSQL (local ou remoto)
+- Uma aplicação no Discord (bot token + OAuth client id/secret)
 
-### 1) Install dependencies
+### 1) Instalar dependências
 
 ```bash
 pnpm install
 ```
 
-### 2) Configure environment variables
+### 2) Configurar variáveis
 
-This repo uses a root `.env` (for the API, bot and database package scripts).
+O back-end (API/bot/scripts Prisma) usa `.env` na raiz:
 
 ```bash
 cp .env.example .env
 ```
 
-Optionally, you can create a `.env.local` to override `.env` values locally (the loader reads `.env` first, then `.env.local` and overrides values).
+Opcionalmente, use `.env.local` para sobrescrever valores sem mexer no arquivo base:
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-Important: the Web UI is a Vite app. In dev mode, Vite resolves env variables from the app folder (`apps/web`).
+O front-end (Vite) usa variáveis no diretório do app:
 
 ```bash
 cp apps/web/.env.example apps/web/.env
 ```
 
-### 3) Database (Prisma)
+### 3) Prisma
 
 ```bash
 pnpm db:generate
 
-# Development schema sync
 pnpm db:push
 
-# Migrations
 pnpm db:migrate
 
-# Prisma Studio
 pnpm db:studio
 ```
 
-### 4) Run dev servers
+### 4) Rodar em modo dev
 
 ```bash
-# Run bot + api + web in parallel
 pnpm dev
 
-# Or individually
 pnpm dev:bot
 pnpm dev:api
 pnpm dev:web
 ```
 
-### 5) Default URLs
+URLs padrão:
 
 - Web UI: `http://localhost:5173`
 - API: `http://localhost:3000`
 
-## Environment variables overview
+## Docker
 
-The main required variables for a complete setup are:
+### Como a imagem funciona
 
-```env
-DATABASE_URL=
+A imagem de produção contém:
 
-DISCORD_TOKEN=
-DISCORD_BOT_TOKEN=
-DISCORD_CLIENT_ID=
-DISCORD_CLIENT_SECRET=
-DISCORD_REDIRECT_URI=
+- nginx (serve o build do `apps/web` e faz proxy de `/api` para a API)
+- API (Fastify)
+- Bot (Discord.js)
 
-JWT_SECRET=
-INTERNAL_API_SECRET=
+Na inicialização, o entrypoint:
 
-WEB_URL=
-API_URL=
-FRONTEND_URL=
+- verifica `DATABASE_URL`
+- aguarda o Postgres ficar pronto
+- executa `prisma migrate deploy`
+- injeta runtime env para o front-end em `/env.js` (lido via `window.__ENV__`)
 
-VITE_API_URL=
-VITE_DISCORD_CLIENT_ID=
-```
+### Registries e nomes de imagem
 
-Notes:
+- Docker Hub: `isyuricunha/yue-discord-bot`
+- GHCR: `ghcr.io/isyuricunha/yue-discord-bot`
 
-- `DISCORD_REDIRECT_URI` must match the API callback route: `/api/auth/callback`.
-- `JWT_SECRET` must be **at least 32 characters**.
-- In dev mode, the frontend can use `VITE_API_URL=http://localhost:3000`.
-- In production, `WEB_URL` (or `FRONTEND_URL`) and `DISCORD_REDIRECT_URI` are required.
+## Docker Compose
 
-## Docker (single-container production)
+Este repositório inclui 4 arquivos de compose, todos com variáveis definidas diretamente no YAML:
 
-This repo ships a single container with **nginx + API + bot** (via `supervisord`).
-The provided `docker-compose.yml` also includes a **PostgreSQL** service (`db`) for a self-contained setup.
+- `docker-compose.dockerhub.internal-db.yml`
+- `docker-compose.ghcr.internal-db.yml`
+- `docker-compose.dockerhub.external-db.yml`
+- `docker-compose.ghcr.external-db.yml`
 
-Relevant files:
+### Compose com DB interno (PostgreSQL no compose)
 
-- `Dockerfile`
-- `docker-compose.yml`
-- `nginx.conf` (proxies `/api` to `localhost:3000`)
-- `docker-entrypoint.sh` (waits for DB and runs `prisma migrate deploy`)
-- `inject-env.sh` (writes `/usr/share/nginx/html/env.js`)
-- `supervisord.conf` (runs API + bot + nginx)
-
-### 1) Create the Docker env file
+Docker Hub:
 
 ```bash
-cp .env.docker.example .env.docker
+docker compose -f docker-compose.dockerhub.internal-db.yml up -d --build
 ```
 
-Update the following variables in `.env.docker` at minimum:
-
-```env
-POSTGRES_USER=
-POSTGRES_PASSWORD=
-POSTGRES_DB=
-DATABASE_URL=
-
-DISCORD_CLIENT_ID=
-DISCORD_CLIENT_SECRET=
-JWT_SECRET=
-INTERNAL_API_SECRET=
-```
-
-If you want to run only API + web (smoke tests) without a real Discord bot token, set:
-
-```env
-ENABLE_BOT=false
-```
-
-### 2) Start containers
+GHCR:
 
 ```bash
-docker compose --env-file .env.docker up -d --build
-docker compose --env-file .env.docker logs -f
+docker compose -f docker-compose.ghcr.internal-db.yml up -d --build
 ```
 
-To map to random host ports (example):
+Por padrão, o compose expõe:
+
+- Porta do web/nginx: host `80` -> container `80`
+- Porta da API: host `3000` -> container `3000`
+
+Você pode sobrescrever com variáveis de ambiente:
 
 ```bash
-HOST_WEB_PORT=$(shuf -i 20000-60000 -n 1)
-HOST_API_PORT=$(shuf -i 20000-60000 -n 1)
-
-HOST_WEB_PORT=$HOST_WEB_PORT HOST_API_PORT=$HOST_API_PORT \
-  docker compose --env-file .env.docker up -d --build
+HOST_WEB_PORT=8080 HOST_API_PORT=3001 \
+  docker compose -f docker-compose.dockerhub.internal-db.yml up -d --build
 ```
 
-### Port mapping
+Também é possível subir somente nginx + API (sem iniciar o bot) com:
 
-The compose file maps host ports via:
+```bash
+ENABLE_BOT=false \
+  docker compose -f docker-compose.dockerhub.internal-db.yml up -d --build
+```
 
-- `HOST_WEB_PORT` (default `80`) -> container `80`
-- `HOST_API_PORT` (default `3000`) -> container `3000`
+### Compose com DB externo (exemplo)
 
-### Frontend runtime config (`/env.js`)
+Docker Hub:
 
-In Docker, the frontend reads runtime configuration from `window.__ENV__` loaded from `/env.js`.
+```bash
+docker compose -f docker-compose.dockerhub.external-db.yml up -d --build
+```
 
-- `VITE_API_URL` is injected to `window.__ENV__.apiUrl`
-  - Set it to an empty string to use **same-origin** requests (recommended behind nginx). In that case, frontend requests will be relative (e.g. `/api/auth/me`).
-- `VITE_DISCORD_CLIENT_ID` is injected to `window.__ENV__.discordClientId`
+GHCR:
 
-### Health endpoints
+```bash
+docker compose -f docker-compose.ghcr.external-db.yml up -d --build
+```
 
-- API: `GET /health` (container healthcheck uses `http://localhost:3000/health` inside the container)
-- Nginx: `GET /health` returns a plain `200` for basic probing
+Notas importantes:
+
+- Para DB externo, ajuste `DATABASE_URL` para apontar para o seu Postgres (host, porta, usuário, senha e banco).
+- Para HTTP local, mantenha `COOKIE_SAMESITE=lax` e `COOKIE_SECURE=false`.
+- Se você publicar atrás de HTTPS e precisar `SameSite=None`, então `COOKIE_SECURE` deve ser `true`.
+
+## Build e push usando docker compose
+
+Os compose acima incluem `build` e `image`. Isso permite:
+
+```bash
+docker compose -f docker-compose.dockerhub.internal-db.yml build
+docker compose -f docker-compose.dockerhub.internal-db.yml push
+```
+
+Para Docker Hub, faça login antes:
+
+```bash
+docker login
+```
+
+Para GHCR, faça login no registry:
+
+```bash
+docker login ghcr.io
+```
+
+Observações:
+
+- Para publicar no GHCR normalmente é necessário um token com permissão `write:packages`.
+- Se você quiser publicar tags específicas (não apenas `latest`), use `docker tag` ou ajuste o `image:` no compose.
+
+## Health checks
+
+- API: `GET /health`
+- nginx: `GET /health`
 
 ## Scripts
 
@@ -232,12 +376,12 @@ pnpm dev:web
 
 ## Slash commands
 
-Whenever you add or change bot commands, deploy them to Discord:
+Sempre que adicionar/alterar comandos do bot, publique os slash commands no Discord:
 
 ```bash
 pnpm --filter @yuebot/bot deploy-commands
 ```
 
-## License
+## Licença
 
-This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**. See `LICENSE`.
+Este projeto usa a licença GNU Affero General Public License v3.0 (AGPL-3.0). Veja `LICENSE`.

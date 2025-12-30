@@ -1,0 +1,78 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: yuebot
+      POSTGRES_PASSWORD: change_me_postgres_password
+      POSTGRES_DB: yuebot
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U yuebot -d yuebot -h localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    volumes:
+      - yuebot_db_data:/var/lib/postgresql/data
+
+  yuebot:
+    build:
+      context: .
+    image: ghcr.io/isyuricunha/yue-discord-bot:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "${HOST_WEB_PORT:-80}:80"
+      - "${HOST_API_PORT:-3000}:3000"
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+
+      ENABLE_BOT: "${ENABLE_BOT:-true}"
+
+      API_PORT: "3000"
+      API_HOST: "0.0.0.0"
+      TRUST_PROXY: "0"
+      API_BODY_LIMIT: "10485760"
+
+      POSTGRES_USER: yuebot
+      POSTGRES_PASSWORD: change_me_postgres_password
+      POSTGRES_DB: yuebot
+      DATABASE_URL: postgresql://yuebot:change_me_postgres_password@db:5432/yuebot
+
+      DISCORD_TOKEN: change_me_discord_bot_token
+      DISCORD_BOT_TOKEN: ""
+      DISCORD_CLIENT_ID: "123456789012345678"
+      DISCORD_CLIENT_SECRET: change_me_discord_client_secret
+      DISCORD_REDIRECT_URI: http://localhost/api/auth/callback
+
+      JWT_SECRET: change_me_to_a_long_random_jwt_secret_min_32_chars
+      JWT_EXPIRES_IN: 7d
+
+      INTERNAL_API_SECRET: change_me_to_a_long_random_secret
+      BOT_INTERNAL_HOST: 127.0.0.1
+      BOT_INTERNAL_PORT: "3100"
+      INTERNAL_API_CACHE_TTL_MS: "20000"
+      INTERNAL_API_CACHE_MAX_ENTRIES: "500"
+
+      CORS_ORIGINS: http://localhost
+
+      COOKIE_SAMESITE: lax
+      COOKIE_SECURE: "false"
+      COOKIE_DOMAIN: ""
+
+      WEB_URL: http://localhost
+      FRONTEND_URL: http://localhost
+
+      VITE_API_URL: ""
+      VITE_DISCORD_CLIENT_ID: "123456789012345678"
+
+      BADGE_ADMIN_USER_IDS: ""
+      FAN_ART_REVIEWER_USER_IDS: ""
+      OWNER_USER_IDS: ""
+      GLOBAL_XP_RESET_USER_IDS: ""
+
+volumes:
+  yuebot_db_data:
