@@ -2,10 +2,10 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { useEffect, useRef, useState } from 'react'
-import { ArrowLeft, User, FileText, Save } from 'lucide-react'
+import { ArrowLeft, User, FileText, Save, Shield, Ban, Timer, Gavel, Undo2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Skeleton, Textarea } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton, Textarea } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -36,6 +36,10 @@ export default function MemberDetailsPage() {
   const [notes, setNotes] = useState('')
   const [isEditingNotes, setIsEditingNotes] = useState(false)
   const has_initialized = useRef(false)
+
+  const [action_reason, setActionReason] = useState('')
+  const [timeout_duration, setTimeoutDuration] = useState('5m')
+  const [confirm_text, setConfirmText] = useState('')
 
   const {
     data: member,
@@ -78,6 +82,22 @@ export default function MemberDetailsPage() {
   const handleSaveNotes = () => {
     updateNotesMutation.mutate(notes)
   }
+
+  const moderateMutation = useMutation({
+    mutationFn: async (payload: { action: 'timeout' | 'untimeout' | 'kick' | 'ban' | 'unban'; reason?: string; duration?: string }) => {
+      await axios.post(`${API_URL}/api/guilds/${guildId}/members/${userId}/moderate`, payload)
+    },
+    onSuccess: async () => {
+      toast_success('Ação executada com sucesso!')
+      setConfirmText('')
+      await queryClient.invalidateQueries({ queryKey: ['member', guildId, userId] })
+      await queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      await queryClient.invalidateQueries({ queryKey: ['members', guildId] })
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao executar ação')
+    },
+  })
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -212,6 +232,114 @@ export default function MemberDetailsPage() {
                       {member.notes || 'Nenhuma nota adicionada'}
                     </div>
                   )}
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-accent/20">
+              <CardContent className="space-y-4 p-6">
+                <div className="flex items-center gap-2">
+                  <Shield className="h-5 w-5 text-accent" />
+                  <div>
+                    <div className="text-sm font-semibold">Ações rápidas</div>
+                    <div className="text-xs text-muted-foreground">Executa ações no Discord e registra no ModLogs.</div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-xs text-muted-foreground">Razão (opcional)</div>
+                  <Input value={action_reason} onChange={(e) => setActionReason(e.target.value)} placeholder="Ex: spam, ofensas..." />
+                </div>
+
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground">Duração do timeout</div>
+                    <Input value={timeout_duration} onChange={(e) => setTimeoutDuration(e.target.value)} placeholder="5m" />
+                    <div className="text-xs text-muted-foreground">Formato: 30s, 5m, 2h, 1d (máx 28d).</div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground">Confirmação</div>
+                    <Input value={confirm_text} onChange={(e) => setConfirmText(e.target.value)} placeholder="Digite BAN para habilitar" />
+                    <div className="text-xs text-muted-foreground">
+                      Para ban/kick: digite <span className="font-mono text-foreground">BAN</span> ou <span className="font-mono text-foreground">KICK</span>.
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      moderateMutation.mutate({
+                        action: 'timeout',
+                        duration: timeout_duration,
+                        ...(action_reason.trim() ? { reason: action_reason.trim() } : {}),
+                      })
+                    }
+                    disabled={moderateMutation.isPending}
+                  >
+                    <Timer className="h-4 w-4" />
+                    Timeout
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      moderateMutation.mutate({
+                        action: 'untimeout',
+                        ...(action_reason.trim() ? { reason: action_reason.trim() } : {}),
+                      })
+                    }
+                    disabled={moderateMutation.isPending}
+                  >
+                    <Undo2 className="h-4 w-4" />
+                    Remover timeout
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      moderateMutation.mutate({
+                        action: 'kick',
+                        ...(action_reason.trim() ? { reason: action_reason.trim() } : {}),
+                      })
+                    }
+                    disabled={moderateMutation.isPending || confirm_text.trim().toUpperCase() !== 'KICK'}
+                    className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+                  >
+                    <Gavel className="h-4 w-4" />
+                    Kick
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={() =>
+                      moderateMutation.mutate({
+                        action: 'ban',
+                        ...(action_reason.trim() ? { reason: action_reason.trim() } : {}),
+                      })
+                    }
+                    disabled={moderateMutation.isPending || confirm_text.trim().toUpperCase() !== 'BAN'}
+                    className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+                  >
+                    <Ban className="h-4 w-4" />
+                    Ban
+                  </Button>
+
+                  <Button
+                    variant="ghost"
+                    onClick={() =>
+                      moderateMutation.mutate({
+                        action: 'unban',
+                        ...(action_reason.trim() ? { reason: action_reason.trim() } : {}),
+                      })
+                    }
+                    disabled={moderateMutation.isPending}
+                  >
+                    <Undo2 className="h-4 w-4" />
+                    Unban
+                  </Button>
                 </div>
               </CardContent>
             </Card>
