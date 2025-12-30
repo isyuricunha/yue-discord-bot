@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { Check, ChevronDown } from 'lucide-react'
+import { createPortal } from 'react-dom'
 
 import { cn } from '../../lib/cn'
 
@@ -69,8 +70,17 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
     const [open, setOpen] = React.useState(false)
     const [active_index, setActiveIndex] = React.useState<number>(-1)
 
+    const [menu_style, setMenuStyle] = React.useState<{
+      left: number
+      width: number
+      top?: number
+      bottom?: number
+      maxHeight: number
+    } | null>(null)
+
     const root_ref = React.useRef<HTMLDivElement | null>(null)
     const button_ref = React.useRef<HTMLButtonElement | null>(null)
+    const menu_ref = React.useRef<HTMLDivElement | null>(null)
 
     const resolved_button_ref = React.useCallback(
       (node: HTMLButtonElement | null) => {
@@ -106,9 +116,50 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
     React.useEffect(() => {
       if (!open) return
 
+      const update_position = () => {
+        const button = button_ref.current
+        if (!button) return
+
+        const rect = button.getBoundingClientRect()
+        const margin = 8
+        const max_height = 288
+        const viewport_height = window.innerHeight
+        const viewport_width = window.innerWidth
+
+        const space_below = viewport_height - rect.bottom - margin
+        const space_above = rect.top - margin
+        const should_open_above = space_below < 200 && space_above > space_below
+
+        const width = rect.width
+        const left = Math.min(Math.max(rect.left, margin), Math.max(margin, viewport_width - width - margin))
+
+        if (should_open_above) {
+          setMenuStyle({
+            left,
+            width,
+            bottom: viewport_height - rect.top + margin,
+            maxHeight: Math.min(max_height, Math.max(120, space_above)),
+          })
+        } else {
+          setMenuStyle({
+            left,
+            width,
+            top: rect.bottom + margin,
+            maxHeight: Math.min(max_height, Math.max(120, space_below)),
+          })
+        }
+      }
+
+      update_position()
+
+      window.addEventListener('resize', update_position)
+      window.addEventListener('scroll', update_position, true)
+
       const onPointerDown = (event: MouseEvent) => {
-        if (!root_ref.current) return
-        if (event.target instanceof Node && root_ref.current.contains(event.target)) return
+        const target = event.target
+        if (!(target instanceof Node)) return
+        if (root_ref.current && root_ref.current.contains(target)) return
+        if (menu_ref.current && menu_ref.current.contains(target)) return
         close()
       }
 
@@ -124,6 +175,8 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
       document.addEventListener('keydown', onKeyDown)
 
       return () => {
+        window.removeEventListener('resize', update_position)
+        window.removeEventListener('scroll', update_position, true)
         document.removeEventListener('mousedown', onPointerDown)
         document.removeEventListener('keydown', onKeyDown)
       }
@@ -131,6 +184,53 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
 
     const base =
       'flex h-11 w-full items-center justify-between rounded-xl border border-border/80 bg-surface/60 px-4 py-2 text-sm text-foreground shadow-sm backdrop-blur-md transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:border-accent/60 disabled:cursor-not-allowed disabled:opacity-60'
+
+    const menu =
+      open && menu_style
+        ? createPortal(
+            <div
+              ref={menu_ref}
+              role="listbox"
+              className="fixed z-9999 overflow-hidden rounded-xl border border-border/80 bg-surface/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md"
+              style={{ left: menu_style.left, width: menu_style.width, top: menu_style.top, bottom: menu_style.bottom }}
+            >
+              <div className="overflow-auto py-1" style={{ maxHeight: menu_style.maxHeight }}>
+                {options.map((opt, idx) => {
+                  const is_selected = opt.value === (current_value ?? '')
+                  const is_active = idx === active_index
+
+                  return (
+                    <button
+                      key={`${opt.value}-${idx}`}
+                      type="button"
+                      role="option"
+                      aria-selected={is_selected}
+                      disabled={opt.disabled}
+                      className={cn(
+                        'mx-1 flex w-[calc(100%-0.5rem)] items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors',
+                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+                        'hover:bg-accent/15 disabled:pointer-events-none disabled:opacity-50',
+                        is_active && 'bg-accent/12',
+                        is_selected && 'bg-accent/20'
+                      )}
+                      onMouseEnter={() => setActiveIndex(idx)}
+                      onClick={() => {
+                        if (opt.disabled) return
+                        commit_value(opt.value)
+                        close()
+                        button_ref.current?.focus()
+                      }}
+                    >
+                      <span className="min-w-0 truncate">{opt.label}</span>
+                      {is_selected && <Check className="h-4 w-4 text-accent" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>,
+            document.body
+          )
+        : null
 
     return (
       <div ref={root_ref} className="relative">
@@ -164,45 +264,7 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
           <ChevronDown className={cn('h-4 w-4 text-muted-foreground transition-transform', open && 'rotate-180')} />
         </button>
 
-        {open && (
-          <div
-            role="listbox"
-            className="absolute z-50 mt-2 w-full overflow-hidden rounded-xl border border-border/80 bg-surface/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md"
-          >
-            <div className="max-h-72 overflow-auto py-1">
-              {options.map((opt, idx) => {
-                const is_selected = opt.value === (current_value ?? '')
-                const is_active = idx === active_index
-
-                return (
-                  <button
-                    key={`${opt.value}-${idx}`}
-                    type="button"
-                    role="option"
-                    aria-selected={is_selected}
-                    disabled={opt.disabled}
-                    className={cn(
-                      'flex w-full items-center justify-between gap-3 px-4 py-2 text-left text-sm transition-colors',
-                      'hover:bg-surface/70 disabled:cursor-not-allowed disabled:opacity-50',
-                      is_active && 'bg-surface/70',
-                      is_selected && 'text-foreground'
-                    )}
-                    onMouseEnter={() => setActiveIndex(idx)}
-                    onClick={() => {
-                      if (opt.disabled) return
-                      commit_value(opt.value)
-                      close()
-                      button_ref.current?.focus()
-                    }}
-                  >
-                    <span className="min-w-0 truncate">{opt.label}</span>
-                    {is_selected && <Check className="h-4 w-4 text-accent" />}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
+        {menu}
       </div>
     )
   }
