@@ -4,6 +4,11 @@ import { useAuthStore } from './store/auth'
 import LoginPage from './pages/Login'
 import TokenLoginPage from './pages/TokenLogin'
 import ExtrasPage from './pages/Extras'
+import ExtrasHomePage from './pages/extras/ExtrasHome'
+import ExtrasAboutPage from './pages/extras/ExtrasAbout'
+import ExtrasModerationPage from './pages/extras/ExtrasModeration'
+import ExtrasPlaceholdersPage from './pages/extras/ExtrasPlaceholders'
+import ExtrasBanAppealPage from './pages/extras/ExtrasBanAppeal'
 import DashboardPage from './pages/Dashboard'
 import GuildPage from './pages/Guild'
 import OverviewPage from './pages/Overview'
@@ -56,7 +61,13 @@ function App() {
         {allow_token_login && <Route path="/token-login" element={<TokenLoginPage />} />}
 
         <Route element={<PublicShell />}>
-          <Route path="/extras" element={<ExtrasPage />} />
+          <Route path="/extras" element={<ExtrasPage />}>
+            <Route index element={<ExtrasHomePage />} />
+            <Route path="sobre" element={<ExtrasAboutPage />} />
+            <Route path="moderacao" element={<ExtrasModerationPage />} />
+            <Route path="placeholders" element={<ExtrasPlaceholdersPage />} />
+            <Route path="apelo-de-ban" element={<ExtrasBanAppealPage />} />
+          </Route>
         </Route>
 
         <Route
