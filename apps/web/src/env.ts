@@ -11,7 +11,10 @@ declare global {
 
 export function getApiUrl() {
   const configured = window.__ENV__?.apiUrl ?? import.meta.env.VITE_API_URL
-  if (typeof configured === 'string') return configured.replace(/\/+$/, '')
+  if (typeof configured === 'string') {
+    const trimmed = configured.replace(/\/+$/, '')
+    return trimmed.endsWith('/api') ? trimmed.slice(0, -4) : trimmed
+  }
 
   // In production, prefer same-origin requests by default.
   // In development, keep a sensible localhost default.
