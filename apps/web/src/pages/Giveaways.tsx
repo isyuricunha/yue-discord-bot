@@ -1,12 +1,23 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Trophy, Calendar, Users, CheckCircle, Clock, Plus } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, Select, Skeleton } from '../components/ui'
+import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
+
+type api_channel = {
+  id: string
+  name: string
+  type: number
+}
+
+function channel_label(channel: api_channel) {
+  return `#${channel.name}`
+}
 
 interface Giveaway {
   id: string
@@ -28,6 +39,46 @@ interface Giveaway {
 export default function GiveawaysPage() {
   const { guildId } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const {
+    data: guild,
+    isLoading: is_guild_loading,
+    isError: is_guild_error,
+    refetch: refetch_guild,
+  } = useQuery({
+    queryKey: ['guild', guildId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
+      return response.data
+    },
+  })
+
+  const config = guild?.guild?.config as { giveawayChannelId?: string | null } | undefined
+
+  const { data: channels_data, isLoading: is_channels_loading } = useQuery({
+    queryKey: ['channels', guildId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`)
+      return response.data as { channels: api_channel[] }
+    },
+  })
+
+  const channels = (channels_data?.channels ?? []).slice().sort((a, b) => a.name.localeCompare(b.name))
+  const giveaway_channel_id = config?.giveawayChannelId ?? ''
+
+  const updateMutation = useMutation({
+    mutationFn: async (data: { giveawayChannelId?: string | undefined }) => {
+      await axios.put(`${API_URL}/api/guilds/${guildId}/config`, data)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      toast_success('Configurações salvas com sucesso!')
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao salvar configurações')
+    },
+  })
 
   const { data, isLoading } = useQuery({
     queryKey: ['giveaways', guildId],
@@ -58,6 +109,64 @@ export default function GiveawaysPage() {
       <Card className="border-accent/20">
         <CardContent className="p-6 text-sm text-muted-foreground">
           <span className="font-semibold text-foreground">Dica:</span> você pode criar sorteios via Web ou usar <span className="font-mono text-foreground">/sorteio-wizard</span> no Discord.
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold">Configuração</div>
+              <div className="mt-1 text-xs text-muted-foreground">Defina o canal padrão de sorteios do servidor.</div>
+            </div>
+
+            <Button
+              onClick={() => updateMutation.mutate({ giveawayChannelId: giveaway_channel_id || undefined })}
+              isLoading={updateMutation.isPending}
+              disabled={is_guild_loading || is_guild_error || is_channels_loading}
+              className="shrink-0"
+            >
+              Salvar
+            </Button>
+          </div>
+
+          <div className="mt-4">
+            {is_guild_error ? (
+              <div className="text-sm text-muted-foreground">
+                Falha ao carregar guild. <button className="underline" onClick={() => void refetch_guild()}>Tentar novamente</button>
+              </div>
+            ) : is_channels_loading ? (
+              <Skeleton className="h-11 w-full" />
+            ) : (
+              <Select
+                value={giveaway_channel_id}
+                onValueChange={(value) => {
+                  const next = value
+                  // optimistic update in cache so UI reflects selection without local state
+                  queryClient.setQueryData(['guild', guildId], (prev: any) => {
+                    if (!prev?.guild) return prev
+                    return {
+                      ...prev,
+                      guild: {
+                        ...prev.guild,
+                        config: {
+                          ...(prev.guild.config ?? {}),
+                          giveawayChannelId: next || null,
+                        },
+                      },
+                    }
+                  })
+                }}
+              >
+                <option value="">Desativado</option>
+                {channels.map((ch) => (
+                  <option key={ch.id} value={ch.id}>
+                    {channel_label(ch)}
+                  </option>
+                ))}
+              </Select>
+            )}
+          </div>
         </CardContent>
       </Card>
 

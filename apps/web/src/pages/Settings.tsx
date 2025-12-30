@@ -16,7 +16,6 @@ interface GuildConfig {
   locale: string
   timezone: string
   modLogChannelId?: string
-  giveawayChannelId?: string
   welcomeChannelId?: string
   leaveChannelId?: string
   welcomeMessage?: string | null
@@ -64,7 +63,6 @@ export default function SettingsPage() {
   const [locale, setLocale] = useState('pt-BR')
   const [timezone, setTimezone] = useState('America/Sao_Paulo')
   const [modLogChannelId, setModLogChannelId] = useState('')
-  const [giveawayChannelId, setGiveawayChannelId] = useState('')
   const [welcomeChannelId, setWelcomeChannelId] = useState('')
   const [leaveChannelId, setLeaveChannelId] = useState('')
   const [welcomeMessage, setWelcomeMessage] = useState('')
@@ -117,7 +115,6 @@ export default function SettingsPage() {
     setLocale(config.locale || 'pt-BR')
     setTimezone(config.timezone || 'America/Sao_Paulo')
     setModLogChannelId(config.modLogChannelId || '')
-    setGiveawayChannelId(config.giveawayChannelId || '')
     setWelcomeChannelId(config.welcomeChannelId || '')
     setLeaveChannelId(config.leaveChannelId || '')
     setWelcomeMessage(config.welcomeMessage || '')
@@ -146,7 +143,6 @@ export default function SettingsPage() {
       locale,
       timezone,
       modLogChannelId: modLogChannelId || undefined,
-      giveawayChannelId: giveawayChannelId || undefined,
       welcomeChannelId: welcomeChannelId || undefined,
       leaveChannelId: leaveChannelId || undefined,
       welcomeMessage: welcomeMessage || null,
@@ -260,24 +256,6 @@ export default function SettingsPage() {
                     <Skeleton className="h-11 w-full" />
                   ) : (
                     <Select value={modLogChannelId} onValueChange={(value) => setModLogChannelId(value)}>
-                      <option value="">Desativado</option>
-                      {available_channels.map((ch) => (
-                        <option key={ch.id} value={ch.id}>
-                          {channel_label(ch)}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <div className="text-sm font-medium">Canal de sorteios</div>
-                <div className="mt-2">
-                  {is_channels_loading ? (
-                    <Skeleton className="h-11 w-full" />
-                  ) : (
-                    <Select value={giveawayChannelId} onValueChange={(value) => setGiveawayChannelId(value)}>
                       <option value="">Desativado</option>
                       {available_channels.map((ch) => (
                         <option key={ch.id} value={ch.id}>
