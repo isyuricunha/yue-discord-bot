@@ -8,6 +8,12 @@ import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Skeleton } fr
 
 const API_URL = getApiUrl()
 
+type guild_summary = {
+  id: string
+  name: string
+  icon: string | null
+}
+
 interface GuildStats {
   totalMembers: number
   moderationActions7d: number
@@ -40,7 +46,7 @@ export default function OverviewPage() {
     queryKey: ['guild', guildId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
-      return response.data
+      return (response.data as { guild: guild_summary }).guild
     },
   })
 
@@ -64,25 +70,27 @@ export default function OverviewPage() {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
+        <div className="flex min-w-0 items-center gap-3">
           <Button variant="ghost" size="sm" onClick={() => navigate(`/guild/${guildId}`)} className="h-10">
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Voltar</span>
           </Button>
-          <div className="flex items-center gap-3">
+          <div className="flex min-w-0 items-center gap-3">
             {is_loading ? (
               <Skeleton className="h-11 w-11 rounded-full" />
             ) : guild?.icon ? (
               <img
-                src={`https://cdn.discordapp.com/icons/${guildId}/${guild.icon}.png`}
+                src={`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`}
                 alt={guild.name}
                 className="h-11 w-11 rounded-full"
               />
             ) : (
               <div className="h-11 w-11 rounded-full border border-border/70 bg-surface/60" />
             )}
-            <div>
-              <div className="text-xl font-semibold tracking-tight">{is_loading ? <Skeleton className="h-6 w-52" /> : guild?.name || 'Guild'}</div>
+            <div className="min-w-0">
+              <div className="truncate text-xl font-semibold tracking-tight">
+                {is_loading ? <Skeleton className="h-6 w-52" /> : guild?.name || 'Guild'}
+              </div>
               <div className="mt-1 text-sm text-muted-foreground">Visão geral</div>
             </div>
           </div>
@@ -249,15 +257,17 @@ export default function OverviewPage() {
                   key={action.id}
                   className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-surface/40 p-4 transition-colors hover:bg-surface/60 md:flex-row md:items-center md:justify-between"
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex min-w-0 items-start gap-3">
                     <Badge variant="neutral" className="uppercase">
                       {action.action}
                     </Badge>
-                    <div>
+                    <div className="min-w-0">
                       <div className="text-sm">
                         <span className="text-muted-foreground">Usuário:</span> <span className="font-medium">{action.userId}</span>
                       </div>
-                      {action.reason && <div className="mt-1 text-sm text-muted-foreground">Razão: {action.reason}</div>}
+                      {action.reason && (
+                        <div className="mt-1 break-words text-sm text-muted-foreground">Razão: {action.reason}</div>
+                      )}
                     </div>
                   </div>
                   <div className="text-sm text-muted-foreground">{new Date(action.createdAt).toLocaleString('pt-BR')}</div>

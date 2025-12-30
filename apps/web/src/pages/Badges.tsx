@@ -199,11 +199,11 @@ export default function BadgesPage() {
                           onClick={() => setEditing(b)}
                         >
                           <div className="min-w-0">
-                            <div className="flex items-center gap-2">
+                            <div className="flex min-w-0 items-center gap-2">
                               <UiBadge variant={b.hidden ? 'neutral' : 'accent'}>
                                 {b.icon ? `${b.icon} ` : ''}{b.name}
                               </UiBadge>
-                              <span className="text-xs text-muted-foreground">{b.id}</span>
+                              <span className="min-w-0 truncate text-xs text-muted-foreground">{b.id}</span>
                             </div>
                             {b.description && (
                               <div className="mt-1 line-clamp-2 text-xs text-muted-foreground">{b.description}</div>
