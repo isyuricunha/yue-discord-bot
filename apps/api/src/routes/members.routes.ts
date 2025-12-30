@@ -149,6 +149,11 @@ export async function membersRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
     const moderator_id = user.userId
     if (typeof moderator_id !== 'string' || moderator_id.length === 0) {
       return reply.code(401).send({ error: 'Unauthorized' })
