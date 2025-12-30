@@ -2,8 +2,10 @@ import type { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database'
 import { fanArtReviewSchema, fanArtStatusSchema, fanArtSubmitSchema } from '@yuebot/shared'
 import { validation_error_details } from '../utils/validation_error'
+import { is_owner } from '../utils/permissions'
 
 function require_fanart_reviewer(fastify: FastifyInstance, user_id: string): boolean {
+  if (is_owner(user_id)) return true
   const allowlist = fastify.config?.admin?.fanArtReviewerUserIds as string[] | undefined
   if (!allowlist || !allowlist.includes(user_id)) return false
   return true

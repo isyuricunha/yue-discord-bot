@@ -3,8 +3,10 @@ import { prisma } from '@yuebot/database'
 import { Prisma } from '@yuebot/database'
 import { badgeUpsertSchema, userBadgeGrantSchema, userBadgeRevokeSchema } from '@yuebot/shared'
 import { validation_error_details } from '../utils/validation_error'
+import { is_owner } from '../utils/permissions'
 
 function require_badge_admin(fastify: FastifyInstance, user_id: string): boolean {
+  if (is_owner(user_id)) return true
   const allowlist = fastify.config?.admin?.badgeAdminUserIds as string[] | undefined
   if (!allowlist || !allowlist.includes(user_id)) return false
   return true

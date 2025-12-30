@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '@yuebot/database';
 import { globalXpResetSchema } from '@yuebot/shared';
 import { CONFIG } from '../config';
+import { is_owner } from '../utils/permissions';
 import { validation_error_details } from '../utils/validation_error';
 
 export default async function xpRoutes(fastify: FastifyInstance) {
@@ -58,8 +59,9 @@ export default async function xpRoutes(fastify: FastifyInstance) {
   }, async (request, reply) => {
     const user = request.user;
 
+    const isOwner = is_owner(user.userId)
     const allowlist = CONFIG.admin.globalXpResetUserIds;
-    if (allowlist.length === 0 || !allowlist.includes(user.userId)) {
+    if (!isOwner && (allowlist.length === 0 || !allowlist.includes(user.userId))) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
