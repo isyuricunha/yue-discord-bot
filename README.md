@@ -1,18 +1,39 @@
 # Yue Discord Bot (YueBot)
 
-Este repositório é um monorepo (pnpm workspaces) com:
+YueBot is a Discord bot + admin panel built as a **pnpm monorepo**. It ships:
 
-- **Bot**: `discord.js`.
-- **API**: `fastify` (back-end do painel).
-- **Web UI**: `react` + `vite` (painel de administração).
-- **Database package**: `prisma` (cliente + migrations compartilhado pelo bot e pela API).
+- A Discord bot (moderation and community automation)
+- A Fastify API (backend for the admin panel)
+- A React (Vite) web UI (admin panel)
+- A shared Prisma database package used by both bot and API
 
-O projeto também inclui uma imagem Docker de produção em **um único container** (nginx + API + bot via supervisord), e exemplos de Docker Compose para:
+The repository also includes a production Docker image that runs **nginx + API + bot** inside a **single container** (supervised by `supervisord`), plus Docker Compose examples for:
 
-- **DB interno** (PostgreSQL dentro do compose)
-- **DB externo** (exemplo apontando para um Postgres fora do compose)
+- An internal PostgreSQL (self-contained compose)
+- An external PostgreSQL (example connection string)
 
-## Estrutura do repositório
+## Project overview
+
+YueBot is designed to be operated with a web admin panel instead of relying only on chat commands. In practice, the bot and the panel share a single PostgreSQL database and a shared Prisma client.
+
+At a high level:
+
+- The **Web UI** authenticates users via Discord OAuth.
+- The **API** issues a JWT session stored in an **httpOnly cookie**.
+- The **Bot** performs Discord-side actions and exposes a small internal HTTP API for the backend.
+
+## Features (high level)
+
+- Moderation tools and moderation logs
+- Server configuration via panel (AutoMod, autorole, etc.)
+- Giveaways management (including entries and winner tracking)
+- XP / levels (guild and global leaderboards)
+- Member listing/details in the panel
+- User profile and badges
+- Fan art submission and review flows (with allowlists)
+- Economy features and coinflip games
+
+## Repository layout
 
 ```text
 apps/
@@ -21,10 +42,10 @@ apps/
   web/   (React + Vite)
 packages/
   database/ (Prisma client + migrations)
-  shared/   (utilitários/schemas compartilhados)
+  shared/   (shared utilities/schemas)
 ```
 
-## Stack
+## Tech stack
 
 - Node.js: 24+
 - pnpm: 10+
@@ -37,52 +58,63 @@ packages/
 - TailwindCSS: 4+
 - ESLint: 9
 
-## Componentes e responsabilidades
+## What this project provides
 
 ### Bot (apps/bot)
 
-Responsável por:
+Responsibilities:
 
-- Moderação e automação
-- Rotinas agendadas (sorteios, expiração de warns, autorole)
-- API interna (HTTP) consumida pela API para ações que exigem contexto do Discord
+- Discord moderation and automation
+- Scheduled jobs (giveaways, warn expiration, autorole)
+- An internal HTTP API used by the backend to perform Discord-context actions
 
-Comandos (visão geral):
+Commands (high-level overview):
 
-- **Moderação**
+Note: some commands are named in Portuguese (as they reflect the server's primary language), but they are grouped below by purpose.
+
+- **Moderation**
   - `ban`, `kick`, `mute`, `unmute`, `warn`, `unwarn`, `modlog`, `baninfo`
-- **Utilidade**
+- **Utility**
   - `limpar`, `lock`, `unlock`, `painel`, `say`
-- **Sorteios**
+- **Giveaways**
   - `giveaway`, `sorteio-wizard`, `sorteio-lista`
 - **XP/Levels**
   - `rank`, `leaderboard`
-- **Perfil**
+- **Profile**
   - `profile`, `badges`
 - **Fan art**
   - `fanart`
-- **Economia**
+- **Economy**
   - `luazinhas`
-- **Jogos**
+- **Games**
   - `coinflip`
-- **Comandos autenticados (mensagem/context menu)**
+- **Authenticated (message/context menu)**
   - `verify_message` (slash)
   - `save_message_here`, `save_message_dm` (context menu)
 
+Bot internal API (used by the backend):
+
+- Auth: `Authorization: Bearer ${INTERNAL_API_SECRET}`
+- Endpoints:
+  - `GET /internal/health`
+  - `GET /internal/guilds/:guildId/channels`
+  - `GET /internal/guilds/:guildId/roles`
+  - `GET /internal/guilds/:guildId/members`
+  - `POST /internal/guilds/:guildId/channels/:channelId/messages` (JSON body: `{ "content": "..." }`)
+
 ### API (apps/api)
 
-Responsável por:
+Responsibilities:
 
-- Autenticação via Discord OAuth
-- Cookie de sessão (`yuebot_token`) e endpoints do painel
-- Acesso ao banco (Prisma)
-- Integração com o bot via **Internal API** (HTTP) para:
-  - listar canais/roles/members
-  - enviar mensagem em canal
+- Discord OAuth authentication
+- Session cookie auth (`yuebot_token`)
+- Admin panel endpoints
+- Database access (Prisma)
+- Integration with the bot through the internal bot API (HTTP)
 
-Endpoints (alto nível):
+Endpoints (high level):
 
-- **Saúde**
+- **Health**
   - `GET /health`
 - **Auth** (`/api/auth`)
   - `GET /login`
@@ -90,69 +122,78 @@ Endpoints (alto nível):
   - `GET /me`
   - `POST /refresh`
   - `POST /logout`
-- **Guilds e configurações** (`/api/guilds`)
-  - listar guilds acessíveis
-  - ler/atualizar configuração
-  - enviar mensagem
-  - modlogs
+- **Guild management** (`/api/guilds`)
+  - list accessible guilds
+  - read/update guild configuration
+  - send message (via bot internal API)
+  - moderation logs
   - autorole config
-  - xp config + leaderboard + reset
-  - canais/roles (via internal API do bot)
-- **XP global** (`/api/xp`)
+  - xp config, leaderboard and reset
+  - channels/roles lookups (via bot internal API)
+- **Global XP** (`/api/xp`)
   - `GET /global-me`
   - `GET /global-leaderboard`
-  - `POST /global-reset` (restrito por allowlist)
-- **Sorteios** (`/api/guilds/:guildId/giveaways`)
-  - criar/listar/detalhar/cancelar
-  - gerenciar entries (inclui disqualify)
-- **Stats**
-  - `GET /api/guilds/:guildId/stats`
-- **Export**
-  - export de entries de sorteio
-  - export de modlogs
-- **Members**
-  - listagem e detalhe de membros
-  - atualização de notas
-- **Profile/Badges/FanArts**
-  - endpoints para perfil
-  - administração de badges (restrito)
-  - submissão e revisão de fan arts (restrito)
+  - `POST /global-reset` (restricted via allowlist)
+- **Giveaways**
+  - create/list/details/cancel
+  - manage entries (including disqualify)
+- **Stats / Export / Members / Profile / Badges / Fan arts**
+  - endpoints used by the panel for stats, exports, members, profiles, badge management and fan art review
 
 ### Web UI (apps/web)
 
-Painel web (React + Vite) para gerenciar:
+React + Vite admin panel, including pages for:
 
-- Overview/Dashboard
-- Guild view
+- Dashboard / overview
+- Guild settings
 - AutoMod
 - Autorole
-- Mod logs
-- Members e detalhes
+- Moderation logs
+- Members
 - XP/Levels
-- Giveaways (lista, criação e detalhes)
+- Giveaways
 - Badges
 - Fan arts
-- Settings
 - Login (Discord OAuth)
 
-### Banco de dados (packages/database)
+### Shared package (packages/shared)
 
-Prisma + Postgres. Modelos principais (visão geral):
+The shared package contains utilities and shared schemas used by both API and bot.
 
-- Guild e GuildConfig
-- ModLog
-- Giveaway, GiveawayEntry, GiveawayWinner
-- GuildMember
-- XP (GuildXpConfig, GuildXpMember, GlobalXpMember, GuildLevelRoleReward)
-- Autorole (GuildAutoroleConfig, GuildAutoroleRole, GuildAutorolePending)
-- Perfil/Badges/FanArts
-- Economia e coinflip
+It also provides the env loader used across the repo:
 
-## Variáveis de ambiente
+- Loads a root `.env` file (if present)
+- Optionally loads `.env.local` and overrides values
 
-O projeto valida variáveis obrigatórias em produção. Os arquivos de compose deste repositório já incluem um conjunto completo com valores placeholder.
+### Database (packages/database)
 
-### Obrigatórias (produção)
+Prisma + PostgreSQL.
+
+The schema covers guild configuration, moderation logs, giveaways, XP (guild + global), autorole, profiles/badges/fan arts, and economy/coinflip.
+
+## Security model (high level)
+
+- The panel authenticates primarily via an **httpOnly cookie** (`yuebot_token`).
+- CORS is **allowlist-based**.
+- State-changing requests authenticated by cookie enforce `Origin` checks to mitigate CSRF when needed.
+- Production error responses avoid exposing validation details.
+
+## Production deployment notes
+
+When deploying behind a reverse proxy or on a public domain:
+
+- Set `TRUST_PROXY=1` if the API is behind a proxy/load balancer.
+- Set `WEB_URL` (or `FRONTEND_URL`) and `DISCORD_REDIRECT_URI` to your real domain.
+- Configure `CORS_ORIGINS` to include your panel origin.
+- Cookies:
+  - If your panel is served on a different domain and you need `SameSite=None`, you must set `COOKIE_SECURE=true` (browser requirement).
+  - Consider setting `COOKIE_DOMAIN` if you want the cookie shared across subdomains.
+
+## Environment variables
+
+The project validates required environment variables at startup.
+
+### Required (production)
 
 API/Bot:
 
@@ -160,60 +201,80 @@ API/Bot:
 - `DISCORD_CLIENT_ID`
 - `DISCORD_CLIENT_SECRET`
 - `DISCORD_REDIRECT_URI`
-- `JWT_SECRET` (mínimo 32 caracteres)
+- `JWT_SECRET` (at least 32 characters)
 - `INTERNAL_API_SECRET`
 
-Frontend (runtime em Docker):
+Bot token:
+
+- `DISCORD_TOKEN` or `DISCORD_BOT_TOKEN`
+
+Discord OAuth:
+
+- `DISCORD_REDIRECT_URI` must match the callback route on the API: `/api/auth/callback`.
+- OAuth scopes used by the API are `identify` and `guilds`.
+
+Frontend runtime (Docker):
 
 - `VITE_API_URL`
 - `VITE_DISCORD_CLIENT_ID`
 
-### Importantes (recomendadas)
+### Recommended
 
-- `CORS_ORIGINS` (lista separada por vírgula)
-- `WEB_URL` e/ou `FRONTEND_URL`
+- `CORS_ORIGINS` (comma-separated allowlist)
+- `WEB_URL` and/or `FRONTEND_URL`
 - `COOKIE_SAMESITE`, `COOKIE_SECURE`, `COOKIE_DOMAIN`
 
-### Opcionais
+### Optional
 
-- `ENABLE_BOT` (defina `false` para subir apenas nginx + API + web)
+- `ENABLE_BOT` (set to `false` to run only nginx + API)
 - `INTERNAL_API_CACHE_TTL_MS`, `INTERNAL_API_CACHE_MAX_ENTRIES`
-- Allowlists administrativas (separadas por vírgula)
+- Admin allowlists (comma-separated)
   - `BADGE_ADMIN_USER_IDS`
   - `FAN_ART_REVIEWER_USER_IDS`
   - `OWNER_USER_IDS`
   - `GLOBAL_XP_RESET_USER_IDS`
 
-## Desenvolvimento local
+## Local development
 
-### Requisitos
+### Requirements
 
 - Node.js 24+
 - pnpm 10+
-- PostgreSQL (local ou remoto)
-- Uma aplicação no Discord (bot token + OAuth client id/secret)
+- PostgreSQL (local or remote)
+- A Discord application (bot token + OAuth client id/secret)
 
-### 1) Instalar dependências
+### Discord application setup (summary)
+
+In the Discord Developer Portal:
+
+- Create an application and a bot user.
+- Copy `DISCORD_CLIENT_ID` and `DISCORD_CLIENT_SECRET`.
+- Create/copy a bot token (`DISCORD_TOKEN` or `DISCORD_BOT_TOKEN`).
+- Configure the OAuth redirect URL to match your API callback.
+  - Local development example: `http://localhost:3000/api/auth/callback`
+  - Docker (nginx in front) example: `http://localhost/api/auth/callback`
+
+### 1) Install dependencies
 
 ```bash
 pnpm install
 ```
 
-### 2) Configurar variáveis
+### 2) Configure environment variables
 
-O back-end (API/bot/scripts Prisma) usa `.env` na raiz:
+The backend (API/bot/Prisma scripts) loads a root `.env`:
 
 ```bash
 cp .env.example .env
 ```
 
-Opcionalmente, use `.env.local` para sobrescrever valores sem mexer no arquivo base:
+Optionally, use `.env.local` to override values without editing `.env`:
 
 ```bash
 cp .env.local.example .env.local
 ```
 
-O front-end (Vite) usa variáveis no diretório do app:
+The frontend is a Vite app, and in dev mode it reads env vars from `apps/web`:
 
 ```bash
 cp apps/web/.env.example apps/web/.env
@@ -223,15 +284,12 @@ cp apps/web/.env.example apps/web/.env
 
 ```bash
 pnpm db:generate
-
 pnpm db:push
-
 pnpm db:migrate
-
 pnpm db:studio
 ```
 
-### 4) Rodar em modo dev
+### 4) Run dev servers
 
 ```bash
 pnpm dev
@@ -241,43 +299,59 @@ pnpm dev:api
 pnpm dev:web
 ```
 
-URLs padrão:
+Default URLs:
 
 - Web UI: `http://localhost:5173`
 - API: `http://localhost:3000`
 
 ## Docker
 
-### Como a imagem funciona
+### How the production image works
 
-A imagem de produção contém:
+The Docker image contains:
 
-- nginx (serve o build do `apps/web` e faz proxy de `/api` para a API)
-- API (Fastify)
-- Bot (Discord.js)
+- nginx serving the `apps/web` build and proxying `/api` to the API
+- Fastify API
+- Discord bot
 
-Na inicialização, o entrypoint:
+At startup, the entrypoint:
 
-- verifica `DATABASE_URL`
-- aguarda o Postgres ficar pronto
-- executa `prisma migrate deploy`
-- injeta runtime env para o front-end em `/env.js` (lido via `window.__ENV__`)
+- validates `DATABASE_URL`
+- waits for PostgreSQL
+- runs `prisma migrate deploy`
+- injects frontend runtime configuration to `/env.js` (read via `window.__ENV__`)
 
-### Registries e nomes de imagem
+### Frontend runtime configuration (`/env.js`)
+
+In Docker, the Web UI reads runtime configuration from `window.__ENV__` loaded from `/env.js`.
+
+- `VITE_API_URL` is injected to `window.__ENV__.apiUrl`.
+  - Set it to an empty string (`""`) to use same-origin requests (recommended when nginx is proxying `/api`).
+- `VITE_DISCORD_CLIENT_ID` is injected to `window.__ENV__.discordClientId`.
+
+Relevant files:
+
+- `Dockerfile`
+- `nginx.conf`
+- `docker-entrypoint.sh`
+- `inject-env.sh`
+- `supervisord.conf`
+
+### Registries
 
 - Docker Hub: `isyuricunha/yue-discord-bot`
 - GHCR: `ghcr.io/isyuricunha/yue-discord-bot`
 
 ## Docker Compose
 
-Este repositório inclui 4 arquivos de compose, todos com variáveis definidas diretamente no YAML:
+This repository includes four compose examples (all variables are declared in the YAML files):
 
 - `docker-compose.dockerhub.internal-db.yml`
 - `docker-compose.ghcr.internal-db.yml`
 - `docker-compose.dockerhub.external-db.yml`
 - `docker-compose.ghcr.external-db.yml`
 
-### Compose com DB interno (PostgreSQL no compose)
+### Internal DB (PostgreSQL inside compose)
 
 Docker Hub:
 
@@ -291,26 +365,26 @@ GHCR:
 docker compose -f docker-compose.ghcr.internal-db.yml up -d --build
 ```
 
-Por padrão, o compose expõe:
+By default, ports are mapped as:
 
-- Porta do web/nginx: host `80` -> container `80`
-- Porta da API: host `3000` -> container `3000`
+- Web/nginx: host `80` -> container `80`
+- API: host `3000` -> container `3000`
 
-Você pode sobrescrever com variáveis de ambiente:
+Override host ports (example):
 
 ```bash
 HOST_WEB_PORT=8080 HOST_API_PORT=3001 \
   docker compose -f docker-compose.dockerhub.internal-db.yml up -d --build
 ```
 
-Também é possível subir somente nginx + API (sem iniciar o bot) com:
+Run only nginx + API (skip the Discord bot):
 
 ```bash
 ENABLE_BOT=false \
   docker compose -f docker-compose.dockerhub.internal-db.yml up -d --build
 ```
 
-### Compose com DB externo (exemplo)
+### External DB (example)
 
 Docker Hub:
 
@@ -324,37 +398,25 @@ GHCR:
 docker compose -f docker-compose.ghcr.external-db.yml up -d --build
 ```
 
-Notas importantes:
+Notes:
 
-- Para DB externo, ajuste `DATABASE_URL` para apontar para o seu Postgres (host, porta, usuário, senha e banco).
-- Para HTTP local, mantenha `COOKIE_SAMESITE=lax` e `COOKIE_SECURE=false`.
-- Se você publicar atrás de HTTPS e precisar `SameSite=None`, então `COOKIE_SECURE` deve ser `true`.
+- Update `DATABASE_URL` to point to your external PostgreSQL.
+- For local HTTP, keep `COOKIE_SAMESITE=lax` and `COOKIE_SECURE=false`.
+- If you deploy behind HTTPS and require `SameSite=None`, you must set `COOKIE_SECURE=true`.
 
-## Build e push usando docker compose
+## Build and push using docker compose
 
-Os compose acima incluem `build` e `image`. Isso permite:
+The compose files include both `build` and `image`, so you can:
 
 ```bash
 docker compose -f docker-compose.dockerhub.internal-db.yml build
 docker compose -f docker-compose.dockerhub.internal-db.yml push
 ```
 
-Para Docker Hub, faça login antes:
+Login requirements:
 
-```bash
-docker login
-```
-
-Para GHCR, faça login no registry:
-
-```bash
-docker login ghcr.io
-```
-
-Observações:
-
-- Para publicar no GHCR normalmente é necessário um token com permissão `write:packages`.
-- Se você quiser publicar tags específicas (não apenas `latest`), use `docker tag` ou ajuste o `image:` no compose.
+- Docker Hub: `docker login`
+- GHCR: `docker login ghcr.io` (typically requires a token with `write:packages`)
 
 ## Health checks
 
@@ -376,12 +438,12 @@ pnpm dev:web
 
 ## Slash commands
 
-Sempre que adicionar/alterar comandos do bot, publique os slash commands no Discord:
+Whenever you add or change bot commands, deploy slash commands to Discord:
 
 ```bash
 pnpm --filter @yuebot/bot deploy-commands
 ```
 
-## Licença
+## License
 
-Este projeto usa a licença GNU Affero General Public License v3.0 (AGPL-3.0). Veja `LICENSE`.
+This project is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See `LICENSE`.
