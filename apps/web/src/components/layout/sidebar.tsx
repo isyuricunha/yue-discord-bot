@@ -134,7 +134,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
           {!collapsed && (
             <div className="flex items-center gap-3">
               <div className="grid h-9 w-9 place-items-center rounded-2xl bg-surface/80 border border-border/80">
-                <div className="h-4 w-4 rounded-full bg-accent shadow-[0_0_28px_rgba(255,106,0,0.35)]" />
+                <img src="/icon.png" alt="Yue" className="h-5 w-5 rounded" />
               </div>
               <div className="leading-tight">
                 <div className="text-sm font-semibold">Yue</div>

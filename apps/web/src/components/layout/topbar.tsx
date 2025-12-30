@@ -65,7 +65,7 @@ export function Topbar() {
               'shadow-[0_0_0_1px_rgba(255,255,255,0.03)]'
             )}
           >
-            <div className="h-2 w-2 rounded-full bg-accent shadow-[0_0_20px_rgba(255,106,0,0.35)]" />
+            <img src="/icon.png" alt="Yue" className="h-6 w-6 rounded" />
           </div>
 
           <Button variant="ghost" size="sm" onClick={handleLogout} className="h-10">
