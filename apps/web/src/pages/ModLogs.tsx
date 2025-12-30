@@ -131,8 +131,8 @@ export default function ModLogsPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       await axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
-        modLogChannelId: modlog_channel_id ? modlog_channel_id : null,
-        announcementChannelId: announcement_channel_id ? announcement_channel_id : null,
+        modLogChannelId: modlog_channel_id || undefined,
+        announcementChannelId: announcement_channel_id || undefined,
         modLogMessage: modLogMessage || null,
       })
     },
@@ -280,16 +280,17 @@ export default function ModLogsPage() {
                   </Select>
                 )}
               </div>
+              <div className="mt-2 text-xs text-muted-foreground">Usado para registrar ações de moderação e eventos do AutoMod.</div>
             </div>
 
             <div>
-              <div className="text-sm font-medium">Canal de anúncios (recomendado)</div>
+              <div className="text-sm font-medium">Canal de anúncios do bot (opcional)</div>
               <div className="mt-2">
                 {is_channels_loading ? (
                   <Skeleton className="h-11 w-full" />
                 ) : (
                   <Select value={announcement_channel_id} onValueChange={(value) => set_announcement_channel_id(value)}>
-                    <option value="">Não configurado</option>
+                    <option value="">Automático (usar canais do Discord)</option>
                     {available_channels.map((ch) => (
                       <option key={ch.id} value={ch.id}>
                         {channel_label(ch)}
@@ -299,7 +300,7 @@ export default function ModLogsPage() {
                 )}
               </div>
               <div className="mt-2 text-xs text-muted-foreground">
-                Usado para comunicados globais do bot. Se não estiver configurado, o bot pode pular anúncios para evitar flood.
+                Se não configurado, o bot tenta usar os canais nativos do Discord (Community) como fallback.
               </div>
             </div>
           </div>
