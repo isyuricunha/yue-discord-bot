@@ -9,11 +9,15 @@ declare global {
   }
 }
 
+export function normalizeApiUrl(configured: string) {
+  const trimmed = configured.replace(/\/+$/, '')
+  return trimmed.endsWith('/api') ? trimmed.slice(0, -4) : trimmed
+}
+
 export function getApiUrl() {
   const configured = window.__ENV__?.apiUrl ?? import.meta.env.VITE_API_URL
   if (typeof configured === 'string') {
-    const trimmed = configured.replace(/\/+$/, '')
-    return trimmed.endsWith('/api') ? trimmed.slice(0, -4) : trimmed
+    return normalizeApiUrl(configured)
   }
 
   // In production, prefer same-origin requests by default.
