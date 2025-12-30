@@ -1,6 +1,17 @@
 import { CONFIG } from '../config';
 import type { FastifyBaseLogger } from 'fastify';
 
+export class InternalBotApiError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+    public readonly body: unknown
+  ) {
+    super(message)
+    this.name = 'InternalBotApiError'
+  }
+}
+
 type guild_channels_response = {
   channels: Array<{ id: string; name: string; type: number }>;
 };
@@ -68,8 +79,9 @@ async function fetch_with_timeout_ms(url: string, log: FastifyBaseLogger, timeou
     });
 
     if (!res.ok) {
+      const body = await res.json().catch(() => null)
       log.warn({ status: res.status, url }, 'Internal bot API returned error');
-      throw new Error(`Internal bot API returned ${res.status}`);
+      throw new InternalBotApiError(`Internal bot API returned ${res.status}`, res.status, body)
     }
 
     return (await res.json()) as unknown;
@@ -99,8 +111,9 @@ async function fetch_json_with_timeout_ms(
     });
 
     if (!res.ok) {
+      const body = await res.json().catch(() => null)
       log.warn({ status: res.status, url }, 'Internal bot API returned error');
-      throw new Error(`Internal bot API returned ${res.status}`);
+      throw new InternalBotApiError(`Internal bot API returned ${res.status}`, res.status, body)
     }
 
     return (await res.json()) as unknown;

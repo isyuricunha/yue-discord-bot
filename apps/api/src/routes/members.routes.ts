@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
 import { memberModerationActionSchema } from '@yuebot/shared'
 
-import { get_guild_members, moderate_guild_member } from '../internal/bot_internal_api'
+import { InternalBotApiError, get_guild_members, moderate_guild_member } from '../internal/bot_internal_api'
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
 import { public_error_message } from '../utils/public_error'
@@ -185,10 +185,31 @@ export async function membersRoutes(fastify: FastifyInstance) {
 
       return reply.send({ success: true })
     } catch (error: unknown) {
+      if (error instanceof InternalBotApiError) {
+        const upstream_status = error.status
+        const body = error.body
+        const upstream_error =
+          body && typeof body === 'object' && 'error' in body && typeof (body as Record<string, unknown>).error === 'string'
+            ? String((body as Record<string, unknown>).error)
+            : null
+
+        // If it's a user/action error (4xx), return it as-is so the UI can show the real reason.
+        if (upstream_status >= 400 && upstream_status < 500) {
+          return reply.code(upstream_status).send({ error: upstream_error ?? 'Request rejected by bot' })
+        }
+
+        request.log.error(
+          { err: safe_error_details(error), upstreamStatus: upstream_status, upstreamError: upstream_error },
+          'Bot internal API returned server error'
+        )
+
+        return reply
+          .code(502)
+          .send({ error: public_error_message(fastify, 'Failed to moderate member', 'Bad gateway') })
+      }
+
       request.log.error({ err: safe_error_details(error) }, 'Failed to moderate member via bot internal API')
-      return reply
-        .code(502)
-        .send({ error: public_error_message(fastify, 'Failed to moderate member', 'Bad gateway') })
+      return reply.code(502).send({ error: public_error_message(fastify, 'Failed to moderate member', 'Bad gateway') })
     }
   })
 }
