@@ -36,3 +36,37 @@ export function validate_extended_template(template: string): string | null {
     return err.message
   }
 }
+
+export function validate_extended_template_variants(template: string): string | null {
+  const trimmed = template.trim()
+  if (trimmed.length === 0) return null
+
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(trimmed) as unknown
+      if (!Array.isArray(parsed)) return 'Formato inválido: esperado uma lista (JSON array)'
+
+      for (let i = 0; i < parsed.length; i++) {
+        const item = parsed[i]
+        if (typeof item !== 'string') {
+          return `Item ${i + 1}: esperado string (texto ou JSON)`
+        }
+
+        const item_trimmed = item.trim()
+        if (!item_trimmed) {
+          return `Item ${i + 1}: mensagem vazia`
+        }
+
+        const error = validate_extended_template(item)
+        if (error) return `Item ${i + 1}: ${error}`
+      }
+
+      return null
+    } catch (error) {
+      const err = error as Error
+      return err.message
+    }
+  }
+
+  return validate_extended_template(template)
+}

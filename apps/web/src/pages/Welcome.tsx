@@ -5,8 +5,9 @@ import axios from 'axios'
 import { Save } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, ErrorState, Select, Skeleton, Textarea } from '../components/ui'
-import { validate_extended_template } from '../lib/message_template'
+import { Button, Card, CardContent, ErrorState, Select, Skeleton } from '../components/ui'
+import { MessageVariantEditor } from '../components/message_variant_editor'
+import { validate_extended_template_variants } from '../lib/message_template'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -79,14 +80,14 @@ export default function WelcomePage() {
   }, [config])
 
   const welcome_validation = useMemo(() => {
-    if (!welcome_message.trim()) return null
-    return validate_extended_template(welcome_message)
+    return validate_extended_template_variants(welcome_message)
   }, [welcome_message])
 
   const leave_validation = useMemo(() => {
-    if (!leave_message.trim()) return null
-    return validate_extended_template(leave_message)
+    return validate_extended_template_variants(leave_message)
   }, [leave_message])
+
+  const has_errors = Boolean(welcome_validation) || Boolean(leave_validation)
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -105,8 +106,6 @@ export default function WelcomePage() {
       toast_error(error.response?.data?.error || error.message || 'Erro ao salvar configurações')
     },
   })
-
-  const has_errors = Boolean(welcome_validation) || Boolean(leave_validation)
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
@@ -181,41 +180,36 @@ export default function WelcomePage() {
           <div className="border-t border-border/80 pt-6">
             <div className="text-sm font-semibold">Mensagens</div>
             <div className="mt-4 grid grid-cols-1 gap-6">
-              <div>
-                <div className="text-sm font-medium">Mensagem de boas-vindas</div>
-                <div className="mt-2">
-                  {is_guild_loading ? (
-                    <Skeleton className="h-32 w-full" />
-                  ) : (
-                    <Textarea
-                      value={welcome_message}
-                      onChange={(e) => set_welcome_message(e.target.value)}
-                      placeholder="Texto ou JSON (content + embed). Ex: Olá {@user}!"
-                      rows={5}
-                    />
-                  )}
-                </div>
-                {welcome_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {welcome_validation}</div>}
-                <div className="mt-2 text-xs text-muted-foreground">Suporta placeholders e JSON com embed.</div>
-              </div>
+              {is_guild_loading ? (
+                <>
+                  <Skeleton className="h-32 w-full" />
+                  <Skeleton className="h-32 w-full" />
+                </>
+              ) : (
+                <>
+                  <MessageVariantEditor
+                    label="Mensagem de boas-vindas"
+                    description="Você pode criar várias mensagens (o bot escolhe uma aleatória). Cada item pode ser texto simples ou JSON (content + embed)."
+                    value={welcome_message}
+                    onChange={set_welcome_message}
+                    placeholder="Ex: Olá {@user}!"
+                    rows={5}
+                  />
 
-              <div>
-                <div className="text-sm font-medium">Mensagem de saída</div>
-                <div className="mt-2">
-                  {is_guild_loading ? (
-                    <Skeleton className="h-32 w-full" />
-                  ) : (
-                    <Textarea
-                      value={leave_message}
-                      onChange={(e) => set_leave_message(e.target.value)}
-                      placeholder="Texto ou JSON (content + embed). Ex: {user} saiu do servidor."
-                      rows={5}
-                    />
-                  )}
-                </div>
-                {leave_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {leave_validation}</div>}
-                <div className="mt-2 text-xs text-muted-foreground">Suporta placeholders e JSON com embed.</div>
-              </div>
+                  {welcome_validation && <div className="text-xs text-red-500">Template inválido: {welcome_validation}</div>}
+
+                  <MessageVariantEditor
+                    label="Mensagem de saída"
+                    description="Você pode criar várias mensagens (o bot escolhe uma aleatória). Cada item pode ser texto simples ou JSON (content + embed)."
+                    value={leave_message}
+                    onChange={set_leave_message}
+                    placeholder="Ex: {user} saiu do servidor."
+                    rows={5}
+                  />
+
+                  {leave_validation && <div className="text-xs text-red-500">Template inválido: {leave_validation}</div>}
+                </>
+              )}
             </div>
           </div>
         </CardContent>

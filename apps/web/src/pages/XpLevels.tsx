@@ -5,7 +5,9 @@ import axios from 'axios'
 import { Plus, Save, Sparkles, Trash2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
+import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
+import { MessageVariantEditor } from '../components/message_variant_editor'
+import { validate_extended_template_variants } from '../lib/message_template'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -63,15 +65,6 @@ const level_up_message_presets: message_preset[] = [
   { label: 'Motivacional', template: 'Boa {@user}! Nível {level} alcançado. Continue assim!' },
   { label: 'Curta', template: '🎉 {@user} → nível {level}!' },
 ]
-
-function append_message_line(existing: string, line: string) {
-  const trimmed_line = line.trim()
-  if (trimmed_line.length === 0) return existing
-
-  const base = existing.trimEnd()
-  if (base.length === 0) return trimmed_line
-  return `${base}\n${trimmed_line}`
-}
 
 function xp_gain_range(unique_length: number, config: Pick<xp_config, 'xpDivisorMin' | 'xpDivisorMax' | 'xpCap'>) {
   const divisor_min = Math.max(1, config.xpDivisorMin)
@@ -242,6 +235,11 @@ export default function XpLevelsPage() {
   const [reset_global_user_id, setResetGlobalUserId] = useState('')
 
   const [preview_unique_length, setPreviewUniqueLength] = useState('')
+
+  const level_up_message_validation = useMemo(() => {
+    const current = config?.levelUpMessage ?? ''
+    return validate_extended_template_variants(current)
+  }, [config?.levelUpMessage])
 
   useEffect(() => {
     if (!xp_data?.config) return
@@ -445,7 +443,12 @@ export default function XpLevelsPage() {
           </div>
         </div>
 
-        <Button onClick={handle_save} isLoading={mutation.isPending} className="shrink-0">
+        <Button
+          onClick={handle_save}
+          isLoading={mutation.isPending}
+          disabled={Boolean(level_up_message_validation)}
+          className="shrink-0"
+        >
           <Save className="h-4 w-4" />
           <span>Salvar</span>
         </Button>
@@ -796,11 +799,13 @@ export default function XpLevelsPage() {
               <div>
                 <div className="text-sm font-medium">Mensagem</div>
                 <div className="mt-2">
-                  <Textarea
+                  <MessageVariantEditor
+                    label=""
                     value={config.levelUpMessage ?? ''}
-                    onChange={(e) => setConfig({ ...config, levelUpMessage: e.target.value || null })}
+                    onChange={(value) => setConfig({ ...config, levelUpMessage: value || null })}
                     placeholder="{@user} subiu para o nível {level}!"
                     rows={3}
+                    description="Suporta múltiplas mensagens (o bot escolhe uma aleatória). Cada item pode ser texto simples ou JSON (content + embed)."
                   />
                 </div>
 
@@ -811,8 +816,29 @@ export default function XpLevelsPage() {
                       variant="outline"
                       size="sm"
                       onClick={() => {
-                        const next = append_message_line(config.levelUpMessage ?? '', preset.template)
-                        setConfig({ ...config, levelUpMessage: next || null })
+                        const current = config.levelUpMessage ?? ''
+                        const trimmed = current.trim()
+
+                        if (!trimmed) {
+                          setConfig({ ...config, levelUpMessage: preset.template })
+                          return
+                        }
+
+                        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                          try {
+                            const parsed = JSON.parse(trimmed) as unknown
+                            if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')) {
+                              const next = JSON.stringify([...parsed, preset.template])
+                              setConfig({ ...config, levelUpMessage: next })
+                              return
+                            }
+                          } catch {
+                            // ignore
+                          }
+                        }
+
+                        const next = JSON.stringify([current, preset.template])
+                        setConfig({ ...config, levelUpMessage: next })
                       }}
                     >
                       {preset.label}
@@ -830,8 +856,7 @@ export default function XpLevelsPage() {
 
                 <div className="mt-3 space-y-1 text-xs text-muted-foreground">
                   <div>
-                    Dica: você pode colocar <span className="font-semibold text-foreground">1 mensagem por linha</span>.
-                    O bot escolhe uma aleatória a cada level-up.
+                    Dica: você pode adicionar quantas mensagens quiser. O bot escolhe uma aleatória a cada level-up.
                   </div>
                   <div>
                     Variáveis úteis:

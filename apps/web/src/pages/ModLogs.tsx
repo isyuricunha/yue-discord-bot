@@ -5,10 +5,11 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Shield, AlertTriangle, Ban, Volume2, FileWarning, Download, Search } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Textarea } from '../components/ui'
+import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton } from '../components/ui'
 import { get_modlog_action_label, normalize_modlog_action } from '../lib/modlog'
-import { validate_extended_template } from '../lib/message_template'
+import { validate_extended_template_variants } from '../lib/message_template'
 import { toast_error, toast_success } from '../store/toast'
+import { MessageVariantEditor } from '../components/message_variant_editor'
 
 const API_URL = getApiUrl()
 
@@ -104,7 +105,7 @@ export default function ModLogsPage() {
   }, [channels_data])
 
   const [modlog_channel_id, set_modlog_channel_id] = useState('')
-  const [modlog_message, set_modlog_message] = useState('')
+  const [modLogMessage, setModLogMessage] = useState('')
   const has_initialized = useRef(false)
 
   useEffect(() => {
@@ -113,19 +114,19 @@ export default function ModLogsPage() {
     has_initialized.current = true
 
     set_modlog_channel_id(config.modLogChannelId ?? '')
-    set_modlog_message(config.modLogMessage ?? '')
+    setModLogMessage(config.modLogMessage ?? '')
   }, [config])
 
-  const modlog_validation = useMemo(() => {
-    if (!modlog_message.trim()) return null
-    return validate_extended_template(modlog_message)
-  }, [modlog_message])
+  const message_validation = useMemo(() => {
+    if (!modLogMessage.trim()) return null
+    return validate_extended_template_variants(modLogMessage)
+  }, [modLogMessage])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
       await axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
         modLogChannelId: modlog_channel_id || undefined,
-        modLogMessage: modlog_message || null,
+        modLogMessage: modLogMessage || null,
       })
     },
     onSuccess: () => {
@@ -240,7 +241,7 @@ export default function ModLogsPage() {
             <Button
               onClick={() => saveMutation.mutate()}
               isLoading={saveMutation.isPending}
-              disabled={Boolean(modlog_validation) || is_guild_loading || is_guild_error || is_channels_loading}
+              disabled={Boolean(message_validation) || is_guild_loading || is_guild_error || is_channels_loading}
               className="shrink-0"
             >
               Salvar
@@ -283,16 +284,18 @@ export default function ModLogsPage() {
                 {is_guild_loading ? (
                   <Skeleton className="h-32 w-full" />
                 ) : (
-                  <Textarea
-                    value={modlog_message}
-                    onChange={(e) => set_modlog_message(e.target.value)}
-                    placeholder="Texto ou JSON (content + embed). Ex: {user.tag} | {punishment}"
-                    rows={5}
+                  <MessageVariantEditor
+                    label="Template da mensagem"
+                    description="Você pode criar vários templates (o bot escolhe um aleatório). Cada item pode ser texto simples ou JSON (content + embed)."
+                    value={modLogMessage}
+                    onChange={setModLogMessage}
+                    placeholder="JSON (content + embed)"
+                    rows={6}
                   />
                 )}
               </div>
 
-              {modlog_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {modlog_validation}</div>}
+              {message_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {message_validation}</div>}
               <div className="mt-2 text-xs text-muted-foreground">Suporta placeholders e JSON com embed.</div>
             </div>
           </div>
