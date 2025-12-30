@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { LogOut } from 'lucide-react'
+import { LogOut, ExternalLink } from 'lucide-react'
 
 import { useAuthStore } from '../../store/auth'
 import { cn } from '../../lib/cn'
@@ -45,6 +45,10 @@ export function Topbar() {
     navigate('/login')
   }
 
+  const handleExtras = () => {
+    window.open('/extras', '_blank', 'noopener,noreferrer')
+  }
+
   return (
     <header className="sticky top-0 z-20 border-b border-border/80 bg-background/75 backdrop-blur-md">
       <div className="flex items-center justify-between px-5 py-4">
@@ -54,6 +58,11 @@ export function Topbar() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={handleExtras} className="h-10">
+            <ExternalLink className="h-4 w-4" />
+            <span className="hidden sm:inline">Extras</span>
+          </Button>
+
           <div className="hidden text-right sm:block">
             <div className="text-sm text-foreground">{user?.username}</div>
             <div className="text-xs text-muted-foreground">#{user?.discriminator}</div>

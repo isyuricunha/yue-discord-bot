@@ -14,6 +14,7 @@ import {
   Sparkles,
   UserPlus,
   Settings,
+  ExternalLink,
 } from 'lucide-react'
 
 import { cn } from '../../lib/cn'
@@ -33,6 +34,14 @@ function nav_link_class({ isActive }: { isActive: boolean }) {
     'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors',
     'hover:bg-surface/70 hover:text-foreground',
     isActive ? 'bg-surface/80 text-foreground border border-border/80' : 'text-muted-foreground'
+  )
+}
+
+function nav_link_class_static() {
+  return cn(
+    'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors',
+    'hover:bg-surface/70 hover:text-foreground',
+    'text-muted-foreground'
   )
 }
 
@@ -165,6 +174,19 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
               {!collapsed && <span className="truncate">{item.label}</span>}
             </NavLink>
           ))}
+
+          <a
+            href="/extras"
+            target="_blank"
+            rel="noreferrer"
+            className={nav_link_class_static()}
+            aria-label="Abrir Extras em uma nova aba"
+          >
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
+              <ExternalLink className="h-4 w-4" />
+            </span>
+            {!collapsed && <span className="truncate">Extras</span>}
+          </a>
 
           {guild.length > 0 && !collapsed && <div className="px-2 pt-4 text-xs text-muted-foreground">Guild</div>}
 
