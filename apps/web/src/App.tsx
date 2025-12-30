@@ -30,7 +30,8 @@ import BadgesPage from './pages/Badges'
 import FanArtsPage from './pages/FanArts'
 import EconomyPage from './pages/Economy'
 import CoinflipPage from './pages/Coinflip'
-import { AppShell, PublicShell, RequireAuth } from './components/layout'
+import OwnerPage from './pages/Owner'
+import { AppShell, PublicShell, RequireAuth, RequireOwner } from './components/layout'
 
 function App() {
   const { user, isLoading, setToken, initialize } = useAuthStore()
@@ -103,6 +104,14 @@ function App() {
           <Route path="/fanarts" element={<FanArtsPage />} />
           <Route path="/economy" element={<EconomyPage />} />
           <Route path="/coinflip" element={<CoinflipPage />} />
+          <Route
+            path="/owner"
+            element={
+              <RequireOwner>
+                <OwnerPage />
+              </RequireOwner>
+            }
+          />
         </Route>
       </Routes>
     </BrowserRouter>

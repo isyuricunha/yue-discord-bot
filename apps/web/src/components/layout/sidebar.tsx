@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   ChevronsLeft,
   ChevronsRight,
+  Crown,
   Award,
   Image as ImageIcon,
   BarChart3,
@@ -20,6 +21,7 @@ import {
 } from 'lucide-react'
 
 import { cn } from '../../lib/cn'
+import { useAuthStore } from '../../store/auth'
 
 type nav_item = {
   to: string
@@ -54,8 +56,9 @@ type sidebar_props = {
 
 export function Sidebar({ collapsed, onToggle }: sidebar_props) {
   const { guildId } = useParams()
+  const { user } = useAuthStore()
 
-  const base: nav_item[] = sort_by_label_ptbr([
+  const base_items: nav_item[] = [
     {
       to: '/',
       label: 'Dashboard',
@@ -81,7 +84,17 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
       label: 'Fan arts',
       icon: <ImageIcon className="h-4 w-4" />,
     },
-  ])
+  ]
+
+  if (user?.isOwner) {
+    base_items.push({
+      to: '/owner',
+      label: 'Owner',
+      icon: <Crown className="h-4 w-4" />,
+    })
+  }
+
+  const base: nav_item[] = sort_by_label_ptbr(base_items)
 
   const guild: nav_item[] = guildId
     ? [
