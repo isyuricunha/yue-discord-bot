@@ -22,7 +22,20 @@ export const casarCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('casar')
     .setDescription('Rolar um personagem aleatório. Clique no ❤️ para casar.')
-    .setDescriptionLocalizations({ 'pt-BR': 'Rolar um personagem aleatório. Clique no ❤️ para casar.' }),
+    .setDescriptionLocalizations({ 'pt-BR': 'Rolar um personagem aleatório. Clique no ❤️ para casar.' })
+    .addStringOption((opt) =>
+      opt
+        .setName('genero')
+        .setNameLocalizations({ 'pt-BR': 'genero' })
+        .setDescription('Filtrar gênero (não escolhe personagem, só filtra)')
+        .setDescriptionLocalizations({ 'pt-BR': 'Filtrar gênero (não escolhe personagem, só filtra)' })
+        .addChoices(
+          { name: 'Qualquer', value: 'any' },
+          { name: 'Feminino', value: 'female' },
+          { name: 'Masculino', value: 'male' }
+        )
+        .setRequired(false)
+    ),
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guildId || !interaction.channelId) {
@@ -37,8 +50,11 @@ export const casarCommand: Command = {
       avatar: interaction.user.avatar,
     })
 
+    const genero = interaction.options.getString('genero') as 'female' | 'male' | 'any' | null
+
     const roll = await waifuService.roll({
       kind: 'casar',
+      desiredGenderOverride: genero ?? undefined,
       guildId: interaction.guildId,
       channelId: interaction.channelId,
       rolledByUserId: interaction.user.id,

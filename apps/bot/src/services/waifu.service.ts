@@ -6,6 +6,8 @@ export type waifu_source = 'ANILIST'
 
 export type waifu_roll_kind = 'waifu' | 'husbando' | 'casar'
 
+type desired_gender = 'female' | 'male' | 'any'
+
 type tx_client = Prisma.TransactionClient
 
 export type roll_result = {
@@ -184,13 +186,15 @@ export class WaifuService {
 
   async roll(input: {
     kind: waifu_roll_kind
+    desiredGenderOverride?: desired_gender
     guildId: string
     channelId: string
     rolledByUserId: string
   }): Promise<roll_result> {
     await this.ensure_user(input.rolledByUserId, { username: null, avatar: null })
 
-    const desiredGender = input.kind === 'waifu' ? 'female' : input.kind === 'husbando' ? 'male' : 'any'
+    const desiredGender: desired_gender =
+      input.desiredGenderOverride ?? (input.kind === 'waifu' ? 'female' : input.kind === 'husbando' ? 'male' : 'any')
 
     const rolled = await aniListService.roll_character({ desiredGender })
 
@@ -239,6 +243,7 @@ export class WaifuService {
         channelId: input.channelId,
         messageId: null,
         kind: input.kind,
+        desiredGender,
         rolledByUserId: input.rolledByUserId,
         characterId: character.id,
         expiresAt,
@@ -376,21 +381,6 @@ export class WaifuService {
   async reroll(input: { guildId: string; channelId: string; userId: string; now?: Date }): Promise<reroll_result> {
     const now = input.now ?? new Date()
 
-    // Get last roll first (outside tx) to know which kind to reroll.
-    const last_roll = await prisma.waifuRoll.findFirst({
-      where: { guildId: input.guildId, channelId: input.channelId, rolledByUserId: input.userId },
-      orderBy: { createdAt: 'desc' },
-      select: { id: true, kind: true },
-    })
-
-    if (!last_roll) {
-      return { success: false as const, error: 'not_found', message: 'Você ainda não rolou nada neste canal.' }
-    }
-
-    const kind = last_roll.kind as waifu_roll_kind
-    const desiredGender = kind === 'waifu' ? 'female' : kind === 'husbando' ? 'male' : 'any'
-    const rolled = await aniListService.roll_character({ desiredGender })
-
     return await with_serializable_retry(async (tx) => {
       await tx.user.upsert({
         where: { id: input.userId },
@@ -404,6 +394,7 @@ export class WaifuService {
         select: {
           id: true,
           kind: true,
+          desiredGender: true,
           messageId: true,
           expiresAt: true,
           claimedByUserId: true,
@@ -445,6 +436,12 @@ export class WaifuService {
       }
 
       const nextRerollAt = next_reroll_time(now)
+
+      const desiredGender: desired_gender =
+        (old.desiredGender as desired_gender | null) ??
+        ((old.kind as waifu_roll_kind) === 'waifu' ? 'female' : (old.kind as waifu_roll_kind) === 'husbando' ? 'male' : 'any')
+
+      const rolled = await aniListService.roll_character({ desiredGender })
 
       const character = await tx.waifuCharacter.upsert({
         where: {
@@ -490,6 +487,7 @@ export class WaifuService {
           channelId: input.channelId,
           messageId: null,
           kind: old.kind as string,
+          desiredGender,
           rolledByUserId: input.userId,
           characterId: character.id,
           expiresAt,

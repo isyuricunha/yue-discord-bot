@@ -631,6 +631,7 @@ model WaifuRoll {
   messageId String? @unique
 
   kind String
+  desiredGender String?
 
   rolledByUserId String
   rolledByUser   User   @relation("waifu_rolls_rolled_by", fields: [rolledByUserId], references: [id], onDelete: Cascade)
