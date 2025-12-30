@@ -62,17 +62,33 @@ const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue = []
 }
 
+function is_auth_request_url(url: unknown) {
+  if (typeof url !== 'string') return false
+  return url.includes('/api/auth/')
+}
+
 axios.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    const store = useAuthStore.getState()
+    const token = store.token
+
+    const should_attempt_refresh =
+      error.response?.status === 401 &&
+      !originalRequest?._retry &&
+      typeof token === 'string' &&
+      token.length > 0 &&
+      !is_auth_request_url(originalRequest?.url)
+
+    if (should_attempt_refresh) {
       if (isRefreshingToken) {
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject })
         }).then(token => {
           if (token) {
+            originalRequest.headers = originalRequest.headers ?? {}
             originalRequest.headers['Authorization'] = 'Bearer ' + token
           }
           return axios(originalRequest)
@@ -84,7 +100,6 @@ axios.interceptors.response.use(
       originalRequest._retry = true
       isRefreshingToken = true
 
-      const store = useAuthStore.getState()
       const success = await store.refreshToken()
 
       if (success) {
@@ -92,6 +107,7 @@ axios.interceptors.response.use(
         processQueue(null, newToken)
 
         if (newToken) {
+          originalRequest.headers = originalRequest.headers ?? {}
           originalRequest.headers['Authorization'] = 'Bearer ' + newToken
         }
 
