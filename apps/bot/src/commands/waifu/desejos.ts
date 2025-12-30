@@ -69,7 +69,7 @@ export const desejosCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guildId) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+      await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
       return
     }
 
@@ -77,7 +77,7 @@ export const desejosCommand: Command = {
 
     if (sub === 'adicionar') {
       const nome = interaction.options.getString('nome', true)
-      await interaction.deferReply({ ephemeral: true })
+      await interaction.deferReply()
 
       await waifuService.ensure_user(interaction.user.id, {
         username: interaction.user.username,
@@ -96,7 +96,7 @@ export const desejosCommand: Command = {
 
     if (sub === 'remover') {
       const nome = interaction.options.getString('nome', true)
-      await interaction.deferReply({ ephemeral: true })
+      await interaction.deferReply()
 
       const res = await waifuService.wishlist_remove({ guildId: interaction.guildId, userId: interaction.user.id, query: nome })
       if (res.success === false) {
@@ -112,7 +112,7 @@ export const desejosCommand: Command = {
       const target = interaction.options.getUser('usuario') ?? interaction.user
       const page = interaction.options.getInteger('pagina') ?? 1
 
-      await interaction.deferReply({ ephemeral: true })
+      await interaction.deferReply()
 
       const { total, items, page: currentPage, pageSize } = await waifuService.wishlist_list({
         guildId: interaction.guildId,
@@ -157,6 +157,6 @@ export const desejosCommand: Command = {
       return
     }
 
-    await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+    await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.` })
   },
 }

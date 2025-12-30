@@ -168,7 +168,7 @@ export async function handleWaifuButton(interaction: ButtonInteraction): Promise
     return
   }
 
-  await interaction.deferReply({ ephemeral: true })
+  await interaction.deferReply()
 
   const res = await waifuService.claim({ rollId: parsed.rollId, userId: interaction.user.id })
 

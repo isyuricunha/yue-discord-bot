@@ -71,7 +71,7 @@ export const rerollCommand: Command = {
       return
     }
 
-    await interaction.deferReply({ ephemeral: true })
+    await interaction.deferReply()
 
     const res = await waifuService.reroll({
       guildId: interaction.guildId,

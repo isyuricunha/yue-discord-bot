@@ -24,13 +24,13 @@ export const meuharemCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guildId) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+      await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
       return
     }
 
     const page = interaction.options.getInteger('pagina') ?? 1
 
-    await interaction.deferReply({ ephemeral: true })
+    await interaction.deferReply()
 
     const { total, claims, page: currentPage, pageSize } = await waifuService.list_harem({
       guildId: interaction.guildId,

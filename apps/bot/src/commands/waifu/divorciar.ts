@@ -23,13 +23,13 @@ export const divorciarCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guildId) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+      await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
       return
     }
 
     const nome = interaction.options.getString('nome', true)
 
-    await interaction.deferReply({ ephemeral: true })
+    await interaction.deferReply()
 
     const res = await waifuService.divorce({ guildId: interaction.guildId, userId: interaction.user.id, query: nome })
 
