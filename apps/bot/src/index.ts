@@ -5,6 +5,7 @@ import { prisma } from '@yuebot/database';
 import { GiveawayScheduler } from './services/giveawayScheduler';
 import { WarnExpirationService } from './services/warnExpirationService';
 import { AutoroleScheduler } from './services/autoroleScheduler';
+import { initModerationPersistenceService } from './services/moderationPersistence.service';
 import type { Command, ContextMenuCommand } from './commands';
 import { start_internal_api } from './internal/api';
 
@@ -74,6 +75,8 @@ client.once('ready', async () => {
   logger.info(`👥 Usuários: ${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)}`);
 
   await sync_guilds_to_database(client);
+
+  initModerationPersistenceService(client)
 
   internal_server = start_internal_api(client, {
     host: CONFIG.internalApi.host,
