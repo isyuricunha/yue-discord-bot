@@ -24,6 +24,10 @@ type nav_item = {
   icon: React.ReactNode
 }
 
+function sort_by_label_ptbr(items: nav_item[]) {
+  return items.slice().sort((a, b) => a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }))
+}
+
 function nav_link_class({ isActive }: { isActive: boolean }) {
   return cn(
     'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors',
@@ -40,7 +44,7 @@ type sidebar_props = {
 export function Sidebar({ collapsed, onToggle }: sidebar_props) {
   const { guildId } = useParams()
 
-  const base: nav_item[] = [
+  const base: nav_item[] = sort_by_label_ptbr([
     {
       to: '/',
       label: 'Dashboard',
@@ -56,50 +60,62 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
       label: 'Fan arts',
       icon: <ImageIcon className="h-4 w-4" />,
     },
-  ]
+  ])
 
   const guild: nav_item[] = guildId
     ? [
-        {
-          to: `/guild/${guildId}/overview`,
-          label: 'Visão geral',
-          icon: <BarChart3 className="h-4 w-4" />,
-        },
-        {
-          to: `/guild/${guildId}/automod`,
-          label: 'AutoMod',
-          icon: <Shield className="h-4 w-4" />,
-        },
-        {
-          to: `/guild/${guildId}/xp`,
-          label: 'XP',
-          icon: <Sparkles className="h-4 w-4" />,
-        },
-        {
-          to: `/guild/${guildId}/autorole`,
-          label: 'Autorole',
-          icon: <UserPlus className="h-4 w-4" />,
-        },
-        {
-          to: `/guild/${guildId}/modlogs`,
-          label: 'Logs',
-          icon: <FileText className="h-4 w-4" />,
-        },
-        {
-          to: `/guild/${guildId}/members`,
-          label: 'Membros',
-          icon: <Users className="h-4 w-4" />,
-        },
-        {
-          to: `/guild/${guildId}/giveaways`,
-          label: 'Sorteios',
-          icon: <Trophy className="h-4 w-4" />,
-        },
-        {
-          to: `/guild/${guildId}/settings`,
-          label: 'Config',
-          icon: <Settings className="h-4 w-4" />,
-        },
+        ...sort_by_label_ptbr([
+          {
+            to: `/guild/${guildId}/automod`,
+            label: 'AutoMod',
+            icon: <Shield className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/autorole`,
+            label: 'Autorole',
+            icon: <UserPlus className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/welcome`,
+            label: 'Boas-vindas',
+            icon: <Sparkles className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/settings`,
+            label: 'Configurações',
+            icon: <Settings className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/modlogs`,
+            label: 'Logs',
+            icon: <FileText className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/members`,
+            label: 'Membros',
+            icon: <Users className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/moderation`,
+            label: 'Moderação',
+            icon: <Shield className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/giveaways`,
+            label: 'Sorteios',
+            icon: <Trophy className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/overview`,
+            label: 'Visão geral',
+            icon: <BarChart3 className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/xp`,
+            label: 'XP',
+            icon: <Sparkles className="h-4 w-4" />,
+          },
+        ]),
       ]
     : []
 

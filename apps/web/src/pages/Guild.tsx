@@ -67,23 +67,6 @@ export default function GuildPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card
           className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/overview`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <BarChart3 className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Visão geral</div>
-                <div className="text-xs text-muted-foreground">Estatísticas e resumo</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
           onClick={() => navigate(`/guild/${guildId}/automod`)}
         >
           <CardContent className="p-5">
@@ -101,7 +84,24 @@ export default function GuildPage() {
 
         <Card
           className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/xp`)}
+          onClick={() => navigate(`/guild/${guildId}/autorole`)}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+                <UserPlus className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="text-sm font-semibold">Autorole</div>
+                <div className="text-xs text-muted-foreground">Cargos para novos membros</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="group cursor-pointer transition-colors hover:border-accent/40"
+          onClick={() => navigate(`/guild/${guildId}/welcome`)}
         >
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
@@ -109,8 +109,25 @@ export default function GuildPage() {
                 <Sparkles className="h-5 w-5" />
               </span>
               <div>
-                <div className="text-sm font-semibold">XP</div>
-                <div className="text-xs text-muted-foreground">Níveis e recompensas</div>
+                <div className="text-sm font-semibold">Boas-vindas</div>
+                <div className="text-xs text-muted-foreground">Mensagens e canais automáticos</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="group cursor-pointer transition-colors hover:border-accent/40"
+          onClick={() => navigate(`/guild/${guildId}/settings`)}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+                <Settings className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="text-sm font-semibold">Configurações</div>
+                <div className="text-xs text-muted-foreground">Preferências do servidor</div>
               </div>
             </div>
           </CardContent>
@@ -152,6 +169,23 @@ export default function GuildPage() {
 
         <Card
           className="group cursor-pointer transition-colors hover:border-accent/40"
+          onClick={() => navigate(`/guild/${guildId}/moderation`)}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+                <Shield className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="text-sm font-semibold">Moderação</div>
+                <div className="text-xs text-muted-foreground">Configurações de punição e automação</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="group cursor-pointer transition-colors hover:border-accent/40"
           onClick={() => navigate(`/guild/${guildId}/giveaways`)}
         >
           <CardContent className="p-5">
@@ -169,16 +203,16 @@ export default function GuildPage() {
 
         <Card
           className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/autorole`)}
+          onClick={() => navigate(`/guild/${guildId}/overview`)}
         >
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <UserPlus className="h-5 w-5" />
+                <BarChart3 className="h-5 w-5" />
               </span>
               <div>
-                <div className="text-sm font-semibold">Autorole</div>
-                <div className="text-xs text-muted-foreground">Cargos para novos membros</div>
+                <div className="text-sm font-semibold">Visão geral</div>
+                <div className="text-xs text-muted-foreground">Estatísticas e resumo</div>
               </div>
             </div>
           </CardContent>
@@ -186,16 +220,16 @@ export default function GuildPage() {
 
         <Card
           className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/settings`)}
+          onClick={() => navigate(`/guild/${guildId}/xp`)}
         >
           <CardContent className="p-5">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Settings className="h-5 w-5" />
+                <Sparkles className="h-5 w-5" />
               </span>
               <div>
-                <div className="text-sm font-semibold">Configurações</div>
-                <div className="text-xs text-muted-foreground">Preferências da guild</div>
+                <div className="text-sm font-semibold">XP</div>
+                <div className="text-xs text-muted-foreground">Níveis e recompensas</div>
               </div>
             </div>
           </CardContent>
