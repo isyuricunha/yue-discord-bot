@@ -213,6 +213,25 @@ model GiveawayWinner {
   @@map("giveaway_winners")
 }
 
+model OwnerActionLog {
+  id String @id @default(cuid())
+
+  actorUserId String
+  type        String
+  status      String
+
+  request Json
+  preview Json?
+  result  Json?
+
+  createdAt  DateTime @default(now())
+  executedAt DateTime?
+
+  @@index([type, createdAt])
+  @@index([status, createdAt])
+  @@map("owner_action_logs")
+}
+
 // Sessões Web (opcional - pode usar JWT puro)
 model Session {
   id        String   @id @default(cuid())
