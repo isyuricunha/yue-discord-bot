@@ -562,6 +562,8 @@ export function start_internal_api(client: Client, options: internal_api_options
             icon: guild.icon,
             ownerId: guild.ownerId,
             systemChannelId: guild.systemChannelId ?? null,
+            rulesChannelId: guild.rulesChannelId ?? null,
+            publicUpdatesChannelId: guild.publicUpdatesChannelId ?? null,
           },
         });
       }

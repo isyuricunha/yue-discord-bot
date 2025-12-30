@@ -31,6 +31,8 @@ type guild_info_response = {
     icon: string | null
     ownerId: string
     systemChannelId: string | null
+    rulesChannelId: string | null
+    publicUpdatesChannelId: string | null
   }
 }
 
