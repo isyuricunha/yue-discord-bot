@@ -15,12 +15,10 @@ interface GuildConfig {
   prefix: string
   locale: string
   timezone: string
-  modLogChannelId?: string
   welcomeChannelId?: string
   leaveChannelId?: string
   welcomeMessage?: string | null
   leaveMessage?: string | null
-  modLogMessage?: string | null
   muteRoleId?: string
 }
 
@@ -62,12 +60,10 @@ export default function SettingsPage() {
   const [prefix, setPrefix] = useState('')
   const [locale, setLocale] = useState('pt-BR')
   const [timezone, setTimezone] = useState('America/Sao_Paulo')
-  const [modLogChannelId, setModLogChannelId] = useState('')
   const [welcomeChannelId, setWelcomeChannelId] = useState('')
   const [leaveChannelId, setLeaveChannelId] = useState('')
   const [welcomeMessage, setWelcomeMessage] = useState('')
   const [leaveMessage, setLeaveMessage] = useState('')
-  const [modLogMessage, setModLogMessage] = useState('')
   const [muteRoleId, setMuteRoleId] = useState('')
 
   const has_initialized = useRef(false)
@@ -114,12 +110,10 @@ export default function SettingsPage() {
     setPrefix(config.prefix || '/')
     setLocale(config.locale || 'pt-BR')
     setTimezone(config.timezone || 'America/Sao_Paulo')
-    setModLogChannelId(config.modLogChannelId || '')
     setWelcomeChannelId(config.welcomeChannelId || '')
     setLeaveChannelId(config.leaveChannelId || '')
     setWelcomeMessage(config.welcomeMessage || '')
     setLeaveMessage(config.leaveMessage || '')
-    setModLogMessage(config.modLogMessage || '')
     setMuteRoleId(config.muteRoleId || '')
   }, [config])
 
@@ -142,12 +136,10 @@ export default function SettingsPage() {
       prefix,
       locale,
       timezone,
-      modLogChannelId: modLogChannelId || undefined,
       welcomeChannelId: welcomeChannelId || undefined,
       leaveChannelId: leaveChannelId || undefined,
       welcomeMessage: welcomeMessage || null,
       leaveMessage: leaveMessage || null,
-      modLogMessage: modLogMessage || null,
       muteRoleId: muteRoleId || undefined,
     })
   }
@@ -161,11 +153,6 @@ export default function SettingsPage() {
     if (!leaveMessage.trim()) return null
     return validate_extended_template(leaveMessage)
   }, [leaveMessage])
-
-  const modlog_validation = useMemo(() => {
-    if (!modLogMessage.trim()) return null
-    return validate_extended_template(modLogMessage)
-  }, [modLogMessage])
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
@@ -250,24 +237,6 @@ export default function SettingsPage() {
             <div className="text-sm font-semibold">Canais do sistema</div>
             <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
               <div>
-                <div className="text-sm font-medium">Canal de logs de moderação</div>
-                <div className="mt-2">
-                  {is_channels_loading ? (
-                    <Skeleton className="h-11 w-full" />
-                  ) : (
-                    <Select value={modLogChannelId} onValueChange={(value) => setModLogChannelId(value)}>
-                      <option value="">Desativado</option>
-                      {available_channels.map((ch) => (
-                        <option key={ch.id} value={ch.id}>
-                          {channel_label(ch)}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </div>
-              </div>
-
-              <div>
                 <div className="text-sm font-medium">Canal de boas-vindas</div>
                 <div className="mt-2">
                   {is_channels_loading ? (
@@ -346,33 +315,6 @@ export default function SettingsPage() {
                 </div>
                 {leave_validation && (
                   <div className="mt-2 text-xs text-red-500">JSON inválido: {leave_validation}</div>
-                )}
-                <div className="mt-2 text-xs text-muted-foreground">
-                  Suporta placeholders e JSON com embed.
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="border-t border-border/80 pt-6">
-            <div className="text-sm font-semibold">Moderação</div>
-            <div className="mt-4 grid grid-cols-1 gap-6">
-              <div>
-                <div className="text-sm font-medium">Template do Mod Log</div>
-                <div className="mt-2">
-                  {is_guild_loading ? (
-                    <Skeleton className="h-32 w-full" />
-                  ) : (
-                    <Textarea
-                      value={modLogMessage}
-                      onChange={(e) => setModLogMessage(e.target.value)}
-                      placeholder="Texto ou JSON (content + embed). Ex: {user.tag} | {punishment}"
-                      rows={5}
-                    />
-                  )}
-                </div>
-                {modlog_validation && (
-                  <div className="mt-2 text-xs text-red-500">JSON inválido: {modlog_validation}</div>
                 )}
                 <div className="mt-2 text-xs text-muted-foreground">
                   Suporta placeholders e JSON com embed.

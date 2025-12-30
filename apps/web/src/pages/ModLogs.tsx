@@ -1,14 +1,31 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Shield, AlertTriangle, Ban, Volume2, FileWarning, Download, Search } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton } from '../components/ui'
+import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Textarea } from '../components/ui'
 import { get_modlog_action_label, normalize_modlog_action } from '../lib/modlog'
+import { validate_extended_template } from '../lib/message_template'
+import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
+
+type api_channel = {
+  id: string
+  name: string
+  type: number
+}
+
+function channel_label(channel: api_channel) {
+  return `#${channel.name}`
+}
+
+type guild_config = {
+  modLogChannelId?: string | null
+  modLogMessage?: string | null
+}
 
 interface ModLog {
   id: string
@@ -56,6 +73,69 @@ const actionColors = {
 export default function ModLogsPage() {
   const { guildId } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
+
+  const {
+    data: guild,
+    isLoading: is_guild_loading,
+    isError: is_guild_error,
+    refetch: refetch_guild,
+  } = useQuery({
+    queryKey: ['guild', guildId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
+      return response.data
+    },
+  })
+
+  const config = guild?.guild?.config as guild_config | undefined
+
+  const { data: channels_data, isLoading: is_channels_loading } = useQuery({
+    queryKey: ['channels', guildId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`)
+      return response.data as { channels: api_channel[] }
+    },
+  })
+
+  const available_channels = useMemo(() => {
+    const channels = channels_data?.channels ?? []
+    return channels.slice().sort((a, b) => a.name.localeCompare(b.name))
+  }, [channels_data])
+
+  const [modlog_channel_id, set_modlog_channel_id] = useState('')
+  const [modlog_message, set_modlog_message] = useState('')
+  const has_initialized = useRef(false)
+
+  useEffect(() => {
+    if (!config) return
+    if (has_initialized.current) return
+    has_initialized.current = true
+
+    set_modlog_channel_id(config.modLogChannelId ?? '')
+    set_modlog_message(config.modLogMessage ?? '')
+  }, [config])
+
+  const modlog_validation = useMemo(() => {
+    if (!modlog_message.trim()) return null
+    return validate_extended_template(modlog_message)
+  }, [modlog_message])
+
+  const saveMutation = useMutation({
+    mutationFn: async () => {
+      await axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
+        modLogChannelId: modlog_channel_id || undefined,
+        modLogMessage: modlog_message || null,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      toast_success('Configurações salvas com sucesso!')
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao salvar configurações')
+    },
+  })
   const [searchTerm, setSearchTerm] = useState('')
   const [actionFilter, setActionFilter] = useState('all')
   const [page, setPage] = useState(1)
@@ -148,6 +228,76 @@ export default function ModLogsPage() {
           onAction={() => void refetch()}
         />
       )}
+
+      <Card>
+        <CardContent className="space-y-6 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold">Configuração</div>
+              <div className="mt-1 text-xs text-muted-foreground">Configure onde o bot enviará os logs e o template padrão.</div>
+            </div>
+
+            <Button
+              onClick={() => saveMutation.mutate()}
+              isLoading={saveMutation.isPending}
+              disabled={Boolean(modlog_validation) || is_guild_loading || is_guild_error || is_channels_loading}
+              className="shrink-0"
+            >
+              Salvar
+            </Button>
+          </div>
+
+          {is_guild_error && (
+            <ErrorState
+              title="Falha ao carregar configurações"
+              description="Não foi possível carregar os dados do servidor."
+              onAction={() => void refetch_guild()}
+            />
+          )}
+
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            <div>
+              <div className="text-sm font-medium">Canal de logs de moderação</div>
+              <div className="mt-2">
+                {is_channels_loading ? (
+                  <Skeleton className="h-11 w-full" />
+                ) : (
+                  <Select value={modlog_channel_id} onValueChange={(value) => set_modlog_channel_id(value)}>
+                    <option value="">Desativado</option>
+                    {available_channels.map((ch) => (
+                      <option key={ch.id} value={ch.id}>
+                        {channel_label(ch)}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                Se desativado, o bot não enviará logs automáticos em canal.
+              </div>
+            </div>
+
+            <div>
+              <div className="text-sm font-medium">Template do Mod Log</div>
+              <div className="mt-2">
+                {is_guild_loading ? (
+                  <Skeleton className="h-32 w-full" />
+                ) : (
+                  <Textarea
+                    value={modlog_message}
+                    onChange={(e) => set_modlog_message(e.target.value)}
+                    placeholder="Texto ou JSON (content + embed). Ex: {user.tag} | {punishment}"
+                    rows={5}
+                  />
+                )}
+              </div>
+
+              {modlog_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {modlog_validation}</div>}
+              <div className="mt-2 text-xs text-muted-foreground">Suporta placeholders e JSON com embed.</div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card>
         <CardContent className="p-6">
