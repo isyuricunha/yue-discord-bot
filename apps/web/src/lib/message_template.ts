@@ -22,6 +22,9 @@ const embed_schema = z
 
 const extended_message_schema = z.object({ content: z.string().optional(), embed: embed_schema.optional() }).strict()
 
+const template_variant_schema = z.union([z.string(), extended_message_schema])
+const template_variants_schema = z.array(template_variant_schema)
+
 export function validate_extended_template(template: string): string | null {
   const trimmed = template.trim()
   if (!(trimmed.startsWith('{') && trimmed.endsWith('}'))) return null
@@ -44,21 +47,29 @@ export function validate_extended_template_variants(template: string): string | 
   if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
     try {
       const parsed = JSON.parse(trimmed) as unknown
-      if (!Array.isArray(parsed)) return 'Formato inválido: esperado uma lista (JSON array)'
+      const validated = template_variants_schema.safeParse(parsed)
+      if (!validated.success) return 'Formato inválido: esperado uma lista (JSON array)'
 
-      for (let i = 0; i < parsed.length; i++) {
-        const item = parsed[i]
-        if (typeof item !== 'string') {
-          return `Item ${i + 1}: esperado string (texto ou JSON)`
+      for (let i = 0; i < validated.data.length; i++) {
+        const item = validated.data[i]
+        const index = i + 1
+
+        if (typeof item === 'string') {
+          const item_trimmed = item.trim()
+          if (!item_trimmed) return `Item ${index}: mensagem vazia`
+
+          const error = validate_extended_template(item)
+          if (error) return `Item ${index}: ${error}`
+          continue
         }
 
-        const item_trimmed = item.trim()
-        if (!item_trimmed) {
-          return `Item ${i + 1}: mensagem vazia`
-        }
+        const content = (item.content ?? '').trim()
+        const embed = item.embed
 
-        const error = validate_extended_template(item)
-        if (error) return `Item ${i + 1}: ${error}`
+        const has_non_empty_embed = !!(embed && Object.keys(embed).length > 0)
+        if (!content && !has_non_empty_embed) {
+          return `Item ${index}: mensagem vazia`
+        }
       }
 
       return null
