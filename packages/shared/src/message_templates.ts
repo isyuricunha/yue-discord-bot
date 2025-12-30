@@ -138,6 +138,24 @@ export function render_placeholders(input: string, ctx: template_context): strin
   })
 }
 
+export function pick_discord_message_template_variant(template: string, rng: () => number = Math.random): string {
+  const trimmed = template.trim()
+
+  if (trimmed.length === 0) return ''
+  if (trimmed.startsWith('{') && trimmed.endsWith('}')) return template
+
+  const lines = template
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0)
+
+  if (lines.length <= 1) return trimmed
+
+  const value = rng()
+  const index = Number.isFinite(value) ? Math.max(0, Math.min(lines.length - 1, Math.floor(value * lines.length))) : 0
+  return lines[index]!
+}
+
 function deep_render(value: unknown, ctx: template_context): unknown {
   if (typeof value === 'string') return render_placeholders(value, ctx)
   if (Array.isArray(value)) return value.map((v) => deep_render(v, ctx))

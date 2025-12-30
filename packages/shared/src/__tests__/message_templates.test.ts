@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { render_discord_message_template, render_placeholders } from '../message_templates'
+import { pick_discord_message_template_variant, render_discord_message_template, render_placeholders } from '../message_templates'
 
 test('render_placeholders: replaces known placeholders and keeps unknown ones', () => {
   const rendered = render_placeholders('Oi {user}! {unknown}', {
@@ -76,4 +76,16 @@ test('render_discord_message_template: invalid JSON should be treated as plain t
   })
 
   assert.deepEqual(rendered, { content: '{not json}' })
+})
+
+test('pick_discord_message_template_variant: keeps JSON template as-is', () => {
+  const template = JSON.stringify({ content: 'hi' })
+  assert.equal(pick_discord_message_template_variant(template, () => 0.9), template)
+})
+
+test('pick_discord_message_template_variant: picks a random non-empty line', () => {
+  const template = '\nOi {@user}!\n\nParabéns {@user}, nível {level}!\n'
+
+  assert.equal(pick_discord_message_template_variant(template, () => 0), 'Oi {@user}!')
+  assert.equal(pick_discord_message_template_variant(template, () => 0.99), 'Parabéns {@user}, nível {level}!')
 })

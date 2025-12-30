@@ -1,7 +1,7 @@
 import type { Message } from 'discord.js';
 import { prisma } from '@yuebot/database';
 import type { GuildXpConfig } from '@yuebot/database';
-import { render_discord_message_template } from '@yuebot/shared';
+import { pick_discord_message_template_variant, render_discord_message_template } from '@yuebot/shared';
 import { logger } from '../utils/logger';
 
 function normalize_content_for_repeat_check(content: string): string {
@@ -312,7 +312,7 @@ export class XpService {
           const next_level = compute_next_level_info({ xp: xp_value, level: new_level });
 
           const rendered = template
-            ? render_discord_message_template(template, {
+            ? render_discord_message_template(pick_discord_message_template_variant(template), {
                 user: {
                   id: message.author.id,
                   username: message.author.username,
