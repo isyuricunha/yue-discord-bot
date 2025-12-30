@@ -214,6 +214,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         
         // Canais
         modLogChannelId: configData.modLogChannelId,
+        announcementChannelId: configData.announcementChannelId,
         giveawayChannelId: configData.giveawayChannelId,
         welcomeChannelId: configData.welcomeChannelId,
         leaveChannelId: configData.leaveChannelId,
@@ -255,6 +256,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         linkWhitelistChannels: configData.linkWhitelistChannels || [],
         linkWhitelistRoles: configData.linkWhitelistRoles || [],
         modLogChannelId: configData.modLogChannelId,
+        announcementChannelId: configData.announcementChannelId,
         giveawayChannelId: configData.giveawayChannelId,
         welcomeChannelId: configData.welcomeChannelId,
         leaveChannelId: configData.leaveChannelId,

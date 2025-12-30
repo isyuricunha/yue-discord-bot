@@ -28,6 +28,7 @@ function channel_label(channel: api_channel) {
 
 type guild_config = {
   modLogChannelId?: string | null
+  announcementChannelId?: string | null
   modLogMessage?: string | null
 }
 
@@ -108,6 +109,7 @@ export default function ModLogsPage() {
   }, [channels_data])
 
   const [modlog_channel_id, set_modlog_channel_id] = useState('')
+  const [announcement_channel_id, set_announcement_channel_id] = useState('')
   const [modLogMessage, setModLogMessage] = useState('')
   const has_initialized = useRef(false)
 
@@ -117,6 +119,7 @@ export default function ModLogsPage() {
     has_initialized.current = true
 
     set_modlog_channel_id(config.modLogChannelId ?? '')
+    set_announcement_channel_id(config.announcementChannelId ?? '')
     setModLogMessage(config.modLogMessage ?? '')
   }, [config])
 
@@ -128,7 +131,8 @@ export default function ModLogsPage() {
   const saveMutation = useMutation({
     mutationFn: async () => {
       await axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
-        modLogChannelId: modlog_channel_id || undefined,
+        modLogChannelId: modlog_channel_id ? modlog_channel_id : null,
+        announcementChannelId: announcement_channel_id ? announcement_channel_id : null,
         modLogMessage: modLogMessage || null,
       })
     },
@@ -276,42 +280,61 @@ export default function ModLogsPage() {
                   </Select>
                 )}
               </div>
-              <div className="mt-2 text-xs text-muted-foreground">
-                Se desativado, o bot não enviará logs automáticos em canal.
-              </div>
             </div>
 
             <div>
-              <div className="text-sm font-medium">Template do Mod Log</div>
+              <div className="text-sm font-medium">Canal de anúncios (recomendado)</div>
               <div className="mt-2">
-                {is_guild_loading ? (
-                  <Skeleton className="h-32 w-full" />
+                {is_channels_loading ? (
+                  <Skeleton className="h-11 w-full" />
                 ) : (
-                  <MessageVariantEditor
-                    label="Template da mensagem"
-                    description="Você pode criar vários templates (o bot escolhe um aleatório). Cada item pode ser texto simples ou JSON (content + embed)."
-                    value={modLogMessage}
-                    onChange={setModLogMessage}
-                    placeholder="JSON (content + embed)"
-                    rows={6}
-                  />
+                  <Select value={announcement_channel_id} onValueChange={(value) => set_announcement_channel_id(value)}>
+                    <option value="">Não configurado</option>
+                    {available_channels.map((ch) => (
+                      <option key={ch.id} value={ch.id}>
+                        {channel_label(ch)}
+                      </option>
+                    ))}
+                  </Select>
                 )}
               </div>
+              <div className="mt-2 text-xs text-muted-foreground">
+                Usado para comunicados globais do bot. Se não estiver configurado, o bot pode pular anúncios para evitar flood.
+              </div>
+            </div>
+          </div>
 
-              {message_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {message_validation}</div>}
-              <div className="mt-2 text-xs text-muted-foreground">Suporta placeholders e JSON com embed.</div>
+          <div>
+            <div className="text-sm font-medium">Template do Mod Log</div>
+            <div className="mt-2">
+              {is_guild_loading ? (
+                <Skeleton className="h-32 w-full" />
+              ) : (
+                <MessageVariantEditor
+                  label="Template da mensagem"
+                  description="Você pode criar vários templates (o bot escolhe um aleatório). Cada item pode ser texto simples ou JSON (content + embed)."
+                  value={modLogMessage}
+                  onChange={setModLogMessage}
+                  placeholder="JSON (content + embed)"
+                  rows={6}
+                />
+              )}
+            </div>
 
-              <div className="mt-4 rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
-                <div className="text-sm font-semibold text-foreground">Exemplos</div>
-                <div className="mt-2 space-y-3">
-                  <div>
-                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placeholders</div>
-                    <PlaceholderChips placeholders={template_placeholders.modlog_template_placeholders} />
-                  </div>
+            {message_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {message_validation}</div>}
+            <div className="mt-2 text-xs text-muted-foreground">Suporta placeholders e JSON com embed.</div>
 
-                  <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
-                    <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
-                    <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
+            <div className="mt-4 rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
+              <div className="text-sm font-semibold text-foreground">Exemplos</div>
+              <div className="mt-2 space-y-3">
+                <div>
+                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placeholders</div>
+                  <PlaceholderChips placeholders={template_placeholders.modlog_template_placeholders} />
+                </div>
+
+                <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                  <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
+                  <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
 {JSON.stringify(
   {
     content: '',
@@ -329,10 +352,9 @@ export default function ModLogsPage() {
   null,
   2
 )}</pre>
-                  </div>
-
-                  <div className="text-xs">Dica: você pode criar vários templates (o bot escolhe um aleatório).</div>
                 </div>
+
+                <div className="text-xs">Dica: você pode criar vários templates (o bot escolhe um aleatório).</div>
               </div>
             </div>
           </div>

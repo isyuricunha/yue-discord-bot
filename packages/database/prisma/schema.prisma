@@ -37,6 +37,7 @@ model GuildConfig {
   
   // Canais
   modLogChannelId   String?
+  announcementChannelId String?
   giveawayChannelId String?
   welcomeChannelId  String?
   leaveChannelId    String?

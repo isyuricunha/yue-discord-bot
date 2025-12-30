@@ -105,6 +105,7 @@ export const coinflipActionSchema = z.object({
 // Config validators
 export const autoModConfigSchema = z.object({
   modLogChannelId: z.string().nullable().optional(),
+  announcementChannelId: z.string().nullable().optional(),
   giveawayChannelId: z.string().nullable().optional(),
   welcomeChannelId: z.string().nullable().optional(),
   leaveChannelId: z.string().nullable().optional(),
