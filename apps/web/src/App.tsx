@@ -28,6 +28,8 @@ import XpLevelsPage from './pages/XpLevels'
 import AutorolePage from './pages/Autorole'
 import BadgesPage from './pages/Badges'
 import FanArtsPage from './pages/FanArts'
+import EconomyPage from './pages/Economy'
+import CoinflipPage from './pages/Coinflip'
 import { AppShell, PublicShell, RequireAuth } from './components/layout'
 
 function App() {
@@ -99,6 +101,8 @@ function App() {
           <Route path="/guild/:guildId/settings" element={<SettingsPage />} />
           <Route path="/badges" element={<BadgesPage />} />
           <Route path="/fanarts" element={<FanArtsPage />} />
+          <Route path="/economy" element={<EconomyPage />} />
+          <Route path="/coinflip" element={<CoinflipPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

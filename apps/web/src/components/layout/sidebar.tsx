@@ -7,6 +7,8 @@ import {
   Award,
   Image as ImageIcon,
   BarChart3,
+  Coins,
+  Swords,
   Shield,
   FileText,
   Users,
@@ -58,6 +60,16 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
       to: '/',
       label: 'Dashboard',
       icon: <LayoutDashboard className="h-4 w-4" />,
+    },
+    {
+      to: '/coinflip',
+      label: 'Coinflip',
+      icon: <Swords className="h-4 w-4" />,
+    },
+    {
+      to: '/economy',
+      label: 'Economia',
+      icon: <Coins className="h-4 w-4" />,
     },
     {
       to: '/badges',
