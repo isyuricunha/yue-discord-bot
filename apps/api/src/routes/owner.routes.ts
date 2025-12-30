@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
 
-import { InternalBotApiError, send_guild_message } from '../internal/bot_internal_api'
+import { InternalBotApiError, get_guild_info, send_guild_message } from '../internal/bot_internal_api'
 import { is_owner } from '../utils/permissions'
 import { safe_error_details } from '../utils/safe_error'
 
@@ -88,6 +88,75 @@ function matches_query(input: { id: string; name: string; ownerId: string }, que
 }
 
 export async function ownerRoutes(fastify: FastifyInstance) {
+  fastify.post('/owner/guilds/:guildId/sync', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const user = request.user
+    if (!is_owner(user.userId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const { guildId } = request.params as { guildId?: string }
+    if (typeof guildId !== 'string' || !guildId.trim()) {
+      return reply.code(400).send({ error: 'Invalid guildId' })
+    }
+
+    try {
+      const info = await get_guild_info(guildId, request.log)
+      const g = info.guild
+
+      const guild = await prisma.guild.upsert({
+        where: { id: g.id },
+        update: {
+          name: g.name,
+          icon: g.icon,
+          ownerId: g.ownerId,
+        },
+        create: {
+          id: g.id,
+          name: g.name,
+          icon: g.icon,
+          ownerId: g.ownerId,
+        },
+      })
+
+      await prisma.ownerActionLog.create({
+        data: {
+          actorUserId: user.userId,
+          type: 'sync_guild',
+          status: 'executed',
+          request: { guildId: g.id },
+          result: {
+            guild: {
+              id: guild.id,
+              name: guild.name,
+              icon: guild.icon,
+              ownerId: guild.ownerId,
+              addedAt: guild.addedAt,
+            },
+            internal: {
+              systemChannelId: g.systemChannelId,
+            },
+          },
+          executedAt: new Date(),
+        },
+      })
+
+      return reply.send({ success: true, guild })
+    } catch (error: unknown) {
+      if (error instanceof InternalBotApiError) {
+        if (error.status >= 400 && error.status < 500) {
+          return reply.code(error.status).send({ error: 'Guild not found' })
+        }
+        request.log.error({ err: safe_error_details(error), status: error.status }, 'Failed to sync guild via internal bot API')
+        return reply.code(502).send({ error: 'Bad gateway' })
+      }
+
+      request.log.error({ err: safe_error_details(error) }, 'Failed to sync guild')
+      return reply.code(500).send({ error: 'Internal server error' })
+    }
+  })
+
   fastify.post('/owner/announcements/preview', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
