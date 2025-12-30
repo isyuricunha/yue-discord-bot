@@ -227,7 +227,7 @@ export default function AutorolePage() {
           ) : (
             <>
               <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
-                <Select value={new_role_id} onChange={(e) => setNewRoleId(e.target.value)}>
+                <Select value={new_role_id} onValueChange={(value) => setNewRoleId(value)}>
                   <option value="">Selecione um cargo</option>
                   {available_roles
                     .filter((r) => !config.roleIds.includes(r.id))

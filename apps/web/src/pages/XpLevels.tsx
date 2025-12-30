@@ -627,7 +627,7 @@ export default function XpLevelsPage() {
                   ) : (
                     <Select
                       value={config.levelUpChannelId ?? ''}
-                      onChange={(e) => setConfig({ ...config, levelUpChannelId: e.target.value || null })}
+                      onValueChange={(value) => setConfig({ ...config, levelUpChannelId: value || null })}
                     >
                       <option value="">Desativado</option>
                       {(channels_data?.channels ?? []).map((ch) => (
@@ -707,7 +707,7 @@ export default function XpLevelsPage() {
           ) : (
             <>
               <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_180px_44px]">
-                <Select value={new_multiplier_role} onChange={(e) => setNewMultiplierRole(e.target.value)}>
+                <Select value={new_multiplier_role} onValueChange={(value) => setNewMultiplierRole(value)}>
                   <option value="">Selecione um cargo</option>
                   {(roles_data?.roles ?? []).filter((r) => !r.managed).map((r) => (
                     <option key={r.id} value={r.id}>
@@ -764,7 +764,7 @@ export default function XpLevelsPage() {
             ) : (
               <>
                 <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
-                  <Select value={new_ignored_role} onChange={(e) => setNewIgnoredRole(e.target.value)}>
+                  <Select value={new_ignored_role} onValueChange={(value) => setNewIgnoredRole(value)}>
                     <option value="">Selecione um cargo</option>
                     {(roles_data?.roles ?? []).filter((r) => !r.managed).map((r) => (
                       <option key={r.id} value={r.id}>
@@ -810,7 +810,7 @@ export default function XpLevelsPage() {
             ) : (
               <>
                 <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
-                  <Select value={new_ignored_channel} onChange={(e) => setNewIgnoredChannel(e.target.value)}>
+                  <Select value={new_ignored_channel} onValueChange={(value) => setNewIgnoredChannel(value)}>
                     <option value="">Selecione um canal</option>
                     {(channels_data?.channels ?? []).map((ch) => (
                       <option key={ch.id} value={ch.id}>
@@ -878,7 +878,7 @@ export default function XpLevelsPage() {
                   onChange={(e) => setNewRewardLevel(e.target.value)}
                   placeholder="Nível"
                 />
-                <Select value={new_reward_role} onChange={(e) => setNewRewardRole(e.target.value)}>
+                <Select value={new_reward_role} onValueChange={(value) => setNewRewardRole(value)}>
                   <option value="">Selecione um cargo</option>
                   {(roles_data?.roles ?? []).filter((r) => !r.managed).map((r) => (
                     <option key={r.id} value={r.id}>

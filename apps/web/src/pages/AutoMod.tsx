@@ -165,7 +165,7 @@ export default function AutoModPage() {
                   placeholder="Digite uma palavra..."
                   onKeyDown={(e) => e.key === 'Enter' && addWord()}
                 />
-                <Select value={newWordAction} onChange={(e) => setNewWordAction(e.target.value)}>
+                <Select value={newWordAction} onValueChange={(value) => setNewWordAction(value)}>
                   <option value="delete">Deletar</option>
                   <option value="warn">Avisar</option>
                   <option value="mute">Silenciar</option>
@@ -262,7 +262,7 @@ export default function AutoModPage() {
                 <div className="mt-2">
                   <Select
                     value={String(config.capsAction ?? 'warn')}
-                    onChange={(e) => setConfig({ ...config, capsAction: e.target.value })}
+                    onValueChange={(value) => setConfig({ ...config, capsAction: value })}
                   >
                     <option value="delete">Deletar</option>
                     <option value="warn">Avisar</option>
@@ -317,7 +317,7 @@ export default function AutoModPage() {
                   <div className="mt-2">
                     <Select
                       value={String(config.linkAction ?? 'delete')}
-                      onChange={(e) => setConfig({ ...config, linkAction: e.target.value })}
+                      onValueChange={(value) => setConfig({ ...config, linkAction: value })}
                     >
                       <option value="delete">Deletar</option>
                       <option value="warn">Avisar</option>

@@ -221,7 +221,7 @@ export default function SettingsPage() {
                 {is_guild_loading ? (
                   <Skeleton className="h-11 w-full" />
                 ) : (
-                  <Select value={locale} onChange={(e) => setLocale(e.target.value)}>
+                  <Select value={locale} onValueChange={(value) => setLocale(value)}>
                     <option value="pt-BR">Português (Brasil)</option>
                     <option value="en-US">English (US)</option>
                     <option value="es-ES">Español</option>
@@ -236,7 +236,7 @@ export default function SettingsPage() {
                 {is_guild_loading ? (
                   <Skeleton className="h-11 w-full" />
                 ) : (
-                  <Select value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+                  <Select value={timezone} onValueChange={(value) => setTimezone(value)}>
                     <option value="America/Sao_Paulo">São Paulo (BRT)</option>
                     <option value="America/New_York">New York (EST)</option>
                     <option value="Europe/London">London (GMT)</option>

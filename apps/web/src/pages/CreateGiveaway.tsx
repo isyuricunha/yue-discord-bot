@@ -359,7 +359,7 @@ export default function CreateGiveawayPage() {
                     {is_channels_loading ? (
                       <Skeleton className="h-11 w-full" />
                     ) : (
-                      <Select value={channelId} onChange={(e) => setChannelId(e.target.value)}>
+                      <Select value={channelId} onValueChange={(value) => setChannelId(value)}>
                         <option value="">Selecione um canal</option>
                         {channels.map((channel: Channel) => (
                           <option key={channel.id} value={channel.id}>
@@ -377,7 +377,7 @@ export default function CreateGiveawayPage() {
                     {is_roles_loading ? (
                       <Skeleton className="h-11 w-full" />
                     ) : (
-                      <Select value={requiredRoleId} onChange={(e) => setRequiredRoleId(e.target.value)}>
+                      <Select value={requiredRoleId} onValueChange={(value) => setRequiredRoleId(value)}>
                         <option value="">Nenhum</option>
                         {roles.map((role: Role) => (
                           <option key={role.id} value={role.id}>
