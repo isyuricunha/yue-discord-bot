@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder } from 'discord.js'
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, EmbedBuilder } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { getSendableChannel } from '../utils/discord'
@@ -26,9 +26,84 @@ export class GiveawayScheduler {
     }
   }
 
+  private async publishPendingGiveaways(now: Date) {
+    const pending = await prisma.giveaway.findMany({
+      where: {
+        ended: false,
+        cancelled: false,
+        messageId: null,
+        endsAt: { gt: now },
+        OR: [{ startsAt: null }, { startsAt: { lte: now } }],
+      },
+      orderBy: [{ createdAt: 'asc' }],
+      take: 50,
+    })
+
+    for (const giveaway of pending) {
+      try {
+        const channel = await this.client.channels.fetch(giveaway.channelId).catch(() => null)
+        const sendableChannel = getSendableChannel(channel)
+        if (!sendableChannel) {
+          logger.warn(
+            { giveawayId: giveaway.id, guildId: giveaway.guildId, channelId: giveaway.channelId },
+            'Canal do sorteio não é enviável; aguardando'
+          )
+          continue
+        }
+
+        const ends_at_ts = Math.floor(new Date(giveaway.endsAt).getTime() / 1000)
+
+        const embed = new EmbedBuilder()
+          .setTitle(`${giveaway.format === 'list' ? '🎁' : '🎉'} ${giveaway.title}`)
+          .setDescription(giveaway.description)
+          .addFields(
+            { name: '🏆 Vencedores', value: String(giveaway.maxWinners), inline: true },
+            { name: '⏰ Termina', value: `<t:${ends_at_ts}:R>`, inline: true },
+            { name: '📋 Participantes', value: '0', inline: true }
+          )
+          .setColor(0x9333ea)
+          .setTimestamp(new Date(giveaway.endsAt))
+
+        if (giveaway.requiredRoleId) {
+          embed.addFields({ name: '🚪 Cargo necessário', value: `<@&${giveaway.requiredRoleId}>`, inline: false })
+        }
+
+        const message =
+          giveaway.format === 'list'
+            ? await sendableChannel.send({
+                embeds: [embed],
+                components: [
+                  new ActionRowBuilder<ButtonBuilder>().addComponents(
+                    new ButtonBuilder()
+                      .setCustomId('giveaway_participate')
+                      .setLabel('✨ Participar do Sorteio')
+                      .setStyle(ButtonStyle.Primary)
+                  ),
+                ],
+              })
+            : await sendableChannel.send({ embeds: [embed] })
+
+        if (giveaway.format === 'reaction') {
+          await message.react('🎉').catch(() => null)
+        }
+
+        await prisma.giveaway.update({
+          where: { id: giveaway.id },
+          data: { messageId: message.id },
+        })
+
+        logger.info({ giveawayId: giveaway.id, messageId: message.id }, 'Sorteio publicado no Discord')
+      } catch (error) {
+        logger.error({ err: safe_error_details(error), giveawayId: giveaway.id }, 'Falha ao publicar sorteio pendente')
+      }
+    }
+  }
+
   private async checkGiveaways() {
     try {
       const now = new Date()
+
+      await this.publishPendingGiveaways(now)
       
       // Buscar sorteios que devem ser finalizados
       const expiredGiveaways = await prisma.giveaway.findMany({
