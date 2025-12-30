@@ -3,6 +3,7 @@ import { useEffect } from 'react'
 import { useAuthStore } from './store/auth'
 import LoginPage from './pages/Login'
 import TokenLoginPage from './pages/TokenLogin'
+import ExtrasPage from './pages/Extras'
 import DashboardPage from './pages/Dashboard'
 import GuildPage from './pages/Guild'
 import OverviewPage from './pages/Overview'
@@ -20,7 +21,7 @@ import XpLevelsPage from './pages/XpLevels'
 import AutorolePage from './pages/Autorole'
 import BadgesPage from './pages/Badges'
 import FanArtsPage from './pages/FanArts'
-import { AppShell, RequireAuth } from './components/layout'
+import { AppShell, PublicShell, RequireAuth } from './components/layout'
 
 function App() {
   const { user, isLoading, setToken, initialize } = useAuthStore()
@@ -28,6 +29,7 @@ function App() {
   const allow_token_login = import.meta.env.DEV
 
   const isAuthenticated = Boolean(user)
+  const isAuthResolved = !isLoading
 
   useEffect(() => {
     if (allow_token_login) {
@@ -44,15 +46,18 @@ function App() {
     initialize()
   }, [])
 
-  if (isLoading && !user) {
-    return null
-  }
-
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={!isAuthenticated ? <LoginPage /> : <Navigate to="/" />} />
+        <Route
+          path="/login"
+          element={!isAuthResolved || !isAuthenticated ? <LoginPage /> : <Navigate to="/" />}
+        />
         {allow_token_login && <Route path="/token-login" element={<TokenLoginPage />} />}
+
+        <Route element={<PublicShell />}>
+          <Route path="/extras" element={<ExtrasPage />} />
+        </Route>
 
         <Route
           element={
