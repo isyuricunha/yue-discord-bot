@@ -8,6 +8,7 @@ import { waifuService } from '../services/waifu.service'
 type waifu_custom_id =
   | { action: 'claim'; rollId: string }
   | { action: 'harem'; userId: string; page: number }
+  | { action: 'wishlist'; viewerUserId: string; targetUserId: string; page: number }
 
 function parse_custom_id(custom_id: string): waifu_custom_id | null {
   const parts = custom_id.split(':')
@@ -28,6 +29,16 @@ function parse_custom_id(custom_id: string): waifu_custom_id | null {
     if (!userId) return null
     if (!Number.isFinite(page) || page < 1) return null
     return { action, userId, page }
+  }
+
+  if (action === 'wishlist') {
+    const viewerUserId = parts[2]
+    const targetUserId = parts[3]
+    const page_raw = parts[4]
+    const page = Number(page_raw)
+    if (!viewerUserId || !targetUserId) return null
+    if (!Number.isFinite(page) || page < 1) return null
+    return { action, viewerUserId, targetUserId, page }
   }
 
   return null
@@ -87,12 +98,73 @@ async function handle_harem_page(interaction: ButtonInteraction, input: { userId
   await interaction.update({ embeds: [embed], components: totalPages > 1 ? [row] : [] })
 }
 
+async function handle_wishlist_page(
+  interaction: ButtonInteraction,
+  input: { viewerUserId: string; targetUserId: string; page: number }
+): Promise<void> {
+  if (!interaction.guildId) {
+    await interaction.reply({ content: `${EMOJIS.ERROR} Use isso em um servidor.`, ephemeral: true })
+    return
+  }
+
+  if (interaction.user.id !== input.viewerUserId) {
+    await interaction.reply({ content: `${EMOJIS.ERROR} Só quem executou o comando pode usar estes botões.`, ephemeral: true })
+    return
+  }
+
+  const { total, items, page, pageSize } = await waifuService.wishlist_list({
+    guildId: interaction.guildId,
+    userId: input.targetUserId,
+    page: input.page,
+    pageSize: 10,
+  })
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const currentPage = Math.min(Math.max(1, page), totalPages)
+
+  const lines =
+    items.length > 0
+      ? items.map((w, i) => `${(currentPage - 1) * pageSize + i + 1}. ${w.character.name}`).join('\n')
+      : '—'
+
+  const embed = new EmbedBuilder()
+    .setColor(COLORS.INFO)
+    .setTitle(`${EMOJIS.INFO} Wishlist`)
+    .setDescription(`Usuário: <@${input.targetUserId}>\nTotal: **${total}**\nPágina: **${currentPage}/${totalPages}**`)
+    .addFields([{ name: 'Personagens', value: lines, inline: false }])
+
+  const prev = new ButtonBuilder()
+    .setCustomId(`waifu:wishlist:${input.viewerUserId}:${input.targetUserId}:${Math.max(1, currentPage - 1)}`)
+    .setStyle(ButtonStyle.Secondary)
+    .setLabel('⬅️ Anterior')
+    .setDisabled(currentPage <= 1)
+
+  const next = new ButtonBuilder()
+    .setCustomId(`waifu:wishlist:${input.viewerUserId}:${input.targetUserId}:${Math.min(totalPages, currentPage + 1)}`)
+    .setStyle(ButtonStyle.Secondary)
+    .setLabel('Próxima ➡️')
+    .setDisabled(currentPage >= totalPages)
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(prev, next)
+
+  await interaction.update({ embeds: [embed], components: totalPages > 1 ? [row] : [] })
+}
+
 export async function handleWaifuButton(interaction: ButtonInteraction): Promise<void> {
   const parsed = parse_custom_id(interaction.customId)
   if (!parsed) return
 
   if (parsed.action === 'harem') {
     await handle_harem_page(interaction, { userId: parsed.userId, page: parsed.page })
+    return
+  }
+
+  if (parsed.action === 'wishlist') {
+    await handle_wishlist_page(interaction, {
+      viewerUserId: parsed.viewerUserId,
+      targetUserId: parsed.targetUserId,
+      page: parsed.page,
+    })
     return
   }
 

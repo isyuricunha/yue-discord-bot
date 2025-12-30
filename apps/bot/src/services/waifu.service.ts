@@ -60,6 +60,14 @@ export type reroll_result =
       nextRerollAt?: Date
     }
 
+export type wishlist_add_result =
+  | { success: true; characterId: string; characterName: string }
+  | { success: false; error: 'invalid_query' | 'not_found' | 'ambiguous' | 'already_exists'; message: string }
+
+export type wishlist_remove_result =
+  | { success: true; characterId: string; characterName: string }
+  | { success: false; error: 'invalid_query' | 'not_found' | 'ambiguous'; message: string }
+
 const CLAIM_COOLDOWN_MS = 3 * 60 * 60 * 1000
 const ROLL_EXPIRES_MS = 45 * 1000
 const SNIPE_PROTECT_MS = 8 * 1000
@@ -98,6 +106,74 @@ function next_reroll_time(now: Date): Date {
 }
 
 export class WaifuService {
+  private async resolve_character_by_query(input: { query: string }): Promise<
+    | { success: true; character: { id: string; name: string; nameNative: string | null; imageUrl: string; gender: string | null } }
+    | { success: false; error: 'invalid_query' | 'not_found' | 'ambiguous'; message: string }
+  > {
+    const q = input.query.trim()
+    if (!q) return { success: false as const, error: 'invalid_query', message: 'Informe o nome do personagem.' }
+
+    const local = await prisma.waifuCharacter.findMany({
+      where: { name: { contains: q, mode: 'insensitive' } },
+      orderBy: { updatedAt: 'desc' },
+      take: 10,
+      select: { id: true, name: true, nameNative: true, imageUrl: true, gender: true },
+    })
+
+    if (local.length === 1) {
+      return { success: true as const, character: local[0] }
+    }
+
+    if (local.length > 1) {
+      return {
+        success: false as const,
+        error: 'ambiguous',
+        message: 'Encontrei mais de um resultado. Seja mais específico:\n' + local.map((c) => `- ${c.name}`).join('\n'),
+      }
+    }
+
+    const results = await aniListService.search_character_by_name({ name: q })
+    if (results.length === 0) {
+      return { success: false as const, error: 'not_found', message: 'Personagem não encontrado.' }
+    }
+
+    if (results.length > 1) {
+      return {
+        success: false as const,
+        error: 'ambiguous',
+        message:
+          'Encontrei mais de um resultado. Seja mais específico:\n' +
+          results
+            .slice(0, 10)
+            .map((c) => `- ${c.name.full ?? 'Unknown'}`)
+            .join('\n'),
+      }
+    }
+
+    const top = results[0]
+
+    const upserted = await prisma.waifuCharacter.upsert({
+      where: { source_sourceId: { source: 'ANILIST', sourceId: top.id } },
+      update: {
+        name: top.name.full ?? 'Unknown',
+        nameNative: top.name.native,
+        imageUrl: top.image.large ?? '',
+        gender: top.gender,
+      },
+      create: {
+        source: 'ANILIST',
+        sourceId: top.id,
+        name: top.name.full ?? 'Unknown',
+        nameNative: top.name.native,
+        imageUrl: top.image.large ?? '',
+        gender: top.gender,
+      },
+      select: { id: true, name: true, nameNative: true, imageUrl: true, gender: true },
+    })
+
+    return { success: true as const, character: upserted }
+  }
+
   async ensure_user(userId: string, input: { username?: string | null; avatar?: string | null }): Promise<void> {
     await prisma.user.upsert({
       where: { id: userId },
@@ -472,6 +548,88 @@ export class WaifuService {
     })
 
     return { total, page, pageSize, claims }
+  }
+
+  async wishlist_add(input: { guildId: string; userId: string; query: string }): Promise<wishlist_add_result> {
+    const resolved = await this.resolve_character_by_query({ query: input.query })
+    if (resolved.success === false) return resolved
+
+    await this.ensure_user(input.userId, { username: null, avatar: null })
+
+    try {
+      await prisma.waifuWishlist.create({
+        data: {
+          guildId: input.guildId,
+          userId: input.userId,
+          characterId: resolved.character.id,
+        },
+      })
+    } catch (error) {
+      const err = error as { code?: unknown }
+      const code = typeof err.code === 'string' ? err.code : ''
+
+      // Unique constraint
+      if (code === 'P2002') {
+        return {
+          success: false as const,
+          error: 'already_exists',
+          message: 'Este personagem já está na sua wishlist.',
+        }
+      }
+
+      throw error
+    }
+
+    return { success: true as const, characterId: resolved.character.id, characterName: resolved.character.name }
+  }
+
+  async wishlist_remove(input: { guildId: string; userId: string; query: string }): Promise<wishlist_remove_result> {
+    const resolved = await this.resolve_character_by_query({ query: input.query })
+    if (resolved.success === false) return resolved
+
+    const existing = await prisma.waifuWishlist.findUnique({
+      where: { guildId_userId_characterId: { guildId: input.guildId, userId: input.userId, characterId: resolved.character.id } },
+      select: { id: true },
+    })
+
+    if (!existing) {
+      return {
+        success: false as const,
+        error: 'not_found',
+        message: 'Este personagem não está na sua wishlist.',
+      }
+    }
+
+    await prisma.waifuWishlist.delete({ where: { id: existing.id } })
+
+    return { success: true as const, characterId: resolved.character.id, characterName: resolved.character.name }
+  }
+
+  async wishlist_list(input: { guildId: string; userId: string; page: number; pageSize: number }) {
+    const page = Math.max(1, input.page)
+    const pageSize = Math.min(25, Math.max(1, input.pageSize))
+
+    const total = await prisma.waifuWishlist.count({ where: { guildId: input.guildId, userId: input.userId } })
+
+    const items = await prisma.waifuWishlist.findMany({
+      where: { guildId: input.guildId, userId: input.userId },
+      orderBy: { createdAt: 'desc' },
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      include: { character: true },
+    })
+
+    return { total, page, pageSize, items }
+  }
+
+  async wishlist_watchers(input: { guildId: string; characterId: string }) {
+    const rows = await prisma.waifuWishlist.findMany({
+      where: { guildId: input.guildId, characterId: input.characterId },
+      orderBy: { createdAt: 'asc' },
+      select: { userId: true },
+    })
+
+    return { userIds: rows.map((r) => r.userId) }
   }
 
   async divorce(input: { guildId: string; userId: string; query: string }) {

@@ -81,6 +81,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const { meuharemCommand } = await import('./waifu/meuharem')
   const { divorciarCommand } = await import('./waifu/divorciar')
   const { infocasamentoCommand } = await import('./waifu/infocasamento')
+  const { desejosCommand } = await import('./waifu/desejos')
   
   // Register commands
   commands.set(banCommand.data.name, banCommand);
@@ -114,6 +115,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(meuharemCommand.data.name, meuharemCommand)
   commands.set(divorciarCommand.data.name, divorciarCommand)
   commands.set(infocasamentoCommand.data.name, infocasamentoCommand)
+  commands.set(desejosCommand.data.name, desejosCommand)
   
   client.commands = commands;
 }

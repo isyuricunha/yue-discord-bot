@@ -44,6 +44,11 @@ export const waifuCommand: Command = {
       rolledByUserId: interaction.user.id,
     })
 
+    const watchers = await waifuService.wishlist_watchers({
+      guildId: interaction.guildId,
+      characterId: roll.character.id,
+    })
+
     const embed = new EmbedBuilder()
       .setColor(COLORS.INFO)
       .setTitle(`${EMOJIS.INFO} Waifu`)
@@ -57,6 +62,12 @@ export const waifuCommand: Command = {
           inline: true,
         },
       ])
+
+    if (watchers.userIds.length > 0) {
+      const preview = watchers.userIds.slice(0, 10).map((id) => `<@${id}>`).join(' ')
+      const suffix = watchers.userIds.length > 10 ? ` (+${watchers.userIds.length - 10})` : ''
+      embed.addFields([{ name: 'Na wishlist de', value: `${preview}${suffix}`, inline: false }])
+    }
 
     const button = new ButtonBuilder()
       .setCustomId(`waifu:claim:${roll.rollId}`)
