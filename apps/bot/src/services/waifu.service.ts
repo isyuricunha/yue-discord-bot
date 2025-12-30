@@ -44,9 +44,26 @@ export type claim_result =
       nextClaimAt?: Date
     }
 
+export type reroll_result =
+  | {
+      success: true
+      kind: waifu_roll_kind
+      oldRollId: string
+      oldMessageId: string | null
+      newRoll: roll_result
+      nextRerollAt: Date
+    }
+  | {
+      success: false
+      error: 'not_found' | 'expired' | 'already_claimed' | 'cooldown'
+      message: string
+      nextRerollAt?: Date
+    }
+
 const CLAIM_COOLDOWN_MS = 3 * 60 * 60 * 1000
 const ROLL_EXPIRES_MS = 45 * 1000
 const SNIPE_PROTECT_MS = 8 * 1000
+const REROLL_COOLDOWN_MS = 30 * 60 * 1000
 
 async function with_serializable_retry<T>(fn: (tx: tx_client) => Promise<T>, max_attempts = 5): Promise<T> {
   let attempt = 0
@@ -74,6 +91,10 @@ async function with_serializable_retry<T>(fn: (tx: tx_client) => Promise<T>, max
 
 function next_claim_time(now: Date): Date {
   return new Date(now.getTime() + CLAIM_COOLDOWN_MS)
+}
+
+function next_reroll_time(now: Date): Date {
+  return new Date(now.getTime() + REROLL_COOLDOWN_MS)
 }
 
 export class WaifuService {
@@ -272,6 +293,166 @@ export class WaifuService {
         characterName: roll.character.name,
         claimerUserId: input.userId,
         nextClaimAt,
+      }
+    })
+  }
+
+  async reroll(input: { guildId: string; channelId: string; userId: string; now?: Date }): Promise<reroll_result> {
+    const now = input.now ?? new Date()
+
+    // Get last roll first (outside tx) to know which kind to reroll.
+    const last_roll = await prisma.waifuRoll.findFirst({
+      where: { guildId: input.guildId, channelId: input.channelId, rolledByUserId: input.userId },
+      orderBy: { createdAt: 'desc' },
+      select: { id: true, kind: true },
+    })
+
+    if (!last_roll) {
+      return { success: false as const, error: 'not_found', message: 'Você ainda não rolou nada neste canal.' }
+    }
+
+    const kind = last_roll.kind as waifu_roll_kind
+    const desiredGender = kind === 'waifu' ? 'female' : kind === 'husbando' ? 'male' : 'any'
+    const rolled = await aniListService.roll_character({ desiredGender })
+
+    return await with_serializable_retry(async (tx) => {
+      await tx.user.upsert({
+        where: { id: input.userId },
+        update: {},
+        create: { id: input.userId, username: null, avatar: null },
+      })
+
+      const old = await tx.waifuRoll.findFirst({
+        where: { guildId: input.guildId, channelId: input.channelId, rolledByUserId: input.userId },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          kind: true,
+          messageId: true,
+          expiresAt: true,
+          claimedByUserId: true,
+        },
+      })
+
+      if (!old) {
+        return { success: false as const, error: 'not_found', message: 'Você ainda não rolou nada neste canal.' }
+      }
+
+      if (old.claimedByUserId) {
+        return {
+          success: false as const,
+          error: 'already_claimed',
+          message: 'Seu último roll já foi casado. Role novamente para rerolar.',
+        }
+      }
+
+      if (old.expiresAt.getTime() < now.getTime()) {
+        return {
+          success: false as const,
+          error: 'expired',
+          message: 'Seu último roll já expirou. Role novamente para rerolar.',
+        }
+      }
+
+      const state = await tx.waifuUserState.findUnique({
+        where: { guildId_userId: { guildId: input.guildId, userId: input.userId } },
+        select: { nextRerollAt: true },
+      })
+
+      if (state?.nextRerollAt && state.nextRerollAt.getTime() > now.getTime()) {
+        return {
+          success: false as const,
+          error: 'cooldown',
+          message: 'Você ainda está no cooldown de reroll.',
+          nextRerollAt: state.nextRerollAt,
+        }
+      }
+
+      const nextRerollAt = next_reroll_time(now)
+
+      const character = await tx.waifuCharacter.upsert({
+        where: {
+          source_sourceId: {
+            source: 'ANILIST',
+            sourceId: rolled.id,
+          },
+        },
+        update: {
+          name: rolled.name.full ?? 'Unknown',
+          nameNative: rolled.name.native,
+          imageUrl: rolled.image.large ?? '',
+          gender: rolled.gender,
+        },
+        create: {
+          source: 'ANILIST',
+          sourceId: rolled.id,
+          name: rolled.name.full ?? 'Unknown',
+          nameNative: rolled.name.native,
+          imageUrl: rolled.image.large ?? '',
+          gender: rolled.gender,
+        },
+        select: {
+          id: true,
+          source: true,
+          sourceId: true,
+          name: true,
+          nameNative: true,
+          imageUrl: true,
+          gender: true,
+        },
+      })
+
+      const existing_claim = await tx.waifuClaim.findUnique({
+        where: { guildId_characterId: { guildId: input.guildId, characterId: character.id } },
+        select: { userId: true },
+      })
+
+      const expiresAt = new Date(now.getTime() + ROLL_EXPIRES_MS)
+      const created_roll = await tx.waifuRoll.create({
+        data: {
+          guildId: input.guildId,
+          channelId: input.channelId,
+          messageId: null,
+          kind: old.kind as string,
+          rolledByUserId: input.userId,
+          characterId: character.id,
+          expiresAt,
+        },
+        select: { id: true },
+      })
+
+      // Invalidate old roll (prevents claiming it after reroll)
+      await tx.waifuRoll.update({
+        where: { id: old.id },
+        data: { expiresAt: new Date(now.getTime() - 1) },
+      })
+
+      await tx.waifuUserState.upsert({
+        where: { guildId_userId: { guildId: input.guildId, userId: input.userId } },
+        update: { nextRerollAt },
+        create: { guildId: input.guildId, userId: input.userId, nextRerollAt },
+      })
+
+      return {
+        success: true as const,
+        kind: old.kind as waifu_roll_kind,
+        oldRollId: old.id,
+        oldMessageId: old.messageId,
+        nextRerollAt,
+        newRoll: {
+          rollId: created_roll.id,
+          character: {
+            id: character.id,
+            source: 'ANILIST',
+            sourceId: character.sourceId,
+            name: character.name,
+            nameNative: character.nameNative,
+            imageUrl: character.imageUrl,
+            gender: character.gender,
+          },
+          claimedByUserId: existing_claim?.userId ?? null,
+          expiresAt,
+        },
       }
     })
   }
