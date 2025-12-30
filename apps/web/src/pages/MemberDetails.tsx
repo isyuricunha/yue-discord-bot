@@ -6,6 +6,7 @@ import { ArrowLeft, User, FileText, Save, Shield, Ban, Timer, Gavel, Undo2 } fro
 
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton, Textarea } from '../components/ui'
+import { get_modlog_action_label } from '../lib/modlog'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -360,7 +361,7 @@ export default function MemberDetailsPage() {
                     <div key={log.id} className="rounded-2xl border border-border/70 bg-surface/40 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-xs font-semibold uppercase tracking-wide text-accent">
-                          {log.action}
+                          {get_modlog_action_label(log.action)}
                         </div>
                         <div className="text-xs text-muted-foreground">
                           {new Date(log.createdAt).toLocaleString('pt-BR')}

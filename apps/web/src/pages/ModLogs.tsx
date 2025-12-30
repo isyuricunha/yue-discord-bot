@@ -6,6 +6,7 @@ import { ArrowLeft, Shield, AlertTriangle, Ban, Volume2, FileWarning, Download, 
 
 import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton } from '../components/ui'
+import { get_modlog_action_label, normalize_modlog_action } from '../lib/modlog'
 
 const API_URL = getApiUrl()
 
@@ -26,17 +27,29 @@ interface ModLog {
 
 const actionIcons = {
   BAN: Ban,
+  UNBAN: Ban,
   KICK: AlertTriangle,
   MUTE: Volume2,
+  UNMUTE: Volume2,
+  TIMEOUT: Volume2,
+  UNTIMEOUT: Volume2,
   WARN: FileWarning,
+  WARN_EXPIRED: FileWarning,
+  MUTE_REAPPLY: Volume2,
   AUTOMOD: Shield,
 }
 
 const actionColors = {
   BAN: 'text-red-400',
+  UNBAN: 'text-red-400',
   KICK: 'text-orange-400',
   MUTE: 'text-yellow-400',
+  UNMUTE: 'text-yellow-400',
+  TIMEOUT: 'text-yellow-400',
+  UNTIMEOUT: 'text-yellow-400',
   WARN: 'text-blue-400',
+  WARN_EXPIRED: 'text-blue-400',
+  MUTE_REAPPLY: 'text-yellow-400',
   AUTOMOD: 'text-accent',
 }
 
@@ -242,9 +255,10 @@ export default function ModLogsPage() {
         <>
           <div className="space-y-3">
             {paginatedLogs.map((log: ModLog) => {
-              const normalizedAction = log.action?.toUpperCase?.() ?? String(log.action || '').toUpperCase()
-              const Icon = actionIcons[normalizedAction as keyof typeof actionIcons] || Shield
-              const color = actionColors[normalizedAction as keyof typeof actionColors] || 'text-muted-foreground'
+              const normalized_action = normalize_modlog_action(log.action)
+              const action_label = get_modlog_action_label(log.action)
+              const Icon = actionIcons[normalized_action as keyof typeof actionIcons] || Shield
+              const color = actionColors[normalized_action as keyof typeof actionColors] || 'text-muted-foreground'
 
               const moderatorLabel = log.moderatorName || log.moderatorId || 'AutoMod'
               const targetLabel = log.targetName || log.targetId || log.userId || '—'
@@ -265,7 +279,7 @@ export default function ModLogsPage() {
                       <div className="flex-1">
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge variant={getActionBadgeVariant(log.action)} className="uppercase">
-                            {normalizedAction}
+                            {action_label}
                           </Badge>
                           <span className="text-sm text-muted-foreground">{new Date(log.createdAt).toLocaleString('pt-BR')}</span>
                         </div>
