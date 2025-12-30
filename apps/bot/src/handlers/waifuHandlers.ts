@@ -5,12 +5,32 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import { waifuService } from '../services/waifu.service'
 
-function parse_custom_id(custom_id: string): { action: 'claim'; rollId: string } | null {
-  const [prefix, action, rollId] = custom_id.split(':')
+type waifu_custom_id =
+  | { action: 'claim'; rollId: string }
+  | { action: 'harem'; userId: string; page: number }
+
+function parse_custom_id(custom_id: string): waifu_custom_id | null {
+  const parts = custom_id.split(':')
+  const prefix = parts[0]
+  const action = parts[1]
   if (prefix !== 'waifu') return null
-  if (action !== 'claim') return null
-  if (!rollId) return null
-  return { action, rollId }
+
+  if (action === 'claim') {
+    const rollId = parts[2]
+    if (!rollId) return null
+    return { action, rollId }
+  }
+
+  if (action === 'harem') {
+    const userId = parts[2]
+    const page_raw = parts[3]
+    const page = Number(page_raw)
+    if (!userId) return null
+    if (!Number.isFinite(page) || page < 1) return null
+    return { action, userId, page }
+  }
+
+  return null
 }
 
 function format_relative_time(date: Date): string {
@@ -18,9 +38,63 @@ function format_relative_time(date: Date): string {
   return `<t:${unix}:R>`
 }
 
+async function handle_harem_page(interaction: ButtonInteraction, input: { userId: string; page: number }): Promise<void> {
+  if (!interaction.guildId) {
+    await interaction.reply({ content: `${EMOJIS.ERROR} Use isso em um servidor.`, ephemeral: true })
+    return
+  }
+
+  if (interaction.user.id !== input.userId) {
+    await interaction.reply({ content: `${EMOJIS.ERROR} Só quem executou o comando pode usar estes botões.`, ephemeral: true })
+    return
+  }
+
+  const { total, claims, page, pageSize } = await waifuService.list_harem({
+    guildId: interaction.guildId,
+    userId: input.userId,
+    page: input.page,
+    pageSize: 10,
+  })
+
+  const totalPages = Math.max(1, Math.ceil(total / pageSize))
+  const currentPage = Math.min(Math.max(1, page), totalPages)
+
+  const lines =
+    claims.length > 0
+      ? claims.map((c, i) => `${(currentPage - 1) * pageSize + i + 1}. ${c.character.name}`).join('\n')
+      : '—'
+
+  const embed = new EmbedBuilder()
+    .setColor(COLORS.INFO)
+    .setTitle(`${EMOJIS.INFO} Meu harem`)
+    .setDescription(`Usuário: <@${input.userId}>\nTotal: **${total}**\nPágina: **${currentPage}/${totalPages}**`)
+    .addFields([{ name: 'Personagens', value: lines, inline: false }])
+
+  const prev = new ButtonBuilder()
+    .setCustomId(`waifu:harem:${input.userId}:${Math.max(1, currentPage - 1)}`)
+    .setStyle(ButtonStyle.Secondary)
+    .setLabel('⬅️ Anterior')
+    .setDisabled(currentPage <= 1)
+
+  const next = new ButtonBuilder()
+    .setCustomId(`waifu:harem:${input.userId}:${Math.min(totalPages, currentPage + 1)}`)
+    .setStyle(ButtonStyle.Secondary)
+    .setLabel('Próxima ➡️')
+    .setDisabled(currentPage >= totalPages)
+
+  const row = new ActionRowBuilder<ButtonBuilder>().addComponents(prev, next)
+
+  await interaction.update({ embeds: [embed], components: totalPages > 1 ? [row] : [] })
+}
+
 export async function handleWaifuButton(interaction: ButtonInteraction): Promise<void> {
   const parsed = parse_custom_id(interaction.customId)
   if (!parsed) return
+
+  if (parsed.action === 'harem') {
+    await handle_harem_page(interaction, { userId: parsed.userId, page: parsed.page })
+    return
+  }
 
   await interaction.deferReply({ ephemeral: true })
 

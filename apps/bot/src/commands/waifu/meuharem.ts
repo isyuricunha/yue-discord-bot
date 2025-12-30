@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js'
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
 import type { ChatInputCommandInteraction } from 'discord.js'
 
 import { COLORS, EMOJIS } from '@yuebot/shared'
@@ -52,6 +52,25 @@ export const meuharemCommand: Command = {
       .setDescription(`Usuário: <@${interaction.user.id}>\nTotal: **${total}**\nPágina: **${currentPage}/${totalPages}**`)
       .addFields([{ name: 'Personagens', value: lines, inline: false }])
 
-    await interaction.editReply({ embeds: [embed] })
+    if (totalPages <= 1) {
+      await interaction.editReply({ embeds: [embed], components: [] })
+      return
+    }
+
+    const prev = new ButtonBuilder()
+      .setCustomId(`waifu:harem:${interaction.user.id}:${Math.max(1, currentPage - 1)}`)
+      .setStyle(ButtonStyle.Secondary)
+      .setLabel('⬅️ Anterior')
+      .setDisabled(currentPage <= 1)
+
+    const next = new ButtonBuilder()
+      .setCustomId(`waifu:harem:${interaction.user.id}:${Math.min(totalPages, currentPage + 1)}`)
+      .setStyle(ButtonStyle.Secondary)
+      .setLabel('Próxima ➡️')
+      .setDisabled(currentPage >= totalPages)
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(prev, next)
+
+    await interaction.editReply({ embeds: [embed], components: [row] })
   },
 }
