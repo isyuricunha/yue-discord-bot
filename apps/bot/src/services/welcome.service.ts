@@ -1,6 +1,6 @@
 import type { Guild, GuildMember } from 'discord.js'
 import { prisma } from '@yuebot/database'
-import { render_discord_message_template } from '@yuebot/shared'
+import { pick_discord_message_template_variant, render_discord_message_template } from '@yuebot/shared'
 
 import { logger } from '../utils/logger'
 
@@ -73,7 +73,10 @@ export class WelcomeService {
     const channel = await input.guild.channels.fetch(input.channelId).catch(() => null)
     if (!channel || !channel.isTextBased()) return
 
-    const rendered = render_discord_message_template(input.template, {
+    const chosen = pick_discord_message_template_variant(input.template)
+    if (!chosen) return
+
+    const rendered = render_discord_message_template(chosen, {
       user: {
         id: input.user.id,
         username: input.user.username,

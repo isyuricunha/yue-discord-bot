@@ -1,7 +1,7 @@
 import type { Guild, User } from 'discord.js'
 
 import { prisma } from '@yuebot/database'
-import { render_discord_message_template } from '@yuebot/shared'
+import { pick_discord_message_template_variant, render_discord_message_template } from '@yuebot/shared'
 
 import { logger } from '../utils/logger'
 
@@ -76,7 +76,10 @@ export class ModerationLogService {
         },
       })
 
-    const rendered = render_discord_message_template(template, {
+    const chosen = pick_discord_message_template_variant(template)
+    if (!chosen) return
+
+    const rendered = render_discord_message_template(chosen, {
       user: {
         id: input.user.id,
         username: input.user.username,

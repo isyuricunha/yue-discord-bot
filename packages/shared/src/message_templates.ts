@@ -52,6 +52,9 @@ const embed_schema: z.ZodType<simple_embed> = z
 
 const extended_message_schema = z.object({ content: z.string().optional(), embed: embed_schema.optional() }).strict()
 
+const template_variant_schema = z.union([z.string(), extended_message_schema])
+const template_variants_schema = z.array(template_variant_schema)
+
 export type extended_template_validation_result =
   | { kind: 'text' }
   | { kind: 'extended'; success: true }
@@ -143,6 +146,26 @@ export function pick_discord_message_template_variant(template: string, rng: () 
 
   if (trimmed.length === 0) return ''
   if (trimmed.startsWith('{') && trimmed.endsWith('}')) return template
+
+  if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+    try {
+      const parsed = JSON.parse(trimmed) as unknown
+      const validated = template_variants_schema.safeParse(parsed)
+      if (!validated.success) return template
+
+      const variants = validated.data
+      if (variants.length === 0) return ''
+
+      const value = rng()
+      const index = Number.isFinite(value) ? Math.max(0, Math.min(variants.length - 1, Math.floor(value * variants.length))) : 0
+      const chosen = variants[index]!
+
+      if (typeof chosen === 'string') return chosen
+      return JSON.stringify(chosen)
+    } catch {
+      return template
+    }
+  }
 
   const lines = template
     .split(/\r?\n/)

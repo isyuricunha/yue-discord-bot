@@ -83,6 +83,24 @@ test('pick_discord_message_template_variant: keeps JSON template as-is', () => {
   assert.equal(pick_discord_message_template_variant(template, () => 0.9), template)
 })
 
+test('pick_discord_message_template_variant: picks a random item from JSON array (strings)', () => {
+  const template = JSON.stringify(['Oi {@user}!', 'Parabéns {@user}, nível {level}!'])
+
+  assert.equal(pick_discord_message_template_variant(template, () => 0), 'Oi {@user}!')
+  assert.equal(pick_discord_message_template_variant(template, () => 0.99), 'Parabéns {@user}, nível {level}!')
+})
+
+test('pick_discord_message_template_variant: picks a random item from JSON array (extended message)', () => {
+  const variants = [
+    { content: 'A', embed: { title: 't1' } },
+    { content: 'B', embed: { title: 't2' } },
+  ]
+
+  const template = JSON.stringify(variants)
+  assert.equal(pick_discord_message_template_variant(template, () => 0), JSON.stringify(variants[0]))
+  assert.equal(pick_discord_message_template_variant(template, () => 0.99), JSON.stringify(variants[1]))
+})
+
 test('pick_discord_message_template_variant: picks a random non-empty line', () => {
   const template = '\nOi {@user}!\n\nParabéns {@user}, nível {level}!\n'
 
