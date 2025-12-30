@@ -10,6 +10,30 @@ import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
 
+type automod_action = 'delete' | 'warn' | 'mute' | 'kick' | 'ban'
+
+const action_label: Record<automod_action, string> = {
+  delete: 'Deletar',
+  warn: 'Avisar',
+  mute: 'Silenciar',
+  kick: 'Expulsar',
+  ban: 'Banir',
+}
+
+const action_description: Record<automod_action, string> = {
+  delete: 'Remove a mensagem. Não aplica punição ao usuário.',
+  warn: 'Remove a mensagem e registra 1 warn no usuário (pode contar para thresholds).',
+  mute: 'Remove a mensagem e aplica timeout de 5 minutos no usuário.',
+  kick: 'Remove a mensagem e expulsa o usuário do servidor.',
+  ban: 'Remove a mensagem e bane o usuário do servidor.',
+}
+
+function describe_action(value: unknown) {
+  const key = value as automod_action
+  if (!key || !(key in action_description)) return ''
+  return action_description[key]
+}
+
 interface BannedWord {
   word: string
   action: string
@@ -40,6 +64,9 @@ export default function AutoModPage() {
   const [newWordAction, setNewWordAction] = useState('warn')
   const [newDomain, setNewDomain] = useState('')
   const [config, setConfig] = useState<Partial<GuildConfig>>({})
+
+  const caps_action = String(config.capsAction ?? 'warn')
+  const link_action = String(config.linkAction ?? 'delete')
 
   const {
     isLoading,
@@ -138,6 +165,25 @@ export default function AutoModPage() {
       )}
 
       <Card>
+        <CardContent className="space-y-3 p-6">
+          <div className="text-sm font-semibold">O que significa cada ação?</div>
+          <div className="text-sm text-muted-foreground">
+            Em todas as ações abaixo, o AutoMod <span className="font-semibold text-foreground">sempre deleta a mensagem</span> primeiro.
+            Depois, ele aplica a punição escolhida.
+          </div>
+
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+            {(Object.keys(action_label) as automod_action[]).map((key) => (
+              <div key={key} className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+                <div className="text-sm font-medium">{action_label[key]}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{action_description[key]}</div>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
@@ -177,13 +223,15 @@ export default function AutoModPage() {
                 </Button>
               </div>
 
+              <div className="text-xs text-muted-foreground">{describe_action(newWordAction)}</div>
+
               <div className="space-y-2">
                 {(config.bannedWords || []).map((item, index) => (
                   <div key={index} className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="truncate font-mono text-sm">{item.word}</span>
                       <span className="rounded-full border border-border/70 bg-surface/70 px-2.5 py-1 text-xs text-muted-foreground">
-                        {item.action}
+                        {action_label[(item.action as automod_action) ?? 'warn'] ?? item.action}
                       </span>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => removeWord(index)} aria-label="Remover palavra">
@@ -261,7 +309,7 @@ export default function AutoModPage() {
                 <div className="text-sm font-medium">Ação</div>
                 <div className="mt-2">
                   <Select
-                    value={String(config.capsAction ?? 'warn')}
+                    value={caps_action}
                     onValueChange={(value) => setConfig({ ...config, capsAction: value })}
                   >
                     <option value="delete">Deletar</option>
@@ -270,6 +318,7 @@ export default function AutoModPage() {
                     <option value="kick">Expulsar</option>
                     <option value="ban">Banir</option>
                   </Select>
+                  <div className="mt-2 text-xs text-muted-foreground">{describe_action(caps_action)}</div>
                 </div>
               </div>
             </div>
@@ -316,7 +365,7 @@ export default function AutoModPage() {
                   <div className="text-sm font-medium">Ação ao detectar link</div>
                   <div className="mt-2">
                     <Select
-                      value={String(config.linkAction ?? 'delete')}
+                      value={link_action}
                       onValueChange={(value) => setConfig({ ...config, linkAction: value })}
                     >
                       <option value="delete">Deletar</option>
@@ -325,6 +374,7 @@ export default function AutoModPage() {
                       <option value="kick">Expulsar</option>
                       <option value="ban">Banir</option>
                     </Select>
+                    <div className="mt-2 text-xs text-muted-foreground">{describe_action(link_action)}</div>
                   </div>
                 </div>
               </div>
