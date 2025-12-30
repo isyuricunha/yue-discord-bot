@@ -80,7 +80,10 @@ export const rerollCommand: Command = {
     })
 
     if (res.success === false) {
-      const suffix = res.nextRerollAt ? ` Próximo reroll: ${format_relative_time(res.nextRerollAt)}.` : ''
+      const suffix =
+        res.error === 'roll_cooldown' && res.rollResetAt
+          ? ` Reset: ${format_relative_time(res.rollResetAt)}.`
+          : ''
       await interaction.editReply({ content: `${EMOJIS.ERROR} ${res.message}${suffix}` })
       return
     }
@@ -101,6 +104,8 @@ export const rerollCommand: Command = {
       .setImage(roll.character.imageUrl)
       .addFields([
         { name: 'Expira', value: format_relative_time(roll.expiresAt), inline: true },
+        { name: 'Rolls restantes', value: `${res.rollsRemaining}/5`, inline: true },
+        { name: 'Reset', value: format_relative_time(res.rollResetAt), inline: true },
         {
           name: 'Status',
           value: roll.claimedByUserId ? `Já casado com <@${roll.claimedByUserId}>` : 'Disponível para casar',
@@ -127,7 +132,7 @@ export const rerollCommand: Command = {
     await waifuService.attach_message_id({ rollId: roll.rollId, messageId: msg.id })
 
     await interaction.editReply({
-      content: `${EMOJIS.SUCCESS} Reroll realizado. Próximo reroll: ${format_relative_time(res.nextRerollAt)}.`,
+      content: `${EMOJIS.SUCCESS} Reroll realizado. Rolls restantes: ${res.rollsRemaining}/5. Reset: ${format_relative_time(res.rollResetAt)}.`,
     })
   },
 }

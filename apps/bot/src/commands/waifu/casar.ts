@@ -52,13 +52,22 @@ export const casarCommand: Command = {
 
     const genero = interaction.options.getString('genero') as 'female' | 'male' | 'any' | null
 
-    const roll = await waifuService.roll({
+    const roll_res = await waifuService.roll({
       kind: 'casar',
       desiredGenderOverride: genero ?? undefined,
       guildId: interaction.guildId,
       channelId: interaction.channelId,
       rolledByUserId: interaction.user.id,
     })
+
+    if (roll_res.success === false) {
+      await interaction.editReply({
+        content: `${EMOJIS.WARNING} Seus rolls acabaram por agora. Reset: ${format_relative_time(roll_res.rollResetAt)}.`,
+      })
+      return
+    }
+
+    const roll = roll_res.roll
 
     const watchers = await waifuService.wishlist_watchers({
       guildId: interaction.guildId,
@@ -72,6 +81,8 @@ export const casarCommand: Command = {
       .setImage(roll.character.imageUrl)
       .addFields([
         { name: 'Expira', value: format_relative_time(roll.expiresAt), inline: true },
+        { name: 'Rolls restantes', value: `${roll_res.rollsRemaining}/5`, inline: true },
+        { name: 'Reset', value: format_relative_time(roll_res.rollResetAt), inline: true },
         {
           name: 'Status',
           value: roll.claimedByUserId ? `Já casado com <@${roll.claimedByUserId}>` : 'Disponível para casar',

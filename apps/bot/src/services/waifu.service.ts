@@ -53,13 +53,28 @@ export type reroll_result =
       oldRollId: string
       oldMessageId: string | null
       newRoll: roll_result
-      nextRerollAt: Date
+      rollsRemaining: number
+      rollResetAt: Date
     }
   | {
       success: false
-      error: 'not_found' | 'expired' | 'already_claimed' | 'cooldown'
+      error: 'not_found' | 'expired' | 'already_claimed' | 'roll_cooldown'
       message: string
-      nextRerollAt?: Date
+      rollResetAt?: Date
+    }
+
+export type roll_action_result =
+  | {
+      success: true
+      roll: roll_result
+      rollsRemaining: number
+      rollResetAt: Date
+    }
+  | {
+      success: false
+      error: 'roll_cooldown'
+      message: string
+      rollResetAt: Date
     }
 
 export type wishlist_add_result =
@@ -72,8 +87,9 @@ export type wishlist_remove_result =
 
 const CLAIM_COOLDOWN_MS = 3 * 60 * 60 * 1000
 const ROLL_EXPIRES_MS = 45 * 1000
+const ROLL_WINDOW_MS = 120 * 1000
+const ROLL_MAX_USES = 5
 const SNIPE_PROTECT_MS = 8 * 1000
-const REROLL_COOLDOWN_MS = 30 * 60 * 1000
 
 async function with_serializable_retry<T>(fn: (tx: tx_client) => Promise<T>, max_attempts = 5): Promise<T> {
   let attempt = 0
@@ -103,11 +119,53 @@ function next_claim_time(now: Date): Date {
   return new Date(now.getTime() + CLAIM_COOLDOWN_MS)
 }
 
-function next_reroll_time(now: Date): Date {
-  return new Date(now.getTime() + REROLL_COOLDOWN_MS)
-}
-
 export class WaifuService {
+  private async consume_roll_use(input: {
+    tx: tx_client
+    guildId: string
+    userId: string
+    now: Date
+  }): Promise<{ allowed: true; rollsRemaining: number; rollResetAt: Date } | { allowed: false; rollResetAt: Date }> {
+    const state = await input.tx.waifuUserState.findUnique({
+      where: { guildId_userId: { guildId: input.guildId, userId: input.userId } },
+      select: { rollWindowStartedAt: true, rollUses: true },
+    })
+
+    const startedAt = state?.rollWindowStartedAt
+    const uses = state?.rollUses ?? 0
+
+    const isExpired = !startedAt || input.now.getTime() - startedAt.getTime() >= ROLL_WINDOW_MS
+    const windowStart = isExpired ? input.now : startedAt
+    const windowUses = isExpired ? 0 : uses
+
+    const rollResetAt = new Date(windowStart.getTime() + ROLL_WINDOW_MS)
+    if (windowUses >= ROLL_MAX_USES) {
+      return { allowed: false as const, rollResetAt }
+    }
+
+    const nextUses = windowUses + 1
+
+    await input.tx.waifuUserState.upsert({
+      where: { guildId_userId: { guildId: input.guildId, userId: input.userId } },
+      update: {
+        rollWindowStartedAt: windowStart,
+        rollUses: nextUses,
+      },
+      create: {
+        guildId: input.guildId,
+        userId: input.userId,
+        rollWindowStartedAt: windowStart,
+        rollUses: nextUses,
+      },
+    })
+
+    return {
+      allowed: true as const,
+      rollsRemaining: Math.max(0, ROLL_MAX_USES - nextUses),
+      rollResetAt,
+    }
+  }
+
   private async resolve_character_by_query(input: { query: string }): Promise<
     | { success: true; character: { id: string; name: string; nameNative: string | null; imageUrl: string; gender: string | null } }
     | { success: false; error: 'invalid_query' | 'not_found' | 'ambiguous'; message: string }
@@ -190,7 +248,7 @@ export class WaifuService {
     guildId: string
     channelId: string
     rolledByUserId: string
-  }): Promise<roll_result> {
+  }): Promise<roll_action_result> {
     await this.ensure_user(input.rolledByUserId, { username: null, avatar: null })
 
     const desiredGender: desired_gender =
@@ -198,73 +256,91 @@ export class WaifuService {
 
     const rolled = await aniListService.roll_character({ desiredGender })
 
-    const character = await prisma.waifuCharacter.upsert({
-      where: {
-        source_sourceId: {
+    const now = new Date()
+    return await with_serializable_retry(async (tx) => {
+      const quota = await this.consume_roll_use({ tx, guildId: input.guildId, userId: input.rolledByUserId, now })
+      if (!quota.allowed) {
+        return {
+          success: false as const,
+          error: 'roll_cooldown',
+          message: `Você já usou seus ${ROLL_MAX_USES} rolls nesta janela.`,
+          rollResetAt: quota.rollResetAt,
+        }
+      }
+
+      const character = await tx.waifuCharacter.upsert({
+        where: {
+          source_sourceId: {
+            source: 'ANILIST',
+            sourceId: rolled.id,
+          },
+        },
+        update: {
+          name: rolled.name.full ?? 'Unknown',
+          nameNative: rolled.name.native,
+          imageUrl: rolled.image.large ?? '',
+          gender: rolled.gender,
+        },
+        create: {
           source: 'ANILIST',
           sourceId: rolled.id,
+          name: rolled.name.full ?? 'Unknown',
+          nameNative: rolled.name.native,
+          imageUrl: rolled.image.large ?? '',
+          gender: rolled.gender,
         },
-      },
-      update: {
-        name: rolled.name.full ?? 'Unknown',
-        nameNative: rolled.name.native,
-        imageUrl: rolled.image.large ?? '',
-        gender: rolled.gender,
-      },
-      create: {
-        source: 'ANILIST',
-        sourceId: rolled.id,
-        name: rolled.name.full ?? 'Unknown',
-        nameNative: rolled.name.native,
-        imageUrl: rolled.image.large ?? '',
-        gender: rolled.gender,
-      },
-      select: {
-        id: true,
-        source: true,
-        sourceId: true,
-        name: true,
-        nameNative: true,
-        imageUrl: true,
-        gender: true,
-      },
+        select: {
+          id: true,
+          source: true,
+          sourceId: true,
+          name: true,
+          nameNative: true,
+          imageUrl: true,
+          gender: true,
+        },
+      })
+
+      const existing_claim = await tx.waifuClaim.findUnique({
+        where: { guildId_characterId: { guildId: input.guildId, characterId: character.id } },
+        select: { userId: true },
+      })
+
+      const expiresAt = new Date(now.getTime() + ROLL_EXPIRES_MS)
+
+      const roll = await tx.waifuRoll.create({
+        data: {
+          guildId: input.guildId,
+          channelId: input.channelId,
+          messageId: null,
+          kind: input.kind,
+          desiredGender,
+          rolledByUserId: input.rolledByUserId,
+          characterId: character.id,
+          expiresAt,
+        },
+        select: { id: true },
+      })
+
+      return {
+        success: true as const,
+        rollsRemaining: quota.rollsRemaining,
+        rollResetAt: quota.rollResetAt,
+        roll: {
+          rollId: roll.id,
+          character: {
+            id: character.id,
+            source: 'ANILIST',
+            sourceId: character.sourceId,
+            name: character.name,
+            nameNative: character.nameNative,
+            imageUrl: character.imageUrl,
+            gender: character.gender,
+          },
+          claimedByUserId: existing_claim?.userId ?? null,
+          expiresAt,
+        },
+      }
     })
-
-    const existing_claim = await prisma.waifuClaim.findUnique({
-      where: { guildId_characterId: { guildId: input.guildId, characterId: character.id } },
-      select: { userId: true },
-    })
-
-    const expiresAt = new Date(Date.now() + ROLL_EXPIRES_MS)
-
-    const roll = await prisma.waifuRoll.create({
-      data: {
-        guildId: input.guildId,
-        channelId: input.channelId,
-        messageId: null,
-        kind: input.kind,
-        desiredGender,
-        rolledByUserId: input.rolledByUserId,
-        characterId: character.id,
-        expiresAt,
-      },
-      select: { id: true },
-    })
-
-    return {
-      rollId: roll.id,
-      character: {
-        id: character.id,
-        source: 'ANILIST',
-        sourceId: character.sourceId,
-        name: character.name,
-        nameNative: character.nameNative,
-        imageUrl: character.imageUrl,
-        gender: character.gender,
-      },
-      claimedByUserId: existing_claim?.userId ?? null,
-      expiresAt,
-    }
   }
 
   async attach_message_id(input: { rollId: string; messageId: string }): Promise<void> {
@@ -421,21 +497,15 @@ export class WaifuService {
         }
       }
 
-      const state = await tx.waifuUserState.findUnique({
-        where: { guildId_userId: { guildId: input.guildId, userId: input.userId } },
-        select: { nextRerollAt: true },
-      })
-
-      if (state?.nextRerollAt && state.nextRerollAt.getTime() > now.getTime()) {
+      const quota = await this.consume_roll_use({ tx, guildId: input.guildId, userId: input.userId, now })
+      if (!quota.allowed) {
         return {
           success: false as const,
-          error: 'cooldown',
-          message: 'Você ainda está no cooldown de reroll.',
-          nextRerollAt: state.nextRerollAt,
+          error: 'roll_cooldown',
+          message: `Você já usou seus ${ROLL_MAX_USES} rolls nesta janela.`,
+          rollResetAt: quota.rollResetAt,
         }
       }
-
-      const nextRerollAt = next_reroll_time(now)
 
       const desiredGender: desired_gender =
         (old.desiredGender as desired_gender | null) ??
@@ -501,18 +571,13 @@ export class WaifuService {
         data: { expiresAt: new Date(now.getTime() - 1) },
       })
 
-      await tx.waifuUserState.upsert({
-        where: { guildId_userId: { guildId: input.guildId, userId: input.userId } },
-        update: { nextRerollAt },
-        create: { guildId: input.guildId, userId: input.userId, nextRerollAt },
-      })
-
       return {
         success: true as const,
         kind: old.kind as waifu_roll_kind,
         oldRollId: old.id,
         oldMessageId: old.messageId,
-        nextRerollAt,
+        rollsRemaining: quota.rollsRemaining,
+        rollResetAt: quota.rollResetAt,
         newRoll: {
           rollId: created_roll.id,
           character: {
