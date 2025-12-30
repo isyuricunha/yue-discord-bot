@@ -66,6 +66,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
     } else if (interaction.customId.startsWith('coinflip:')) {
       const { handleCoinflipButton } = await import('../handlers/coinflipHandlers');
       await handleCoinflipButton(interaction);
+    } else if (interaction.customId.startsWith('waifu:')) {
+      const { handleWaifuButton } = await import('../handlers/waifuHandlers');
+      await handleWaifuButton(interaction);
     } else if (interaction.customId.startsWith('wizard_cancel_')) {
       const { handleCancel } = await import('../commands/sorteio-wizard');
       await handleCancel(interaction);
