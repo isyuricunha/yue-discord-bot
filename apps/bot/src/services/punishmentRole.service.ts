@@ -30,7 +30,7 @@ export class PunishmentRoleService {
   private config_cache = new Map<string, cache_entry<guild_punishment_config>>()
   private readonly cache_ttl_ms = 60_000
 
-  constructor(private client: Client) {}
+  constructor(_client: Client) {}
 
   private async get_config(guild_id: string): Promise<guild_punishment_config> {
     const cached = this.config_cache.get(guild_id)

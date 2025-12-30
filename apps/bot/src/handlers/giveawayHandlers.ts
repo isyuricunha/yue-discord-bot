@@ -65,7 +65,6 @@ export async function handleGiveawayParticipate(interaction: ButtonInteraction) 
 
   // Se for sorteio com lista
   if (giveaway.format === 'list') {
-    const items = giveaway.availableItems as string[]
     const minChoices = giveaway.minChoices || 3
     const maxChoices = giveaway.maxChoices || 10
 

@@ -12,7 +12,6 @@ import {
   ChannelSelectMenuBuilder,
   ChannelType,
   RoleSelectMenuBuilder,
-  ComponentType,
   StringSelectMenuBuilder
 } from 'discord.js'
 import { prisma } from '@yuebot/database'

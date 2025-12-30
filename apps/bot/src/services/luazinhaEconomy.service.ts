@@ -87,7 +87,7 @@ export class LuazinhaEconomyService {
         return { success: false as const, error: 'insufficient_funds' }
       }
 
-      const to_wallet = await tx.wallet.upsert({
+      await tx.wallet.upsert({
         where: { userId: input.to_user_id },
         update: {},
         create: { userId: input.to_user_id, balance: 0n },

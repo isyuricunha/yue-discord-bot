@@ -61,7 +61,7 @@ export class AutoModService {
     if (config.wordFilterEnabled) {
       const wordCheck = this.checkBannedWords(message.content, config);
       if (wordCheck.violated) {
-        await this.handleViolation(message, member, wordCheck, config);
+        await this.handleViolation(message, member, wordCheck);
         return true;
       }
     }
@@ -70,7 +70,7 @@ export class AutoModService {
     if (config.capsEnabled) {
       const capsCheck = this.checkCaps(message.content, config);
       if (capsCheck.violated) {
-        await this.handleViolation(message, member, capsCheck, config);
+        await this.handleViolation(message, member, capsCheck);
         return true;
       }
     }
@@ -79,7 +79,7 @@ export class AutoModService {
     if (config.linkFilterEnabled) {
       const linkCheck = await this.checkLinks(message.content, config);
       if (linkCheck.violated) {
-        await this.handleViolation(message, member, linkCheck, config);
+        await this.handleViolation(message, member, linkCheck);
         return true;
       }
     }
@@ -288,8 +288,7 @@ export class AutoModService {
   private async handleViolation(
     message: Message,
     member: GuildMember,
-    result: AutoModResult,
-    config: GuildConfig
+    result: AutoModResult
   ): Promise<void> {
     try {
       const message_excerpt = message.content.substring(0, 200) || '[sem conteúdo]';

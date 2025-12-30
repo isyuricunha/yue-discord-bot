@@ -105,14 +105,6 @@ export const modlogCommand: Command = {
         unmute: '🔊',
       };
 
-      const actionColors: Record<string, string> = {
-        ban: '🔴',
-        kick: '🟠',
-        warn: '🟡',
-        mute: '⚫',
-        unmute: '🟢',
-      };
-
       for (const log of logs) {
         const moderator = await interaction.client.users.fetch(log.moderatorId).catch(() => null);
         const emoji = actionEmojis[log.action] || '•';
