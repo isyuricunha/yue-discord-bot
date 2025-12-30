@@ -62,6 +62,24 @@ interface GuildConfig {
   muteRoleId?: string
 }
 
+type api_channel = {
+  id: string
+  name: string
+  type: number
+}
+
+type api_role = {
+  id: string
+  name: string
+  color: number
+  position: number
+  managed: boolean
+}
+
+function channel_label(channel: api_channel) {
+  return `#${channel.name}`
+}
+
 export default function SettingsPage() {
   const { guildId } = useParams()
   const queryClient = useQueryClient()
@@ -96,13 +114,35 @@ export default function SettingsPage() {
   const config = guild?.guild?.config as GuildConfig | undefined
 
   // Buscar canais da guild
-  const { isLoading: is_channels_loading } = useQuery({
+  const { data: channels_data, isLoading: is_channels_loading } = useQuery({
     queryKey: ['channels', guildId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`)
-      return response.data
+      return response.data as { channels: api_channel[] }
     },
   })
+
+  // Buscar cargos da guild
+  const { data: roles_data, isLoading: is_roles_loading } = useQuery({
+    queryKey: ['roles', guildId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/roles`)
+      return response.data as { roles: api_role[] }
+    },
+  })
+
+  const available_channels = useMemo(() => {
+    const channels = channels_data?.channels ?? []
+    return channels.slice().sort((a, b) => a.name.localeCompare(b.name))
+  }, [channels_data])
+
+  const available_roles = useMemo(() => {
+    const roles = roles_data?.roles ?? []
+    return roles
+      .filter((r) => !r.managed)
+      .slice()
+      .sort((a, b) => b.position - a.position)
+  }, [roles_data])
 
   useEffect(() => {
     if (!config) return
@@ -253,28 +293,72 @@ export default function SettingsPage() {
               <div>
                 <div className="text-sm font-medium">Canal de logs de moderação</div>
                 <div className="mt-2">
-                  {is_channels_loading ? <Skeleton className="h-11 w-full" /> : <Input value={modLogChannelId} onChange={(e) => setModLogChannelId(e.target.value)} />}
+                  {is_channels_loading ? (
+                    <Skeleton className="h-11 w-full" />
+                  ) : (
+                    <Select value={modLogChannelId} onValueChange={(value) => setModLogChannelId(value)}>
+                      <option value="">Desativado</option>
+                      {available_channels.map((ch) => (
+                        <option key={ch.id} value={ch.id}>
+                          {channel_label(ch)}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </div>
               </div>
 
               <div>
                 <div className="text-sm font-medium">Canal de sorteios</div>
                 <div className="mt-2">
-                  {is_channels_loading ? <Skeleton className="h-11 w-full" /> : <Input value={giveawayChannelId} onChange={(e) => setGiveawayChannelId(e.target.value)} />}
+                  {is_channels_loading ? (
+                    <Skeleton className="h-11 w-full" />
+                  ) : (
+                    <Select value={giveawayChannelId} onValueChange={(value) => setGiveawayChannelId(value)}>
+                      <option value="">Desativado</option>
+                      {available_channels.map((ch) => (
+                        <option key={ch.id} value={ch.id}>
+                          {channel_label(ch)}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </div>
               </div>
 
               <div>
                 <div className="text-sm font-medium">Canal de boas-vindas</div>
                 <div className="mt-2">
-                  {is_channels_loading ? <Skeleton className="h-11 w-full" /> : <Input value={welcomeChannelId} onChange={(e) => setWelcomeChannelId(e.target.value)} />}
+                  {is_channels_loading ? (
+                    <Skeleton className="h-11 w-full" />
+                  ) : (
+                    <Select value={welcomeChannelId} onValueChange={(value) => setWelcomeChannelId(value)}>
+                      <option value="">Desativado</option>
+                      {available_channels.map((ch) => (
+                        <option key={ch.id} value={ch.id}>
+                          {channel_label(ch)}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </div>
               </div>
 
               <div>
                 <div className="text-sm font-medium">Canal de saída</div>
                 <div className="mt-2">
-                  {is_channels_loading ? <Skeleton className="h-11 w-full" /> : <Input value={leaveChannelId} onChange={(e) => setLeaveChannelId(e.target.value)} />}
+                  {is_channels_loading ? (
+                    <Skeleton className="h-11 w-full" />
+                  ) : (
+                    <Select value={leaveChannelId} onValueChange={(value) => setLeaveChannelId(value)}>
+                      <option value="">Desativado</option>
+                      {available_channels.map((ch) => (
+                        <option key={ch.id} value={ch.id}>
+                          {channel_label(ch)}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
                 </div>
               </div>
             </div>
@@ -361,7 +445,18 @@ export default function SettingsPage() {
             <div className="mt-4">
               <div className="text-sm font-medium">Cargo de mute</div>
               <div className="mt-2">
-                {is_guild_loading ? <Skeleton className="h-11 w-full" /> : <Input value={muteRoleId} onChange={(e) => setMuteRoleId(e.target.value)} />}
+                {is_roles_loading ? (
+                  <Skeleton className="h-11 w-full" />
+                ) : (
+                  <Select value={muteRoleId} onValueChange={(value) => setMuteRoleId(value)}>
+                    <option value="">Desativado</option>
+                    {available_roles.map((role) => (
+                      <option key={role.id} value={role.id}>
+                        {role.name}
+                      </option>
+                    ))}
+                  </Select>
+                )}
               </div>
             </div>
           </div>
