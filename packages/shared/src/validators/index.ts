@@ -18,6 +18,31 @@ export const muteSchema = z.object({
   reason: z.string().optional(),
 });
 
+export const memberModerationActionSchema = z.discriminatedUnion('action', [
+  z.object({
+    action: z.literal('ban'),
+    reason: z.string().optional(),
+    deleteMessageDays: z.number().min(0).max(7).optional(),
+  }),
+  z.object({
+    action: z.literal('unban'),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal('kick'),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal('timeout'),
+    duration: z.string().regex(/^\d+[smhd]$/),
+    reason: z.string().optional(),
+  }),
+  z.object({
+    action: z.literal('untimeout'),
+    reason: z.string().optional(),
+  }),
+]);
+
 export const warnSchema = z.object({
   userId: z.string().min(1),
   reason: z.string().min(1),
