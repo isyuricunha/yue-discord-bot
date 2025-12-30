@@ -7,8 +7,11 @@ import { Save } from 'lucide-react'
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, ErrorState, Select, Skeleton } from '../components/ui'
 import { MessageVariantEditor } from '../components/message_variant_editor'
+import { PlaceholderChips } from '../components/template_placeholders'
 import { validate_extended_template_variants } from '../lib/message_template'
 import { toast_error, toast_success } from '../store/toast'
+
+import template_placeholders from '@yuebot/shared/template_placeholders'
 
 const API_URL = getApiUrl()
 
@@ -214,15 +217,7 @@ export default function WelcomePage() {
                     <div className="mt-2 space-y-3">
                       <div>
                         <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placeholders</div>
-                        <div className="mt-1 flex flex-wrap gap-2 text-xs">
-                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{@user}'}</span>
-                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{user}'}</span>
-                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{user.tag}'}</span>
-                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{user.id}'}</span>
-                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{user.nickname}'}</span>
-                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{guild}'}</span>
-                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{guild-size}'}</span>
-                        </div>
+                        <PlaceholderChips placeholders={template_placeholders.welcome_template_placeholders} />
                       </div>
 
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

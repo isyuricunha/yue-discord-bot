@@ -4,3 +4,4 @@ export * from './constants';
 export * from './validators';
 export * from './env';
 export * from './message_templates';
+export * from './template_placeholders';

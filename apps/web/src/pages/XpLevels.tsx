@@ -7,8 +7,11 @@ import { Plus, Save, Sparkles, Trash2 } from 'lucide-react'
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { MessageVariantEditor } from '../components/message_variant_editor'
+import { PlaceholderInlineList } from '../components/template_placeholders'
 import { validate_extended_template_variants } from '../lib/message_template'
 import { toast_error, toast_success } from '../store/toast'
+
+import template_placeholders from '@yuebot/shared/template_placeholders'
 
 const API_URL = getApiUrl()
 
@@ -860,11 +863,7 @@ export default function XpLevelsPage() {
                   </div>
                   <div>
                     Variáveis úteis:
-                    <span className="ml-1 font-mono text-foreground">{'{@user}'}</span> (menciona),
-                    <span className="ml-1 font-mono text-foreground">{'{user}'}</span> (nome),
-                    <span className="ml-1 font-mono text-foreground">{'{level}'}</span>,
-                    <span className="ml-1 font-mono text-foreground">{'{xp}'}</span>,
-                    <span className="ml-1 font-mono text-foreground">{'{experience.ranking}'}</span>.
+                    <PlaceholderInlineList placeholders={template_placeholders.xp_template_placeholders} />
                   </div>
                 </div>
 

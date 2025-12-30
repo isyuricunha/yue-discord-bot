@@ -10,6 +10,9 @@ import { get_modlog_action_label, normalize_modlog_action } from '../lib/modlog'
 import { validate_extended_template_variants } from '../lib/message_template'
 import { toast_error, toast_success } from '../store/toast'
 import { MessageVariantEditor } from '../components/message_variant_editor'
+import { PlaceholderChips } from '../components/template_placeholders'
+
+import template_placeholders from '@yuebot/shared/template_placeholders'
 
 const API_URL = getApiUrl()
 
@@ -303,15 +306,7 @@ export default function ModLogsPage() {
                 <div className="mt-2 space-y-3">
                   <div>
                     <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placeholders</div>
-                    <div className="mt-1 flex flex-wrap gap-2 text-xs">
-                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{@user}'}</span>
-                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{user.tag}'}</span>
-                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{staff.tag}'}</span>
-                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{punishment}'}</span>
-                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{reason}'}</span>
-                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{duration}'}</span>
-                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{guild}'}</span>
-                    </div>
+                    <PlaceholderChips placeholders={template_placeholders.modlog_template_placeholders} />
                   </div>
 
                   <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">

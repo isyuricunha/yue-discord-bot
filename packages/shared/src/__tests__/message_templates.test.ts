@@ -2,6 +2,11 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 
 import { pick_discord_message_template_variant, render_discord_message_template, render_placeholders } from '../message_templates'
+import {
+  modlog_template_placeholders,
+  welcome_template_placeholders,
+  xp_template_placeholders,
+} from '../template_placeholders'
 
 test('render_placeholders: replaces known placeholders and keeps unknown ones', () => {
   const rendered = render_placeholders('Oi {user}! {unknown}', {
@@ -106,4 +111,54 @@ test('pick_discord_message_template_variant: picks a random non-empty line', () 
 
   assert.equal(pick_discord_message_template_variant(template, () => 0), 'Oi {@user}!')
   assert.equal(pick_discord_message_template_variant(template, () => 0.99), 'Parabéns {@user}, nível {level}!')
+})
+
+test('template_placeholders: exported placeholders are renderable (no drift)', () => {
+  const ctx = {
+    user: {
+      id: 'u1',
+      username: 'alice',
+      tag: 'alice#0001',
+      discriminator: '0001',
+      avatarUrl: 'https://example.com/user.png',
+      nickname: 'ali',
+    },
+    staff: {
+      id: 's1',
+      username: 'mod',
+      tag: 'mod#0002',
+      discriminator: '0002',
+      avatarUrl: 'https://example.com/staff.png',
+    },
+    guild: {
+      id: 'g1',
+      name: 'my guild',
+      memberCount: 123,
+      iconUrl: 'https://example.com/guild.png',
+    },
+    level: 10,
+    xp: 900,
+    experience: {
+      ranking: 3,
+      nextLevel: {
+        level: 11,
+        requiredXp: 250,
+        totalXp: 11000,
+      },
+    },
+    reason: 'because',
+    duration: '5m',
+    punishment: 'ban',
+  }
+
+  const groups = [welcome_template_placeholders, xp_template_placeholders, modlog_template_placeholders]
+
+  for (const group of groups) {
+    for (const ph of group) {
+      const rendered = render_placeholders(ph.token, ctx)
+      assert.notEqual(rendered, ph.token, `expected placeholder ${ph.token} to be rendered`)
+      assert.ok(!rendered.includes('{'), `expected placeholder ${ph.token} to not contain '{' after rendering`)
+      assert.ok(!rendered.includes('}'), `expected placeholder ${ph.token} to not contain '}' after rendering`)
+    }
+  }
 })

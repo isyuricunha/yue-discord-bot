@@ -4,14 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "type-check": "tsc --noEmit",
+    "dev": "pnpm --filter @yuebot/shared build && vite",
+    "build": "pnpm --filter @yuebot/shared build && tsc && vite build",
+    "type-check": "pnpm --filter @yuebot/shared build && tsc --noEmit",
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 0",
-    "test": "vitest run"
+    "test": "pnpm --filter @yuebot/shared build && vitest run"
   },
   "dependencies": {
+    "@yuebot/shared": "workspace:*",
     "@tanstack/react-query": "^5.90.12",
     "axios": "^1.13.2",
     "clsx": "^2.1.1",

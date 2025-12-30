@@ -4,9 +4,23 @@
   "private": true,
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./template_placeholders": {
+      "types": "./dist/template_placeholders.d.ts",
+      "import": "./dist/esm/template_placeholders.js",
+      "require": "./dist/template_placeholders.js",
+      "default": "./dist/template_placeholders.js"
+    }
+  },
   "scripts": {
     "dev": "tsc --watch",
-    "build": "tsc",
+    "build": "tsc && tsc -p tsconfig.esm.json",
     "clean": "rm -rf dist",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "type-check": "tsc --noEmit",
