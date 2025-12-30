@@ -52,7 +52,15 @@ export default function LoginPage() {
               </Button>
 
               <div className="text-center text-xs text-muted-foreground">
-                Ao fazer login, você concorda com nossos termos e política de privacidade.
+                Ao fazer login, você concorda com nossos{' '}
+                <NavLink to="/termos" className="underline underline-offset-4 hover:text-foreground">
+                  termos
+                </NavLink>{' '}
+                e{' '}
+                <NavLink to="/privacidade" className="underline underline-offset-4 hover:text-foreground">
+                  política de privacidade
+                </NavLink>
+                .
               </div>
 
               <NavLink

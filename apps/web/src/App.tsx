@@ -9,6 +9,8 @@ import ExtrasAboutPage from './pages/extras/ExtrasAbout'
 import ExtrasModerationPage from './pages/extras/ExtrasModeration'
 import ExtrasPlaceholdersPage from './pages/extras/ExtrasPlaceholders'
 import ExtrasBanAppealPage from './pages/extras/ExtrasBanAppeal'
+import TermsPage from './pages/Terms'
+import PrivacyPage from './pages/Privacy'
 import DashboardPage from './pages/Dashboard'
 import GuildPage from './pages/Guild'
 import OverviewPage from './pages/Overview'
@@ -68,6 +70,9 @@ function App() {
             <Route path="placeholders" element={<ExtrasPlaceholdersPage />} />
             <Route path="apelo-de-ban" element={<ExtrasBanAppealPage />} />
           </Route>
+
+          <Route path="/termos" element={<TermsPage />} />
+          <Route path="/privacidade" element={<PrivacyPage />} />
         </Route>
 
         <Route

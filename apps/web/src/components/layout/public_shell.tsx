@@ -48,6 +48,20 @@ export function PublicShell() {
       <main className={cn('px-5 py-6', 'animate-fadeIn')} key={content_key}>
         <Outlet />
       </main>
+
+      <footer className="border-t border-border/80 bg-background/60 backdrop-blur-md">
+        <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
+          <div>© {new Date().getFullYear()} Yue</div>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            <NavLink to="/termos" className="underline underline-offset-4 hover:text-foreground">
+              Termos
+            </NavLink>
+            <NavLink to="/privacidade" className="underline underline-offset-4 hover:text-foreground">
+              Privacidade
+            </NavLink>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
