@@ -49,10 +49,33 @@ function sleep_ms(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
+async function map_with_concurrency<T, R>(items: T[], concurrency: number, fn: (item: T) => Promise<R>): Promise<R[]> {
+  const results: R[] = []
+  const pending = items.slice()
+
+  const worker = async () => {
+    while (pending.length > 0) {
+      const item = pending.shift()
+      if (item === undefined) return
+      results.push(await fn(item))
+    }
+  }
+
+  await Promise.all(Array.from({ length: Math.min(Math.max(concurrency, 1), items.length) }).map(() => worker()))
+  return results
+}
+
 type announcement_preview_skipped = {
   guildId: string
   guildName: string
   reason: string
+}
+
+function first_string(...values: Array<string | null | undefined>) {
+  for (const v of values) {
+    if (typeof v === 'string' && v.trim().length > 0) return v
+  }
+  return null
 }
 
 function parse_date_input(value?: string) {
@@ -186,16 +209,39 @@ export async function ownerRoutes(fastify: FastifyInstance) {
     const targets: announcement_preview_target[] = []
     const skipped: announcement_preview_skipped[] = []
 
-    for (const g of guilds) {
-      if (!in_range(g.addedAt, from_date, to_date)) continue
-      if (!matches_query({ id: g.id, name: g.name, ownerId: g.ownerId }, input.query)) continue
+    const filtered_guilds = guilds.filter((g) => {
+      if (!in_range(g.addedAt, from_date, to_date)) return false
+      if (!matches_query({ id: g.id, name: g.name, ownerId: g.ownerId }, input.query)) return false
+      return true
+    })
 
+    const info_required = filtered_guilds
+      .filter((g) => !(g.config?.announcementChannelId ?? null))
+      .map((g) => g.id)
+
+    const info_rows = await map_with_concurrency(info_required, 8, async (guild_id) => {
+      const info = await get_guild_info(guild_id, request.log).then((r) => r.guild).catch(() => null)
+      return { guildId: guild_id, info }
+    })
+
+    const info_by_guild_id = new Map(info_rows.map((r) => [r.guildId, r.info]))
+
+    for (const g of filtered_guilds) {
       const announcement_channel_id = g.config?.announcementChannelId ?? null
       const fallback_modlog_id = g.config?.modLogChannelId ?? null
-      const channel_id = announcement_channel_id ?? fallback_modlog_id
+
+      const info = announcement_channel_id ? null : (info_by_guild_id.get(g.id) ?? null)
+
+      const channel_id = first_string(
+        announcement_channel_id,
+        info?.publicUpdatesChannelId ?? null,
+        info?.rulesChannelId ?? null,
+        info?.systemChannelId ?? null,
+        fallback_modlog_id
+      )
 
       if (!channel_id) {
-        skipped.push({ guildId: g.id, guildName: g.name, reason: 'No announcement channel configured' })
+        skipped.push({ guildId: g.id, guildName: g.name, reason: 'No suitable channel found' })
         continue
       }
 
