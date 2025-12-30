@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Crown, ExternalLink, Search, Settings, Shield, Users } from 'lucide-react'
+import { Crown, ExternalLink, RefreshCw, Search, Send, Settings, Shield, Users } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, Input, Select, Skeleton } from '../components/ui'
+import { Badge, Button, Card, CardContent, Input, Select, Skeleton, Textarea } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -20,16 +20,81 @@ type guild = {
 
 export default function OwnerPage() {
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<'name_asc' | 'name_desc' | 'added_desc' | 'added_asc'>('name_asc')
   const [added_from, setAddedFrom] = useState('')
   const [added_to, setAddedTo] = useState('')
+
+  const [announcement_content, set_announcement_content] = useState('')
+  const [announcement_preview_id, set_announcement_preview_id] = useState<string | null>(null)
+  const [announcement_preview, set_announcement_preview] = useState<any>(null)
+  const [announcement_confirm, set_announcement_confirm] = useState('')
+  const [announcement_result, set_announcement_result] = useState<any>(null)
 
   const { data, isLoading } = useQuery({
     queryKey: ['owner', 'guilds'],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds`)
       return response.data.guilds as guild[]
+    },
+  })
+
+  const syncMutation = useMutation({
+    mutationFn: async (guild_id: string) => {
+      const response = await axios.post(`${API_URL}/api/owner/guilds/${guild_id}/sync`)
+      return response.data as { success: boolean; guild: guild }
+    },
+    onSuccess: (data) => {
+      toast_success(`Guild sincronizada: ${data.guild.name}`, 'Sync')
+      queryClient.invalidateQueries({ queryKey: ['owner', 'guilds'] })
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao sincronizar guild', 'Sync falhou')
+    },
+  })
+
+  const previewAnnouncementMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        content: announcement_content,
+        query: query || undefined,
+        addedFrom: added_from || undefined,
+        addedTo: added_to || undefined,
+      }
+      const response = await axios.post(`${API_URL}/api/owner/announcements/preview`, payload)
+      return response.data as { previewId: string; preview: any }
+    },
+    onSuccess: (data) => {
+      set_announcement_preview_id(data.previewId)
+      set_announcement_preview(data.preview)
+      set_announcement_result(null)
+      set_announcement_confirm('')
+      toast_success('Preview gerado. Revise os alvos antes de enviar.', 'Preview')
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao gerar preview', 'Preview falhou')
+    },
+  })
+
+  const executeAnnouncementMutation = useMutation({
+    mutationFn: async () => {
+      if (!announcement_preview_id) throw new Error('Preview não encontrado')
+      const expected_sendable = typeof announcement_preview?.sendable === 'number' ? announcement_preview.sendable : 0
+      const payload = {
+        previewId: announcement_preview_id,
+        confirm: announcement_confirm,
+        expectedSendable: expected_sendable,
+      }
+      const response = await axios.post(`${API_URL}/api/owner/announcements/execute`, payload)
+      return response.data as { success: boolean; result: any }
+    },
+    onSuccess: (data) => {
+      set_announcement_result(data.result)
+      toast_success('Anúncio executado. Veja o relatório.', 'Anúncio')
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao executar anúncio', 'Anúncio falhou')
     },
   })
 
@@ -107,6 +172,79 @@ export default function OwnerPage() {
           Acesso global aos servidores onde o bot está instalado.
         </div>
       </div>
+
+      <Card className="border-accent/20">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-base font-semibold">Anúncio global</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                Envia uma mensagem para as guilds filtradas. Preview é obrigatório.
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => previewAnnouncementMutation.mutate()}
+                isLoading={previewAnnouncementMutation.isPending}
+                disabled={!announcement_content.trim()}
+              >
+                Preview
+              </Button>
+              <Button
+                type="button"
+                onClick={() => executeAnnouncementMutation.mutate()}
+                isLoading={executeAnnouncementMutation.isPending}
+                disabled={!announcement_preview_id || announcement_confirm !== 'CONFIRMAR'}
+              >
+                <Send className="h-4 w-4" />
+                Enviar
+              </Button>
+            </div>
+          </div>
+
+          <Textarea
+            value={announcement_content}
+            onChange={(e) => set_announcement_content(e.target.value)}
+            placeholder="Escreva o anúncio (máx 2000 caracteres)."
+          />
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">
+            <Input
+              value={announcement_confirm}
+              onChange={(e) => set_announcement_confirm(e.target.value)}
+              placeholder="Digite CONFIRMAR para habilitar o envio"
+            />
+            <div className="text-sm text-muted-foreground">
+              Usa os filtros acima (busca e datas) para selecionar os alvos.
+            </div>
+          </div>
+
+          {announcement_preview && (
+            <div className="rounded-2xl border border-border/80 bg-surface/40 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge>{announcement_preview.total ?? 0} total</Badge>
+                <Badge>{announcement_preview.sendable ?? 0} enviáveis</Badge>
+                <Badge>{announcement_preview.skipped ?? 0} puladas</Badge>
+              </div>
+              <div className="mt-3 text-xs text-muted-foreground">
+                Preview ID: <span className="font-mono">{announcement_preview_id}</span>
+              </div>
+            </div>
+          )}
+
+          {announcement_result && (
+            <div className="rounded-2xl border border-border/80 bg-surface/40 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge>{announcement_result.total ?? 0} processadas</Badge>
+                <Badge>{announcement_result.sent ?? 0} enviadas</Badge>
+                <Badge>{announcement_result.failed ?? 0} falharam</Badge>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-md">
@@ -250,6 +388,20 @@ export default function OwnerPage() {
                   >
                     <Settings className="h-4 w-4" />
                     Settings
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      syncMutation.mutate(g.id)
+                    }}
+                    isLoading={syncMutation.isPending}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Sync
                   </Button>
                   <Button
                     type="button"
