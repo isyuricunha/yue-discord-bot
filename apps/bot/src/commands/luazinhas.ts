@@ -3,6 +3,8 @@ import type { ChatInputCommandInteraction } from 'discord.js'
 
 import { COLORS, EMOJIS } from '@yuebot/shared'
 
+import { CONFIG } from '../config'
+
 import type { Command } from './index'
 import { luazinhaEconomyService } from '../services/luazinhaEconomy.service'
 import { format_bigint } from '../utils/bigint'
@@ -226,16 +228,20 @@ export const luazinhasCommand: Command = {
         return
       }
 
-      const member = interaction.member
-      const has_permission =
-        !!member && typeof member === 'object' && 'permissions' in member
-          ? (typeof member.permissions === 'string'
-              ? new PermissionsBitField(BigInt(member.permissions)).has(PermissionFlagsBits.Administrator)
-              : member.permissions.has(PermissionFlagsBits.Administrator))
-          : false
+      const allowlist = CONFIG.admin.ownerUserIds
+      if (!Array.isArray(allowlist) || allowlist.length === 0) {
+        await interaction.reply({
+          content: `${EMOJIS.ERROR} Este comando está desativado (OWNER_USER_IDS não configurado).`,
+          ephemeral: true,
+        })
+        return
+      }
 
-      if (!has_permission) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Apenas administradores podem usar isso.`, ephemeral: true })
+      if (!allowlist.includes(interaction.user.id)) {
+        await interaction.reply({
+          content: `${EMOJIS.ERROR} Você não tem permissão para usar este comando.`,
+          ephemeral: true,
+        })
         return
       }
 

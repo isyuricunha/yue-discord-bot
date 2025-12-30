@@ -32,6 +32,7 @@ export const CONFIG = {
   environment: process.env.NODE_ENV || 'development',
   logLevel: process.env.LOG_LEVEL || 'info',
   admin: {
+    ownerUserIds: parse_csv_env(process.env.OWNER_USER_IDS),
     badgeAdminUserIds: parse_csv_env(process.env.BADGE_ADMIN_USER_IDS),
     fanArtReviewerUserIds: parse_csv_env(process.env.FAN_ART_REVIEWER_USER_IDS),
   },
