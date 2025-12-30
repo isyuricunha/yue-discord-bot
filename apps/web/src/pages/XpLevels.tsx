@@ -51,6 +51,28 @@ type xp_config = {
 
 const xp_per_level = 1000
 
+type message_preset = {
+  label: string
+  template: string
+}
+
+const level_up_message_presets: message_preset[] = [
+  { label: 'Simples', template: '{@user} subiu para o nível {level}!' },
+  { label: 'Com XP', template: '{@user} agora é nível {level} ({xp} XP)!' },
+  { label: 'Com ranking', template: '{@user} upou para o nível {level}! Você está em #{experience.ranking}.' },
+  { label: 'Motivacional', template: 'Boa {@user}! Nível {level} alcançado. Continue assim!' },
+  { label: 'Curta', template: '🎉 {@user} → nível {level}!' },
+]
+
+function append_message_line(existing: string, line: string) {
+  const trimmed_line = line.trim()
+  if (trimmed_line.length === 0) return existing
+
+  const base = existing.trimEnd()
+  if (base.length === 0) return trimmed_line
+  return `${base}\n${trimmed_line}`
+}
+
 function xp_gain_range(unique_length: number, config: Pick<xp_config, 'xpDivisorMin' | 'xpDivisorMax' | 'xpCap'>) {
   const divisor_min = Math.max(1, config.xpDivisorMin)
   const divisor_max = Math.max(1, config.xpDivisorMax)
@@ -441,17 +463,21 @@ export default function XpLevelsPage() {
         <CardContent className="space-y-4 p-6">
           <div>
             <div className="text-sm font-semibold">Como o XP e os níveis funcionam</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              Esta tela mostra as regras reais usadas pelo bot para calcular nível e ganho de XP.
+            <div className="mt-1 text-sm text-muted-foreground">
+              Em resumo: você ganha XP ao conversar, e o XP vira nível automaticamente.
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
             <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
-              <div className="text-sm font-medium">Regra de níveis</div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                Cada nível equivale a <span className="font-semibold text-foreground">{xp_per_level} XP</span>.
-                O cálculo é: <span className="font-mono text-foreground">nível = floor(xp / {xp_per_level})</span>.
+              <div className="text-sm font-medium">Nível</div>
+              <div className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                <div>
+                  A cada <span className="font-semibold text-foreground">{xp_per_level} XP</span> você sobe 1 nível.
+                </div>
+                <div>
+                  Exemplo: 0–999 XP = nível 0, 1000–1999 XP = nível 1, 2000–2999 XP = nível 2…
+                </div>
               </div>
 
               <div className="mt-4 grid gap-2">
@@ -465,11 +491,14 @@ export default function XpLevelsPage() {
             </div>
 
             <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
-              <div className="text-sm font-medium">Ganho de XP por mensagem (preview)</div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                O bot calcula o XP baseado no <span className="font-semibold text-foreground">tamanho do texto sem repetição</span>,
-                usando <span className="font-mono text-foreground">xpDivisorMin</span>, <span className="font-mono text-foreground">xpDivisorMax</span>
-                e <span className="font-mono text-foreground">xpCap</span>.
+              <div className="text-sm font-medium">Quanto XP eu ganho por mensagem?</div>
+              <div className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                <div>
+                  Depende do tamanho da mensagem (sem repetição tipo “kkkkkkkk” vira “k”), e existe um limite (cap).
+                </div>
+                <div>
+                  O preview abaixo te dá uma noção do <span className="font-semibold text-foreground">mínimo e máximo</span> que pode sair.
+                </div>
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px]">
@@ -770,11 +799,49 @@ export default function XpLevelsPage() {
                   <Textarea
                     value={config.levelUpMessage ?? ''}
                     onChange={(e) => setConfig({ ...config, levelUpMessage: e.target.value || null })}
-                    placeholder="{user} subiu para o nível {level}!"
+                    placeholder="{@user} subiu para o nível {level}!"
                     rows={3}
                   />
                 </div>
-                <div className="mt-2 text-xs text-muted-foreground">Variáveis: {'{user}'} e {'{level}'}.</div>
+
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {level_up_message_presets.map((preset) => (
+                    <Button
+                      key={preset.label}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const next = append_message_line(config.levelUpMessage ?? '', preset.template)
+                        setConfig({ ...config, levelUpMessage: next || null })
+                      }}
+                    >
+                      {preset.label}
+                    </Button>
+                  ))}
+
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setConfig({ ...config, levelUpMessage: '{@user} subiu para o nível {level}!' })}
+                  >
+                    Reset
+                  </Button>
+                </div>
+
+                <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                  <div>
+                    Dica: você pode colocar <span className="font-semibold text-foreground">1 mensagem por linha</span>.
+                    O bot escolhe uma aleatória a cada level-up.
+                  </div>
+                  <div>
+                    Variáveis úteis:
+                    <span className="ml-1 font-mono text-foreground">{'{@user}'}</span> (menciona),
+                    <span className="ml-1 font-mono text-foreground">{'{user}'}</span> (nome),
+                    <span className="ml-1 font-mono text-foreground">{'{level}'}</span>,
+                    <span className="ml-1 font-mono text-foreground">{'{xp}'}</span>,
+                    <span className="ml-1 font-mono text-foreground">{'{experience.ranking}'}</span>.
+                  </div>
+                </div>
               </div>
             </div>
           )}
