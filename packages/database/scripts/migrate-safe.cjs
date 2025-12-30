@@ -30,11 +30,11 @@ if (fs.existsSync(rootEnvLocalPath)) {
 }
 
 const migrationNameArgIndex = process.argv.indexOf('--name');
-const migrationName = migrationNameArgIndex !== -1 ? process.argv[migrationNameArgIndex + 1] : null;
+const migrationName = migrationNameArgIndex !== -1 ? process.argv[migrationNameArgIndex + 1] : 'auto';
 
 if (!migrationName || typeof migrationName !== 'string' || !migrationName.trim()) {
   // eslint-disable-next-line no-console
-  console.error('Missing required argument: --name <migration_name>');
+  console.error('Invalid migration name.');
   process.exit(1);
 }
 

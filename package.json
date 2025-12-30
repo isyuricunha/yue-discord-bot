@@ -24,6 +24,7 @@
     "db:generate": "pnpm --filter database db:generate",
     "db:push": "pnpm --filter database db:push",
     "db:migrate": "pnpm --filter database db:migrate",
+    "db:migrate:safe": "pnpm --filter database db:migrate:safe",
     "db:studio": "pnpm --filter database db:studio",
     "lint": "pnpm -r run lint",
     "type-check": "pnpm -r run type-check",
