@@ -7,6 +7,8 @@ YueBot is a Discord bot + admin panel built as a **pnpm monorepo**. It ships:
 - A React (Vite) web UI (admin panel)
 - A shared Prisma database package used by both bot and API
 
+> This bot are under heavy development and is ready for production use. But, I don't provide any support for custom/others deployments.
+
 The repository also includes a production Docker image that runs **nginx + API + bot** inside a **single container** (supervised by `supervisord`), plus Docker Compose examples for:
 
 - An internal PostgreSQL (self-contained compose)
