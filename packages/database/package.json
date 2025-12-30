@@ -11,9 +11,9 @@
     "db:migrate:safe": "node scripts/migrate-safe.cjs",
     "db:studio": "dotenv -e ../../.env -- prisma studio",
     "db:seed": "dotenv -e ../../.env -- tsx prisma/seed.ts",
-    "dev": "pnpm db:generate && tsc --watch",
-    "build": "pnpm db:generate && tsc",
-    "clean": "rm -rf dist",
+    "dev": "pnpm db:generate && tsc -b -w",
+    "build": "pnpm db:generate && tsc -b --force",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "lint": "eslint \"src/**/*.{ts,tsx}\" \"scripts/**/*.{js,cjs}\"",
     "type-check": "pnpm db:generate && tsc --noEmit"
   },
