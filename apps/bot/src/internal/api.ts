@@ -1,7 +1,8 @@
 import http from 'node:http';
 import { PermissionFlagsBits } from 'discord.js';
-import type { Client, GuildBasedChannel, GuildMember, Role } from 'discord.js';
+import type { Client, GuildBasedChannel, GuildMember, Role, User } from 'discord.js';
 import { prisma } from '@yuebot/database';
+import { CONFIG } from '../config';
 import { moderationLogService } from '../services/moderationLog.service';
 import { logger } from '../utils/logger';
 import { safe_error_details } from '../utils/safe_error';
@@ -248,19 +249,35 @@ export function start_internal_api(client: Client, options: internal_api_options
             return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
           }
 
+          const is_owner_moderator = CONFIG.admin.ownerUserIds.includes(body.moderatorId)
+
           const guild = await client.guilds.fetch(moderation_params.guildId).catch(() => null)
           if (!guild) {
             return send_json(res, 404, { error: 'Guild not found' } satisfies api_error_body)
           }
 
-          const moderator = await guild.members.fetch(body.moderatorId).catch(() => null)
-          if (!moderator) {
-            return send_json(res, 404, { error: 'Moderator not found' } satisfies api_error_body)
-          }
-
           const required = required_permission_for_action(moderation_params.action)
-          if (!moderator.permissions.has(required)) {
-            return send_json(res, 403, { error: 'Forbidden' } satisfies api_error_body)
+          let moderator: GuildMember | null = null
+          let staff_user: User | null = null
+          let moderator_position: number | null = null
+
+          if (!is_owner_moderator) {
+            moderator = await guild.members.fetch(body.moderatorId).catch(() => null)
+            if (!moderator) {
+              return send_json(res, 404, { error: 'Moderator not found' } satisfies api_error_body)
+            }
+
+            if (!moderator.permissions.has(required)) {
+              return send_json(res, 403, { error: 'Forbidden' } satisfies api_error_body)
+            }
+
+            staff_user = moderator.user
+            moderator_position = moderator.roles.highest.position
+          } else {
+            staff_user = await client.users.fetch(body.moderatorId).catch(() => null)
+            if (!staff_user) {
+              return send_json(res, 404, { error: 'Moderator not found' } satisfies api_error_body)
+            }
           }
 
           const me = await guild.members.fetchMe().catch(() => null)
@@ -278,7 +295,6 @@ export function start_internal_api(client: Client, options: internal_api_options
 
           const reason = typeof body.reason === 'string' && body.reason.trim().length > 0 ? body.reason.trim() : undefined
           const effective_reason = reason ?? 'Não especificada'
-          const moderator_position = moderator.roles.highest.position
 
           const target_user = await client.users.fetch(body.userId).catch(() => null)
           if (!target_user) {
@@ -289,9 +305,11 @@ export function start_internal_api(client: Client, options: internal_api_options
             const target_member = await guild.members.fetch(body.userId).catch(() => null)
             if (target_member) {
               const target_position = target_member.roles.highest.position
-              if (target_position >= moderator_position) {
+
+              if (!is_owner_moderator && moderator_position !== null && target_position >= moderator_position) {
                 return send_json(res, 403, { error: 'Target has higher or equal role' } satisfies api_error_body)
               }
+
               if (target_position >= (me?.roles.highest.position ?? 0)) {
                 return send_json(res, 403, { error: 'Bot cannot moderate this target' } satisfies api_error_body)
               }
@@ -316,7 +334,7 @@ export function start_internal_api(client: Client, options: internal_api_options
               data: {
                 guildId: guild.id,
                 userId: target_user.id,
-                moderatorId: moderator.id,
+                moderatorId: body.moderatorId,
                 action: 'ban',
                 reason: effective_reason,
                 metadata: { deleteMessageDays: clamped_days },
@@ -326,7 +344,7 @@ export function start_internal_api(client: Client, options: internal_api_options
             await moderationLogService.notify({
               guild,
               user: target_user,
-              staff: moderator.user,
+              staff: staff_user,
               punishment: 'ban',
               reason: effective_reason,
               duration: '',
@@ -350,7 +368,7 @@ export function start_internal_api(client: Client, options: internal_api_options
               data: {
                 guildId: guild.id,
                 userId: target_user.id,
-                moderatorId: moderator.id,
+                moderatorId: body.moderatorId,
                 action: 'unban',
                 reason: effective_reason,
               },
@@ -359,7 +377,7 @@ export function start_internal_api(client: Client, options: internal_api_options
             await moderationLogService.notify({
               guild,
               user: target_user,
-              staff: moderator.user,
+              staff: staff_user,
               punishment: 'unban',
               reason: effective_reason,
               duration: '',
@@ -375,9 +393,11 @@ export function start_internal_api(client: Client, options: internal_api_options
             }
 
             const target_position = target_member.roles.highest.position
-            if (target_position >= moderator_position) {
+
+            if (!is_owner_moderator && moderator_position !== null && target_position >= moderator_position) {
               return send_json(res, 403, { error: 'Target has higher or equal role' } satisfies api_error_body)
             }
+
             if (target_position >= (me?.roles.highest.position ?? 0)) {
               return send_json(res, 403, { error: 'Bot cannot moderate this target' } satisfies api_error_body)
             }
@@ -396,7 +416,7 @@ export function start_internal_api(client: Client, options: internal_api_options
               data: {
                 guildId: guild.id,
                 userId: target_user.id,
-                moderatorId: moderator.id,
+                moderatorId: body.moderatorId,
                 action: 'kick',
                 reason: effective_reason,
               },
@@ -405,7 +425,7 @@ export function start_internal_api(client: Client, options: internal_api_options
             await moderationLogService.notify({
               guild,
               user: target_user,
-              staff: moderator.user,
+              staff: staff_user,
               punishment: 'kick',
               reason: effective_reason,
               duration: '',
@@ -427,9 +447,11 @@ export function start_internal_api(client: Client, options: internal_api_options
             }
 
             const target_position = target_member.roles.highest.position
-            if (target_position >= moderator_position) {
+
+            if (!is_owner_moderator && moderator_position !== null && target_position >= moderator_position) {
               return send_json(res, 403, { error: 'Target has higher or equal role' } satisfies api_error_body)
             }
+
             if (target_position >= (me?.roles.highest.position ?? 0)) {
               return send_json(res, 403, { error: 'Bot cannot moderate this target' } satisfies api_error_body)
             }
@@ -448,7 +470,7 @@ export function start_internal_api(client: Client, options: internal_api_options
               data: {
                 guildId: guild.id,
                 userId: target_user.id,
-                moderatorId: moderator.id,
+                moderatorId: body.moderatorId,
                 action: 'mute',
                 reason: effective_reason,
                 duration,
@@ -458,7 +480,7 @@ export function start_internal_api(client: Client, options: internal_api_options
             await moderationLogService.notify({
               guild,
               user: target_user,
-              staff: moderator.user,
+              staff: staff_user,
               punishment: 'mute',
               reason: effective_reason,
               duration,
@@ -474,9 +496,11 @@ export function start_internal_api(client: Client, options: internal_api_options
           }
 
           const target_position = target_member.roles.highest.position
-          if (target_position >= moderator_position) {
+
+          if (!is_owner_moderator && moderator_position !== null && target_position >= moderator_position) {
             return send_json(res, 403, { error: 'Target has higher or equal role' } satisfies api_error_body)
           }
+
           if (target_position >= (me?.roles.highest.position ?? 0)) {
             return send_json(res, 403, { error: 'Bot cannot moderate this target' } satisfies api_error_body)
           }
@@ -495,7 +519,7 @@ export function start_internal_api(client: Client, options: internal_api_options
             data: {
               guildId: guild.id,
               userId: target_user.id,
-              moderatorId: moderator.id,
+              moderatorId: body.moderatorId,
               action: 'unmute',
               reason: effective_reason,
             },
@@ -504,7 +528,7 @@ export function start_internal_api(client: Client, options: internal_api_options
           await moderationLogService.notify({
             guild,
             user: target_user,
-            staff: moderator.user,
+            staff: staff_user,
             punishment: 'unmute',
             reason: effective_reason,
             duration: '',
