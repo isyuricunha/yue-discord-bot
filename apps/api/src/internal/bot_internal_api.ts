@@ -17,6 +17,20 @@ type send_message_response = {
   messageId: string;
 };
 
+type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
+
+type moderate_member_body = {
+  moderatorId: string
+  userId: string
+  reason?: string
+  duration?: string
+  deleteMessageDays?: number
+}
+
+type moderate_member_response = {
+  success: true
+}
+
 type cache_entry<T> = {
   value: T;
   expires_at: number;
@@ -224,4 +238,32 @@ export async function get_guild_members(guild_id: string, log: FastifyBaseLogger
     const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/members`;
     return (await fetch_with_timeout_ms(url, log, 20_000)) as guild_members_response;
   });
+}
+
+export async function moderate_guild_member(
+  input: {
+    guildId: string
+    action: moderation_action
+    moderatorId: string
+    userId: string
+    reason?: string
+    duration?: string
+    deleteMessageDays?: number
+  },
+  log: FastifyBaseLogger
+) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${input.guildId}/moderation/${input.action}`
+
+  const body: moderate_member_body = {
+    moderatorId: input.moderatorId,
+    userId: input.userId,
+    ...(typeof input.reason === 'string' ? { reason: input.reason } : {}),
+    ...(typeof input.duration === 'string' ? { duration: input.duration } : {}),
+    ...(typeof input.deleteMessageDays === 'number' ? { deleteMessageDays: input.deleteMessageDays } : {}),
+  }
+
+  return (await fetch_json_with_timeout_ms(url, log, 20_000, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })) as moderate_member_response
 }

@@ -1,8 +1,12 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
-import { get_guild_members } from '../internal/bot_internal_api'
+import { memberModerationActionSchema } from '@yuebot/shared'
+
+import { get_guild_members, moderate_guild_member } from '../internal/bot_internal_api'
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
+import { public_error_message } from '../utils/public_error'
+import { validation_error_details } from '../utils/validation_error'
 
 export async function membersRoutes(fastify: FastifyInstance) {
   // Get all members for a guild
@@ -125,6 +129,66 @@ export async function membersRoutes(fastify: FastifyInstance) {
 
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to update member notes')
       return reply.code(500).send({ error: 'Internal server error' })
+    }
+  })
+
+  // Moderate member (ban/kick/timeout/etc)
+  fastify.post('/guilds/:guildId/members/:userId/moderate', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId, userId } = request.params as { guildId: string; userId: string }
+    const user = request.user as { userId?: string } & Parameters<typeof can_access_guild>[0]
+    const parsed = memberModerationActionSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const moderator_id = user.userId
+    if (typeof moderator_id !== 'string' || moderator_id.length === 0) {
+      return reply.code(401).send({ error: 'Unauthorized' })
+    }
+
+    try {
+      const action = parsed.data.action
+
+      const base = {
+        guildId,
+        action,
+        moderatorId: moderator_id,
+        userId,
+      } as const
+
+      if (action === 'ban') {
+        await moderate_guild_member({
+          ...base,
+          reason: parsed.data.reason,
+          deleteMessageDays: parsed.data.deleteMessageDays,
+        }, request.log)
+      } else if (action === 'timeout') {
+        await moderate_guild_member({
+          ...base,
+          duration: parsed.data.duration,
+          reason: parsed.data.reason,
+        }, request.log)
+      } else {
+        await moderate_guild_member({
+          ...base,
+          ...(parsed.data.reason ? { reason: parsed.data.reason } : {}),
+        }, request.log)
+      }
+
+      return reply.send({ success: true })
+    } catch (error: unknown) {
+      request.log.error({ err: safe_error_details(error) }, 'Failed to moderate member via bot internal API')
+      return reply
+        .code(502)
+        .send({ error: public_error_message(fastify, 'Failed to moderate member', 'Bad gateway') })
     }
   })
 }
