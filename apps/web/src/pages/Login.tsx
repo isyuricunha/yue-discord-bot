@@ -1,3 +1,5 @@
+import { NavLink } from 'react-router-dom'
+
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, CardHeader, Badge } from '../components/ui'
 
@@ -52,6 +54,13 @@ export default function LoginPage() {
               <div className="text-center text-xs text-muted-foreground">
                 Ao fazer login, você concorda com nossos termos e política de privacidade.
               </div>
+
+              <NavLink
+                to="/extras"
+                className="block text-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
+              >
+                Ver Extras (FAQ, Placeholders e guias)
+              </NavLink>
             </CardContent>
           </Card>
 
