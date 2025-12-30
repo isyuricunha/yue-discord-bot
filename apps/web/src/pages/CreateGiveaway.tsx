@@ -24,6 +24,8 @@ interface Role {
 
 type GiveawayFormat = 'reaction' | 'list'
 
+const list_example_items = ['Nitro (1 mês)', 'Steam R$ 50', 'Cargo VIP (30 dias)', 'Gift Card', 'Prêmio surpresa']
+
 export default function CreateGiveawayPage() {
   const { guildId } = useParams()
   const navigate = useNavigate()
@@ -80,6 +82,19 @@ export default function CreateGiveawayPage() {
 
   const removeItem = (index: number) => {
     setItems(items.filter((_, i) => i !== index))
+  }
+
+  const add_example_items = () => {
+    const existing = new Set(items.map((v) => v.trim()).filter((v) => v.length > 0))
+    const next = [...items]
+
+    for (const it of list_example_items) {
+      if (!existing.has(it)) next.push(it)
+    }
+
+    setItems(next)
+    setMinChoices((prev) => Math.min(prev, Math.max(1, next.length)))
+    setMaxChoices((prev) => Math.min(Math.max(prev, minChoices), Math.max(1, next.length)))
   }
 
   const handleSubmit = async () => {
@@ -221,6 +236,41 @@ export default function CreateGiveawayPage() {
                   </p>
                 </button>
               </div>
+
+              <div className="mt-6 rounded-2xl border border-border/70 bg-surface/40 p-4">
+                <div className="text-sm font-semibold">Exemplo</div>
+                {format === 'reaction' ? (
+                  <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                    <div>
+                      <span className="font-semibold text-foreground">Reação</span>: o bot posta uma mensagem no canal e o membro participa reagindo.
+                    </div>
+                    <div className="text-xs">
+                      Bom para prêmios únicos (ex: "Nitro 1 mês") e sorteios rápidos.
+                    </div>
+                    <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-2 text-xs">
+                      <span className="font-mono text-foreground">Título:</span> Sorteio de Nitro
+                      <br />
+                      <span className="font-mono text-foreground">Vencedores:</span> 1
+                      <br />
+                      <span className="font-mono text-foreground">Fim:</span> amanhã 20:00
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                    <div>
+                      <span className="font-semibold text-foreground">Lista</span>: o membro escolhe itens por ordem de preferência.
+                    </div>
+                    <div className="text-xs">
+                      Bom quando há vários prêmios diferentes (ou quando você quer distribuir por preferência).
+                    </div>
+                    <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-2 text-xs">
+                      Itens (ex): Nitro, Steam R$ 50, Cargo VIP...
+                      <br />
+                      Min escolhas: 3 • Max escolhas: 5
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 
@@ -272,6 +322,24 @@ export default function CreateGiveawayPage() {
               </div>
 
               <div className="space-y-6">
+                <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+                  <div className="text-sm font-semibold">Dicas rápidas</div>
+                  <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                    <div>
+                      - Adicione todos os prêmios possíveis como itens.
+                      <br />
+                      - O participante escolhe de <span className="font-semibold text-foreground">min</span> até <span className="font-semibold text-foreground">max</span> itens.
+                      <br />
+                      - Quanto mais itens, mais sentido faz usar esse formato.
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={add_example_items}>
+                        Adicionar itens de exemplo
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <div className="text-sm font-medium">Adicionar item</div>
                   <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
@@ -314,6 +382,10 @@ export default function CreateGiveawayPage() {
                   </div>
                 </div>
 
+                <div className="text-xs text-muted-foreground">
+                  Recomendação: <span className="font-mono text-foreground">max</span> deve ser menor ou igual ao número de itens.
+                </div>
+
                 {items.length > 0 && (
                   <div>
                     <div className="text-sm font-medium">Itens adicionados ({items.length})</div>
@@ -323,7 +395,7 @@ export default function CreateGiveawayPage() {
                           key={index}
                           className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/50 px-4 py-3"
                         >
-                          <span className="text-sm text-foreground">{index + 1}. {item}</span>
+                          <span className="min-w-0 truncate text-sm text-foreground">{index + 1}. {item}</span>
                           <Button variant="ghost" size="sm" onClick={() => removeItem(index)} aria-label="Remover item">
                             <Trash2 className="h-4 w-4" />
                           </Button>
