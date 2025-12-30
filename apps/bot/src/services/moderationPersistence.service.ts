@@ -63,7 +63,7 @@ export class ModerationPersistenceService {
         where: {
           guildId: guild_id,
           userId: user_id,
-          action: { in: ['mute', 'unmute'] },
+          action: { in: ['mute', 'mute_reapply', 'unmute'] },
         },
         orderBy: { createdAt: 'desc' },
         select: {
@@ -75,7 +75,7 @@ export class ModerationPersistenceService {
       })
 
       if (!last) return
-      if (last.action !== 'mute') return
+      if (last.action === 'unmute') return
       if (!last.duration) return
 
       const duration_ms = parse_duration_ms(last.duration)

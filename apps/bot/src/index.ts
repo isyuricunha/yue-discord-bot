@@ -6,6 +6,7 @@ import { GiveawayScheduler } from './services/giveawayScheduler';
 import { WarnExpirationService } from './services/warnExpirationService';
 import { AutoroleScheduler } from './services/autoroleScheduler';
 import { initModerationPersistenceService } from './services/moderationPersistence.service';
+import { initPunishmentRoleService } from './services/punishmentRole.service';
 import type { Command, ContextMenuCommand } from './commands';
 import { start_internal_api } from './internal/api';
 
@@ -77,6 +78,7 @@ client.once('ready', async () => {
   await sync_guilds_to_database(client);
 
   initModerationPersistenceService(client)
+  initPunishmentRoleService(client)
 
   internal_server = start_internal_api(client, {
     host: CONFIG.internalApi.host,
@@ -161,6 +163,12 @@ client.on('guildMemberRemove', async (member) => {
   const { handleGuildMemberRemove } = await import('./events/guildMemberRemove');
   await handleGuildMemberRemove(member.guild, member.user);
 });
+
+// Event: Guild member update (Sync punishment role)
+client.on('guildMemberUpdate', async (old_member, new_member) => {
+  const { handleGuildMemberUpdate } = await import('./events/guildMemberUpdate')
+  await handleGuildMemberUpdate(old_member, new_member)
+})
 
 // Event: Message reaction add (Giveaways)
 client.on('messageReactionAdd', async (reaction, user) => {
