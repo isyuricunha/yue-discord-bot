@@ -30,6 +30,10 @@ type moderation_body = {
   deleteMessageDays?: number
 }
 
+type admin_check_response = {
+  isAdmin: boolean
+}
+
 async function ensure_member_row(input: {
   guildId: string
   userId: string
@@ -82,6 +86,12 @@ function extract_moderation_params(pathname: string) {
   const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/moderation\/(ban|unban|kick|timeout|untimeout)$/)
   if (!match) return null
   return { guildId: match[1], action: match[2] as moderation_action }
+}
+
+function extract_admin_check_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/permissions\/admin\/([^/]+)$/)
+  if (!match) return null
+  return { guildId: match[1], userId: match[2] }
 }
 
 function parse_duration_ms(duration: string): number | null {
@@ -184,6 +194,20 @@ export function start_internal_api(client: Client, options: internal_api_options
 
       if (url.pathname === '/internal/health') {
         return send_json(res, 200, { status: 'ok' });
+      }
+
+      if (req.method === 'GET') {
+        const admin_check = extract_admin_check_params(url.pathname)
+        if (admin_check) {
+          const guild = await client.guilds.fetch(admin_check.guildId).catch(() => null)
+          if (!guild) {
+            return send_json(res, 404, { error: 'Guild not found' } satisfies api_error_body)
+          }
+
+          const member = await guild.members.fetch(admin_check.userId).catch(() => null)
+          const is_admin = Boolean(member?.permissions.has(PermissionFlagsBits.Administrator))
+          return send_json(res, 200, { isAdmin: is_admin } satisfies admin_check_response)
+        }
       }
 
       if (req.method === 'POST') {

@@ -30,6 +30,10 @@ type send_message_response = {
 
 type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
 
+type admin_check_response = {
+  isAdmin: boolean
+}
+
 type moderate_member_body = {
   moderatorId: string
   userId: string
@@ -49,7 +53,7 @@ type cache_entry<T> = {
 
 type internal_cache_key = string;
 
-type resource = 'channels' | 'roles' | 'members';
+type resource = 'channels' | 'roles' | 'members' | 'is_admin';
 
 type cache_state = {
   cache: Map<internal_cache_key, cache_entry<unknown>>;
@@ -124,6 +128,10 @@ async function fetch_json_with_timeout_ms(
 
 function build_key(resource: resource, guild_id: string) {
   return `${resource}:${guild_id}`;
+}
+
+function build_admin_key(guild_id: string, user_id: string) {
+  return `is_admin:${guild_id}:${user_id}`
 }
 
 function internal_cache_ttl_ms() {
@@ -251,6 +259,15 @@ export async function get_guild_members(guild_id: string, log: FastifyBaseLogger
     const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/members`;
     return (await fetch_with_timeout_ms(url, log, 20_000)) as guild_members_response;
   });
+}
+
+export async function is_guild_admin(guild_id: string, user_id: string, log: FastifyBaseLogger) {
+  const key = build_admin_key(guild_id, user_id)
+
+  return await get_cached<admin_check_response>(key, async () => {
+    const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/permissions/admin/${user_id}`
+    return (await fetch_with_timeout_ms(url, log, 8_000)) as admin_check_response
+  })
 }
 
 export async function moderate_guild_member(

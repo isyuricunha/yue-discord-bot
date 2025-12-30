@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@yuebot/database';
 import { autoModConfigSchema, guildAutoroleConfigSchema, guildXpConfigSchema, xpResetSchema } from '@yuebot/shared';
-import { get_guild_channels, get_guild_roles, send_guild_message } from '../internal/bot_internal_api';
+import { get_guild_channels, get_guild_roles, is_guild_admin, send_guild_message } from '../internal/bot_internal_api';
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
 import { validation_error_details } from '../utils/validation_error'
@@ -108,6 +108,13 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
     if (!body?.channelId || typeof body.channelId !== 'string') {
       return reply.code(400).send({ error: 'Invalid body' });
     }
@@ -152,6 +159,18 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     // Verificar permissão
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
     }
 
     // Criar ou atualizar config
@@ -387,6 +406,18 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
     const data = parsed.data;
     const role_ids = data.roleIds;
 
@@ -449,6 +480,18 @@ export default async function guildRoutes(fastify: FastifyInstance) {
 
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
     }
 
     const data = parsed.data;
@@ -614,6 +657,18 @@ export default async function guildRoutes(fastify: FastifyInstance) {
 
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
     }
 
     const { scope, userId } = parsed.data;

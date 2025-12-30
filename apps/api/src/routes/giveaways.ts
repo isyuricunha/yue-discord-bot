@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database';
 import { createGiveawaySchema } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
+import { is_guild_admin } from '../internal/bot_internal_api'
 import { can_access_guild } from '../utils/guild_access'
 import { validation_error_details } from '../utils/validation_error'
 import { public_error_message } from '../utils/public_error'
@@ -24,6 +25,18 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
 
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
     }
 
     try {
@@ -120,6 +133,18 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
     const giveaway = await prisma.giveaway.findUnique({
       where: { id: giveawayId },
     });
@@ -150,6 +175,18 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
 
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
     }
 
     try {
@@ -192,6 +229,18 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
 
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
     }
 
     try {
@@ -239,6 +288,23 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
 
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' });
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const giveaway = await prisma.giveaway.findUnique({ where: { id: giveawayId } })
+    if (!giveaway || giveaway.guildId !== guildId) {
+      return reply.code(404).send({ error: 'Giveaway not found' })
     }
 
     await prisma.giveawayEntry.updateMany({
