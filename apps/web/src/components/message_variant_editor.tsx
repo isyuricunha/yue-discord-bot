@@ -1,8 +1,8 @@
-import { useMemo, useState } from 'react'
-import { Plus, Trash2, Pencil, Check, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Plus, Trash2, Pencil, Check, X, ChevronDown, ChevronUp, Code } from 'lucide-react'
 
 import { Button, Input, Textarea } from './ui'
-import { validate_extended_template } from '../lib/message_template'
+import { validate_extended_template, validate_extended_template_variants } from '../lib/message_template'
 
 function parse_template_variants(template: string): string[] {
   const trimmed = template.trim()
@@ -103,6 +103,10 @@ export function MessageVariantEditor({
 
   const [new_value, set_new_value] = useState('')
 
+  const [show_advanced, set_show_advanced] = useState(false)
+  const [raw_value, set_raw_value] = useState(value)
+  const [raw_dirty, set_raw_dirty] = useState(false)
+
   const [editing_index, set_editing_index] = useState<number | null>(null)
   const [editing_value, set_editing_value] = useState('')
 
@@ -113,6 +117,30 @@ export function MessageVariantEditor({
 
     return errors.some(Boolean) ? errors : null
   }, [allow_json_template, variants])
+
+  useEffect(() => {
+    if (!raw_dirty) {
+      set_raw_value(value)
+    }
+  }, [raw_dirty, value])
+
+  const raw_error = useMemo(() => {
+    if (!allow_json_template) return null
+    return validate_extended_template_variants(raw_value)
+  }, [allow_json_template, raw_value])
+
+  const apply_raw = () => {
+    if (disabled) return
+    if (raw_error) return
+
+    onChange(raw_value)
+    set_raw_dirty(false)
+  }
+
+  const cancel_raw = () => {
+    set_raw_value(value)
+    set_raw_dirty(false)
+  }
 
   const add_variant = () => {
     const trimmed = new_value.trim()
@@ -273,6 +301,64 @@ export function MessageVariantEditor({
 
       <div className="text-xs text-muted-foreground">
         Dica: quando você adiciona mais de uma mensagem, o bot escolhe uma aleatória a cada evento.
+      </div>
+
+      <div className="pt-2">
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          onClick={() => set_show_advanced((v) => !v)}
+          disabled={disabled}
+          aria-expanded={show_advanced}
+        >
+          <Code className="h-4 w-4" />
+          <span>Modo avançado</span>
+          {show_advanced ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+        </Button>
+
+        {show_advanced ? (
+          <div className="mt-3 rounded-2xl border border-border/70 bg-surface/40 p-4">
+            <div className="text-xs text-muted-foreground">
+              Edite o template completo (texto, JSON ou JSON array). Use “Aplicar” para atualizar.
+            </div>
+
+            <Textarea
+              value={raw_value}
+              onChange={(e) => {
+                set_raw_value(e.target.value)
+                set_raw_dirty(true)
+              }}
+              rows={Math.max(6, rows)}
+              disabled={disabled}
+              className="mt-3"
+              placeholder={placeholder}
+            />
+
+            {raw_error && <div className="mt-2 text-xs text-red-500">Template inválido: {raw_error}</div>}
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={cancel_raw}
+                disabled={disabled || !raw_dirty}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                variant="solid"
+                size="sm"
+                onClick={apply_raw}
+                disabled={disabled || !!raw_error || !raw_dirty}
+              >
+                Aplicar
+              </Button>
+            </div>
+          </div>
+        ) : null}
       </div>
     </div>
   )
