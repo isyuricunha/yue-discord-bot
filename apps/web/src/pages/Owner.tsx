@@ -6,6 +6,7 @@ import { Crown, ExternalLink, Search, Settings, Shield, Users } from 'lucide-rea
 
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, Input, Select, Skeleton } from '../components/ui'
+import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
 
@@ -21,6 +22,8 @@ export default function OwnerPage() {
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<'name_asc' | 'name_desc' | 'added_desc' | 'added_asc'>('name_asc')
+  const [added_from, setAddedFrom] = useState('')
+  const [added_to, setAddedTo] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['owner', 'guilds'],
@@ -34,6 +37,33 @@ export default function OwnerPage() {
     const q = query.trim().toLowerCase()
     const base = data ?? []
 
+    const parse_date_input = (value: string) => {
+      const trimmed = value.trim()
+      if (!trimmed) return null
+      const match = /^\d{4}-\d{2}-\d{2}$/.test(trimmed)
+      if (!match) return null
+      return new Date(`${trimmed}T00:00:00.000Z`)
+    }
+
+    const from_date = parse_date_input(added_from)
+    const to_date = parse_date_input(added_to)
+
+    const in_range = (added_at?: string) => {
+      if (!from_date && !to_date) return true
+      if (!added_at) return false
+      const parsed = new Date(added_at)
+      if (!Number.isFinite(parsed.getTime())) return false
+
+      if (from_date && parsed < from_date) return false
+      if (to_date) {
+        const end = new Date(to_date)
+        end.setUTCDate(end.getUTCDate() + 1)
+        if (parsed >= end) return false
+      }
+
+      return true
+    }
+
     const searched = !q
       ? base
       : base.filter((g) => {
@@ -43,13 +73,15 @@ export default function OwnerPage() {
           return id_match || name_match || owner_match
         })
 
+    const range_filtered = searched.filter((g) => in_range(g.addedAt))
+
     const to_time = (value?: string) => {
       if (!value) return 0
       const parsed = Date.parse(value)
       return Number.isFinite(parsed) ? parsed : 0
     }
 
-    return searched.slice().sort((a, b) => {
+    return range_filtered.slice().sort((a, b) => {
       if (sort === 'name_asc') return a.name.localeCompare(b.name, 'pt-BR', { sensitivity: 'base' })
       if (sort === 'name_desc') return b.name.localeCompare(a.name, 'pt-BR', { sensitivity: 'base' })
 
@@ -58,7 +90,7 @@ export default function OwnerPage() {
       if (sort === 'added_asc') return a_time - b_time
       return b_time - a_time
     })
-  }, [data, query, sort])
+  }, [data, query, sort, added_from, added_to])
 
   const format_added_at = (value?: string) => {
     if (!value) return null
@@ -94,6 +126,21 @@ export default function OwnerPage() {
             <option value="added_desc">Mais recentes</option>
             <option value="added_asc">Mais antigas</option>
           </Select>
+        </div>
+
+        <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
+          <Input
+            type="date"
+            value={added_from}
+            onChange={(e) => setAddedFrom(e.target.value)}
+            aria-label="Filtrar por data de instalação (início)"
+          />
+          <Input
+            type="date"
+            value={added_to}
+            onChange={(e) => setAddedTo(e.target.value)}
+            aria-label="Filtrar por data de instalação (fim)"
+          />
         </div>
 
         <div className="text-sm text-muted-foreground">
@@ -211,7 +258,14 @@ export default function OwnerPage() {
                     onClick={(event) => {
                       event.preventDefault()
                       event.stopPropagation()
-                      navigator.clipboard.writeText(g.id)
+                      navigator.clipboard
+                        .writeText(g.id)
+                        .then(() => {
+                          toast_success(`ID copiado: ${g.id}`, 'Copiado')
+                        })
+                        .catch(() => {
+                          toast_error('Não foi possível copiar o ID. Verifique as permissões do navegador.', 'Falha ao copiar')
+                        })
                     }}
                   >
                     <Crown className="h-4 w-4" />
