@@ -72,9 +72,9 @@ function send_json(reply: http.ServerResponse, statusCode: number, body: unknown
 }
 
 function extract_path_params(pathname: string) {
-  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/(channels|roles|members)$/);
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/(channels|roles|members|info)$/);
   if (!match) return null;
-  return { guildId: match[1], resource: match[2] as 'channels' | 'roles' | 'members' };
+  return { guildId: match[1], resource: match[2] as 'channels' | 'roles' | 'members' | 'info' };
 }
 
 function extract_send_message_params(pathname: string) {
@@ -552,6 +552,18 @@ export function start_internal_api(client: Client, options: internal_api_options
       const guild = await client.guilds.fetch(params.guildId).catch(() => null);
       if (!guild) {
         return send_json(res, 404, { error: 'Guild not found' } satisfies api_error_body);
+      }
+
+      if (params.resource === 'info') {
+        return send_json(res, 200, {
+          guild: {
+            id: guild.id,
+            name: guild.name,
+            icon: guild.icon,
+            ownerId: guild.ownerId,
+            systemChannelId: guild.systemChannelId ?? null,
+          },
+        });
       }
 
       if (params.resource === 'channels') {

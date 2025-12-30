@@ -24,6 +24,16 @@ type guild_members_response = {
   members: Array<{ userId: string; username: string; avatar: string | null; joinedAt: string | null }>;
 };
 
+type guild_info_response = {
+  guild: {
+    id: string
+    name: string
+    icon: string | null
+    ownerId: string
+    systemChannelId: string | null
+  }
+}
+
 type send_message_response = {
   messageId: string;
 };
@@ -53,7 +63,7 @@ type cache_entry<T> = {
 
 type internal_cache_key = string;
 
-type resource = 'channels' | 'roles' | 'members' | 'is_admin';
+type resource = 'channels' | 'roles' | 'members' | 'info' | 'is_admin';
 
 type cache_state = {
   cache: Map<internal_cache_key, cache_entry<unknown>>;
@@ -228,6 +238,15 @@ export async function get_guild_channels(guild_id: string, log: FastifyBaseLogge
     const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/channels`;
     return (await fetch_with_timeout(url, log)) as guild_channels_response;
   });
+}
+
+export async function get_guild_info(guild_id: string, log: FastifyBaseLogger) {
+  const key = build_key('info', guild_id)
+
+  return await get_cached<guild_info_response>(key, async () => {
+    const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/info`
+    return (await fetch_with_timeout_ms(url, log, 8_000)) as guild_info_response
+  })
 }
 
 export async function send_guild_message(
