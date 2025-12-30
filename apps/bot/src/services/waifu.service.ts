@@ -91,6 +91,8 @@ export class WaifuService {
     channelId: string
     rolledByUserId: string
   }): Promise<roll_result> {
+    await this.ensure_user(input.rolledByUserId, { username: null, avatar: null })
+
     const desiredGender = input.kind === 'waifu' ? 'female' : input.kind === 'husbando' ? 'male' : 'any'
 
     const rolled = await aniListService.roll_character({ desiredGender })
@@ -170,6 +172,12 @@ export class WaifuService {
     const now = input.now ?? new Date()
 
     return await with_serializable_retry(async (tx) => {
+      await tx.user.upsert({
+        where: { id: input.userId },
+        update: {},
+        create: { id: input.userId, username: null, avatar: null },
+      })
+
       const roll = await tx.waifuRoll.findUnique({
         where: { id: input.rollId },
         include: {

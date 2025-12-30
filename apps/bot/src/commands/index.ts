@@ -72,6 +72,14 @@ export async function loadCommands(client: Client): Promise<void> {
 
   // Coinflip commands
   const { coinflipCommand } = await import('./coinflip');
+
+  // Waifu commands
+  const { waifuCommand } = await import('./waifu/waifu')
+  const { husbandoCommand } = await import('./waifu/husbando')
+  const { casarCommand } = await import('./waifu/casar')
+  const { meuharemCommand } = await import('./waifu/meuharem')
+  const { divorciarCommand } = await import('./waifu/divorciar')
+  const { infocasamentoCommand } = await import('./waifu/infocasamento')
   
   // Register commands
   commands.set(banCommand.data.name, banCommand);
@@ -98,6 +106,12 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(verifyMessageCommand.data.name, verifyMessageCommand);
   commands.set(luazinhasCommand.data.name, luazinhasCommand);
   commands.set(coinflipCommand.data.name, coinflipCommand);
+  commands.set(waifuCommand.data.name, waifuCommand)
+  commands.set(husbandoCommand.data.name, husbandoCommand)
+  commands.set(casarCommand.data.name, casarCommand)
+  commands.set(meuharemCommand.data.name, meuharemCommand)
+  commands.set(divorciarCommand.data.name, divorciarCommand)
+  commands.set(infocasamentoCommand.data.name, infocasamentoCommand)
   
   client.commands = commands;
 }
