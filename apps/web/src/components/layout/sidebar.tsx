@@ -138,7 +138,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
               </div>
               <div className="leading-tight">
                 <div className="text-sm font-semibold">Yue</div>
-                <div className="text-xs text-muted-foreground">Control Panel</div>
+                <div className="text-xs text-muted-foreground">Painel de Controle</div>
               </div>
             </div>
           )}
