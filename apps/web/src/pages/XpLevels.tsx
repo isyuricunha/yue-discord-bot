@@ -867,6 +867,38 @@ export default function XpLevelsPage() {
                     <span className="ml-1 font-mono text-foreground">{'{experience.ranking}'}</span>.
                   </div>
                 </div>
+
+                <div className="mt-4 rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
+                  <div className="text-sm font-semibold text-foreground">Exemplos</div>
+                  <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+                    <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                      <div className="text-xs font-semibold text-foreground">Texto simples</div>
+                      <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
+                        {'🎉 {@user} → nível {level} ({xp} XP)! Você está em #{experience.ranking}.'}
+                      </pre>
+                    </div>
+                    <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                      <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
+                      <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
+{JSON.stringify(
+  {
+    content: '{@user}',
+    embed: {
+      title: 'Level up!',
+      description: '{user.tag} virou nível {level} (#{experience.ranking})',
+      color: 16742144,
+      fields: [
+        { name: 'XP', value: '{xp}', inline: true },
+        { name: 'Próximo nível', value: '{experience.next-level}', inline: true },
+      ],
+    },
+  },
+  null,
+  2
+)}</pre>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           )}

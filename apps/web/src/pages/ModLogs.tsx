@@ -297,6 +297,48 @@ export default function ModLogsPage() {
 
               {message_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {message_validation}</div>}
               <div className="mt-2 text-xs text-muted-foreground">Suporta placeholders e JSON com embed.</div>
+
+              <div className="mt-4 rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
+                <div className="text-sm font-semibold text-foreground">Exemplos</div>
+                <div className="mt-2 space-y-3">
+                  <div>
+                    <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placeholders</div>
+                    <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{@user}'}</span>
+                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{user.tag}'}</span>
+                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{staff.tag}'}</span>
+                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{punishment}'}</span>
+                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{reason}'}</span>
+                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{duration}'}</span>
+                      <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{guild}'}</span>
+                    </div>
+                  </div>
+
+                  <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                    <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
+                    <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
+{JSON.stringify(
+  {
+    content: '',
+    embed: {
+      title: '{user.tag} | {punishment}',
+      description: '{reason}',
+      color: 16742144,
+      fields: [
+        { name: 'Usuário', value: '`{user.id}`', inline: true },
+        { name: 'Staff', value: '{staff.tag}', inline: true },
+        { name: 'Duração', value: '{duration}', inline: true },
+      ],
+    },
+  },
+  null,
+  2
+)}</pre>
+                  </div>
+
+                  <div className="text-xs">Dica: você pode criar vários templates (o bot escolhe um aleatório).</div>
+                </div>
+              </div>
             </div>
           </div>
         </CardContent>

@@ -208,6 +208,53 @@ export default function WelcomePage() {
                   />
 
                   {leave_validation && <div className="text-xs text-red-500">Template inválido: {leave_validation}</div>}
+
+                  <div className="rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
+                    <div className="text-sm font-semibold text-foreground">Exemplos</div>
+                    <div className="mt-2 space-y-3">
+                      <div>
+                        <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placeholders</div>
+                        <div className="mt-1 flex flex-wrap gap-2 text-xs">
+                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{@user}'}</span>
+                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{user}'}</span>
+                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{user.tag}'}</span>
+                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{user.id}'}</span>
+                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{user.nickname}'}</span>
+                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{guild}'}</span>
+                          <span className="rounded-lg border border-border/70 bg-surface/70 px-2 py-1 font-mono text-foreground">{'{guild-size}'}</span>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                          <div className="text-xs font-semibold text-foreground">Texto simples</div>
+                          <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
+                            {'Bem-vindo {@user} ao {guild}! Agora somos {guild-size} membros.'}
+                          </pre>
+                        </div>
+                        <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                          <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
+                          <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
+{JSON.stringify(
+  {
+    content: '{@user}',
+    embed: {
+      title: 'Bem-vindo(a)!',
+      description: '{user.tag} entrou no {guild}',
+      color: 16742144,
+    },
+  },
+  null,
+  2
+)}</pre>
+                        </div>
+                      </div>
+
+                      <div className="text-xs">
+                        Dica: você pode criar várias mensagens (o bot escolhe uma aleatória). Cada item da lista pode ser texto simples ou JSON.
+                      </div>
+                    </div>
+                  </div>
                 </>
               )}
             </div>
