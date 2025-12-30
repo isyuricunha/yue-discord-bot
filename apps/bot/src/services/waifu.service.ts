@@ -141,6 +141,7 @@ export class WaifuService {
         guildId: input.guildId,
         channelId: input.channelId,
         messageId: null,
+        kind: input.kind,
         rolledByUserId: input.rolledByUserId,
         characterId: character.id,
         expiresAt,

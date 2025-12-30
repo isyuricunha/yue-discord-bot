@@ -28,6 +28,7 @@ model Guild {
   waifuClaims      WaifuClaim[]
   waifuRolls       WaifuRoll[]
   waifuUserStates  WaifuUserState[]
+  waifuWishlists   WaifuWishlist[]
   
   @@map("guilds")
 }
@@ -411,6 +412,7 @@ model User {
   waifuRolls      WaifuRoll[] @relation("waifu_rolls_rolled_by")
   waifuClaimsMade WaifuRoll[] @relation("waifu_rolls_claimed_by")
   waifuUserStates WaifuUserState[]
+  waifuWishlists  WaifuWishlist[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -589,6 +591,7 @@ model WaifuCharacter {
 
   claims WaifuClaim[]
   rolls  WaifuRoll[]
+  wishlists WaifuWishlist[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -627,6 +630,8 @@ model WaifuRoll {
   channelId String
   messageId String? @unique
 
+  kind String
+
   rolledByUserId String
   rolledByUser   User   @relation("waifu_rolls_rolled_by", fields: [rolledByUserId], references: [id], onDelete: Cascade)
 
@@ -657,10 +662,32 @@ model WaifuUserState {
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   nextClaimAt DateTime?
+  nextRerollAt DateTime?
 
   updatedAt DateTime @updatedAt
 
   @@unique([guildId, userId])
   @@index([guildId, nextClaimAt])
+  @@index([guildId, nextRerollAt])
   @@map("waifu_user_states")
+}
+
+model WaifuWishlist {
+  id String @id @default(cuid())
+
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  characterId String
+  character   WaifuCharacter @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, userId, characterId])
+  @@index([guildId, userId, createdAt])
+  @@index([guildId, characterId])
+  @@map("waifu_wishlists")
 }
