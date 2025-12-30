@@ -665,11 +665,15 @@ model WaifuUserState {
   nextClaimAt DateTime?
   nextRerollAt DateTime?
 
+  rollWindowStartedAt DateTime?
+  rollUses Int @default(0)
+
   updatedAt DateTime @updatedAt
 
   @@unique([guildId, userId])
   @@index([guildId, nextClaimAt])
   @@index([guildId, nextRerollAt])
+  @@index([guildId, userId, rollWindowStartedAt])
   @@map("waifu_user_states")
 }
 
