@@ -6,6 +6,7 @@ import {
   modlog_template_placeholders,
   welcome_template_placeholders,
   xp_template_placeholders,
+  all_template_placeholders,
 } from '../template_placeholders'
 
 test('render_placeholders: replaces known placeholders and keeps unknown ones', () => {
@@ -151,7 +152,12 @@ test('template_placeholders: exported placeholders are renderable (no drift)', (
     punishment: 'ban',
   }
 
-  const groups = [welcome_template_placeholders, xp_template_placeholders, modlog_template_placeholders]
+  const groups = [
+    all_template_placeholders,
+    welcome_template_placeholders,
+    xp_template_placeholders,
+    modlog_template_placeholders,
+  ]
 
   for (const group of groups) {
     for (const ph of group) {
