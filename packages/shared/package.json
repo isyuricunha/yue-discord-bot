@@ -19,9 +19,9 @@
     }
   },
   "scripts": {
-    "dev": "tsc --watch",
-    "build": "tsc && tsc -p tsconfig.esm.json",
-    "clean": "rm -rf dist",
+    "dev": "tsc -b -w",
+    "build": "tsc -b --force && tsc -b tsconfig.esm.json --force",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "type-check": "tsc --noEmit",
     "test": "pnpm build && node --test dist"

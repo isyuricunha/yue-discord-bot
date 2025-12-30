@@ -16,6 +16,8 @@ import { membersRoutes } from './routes/members.routes';
 import { profileRoutes } from './routes/profile.routes'
 import { badgesRoutes } from './routes/badges.routes'
 import { fanartsRoutes } from './routes/fanarts.routes'
+import { economyRoutes } from './routes/economy.routes'
+import { coinflipRoutes } from './routes/coinflip.routes'
 import { safe_error_details } from './utils/safe_error'
 
 const app = Fastify({
@@ -184,6 +186,10 @@ app.register(badgesRoutes, { prefix: '/api' })
 
 // Fan arts routes
 app.register(fanartsRoutes, { prefix: '/api' })
+
+// Economy/Coinflip routes
+app.register(economyRoutes, { prefix: '/api' })
+app.register(coinflipRoutes, { prefix: '/api' })
 
 // Start server
 const start = async () => {

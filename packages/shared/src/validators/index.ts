@@ -77,6 +77,31 @@ export const giveawayEntrySchema = z.object({
   choices: z.array(z.string()).optional(),
 });
 
+export const economyTransferSchema = z.object({
+  toUserId: z.string().min(1),
+  amount: z.coerce.bigint().gt(0n),
+  guildId: z.string().min(1).optional(),
+  reason: z.string().min(1).max(200).optional(),
+});
+
+export const economyAdminAdjustSchema = z.object({
+  userId: z.string().min(1),
+  amount: z.coerce.bigint().gt(0n),
+  guildId: z.string().min(1).optional(),
+  reason: z.string().min(1).max(200).optional(),
+});
+
+export const coinflipCreateBetSchema = z.object({
+  opponentId: z.string().min(1),
+  betAmount: z.coerce.bigint().gt(0n),
+  challengerSide: z.enum(['heads', 'tails']),
+  guildId: z.string().min(1).optional(),
+});
+
+export const coinflipActionSchema = z.object({
+  gameId: z.string().min(1),
+});
+
 // Config validators
 export const autoModConfigSchema = z.object({
   modLogChannelId: z.string().nullable().optional(),
@@ -246,6 +271,10 @@ export type WarnInput = z.infer<typeof warnSchema>;
 export type WarnThreshold = z.infer<typeof warnThresholdSchema>;
 export type CreateGiveawayInput = z.infer<typeof createGiveawaySchema>;
 export type GiveawayEntryInput = z.infer<typeof giveawayEntrySchema>;
+export type EconomyTransferInput = z.infer<typeof economyTransferSchema>;
+export type EconomyAdminAdjustInput = z.infer<typeof economyAdminAdjustSchema>;
+export type CoinflipCreateBetInput = z.infer<typeof coinflipCreateBetSchema>;
+export type CoinflipActionInput = z.infer<typeof coinflipActionSchema>;
 export type AutoModConfigInput = z.infer<typeof autoModConfigSchema>;
 export type GuildXpConfigInput = z.infer<typeof guildXpConfigSchema>;
 export type GuildAutoroleConfigInput = z.infer<typeof guildAutoroleConfigSchema>;
