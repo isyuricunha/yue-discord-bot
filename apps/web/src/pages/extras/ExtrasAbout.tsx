@@ -42,6 +42,11 @@ export default function ExtrasAboutPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
+            <span className="font-semibold text-foreground">Nota:</span> o nome <span className="font-semibold text-foreground">Yue</span> é uma
+            homenagem pessoal — ele carrega o carinho de alguém muito importante para o projeto.
+          </div>
+
           <div className="text-sm text-muted-foreground">
             Este site é o painel de gerenciamento. Aqui você configura módulos como Boas-vindas, XP e Logs.
           </div>
