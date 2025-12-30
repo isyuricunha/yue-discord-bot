@@ -49,6 +49,29 @@ type xp_config = {
   levelUpMessage: string | null
 }
 
+const xp_per_level = 1000
+
+function xp_gain_range(unique_length: number, config: Pick<xp_config, 'xpDivisorMin' | 'xpDivisorMax' | 'xpCap'>) {
+  const divisor_min = Math.max(1, config.xpDivisorMin)
+  const divisor_max = Math.max(1, config.xpDivisorMax)
+  const cap_value = Math.max(1, config.xpCap)
+
+  const min = Math.floor(unique_length / divisor_min)
+  const max = Math.floor(unique_length / divisor_max)
+
+  if (max <= 0 && min <= 0) {
+    return { min: 0, max: 0 }
+  }
+
+  const low = Math.max(0, Math.min(min, max))
+  const high = Math.max(low, max)
+
+  return {
+    min: Math.min(low, cap_value),
+    max: Math.min(high, cap_value),
+  }
+}
+
 function channel_label(ch: api_channel) {
   return `#${ch.name}`
 }
@@ -196,6 +219,8 @@ export default function XpLevelsPage() {
   const [reset_global_confirm, setResetGlobalConfirm] = useState('')
   const [reset_global_user_id, setResetGlobalUserId] = useState('')
 
+  const [preview_unique_length, setPreviewUniqueLength] = useState('')
+
   useEffect(() => {
     if (!xp_data?.config) return
     if (has_initialized.current) return
@@ -224,7 +249,32 @@ export default function XpLevelsPage() {
     })
 
     setRewards(xp_data.rewards ?? [])
+
+    setPreviewUniqueLength(String(initial_config.minUniqueLength ?? 12))
   }, [xp_data])
+
+  const preview_unique_length_number = useMemo(() => {
+    const parsed = Number.parseInt(preview_unique_length, 10)
+    return Number.isFinite(parsed) ? Math.max(0, parsed) : 0
+  }, [preview_unique_length])
+
+  const preview_gain = useMemo(() => {
+    if (!config) return null
+    return xp_gain_range(preview_unique_length_number, config)
+  }, [config, preview_unique_length_number])
+
+  const level_table = useMemo(() => {
+    const base_level = my_xp?.level ?? 0
+    const start = Math.max(0, base_level)
+    const rows: Array<{ level: number; totalXp: number }> = []
+
+    for (let i = 0; i < 8; i += 1) {
+      const level = start + i
+      rows.push({ level, totalXp: level * xp_per_level })
+    }
+
+    return rows
+  }, [my_xp])
 
   const mutation = useMutation({
     mutationFn: async (payload: { config: xp_config; rewards: xp_reward[] }) => {
@@ -386,6 +436,79 @@ export default function XpLevelsPage() {
           onAction={() => refetch_xp()}
         />
       )}
+
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <div>
+            <div className="text-sm font-semibold">Como o XP e os níveis funcionam</div>
+            <div className="mt-1 text-xs text-muted-foreground">
+              Esta tela mostra as regras reais usadas pelo bot para calcular nível e ganho de XP.
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+            <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+              <div className="text-sm font-medium">Regra de níveis</div>
+              <div className="mt-2 text-sm text-muted-foreground">
+                Cada nível equivale a <span className="font-semibold text-foreground">{xp_per_level} XP</span>.
+                O cálculo é: <span className="font-mono text-foreground">nível = floor(xp / {xp_per_level})</span>.
+              </div>
+
+              <div className="mt-4 grid gap-2">
+                {level_table.map((row) => (
+                  <div key={row.level} className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Nível {row.level}</span>
+                    <span className="font-semibold">{row.totalXp} XP total</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+              <div className="text-sm font-medium">Ganho de XP por mensagem (preview)</div>
+              <div className="mt-2 text-sm text-muted-foreground">
+                O bot calcula o XP baseado no <span className="font-semibold text-foreground">tamanho do texto sem repetição</span>,
+                usando <span className="font-mono text-foreground">xpDivisorMin</span>, <span className="font-mono text-foreground">xpDivisorMax</span>
+                e <span className="font-mono text-foreground">xpCap</span>.
+              </div>
+
+              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px]">
+                <div className="text-sm">
+                  <div className="font-medium">Tamanho (sem repetição)</div>
+                  <div className="text-xs text-muted-foreground">
+                    Use isso para estimar o range de XP para uma mensagem típica.
+                  </div>
+                </div>
+                <Input
+                  value={preview_unique_length}
+                  onChange={(e) => setPreviewUniqueLength(e.target.value)}
+                  placeholder="12"
+                />
+              </div>
+
+              {!config || !preview_gain ? (
+                <Skeleton className="mt-4 h-16 w-full" />
+              ) : (
+                <div className="mt-4 grid gap-2 text-sm">
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Range estimado</span>
+                    <span className="font-semibold">
+                      {preview_gain.min}–{preview_gain.max} XP
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-muted-foreground">Cap</span>
+                    <span className="font-semibold">{Math.max(1, config.xpCap)} XP</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Multiplicadores por cargo podem aumentar o ganho, mas também aumentam o cap efetivo.
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-1">
