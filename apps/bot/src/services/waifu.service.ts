@@ -31,6 +31,8 @@ export type claim_result =
       characterName: string
       claimerUserId: string
       nextClaimAt: Date
+      pointsAwarded: number
+      totalPoints: number
     }
   | {
       success: false
@@ -117,6 +119,15 @@ async function with_serializable_retry<T>(fn: (tx: tx_client) => Promise<T>, max
 
 function next_claim_time(now: Date): Date {
   return new Date(now.getTime() + CLAIM_COOLDOWN_MS)
+}
+
+function calculate_character_value(input: { favourites: number | null | undefined }): number {
+  const fav = typeof input.favourites === 'number' && Number.isFinite(input.favourites) ? Math.max(0, input.favourites) : 0
+
+  // Popularity-based value, bounded and stable.
+  // 0 fav -> 30 pts, 10k fav -> ~400 pts, 1M fav -> ~600 pts (capped)
+  const raw = Math.round(Math.log10(fav + 1) * 100)
+  return Math.max(30, Math.min(600, raw))
 }
 
 export class WaifuService {
@@ -219,6 +230,8 @@ export class WaifuService {
         nameNative: top.name.native,
         imageUrl: top.image.large ?? '',
         gender: top.gender,
+        favourites: top.favourites,
+        value: calculate_character_value({ favourites: top.favourites }),
       },
       create: {
         source: 'ANILIST',
@@ -227,6 +240,8 @@ export class WaifuService {
         nameNative: top.name.native,
         imageUrl: top.image.large ?? '',
         gender: top.gender,
+        favourites: top.favourites,
+        value: calculate_character_value({ favourites: top.favourites }),
       },
       select: { id: true, name: true, nameNative: true, imageUrl: true, gender: true },
     })
@@ -280,6 +295,8 @@ export class WaifuService {
           nameNative: rolled.name.native,
           imageUrl: rolled.image.large ?? '',
           gender: rolled.gender,
+          favourites: rolled.favourites,
+          value: calculate_character_value({ favourites: rolled.favourites }),
         },
         create: {
           source: 'ANILIST',
@@ -288,6 +305,8 @@ export class WaifuService {
           nameNative: rolled.name.native,
           imageUrl: rolled.image.large ?? '',
           gender: rolled.gender,
+          favourites: rolled.favourites,
+          value: calculate_character_value({ favourites: rolled.favourites }),
         },
         select: {
           id: true,
@@ -360,7 +379,7 @@ export class WaifuService {
       const roll = await tx.waifuRoll.findUnique({
         where: { id: input.rollId },
         include: {
-          character: { select: { id: true, name: true } },
+          character: { select: { id: true, name: true, value: true } },
         },
       })
 
@@ -425,19 +444,23 @@ export class WaifuService {
 
       const nextClaimAt = next_claim_time(now)
 
+      const pointsAwarded = roll.character.value ?? 0
+
       await tx.waifuClaim.create({
         data: {
           guildId: roll.guildId,
           userId: input.userId,
           characterId: roll.characterId,
           claimedAt: now,
+          valueAtClaim: pointsAwarded,
         },
       })
 
-      await tx.waifuUserState.upsert({
+      const updated_state = await tx.waifuUserState.upsert({
         where: { guildId_userId: { guildId: roll.guildId, userId: input.userId } },
-        update: { nextClaimAt },
-        create: { guildId: roll.guildId, userId: input.userId, nextClaimAt },
+        update: { nextClaimAt, totalValue: { increment: pointsAwarded } },
+        create: { guildId: roll.guildId, userId: input.userId, nextClaimAt, totalValue: pointsAwarded },
+        select: { totalValue: true },
       })
 
       await tx.waifuRoll.update({
@@ -450,6 +473,8 @@ export class WaifuService {
         characterName: roll.character.name,
         claimerUserId: input.userId,
         nextClaimAt,
+        pointsAwarded,
+        totalPoints: updated_state.totalValue,
       }
     })
   }
@@ -610,7 +635,12 @@ export class WaifuService {
       include: { character: true },
     })
 
-    return { total, page, pageSize, claims }
+    const state = await prisma.waifuUserState.findUnique({
+      where: { guildId_userId: { guildId: input.guildId, userId: input.userId } },
+      select: { totalValue: true },
+    })
+
+    return { total, page, pageSize, claims, totalValue: state?.totalValue ?? 0 }
   }
 
   async wishlist_add(input: { guildId: string; userId: string; query: string }): Promise<wishlist_add_result> {
@@ -727,6 +757,19 @@ export class WaifuService {
     const target = matches[0]
     await prisma.waifuClaim.delete({ where: { id: target.id } })
 
+    const value = target.valueAtClaim ?? 0
+    const existing_state = await prisma.waifuUserState.findUnique({
+      where: { guildId_userId: { guildId: input.guildId, userId: input.userId } },
+      select: { id: true },
+    })
+
+    if (existing_state) {
+      await prisma.waifuUserState.update({
+        where: { guildId_userId: { guildId: input.guildId, userId: input.userId } },
+        data: { totalValue: { decrement: value } },
+      })
+    }
+
     return { success: true as const, characterName: target.character.name }
   }
 
@@ -744,10 +787,15 @@ export class WaifuService {
       const c = local[0]
       const claim = await prisma.waifuClaim.findUnique({
         where: { guildId_characterId: { guildId: input.guildId, characterId: c.id } },
-        select: { userId: true },
+        select: { userId: true, valueAtClaim: true },
       })
 
-      return { success: true as const, character: c, claimedByUserId: claim?.userId ?? null }
+      return {
+        success: true as const,
+        character: c,
+        claimedByUserId: claim?.userId ?? null,
+        claimedValue: claim?.valueAtClaim ?? null,
+      }
     }
 
     if (local.length > 1) {
@@ -785,10 +833,15 @@ export class WaifuService {
 
     const claim = await prisma.waifuClaim.findUnique({
       where: { guildId_characterId: { guildId: input.guildId, characterId: upserted.id } },
-      select: { userId: true },
+      select: { userId: true, valueAtClaim: true },
     })
 
-    return { success: true as const, character: upserted, claimedByUserId: claim?.userId ?? null }
+    return {
+      success: true as const,
+      character: upserted,
+      claimedByUserId: claim?.userId ?? null,
+      claimedValue: claim?.valueAtClaim ?? null,
+    }
   }
 }
 

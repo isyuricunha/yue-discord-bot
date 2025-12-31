@@ -32,7 +32,7 @@ export const meuharemCommand: Command = {
 
     await interaction.deferReply()
 
-    const { total, claims, page: currentPage, pageSize } = await waifuService.list_harem({
+    const { total, claims, page: currentPage, pageSize, totalValue } = await waifuService.list_harem({
       guildId: interaction.guildId,
       userId: interaction.user.id,
       page,
@@ -43,13 +43,20 @@ export const meuharemCommand: Command = {
 
     const lines =
       claims.length > 0
-        ? claims.map((c, i) => `${(currentPage - 1) * pageSize + i + 1}. ${c.character.name}`).join('\n')
+        ? claims
+            .map((c, i) => {
+              const pts = typeof c.valueAtClaim === 'number' ? c.valueAtClaim : 0
+              return `${(currentPage - 1) * pageSize + i + 1}. ${c.character.name} (+${pts})`
+            })
+            .join('\n')
         : '—'
 
     const embed = new EmbedBuilder()
       .setColor(COLORS.INFO)
       .setTitle(`${EMOJIS.INFO} Meu harem`)
-      .setDescription(`Usuário: <@${interaction.user.id}>\nTotal: **${total}**\nPágina: **${currentPage}/${totalPages}**`)
+      .setDescription(
+        `Usuário: <@${interaction.user.id}>\nTotal: **${total}**\nPontos: **${totalValue}**\nPágina: **${currentPage}/${totalPages}**`
+      )
       .addFields([{ name: 'Personagens', value: lines, inline: false }])
 
     if (totalPages <= 1) {

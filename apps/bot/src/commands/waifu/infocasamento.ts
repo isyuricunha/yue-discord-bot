@@ -42,12 +42,18 @@ export const infocasamentoCommand: Command = {
 
     const c = res.character
 
+    const value = typeof (c as { value?: unknown }).value === 'number' ? ((c as { value: number }).value as number) : null
+    const claimed_value = typeof (res as { claimedValue?: unknown }).claimedValue === 'number' ? (res as { claimedValue: number }).claimedValue : null
+
     const embed = new EmbedBuilder()
       .setColor(COLORS.INFO)
       .setTitle(`${EMOJIS.INFO} ${c.name}`)
       .setDescription(
         `Fonte: **${c.source}**\n` +
-          (res.claimedByUserId ? `Casado com: <@${res.claimedByUserId}>` : 'Status: disponível')
+          (value !== null ? `Valor: **${value}**\n` : '') +
+          (res.claimedByUserId
+            ? `Casado com: <@${res.claimedByUserId}>` + (claimed_value !== null ? ` (**${claimed_value}** pts)` : '')
+            : 'Status: disponível')
       )
       .setImage(c.imageUrl)
 

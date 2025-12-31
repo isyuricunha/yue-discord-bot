@@ -206,6 +206,6 @@ export async function handleWaifuButton(interaction: ButtonInteraction): Promise
   }
 
   await interaction.editReply({
-    content: `${EMOJIS.SUCCESS} Você casou com **${res.characterName}**! Próximo claim: ${format_relative_time(res.nextClaimAt)}.`,
+    content: `${EMOJIS.SUCCESS} Você casou com **${res.characterName}**! +${res.pointsAwarded} pontos (total: ${res.totalPoints}). Próximo claim: ${format_relative_time(res.nextClaimAt)}.`,
   })
 }
