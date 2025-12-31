@@ -7,6 +7,7 @@ import ExtrasPage from './pages/Extras'
 import ExtrasHomePage from './pages/extras/ExtrasHome'
 import ExtrasAboutPage from './pages/extras/ExtrasAbout'
 import ExtrasModerationPage from './pages/extras/ExtrasModeration'
+import ExtrasCommandsPage from './pages/extras/ExtrasCommands'
 import ExtrasPlaceholdersPage from './pages/extras/ExtrasPlaceholders'
 import ExtrasBanAppealPage from './pages/extras/ExtrasBanAppeal'
 import TermsPage from './pages/Terms'
@@ -70,6 +71,7 @@ function App() {
             <Route index element={<ExtrasHomePage />} />
             <Route path="sobre" element={<ExtrasAboutPage />} />
             <Route path="moderacao" element={<ExtrasModerationPage />} />
+            <Route path="comandos" element={<ExtrasCommandsPage />} />
             <Route path="placeholders" element={<ExtrasPlaceholdersPage />} />
             <Route path="apelo-de-ban" element={<ExtrasBanAppealPage />} />
           </Route>

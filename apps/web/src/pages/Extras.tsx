@@ -26,6 +26,11 @@ const items: nav_item[] = [
     description: 'Guia de comandos e do módulo.',
   },
   {
+    to: '/extras/comandos',
+    label: 'Comandos',
+    description: 'Lista completa de comandos e exemplos.',
+  },
+  {
     to: '/extras/placeholders',
     label: 'Placeholders',
     description: 'Variáveis suportadas em mensagens.',

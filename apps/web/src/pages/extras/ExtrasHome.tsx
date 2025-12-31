@@ -20,6 +20,11 @@ const links: extras_link[] = [
     description: 'Guia rápido dos comandos e do módulo de moderação.',
   },
   {
+    to: '/extras/comandos',
+    title: 'Comandos',
+    description: 'Lista completa de comandos do bot com exemplos.',
+  },
+  {
     to: '/extras/placeholders',
     title: 'Placeholders & variáveis',
     description: 'Lista de placeholders suportados em mensagens e templates.',
