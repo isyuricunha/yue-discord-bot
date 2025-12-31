@@ -589,6 +589,9 @@ model WaifuCharacter {
   imageUrl   String
   gender     String?
 
+  favourites Int?
+  value      Int?
+
   claims WaifuClaim[]
   rolls  WaifuRoll[]
   wishlists WaifuWishlist[]
@@ -598,6 +601,7 @@ model WaifuCharacter {
 
   @@unique([source, sourceId])
   @@index([name])
+  @@index([value])
   @@map("waifu_characters")
 }
 
@@ -614,6 +618,8 @@ model WaifuClaim {
   character   WaifuCharacter @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
   claimedAt DateTime @default(now())
+
+  valueAtClaim Int @default(0)
 
   @@unique([guildId, characterId])
   @@index([guildId, userId, claimedAt])
@@ -668,12 +674,15 @@ model WaifuUserState {
   rollWindowStartedAt DateTime?
   rollUses Int @default(0)
 
+  totalValue Int @default(0)
+
   updatedAt DateTime @updatedAt
 
   @@unique([guildId, userId])
   @@index([guildId, nextClaimAt])
   @@index([guildId, nextRerollAt])
   @@index([guildId, userId, rollWindowStartedAt])
+  @@index([guildId, totalValue])
   @@map("waifu_user_states")
 }
 

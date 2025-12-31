@@ -12,6 +12,7 @@ export type anilist_character = {
     large: string | null
   }
   gender: string | null
+  favourites: number | null
 }
 
 type anilist_graphql_response<T> = {
@@ -60,6 +61,7 @@ export class AniListService {
             name { full native }
             image { large }
             gender
+            favourites
           }
         }
       }
@@ -88,6 +90,7 @@ export class AniListService {
             name { full native }
             image { large }
             gender
+            favourites
           }
         }
       }
