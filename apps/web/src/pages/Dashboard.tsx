@@ -33,7 +33,7 @@ export default function DashboardPage() {
         <div className="text-2xl font-semibold tracking-tight">Seus servidores</div>
         <div className="mt-1 text-sm text-muted-foreground">
           {user?.isOwner
-            ? 'Você está em modo owner — acesso total aos servidores onde o bot está instalado.'
+            ? 'Você está em modo owner - acesso total aos servidores onde o bot está instalado.'
             : 'Selecione um servidor para gerenciar'}
         </div>
       </div>

@@ -27,7 +27,7 @@ export default function ExtrasBanAppealPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="text-sm text-muted-foreground">
-            Usar a Yue é um privilégio — apelos existem para casos onde faz sentido avaliar contexto, arrependimento e/ou erros.
+            Usar a Yue é um privilégio - apelos existem para casos onde faz sentido avaliar contexto, arrependimento e/ou erros.
           </div>
           <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-xs text-muted-foreground">
             Esta página é informativa e não possui formulário.

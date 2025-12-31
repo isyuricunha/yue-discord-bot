@@ -132,7 +132,7 @@ export const coinflipCommand: Command = {
         .setDescription(
           'Não existe “macete” confiável para garantir vitória.\n\n' +
             '- O resultado é gerado com aleatoriedade do servidor (não depende de tempo de clique, servidor, ou “esquentar” a moeda).\n' +
-            '- Para alguém prever resultados consistentemente, teria que prever a fonte de entropia do servidor — isso é inviável na prática.\n' +
+            '- Para alguém prever resultados consistentemente, teria que prever a fonte de entropia do servidor - isso é inviável na prática.\n' +
             '- Se alguém parece “ganhar sempre”, geralmente é só variância: em amostras pequenas, sequências improváveis acontecem.'
         )
 

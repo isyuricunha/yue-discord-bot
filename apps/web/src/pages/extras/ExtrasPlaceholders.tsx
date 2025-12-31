@@ -41,7 +41,7 @@ export default function ExtrasPlaceholdersPage() {
             Exemplo: <span className="font-mono text-foreground">Olá {mention_token}!</span>
           </div>
           <div className="text-xs text-muted-foreground">
-            Dica: alguns módulos aceitam múltiplas mensagens — a Yue escolhe uma aleatória em cada evento.
+            Dica: alguns módulos aceitam múltiplas mensagens - a Yue escolhe uma aleatória em cada evento.
           </div>
         </CardContent>
       </Card>
