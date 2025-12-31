@@ -31,7 +31,7 @@ export default function LoginPage() {
                     <p className="text-sm text-muted-foreground">Painel de Gerenciamento</p>
                   </div>
                 </div>
-                <Badge variant="accent">beta</Badge>
+                <Badge variant="accent">Beta</Badge>
               </div>
 
               <div className="rounded-xl border border-border/80 bg-surface/40 p-4">
