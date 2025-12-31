@@ -725,6 +725,42 @@ export class WaifuService {
     return { userIds: rows.map((r) => r.userId) }
   }
 
+  async points_me(input: { guildId: string; userId: string }): Promise<{ totalValue: number; totalClaims: number }> {
+    const [state, totalClaims] = await Promise.all([
+      prisma.waifuUserState.findUnique({
+        where: { guildId_userId: { guildId: input.guildId, userId: input.userId } },
+        select: { totalValue: true },
+      }),
+      prisma.waifuClaim.count({ where: { guildId: input.guildId, userId: input.userId } }),
+    ])
+
+    return { totalValue: state?.totalValue ?? 0, totalClaims }
+  }
+
+  async points_rank(input: { guildId: string; page: number; pageSize: number }): Promise<{
+    total: number
+    page: number
+    pageSize: number
+    rows: { userId: string; totalValue: number }[]
+  }> {
+    const page = Math.max(1, input.page)
+    const pageSize = Math.min(25, Math.max(1, input.pageSize))
+
+    const total = await prisma.waifuUserState.count({
+      where: { guildId: input.guildId },
+    })
+
+    const rows = await prisma.waifuUserState.findMany({
+      where: { guildId: input.guildId },
+      orderBy: [{ totalValue: 'desc' }, { updatedAt: 'desc' }],
+      skip: (page - 1) * pageSize,
+      take: pageSize,
+      select: { userId: true, totalValue: true },
+    })
+
+    return { total, page, pageSize, rows }
+  }
+
   async divorce(input: { guildId: string; userId: string; query: string }) {
     const q = input.query.trim()
     if (!q) return { success: false as const, error: 'invalid_query' as const, message: 'Informe o nome do personagem.' }
