@@ -3,6 +3,7 @@ import { prisma } from '@yuebot/database'
 import axios from 'axios'
 import { can_access_guild } from '../utils/guild_access'
 import { safe_error_details } from '../utils/safe_error'
+import { is_guild_admin } from '../internal/bot_internal_api'
 
 export async function statsRoutes(fastify: FastifyInstance) {
   // Get guild statistics
@@ -15,6 +16,13 @@ export async function statsRoutes(fastify: FastifyInstance) {
     // Verificar permissão
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
     }
 
     try {
