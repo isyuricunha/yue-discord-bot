@@ -1,9 +1,8 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
-import axios from 'axios'
 import { can_access_guild } from '../utils/guild_access'
 import { safe_error_details } from '../utils/safe_error'
-import { is_guild_admin } from '../internal/bot_internal_api'
+import { get_guild_counts, is_guild_admin } from '../internal/bot_internal_api'
 
 export async function statsRoutes(fastify: FastifyInstance) {
   // Get guild statistics
@@ -120,36 +119,13 @@ export async function statsRoutes(fastify: FastifyInstance) {
         actionsByType[item.action] = item._count.action
       })
 
-      // Fetch total members from Discord API
+      // Fetch total members from Bot internal API (bot token stays confined to the bot process)
       let totalMembers = 0
       try {
-        const bot_token = process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN
-        if (!bot_token) {
-          throw new Error('Missing Discord bot token')
-        }
-
-        const discordResponse = await axios.get(
-          `https://discord.com/api/v10/guilds/${guildId}?with_counts=true`,
-          {
-            headers: {
-              Authorization: `Bot ${bot_token}`,
-            },
-          }
-        )
-        totalMembers = discordResponse.data.approximate_member_count || 0
+        const data = await get_guild_counts(guildId, request.log)
+        totalMembers = typeof data.approximateMemberCount === 'number' ? data.approximateMemberCount : 0
       } catch (error: unknown) {
-        if (axios.isAxiosError(error)) {
-          fastify.log.error(
-            {
-              message: error.message,
-              code: error.code,
-              status: error.response?.status,
-            },
-            'Erro ao buscar membros do Discord'
-          )
-        } else {
-          fastify.log.error({ err: safe_error_details(error) }, 'Erro ao buscar membros do Discord')
-        }
+        fastify.log.error({ err: safe_error_details(error) }, 'Erro ao buscar membros do bot internal API')
       }
 
       return reply.send({

@@ -35,6 +35,10 @@ type admin_check_response = {
   isAdmin: boolean
 }
 
+type guild_counts_response = {
+  approximateMemberCount: number
+}
+
 async function ensure_member_row(input: {
   guildId: string
   userId: string
@@ -93,6 +97,12 @@ function extract_admin_check_params(pathname: string) {
   const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/permissions\/admin\/([^/]+)$/)
   if (!match) return null
   return { guildId: match[1], userId: match[2] }
+}
+
+function extract_guild_counts_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/counts$/)
+  if (!match) return null
+  return { guildId: match[1] }
 }
 
 function parse_duration_ms(duration: string): number | null {
@@ -208,6 +218,17 @@ export function start_internal_api(client: Client, options: internal_api_options
           const member = await guild.members.fetch(admin_check.userId).catch(() => null)
           const is_admin = Boolean(member?.permissions.has(PermissionFlagsBits.Administrator))
           return send_json(res, 200, { isAdmin: is_admin } satisfies admin_check_response)
+        }
+
+        const counts_check = extract_guild_counts_params(url.pathname)
+        if (counts_check) {
+          const guild = await client.guilds.fetch({ guild: counts_check.guildId, withCounts: true }).catch(() => null)
+          if (!guild) {
+            return send_json(res, 404, { error: 'Guild not found' } satisfies api_error_body)
+          }
+
+          const count = typeof guild.approximateMemberCount === 'number' ? guild.approximateMemberCount : 0
+          return send_json(res, 200, { approximateMemberCount: count } satisfies guild_counts_response)
         }
       }
 

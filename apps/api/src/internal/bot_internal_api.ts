@@ -36,6 +36,10 @@ type guild_info_response = {
   }
 }
 
+type guild_counts_response = {
+  approximateMemberCount: number
+}
+
 type send_message_response = {
   messageId: string;
 };
@@ -65,7 +69,7 @@ type cache_entry<T> = {
 
 type internal_cache_key = string;
 
-type resource = 'channels' | 'roles' | 'members' | 'info' | 'is_admin';
+type resource = 'channels' | 'roles' | 'members' | 'info' | 'counts' | 'is_admin';
 
 type cache_state = {
   cache: Map<internal_cache_key, cache_entry<unknown>>;
@@ -248,6 +252,15 @@ export async function get_guild_info(guild_id: string, log: FastifyBaseLogger) {
   return await get_cached<guild_info_response>(key, async () => {
     const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/info`
     return (await fetch_with_timeout_ms(url, log, 8_000)) as guild_info_response
+  })
+}
+
+export async function get_guild_counts(guild_id: string, log: FastifyBaseLogger) {
+  const key = build_key('counts', guild_id)
+
+  return await get_cached<guild_counts_response>(key, async () => {
+    const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/counts`
+    return (await fetch_with_timeout_ms(url, log, 8_000)) as guild_counts_response
   })
 }
 
