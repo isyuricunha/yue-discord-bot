@@ -4,6 +4,12 @@ import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
 import { is_guild_admin } from '../internal/bot_internal_api'
 
+function clamp_take(input: string | undefined, fallback: number, max: number) {
+  const parsed = Number.parseInt(String(input ?? ''), 10)
+  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
+  return Math.min(parsed, max)
+}
+
 export async function exportRoutes(fastify: FastifyInstance) {
   // Export giveaway entries
   fastify.get('/guilds/:guildId/giveaways/:giveawayId/export', {
@@ -12,6 +18,10 @@ export async function exportRoutes(fastify: FastifyInstance) {
     const { guildId, giveawayId } = request.params as { guildId: string; giveawayId: string }
     const { format = 'json' } = request.query as { format?: 'json' | 'csv' }
     const user = request.user
+
+    if (format !== 'json' && format !== 'csv') {
+      return reply.code(400).send({ error: 'Invalid format' })
+    }
 
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
@@ -110,6 +120,10 @@ export async function exportRoutes(fastify: FastifyInstance) {
     }
     const user = request.user
 
+    if (format !== 'json' && format !== 'csv') {
+      return reply.code(400).send({ error: 'Invalid format' })
+    }
+
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
@@ -128,12 +142,12 @@ export async function exportRoutes(fastify: FastifyInstance) {
         where.action = action
       }
 
-      const parsed_limit = Number.parseInt(limit, 10)
+      const take = clamp_take(limit, 1000, 5000)
 
       const modlogs = await prisma.modLog.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        take: parsed_limit,
+        take,
       })
 
       if (format === 'csv') {
