@@ -52,3 +52,7 @@ if (missingEnvVars.length > 0) {
     `Por favor, configure o arquivo .env baseado no .env.example`
   );
 }
+
+if (CONFIG.internalApi.secret.length < 32) {
+  throw new Error('INTERNAL_API_SECRET deve ter no mínimo 32 caracteres');
+}

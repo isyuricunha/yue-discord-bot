@@ -88,6 +88,10 @@ if (CONFIG.jwt.secret.length < 32) {
   throw new Error('JWT_SECRET deve ter no mínimo 32 caracteres');
 }
 
+if (CONFIG.internalApi.secret.length < 32) {
+  throw new Error('INTERNAL_API_SECRET deve ter no mínimo 32 caracteres');
+}
+
 if (CONFIG.cookies.sameSite === 'none' && !CONFIG.cookies.secure) {
   throw new Error('COOKIE_SAMESITE=none requer COOKIE_SECURE=true (exigência dos browsers)');
 }
