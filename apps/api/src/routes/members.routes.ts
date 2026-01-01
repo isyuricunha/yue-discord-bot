@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
 import { memberModerationActionSchema } from '@yuebot/shared'
 
-import { InternalBotApiError, get_guild_members, moderate_guild_member } from '../internal/bot_internal_api'
+import { InternalBotApiError, get_guild_members, is_guild_admin, moderate_guild_member } from '../internal/bot_internal_api'
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
 import { public_error_message } from '../utils/public_error'
@@ -18,6 +18,13 @@ export async function membersRoutes(fastify: FastifyInstance) {
 
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
     }
 
     try {
@@ -70,6 +77,13 @@ export async function membersRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
     try {
       const member = await prisma.guildMember.findUnique({
         where: {
@@ -107,6 +121,13 @@ export async function membersRoutes(fastify: FastifyInstance) {
 
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
     }
 
     try {
@@ -157,6 +178,13 @@ export async function membersRoutes(fastify: FastifyInstance) {
     const moderator_id = user.userId
     if (typeof moderator_id !== 'string' || moderator_id.length === 0) {
       return reply.code(401).send({ error: 'Unauthorized' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, moderator_id, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
     }
 
     try {
