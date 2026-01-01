@@ -170,7 +170,7 @@ export default function BadgesPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-6">
             <div className="text-sm font-medium">Catálogo</div>
 
             {isLoading && (
@@ -222,7 +222,7 @@ export default function BadgesPage() {
 
         <div className="space-y-6">
           <Card>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               <div className="text-sm font-medium">Criar/Editar</div>
 
               <div className="space-y-2">
@@ -309,7 +309,7 @@ export default function BadgesPage() {
           </Card>
 
           <Card>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               <div className="text-sm font-medium">Conceder</div>
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">User ID</div>
@@ -337,7 +337,7 @@ export default function BadgesPage() {
           </Card>
 
           <Card>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               <div className="text-sm font-medium">Remover</div>
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">User ID</div>
@@ -366,7 +366,7 @@ export default function BadgesPage() {
           </Card>
 
           <Card>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               <div className="text-sm font-medium">Quem tem a badge (admin)</div>
 
               <div className="space-y-2">

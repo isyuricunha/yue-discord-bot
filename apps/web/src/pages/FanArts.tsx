@@ -136,7 +136,7 @@ export default function FanArtsPage() {
 
       <div className="grid gap-6 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 pt-6">
             <div className="text-sm font-medium">Aprovadas</div>
 
             {approved_query.isLoading ? (
@@ -180,7 +180,7 @@ export default function FanArtsPage() {
 
         <div className="space-y-6">
           <Card>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               <div className="text-sm font-medium">Pendentes (staff)</div>
 
               {pending_query.isLoading ? (
@@ -220,7 +220,7 @@ export default function FanArtsPage() {
           </Card>
 
           <Card>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 pt-6">
               <div className="text-sm font-medium">Revisão</div>
 
               {!selected ? (
