@@ -2,6 +2,7 @@ import { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database'
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
+import { is_guild_admin } from '../internal/bot_internal_api'
 
 export async function exportRoutes(fastify: FastifyInstance) {
   // Export giveaway entries
@@ -14,6 +15,13 @@ export async function exportRoutes(fastify: FastifyInstance) {
 
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
     }
 
     try {
@@ -106,6 +114,13 @@ export async function exportRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
     try {
       const where: Prisma.ModLogWhereInput = { guildId }
       
@@ -113,10 +128,12 @@ export async function exportRoutes(fastify: FastifyInstance) {
         where.action = action
       }
 
+      const parsed_limit = Number.parseInt(limit, 10)
+
       const modlogs = await prisma.modLog.findMany({
         where,
         orderBy: { createdAt: 'desc' },
-        take: parseInt(limit),
+        take: parsed_limit,
       })
 
       if (format === 'csv') {
