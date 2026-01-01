@@ -106,7 +106,7 @@ export default function FanArtsPage() {
           </span>
           <div>
             <div className="text-xl font-semibold tracking-tight">Fan Arts</div>
-            <div className="mt-1 text-sm text-muted-foreground">Galeria + fila de aprovação</div>
+            <div className="mt-1 text-sm text-muted-foreground">Galeria e fila de aprovação</div>
           </div>
         </div>
 
