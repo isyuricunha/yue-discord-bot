@@ -67,7 +67,7 @@ export default function LoginPage() {
                 to="/extras"
                 className="block text-center text-sm text-muted-foreground underline underline-offset-4 hover:text-foreground"
               >
-                Ver Extras (FAQ, Placeholders e guias)
+                Ver Extras (FAQ, Placeholders e Guias)
               </NavLink>
             </CardContent>
           </Card>
