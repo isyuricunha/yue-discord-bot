@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { BarChart3, Shield, Trophy, FileText, Users, Settings, Sparkles, UserPlus, LifeBuoy } from 'lucide-react'
+import { BarChart3, Shield, Trophy, FileText, Users, Settings, Sparkles, UserPlus, LifeBuoy, Wand2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Card, CardContent, Skeleton } from '../components/ui'
@@ -65,6 +65,23 @@ export default function GuildPage() {
       )}
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <Card
+          className="group cursor-pointer transition-colors hover:border-accent/40"
+          onClick={() => navigate(`/guild/${guildId}/setup`)}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+                <Wand2 className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="text-sm font-semibold">Setup Wizard</div>
+                <div className="text-xs text-muted-foreground">Configuração guiada</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card
           className="group cursor-pointer transition-colors hover:border-accent/40"
           onClick={() => navigate(`/guild/${guildId}/automod`)}
