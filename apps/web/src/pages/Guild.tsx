@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { BarChart3, Shield, Trophy, FileText, Users, Settings, Sparkles, UserPlus } from 'lucide-react'
+import { BarChart3, Shield, Trophy, FileText, Users, Settings, Sparkles, UserPlus, LifeBuoy } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Card, CardContent, Skeleton } from '../components/ui'
@@ -230,6 +230,23 @@ export default function GuildPage() {
               <div>
                 <div className="text-sm font-semibold">XP</div>
                 <div className="text-xs text-muted-foreground">Níveis e recompensas</div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card
+          className="group cursor-pointer transition-colors hover:border-accent/40"
+          onClick={() => navigate(`/guild/${guildId}/tickets`)}
+        >
+          <CardContent className="p-5">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+                <LifeBuoy className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="text-sm font-semibold">Tickets</div>
+                <div className="text-xs text-muted-foreground">Suporte e painel</div>
               </div>
             </div>
           </CardContent>

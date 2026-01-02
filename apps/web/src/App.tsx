@@ -27,6 +27,7 @@ import ModerationPage from './pages/Moderation'
 import WelcomePage from './pages/Welcome'
 import XpLevelsPage from './pages/XpLevels'
 import AutorolePage from './pages/Autorole'
+import TicketsPage from './pages/Tickets'
 import BadgesPage from './pages/Badges'
 import FanArtsPage from './pages/FanArts'
 import EconomyPage from './pages/Economy'
@@ -99,6 +100,7 @@ function App() {
           <Route path="/guild/:guildId/giveaways/:giveawayId" element={<GiveawayDetailsPage />} />
           <Route path="/guild/:guildId/xp" element={<XpLevelsPage />} />
           <Route path="/guild/:guildId/autorole" element={<AutorolePage />} />
+          <Route path="/guild/:guildId/tickets" element={<TicketsPage />} />
           <Route path="/guild/:guildId/moderation" element={<ModerationPage />} />
           <Route path="/guild/:guildId/welcome" element={<WelcomePage />} />
           <Route path="/guild/:guildId/settings" element={<SettingsPage />} />
