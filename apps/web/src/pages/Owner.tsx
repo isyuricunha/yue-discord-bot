@@ -50,7 +50,20 @@ export default function OwnerPage() {
       queryClient.invalidateQueries({ queryKey: ['owner', 'guilds'] })
     },
     onError: (error: any) => {
-      toast_error(error.response?.data?.error || error.message || 'Erro ao sincronizar guild', 'Sync falhou')
+      const status = error?.response?.status
+      const payload = error?.response?.data as { error?: string; removed?: boolean } | undefined
+
+      if (status === 404 && payload?.error === 'Guild not found') {
+        if (payload.removed) {
+          toast_success('Guild removida do painel (bot não está mais no servidor).', 'Sync')
+        } else {
+          toast_error('Guild não encontrada (provavelmente já foi removida).', 'Sync falhou')
+        }
+        queryClient.invalidateQueries({ queryKey: ['owner', 'guilds'] })
+        return
+      }
+
+      toast_error(payload?.error || error.message || 'Erro ao sincronizar guild', 'Sync falhou')
     },
   })
 

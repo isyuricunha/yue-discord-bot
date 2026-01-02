@@ -22,6 +22,14 @@ function is_object(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object'
 }
 
+function internal_bot_api_error_message(error: InternalBotApiError) {
+  const body = error.body
+  if (body && typeof body === 'object' && 'error' in body && typeof (body as Record<string, unknown>).error === 'string') {
+    return String((body as Record<string, unknown>).error)
+  }
+  return `Internal bot API returned ${error.status}`
+}
+
 function parse_preview_input(body: unknown): announcement_preview_input | null {
   if (!is_object(body)) return null
 
@@ -168,8 +176,28 @@ export async function ownerRoutes(fastify: FastifyInstance) {
       return reply.send({ success: true, guild })
     } catch (error: unknown) {
       if (error instanceof InternalBotApiError) {
+        if (error.status === 404) {
+          const result = await prisma.guild.deleteMany({ where: { id: guildId } })
+
+          await prisma.ownerActionLog.create({
+            data: {
+              actorUserId: user.userId,
+              type: 'sync_guild',
+              status: 'failed',
+              request: { guildId },
+              result: {
+                error: 'Guild not found',
+                removed: result.count > 0,
+              },
+              executedAt: new Date(),
+            },
+          })
+
+          return reply.code(404).send({ error: 'Guild not found', removed: result.count > 0 })
+        }
+
         if (error.status >= 400 && error.status < 500) {
-          return reply.code(error.status).send({ error: 'Guild not found' })
+          return reply.code(error.status).send({ error: internal_bot_api_error_message(error) })
         }
         request.log.error({ err: safe_error_details(error), status: error.status }, 'Failed to sync guild via internal bot API')
         return reply.code(502).send({ error: 'Bad gateway' })
