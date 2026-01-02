@@ -4,6 +4,7 @@ import {
   autoModConfigSchema,
   guildAutoroleConfigSchema,
   guildXpConfigSchema,
+  suggestionConfigSchema,
   ticketConfigSchema,
   ticketPanelPublishSchema,
   xpResetSchema,
@@ -594,6 +595,176 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         panelChannelId: updated.panelChannelId,
         panelMessageId: updated.panelMessageId,
       },
+    }
+  })
+
+  // Buscar configuração de Suggestions
+  fastify.get('/:guildId/suggestion-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const config = await prisma.suggestionConfig.findUnique({
+      where: { guildId },
+      select: {
+        enabled: true,
+        channelId: true,
+        logChannelId: true,
+      },
+    })
+
+    return {
+      success: true,
+      config: {
+        enabled: config?.enabled ?? false,
+        channelId: config?.channelId ?? null,
+        logChannelId: config?.logChannelId ?? null,
+      },
+    }
+  })
+
+  // Atualizar configuração de Suggestions
+  fastify.put('/:guildId/suggestion-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = suggestionConfigSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const data = parsed.data
+
+    const updated = await prisma.suggestionConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(data.enabled !== undefined ? { enabled: data.enabled } : {}),
+        ...(data.channelId !== undefined ? { channelId: data.channelId ?? null } : {}),
+        ...(data.logChannelId !== undefined ? { logChannelId: data.logChannelId ?? null } : {}),
+      },
+      create: {
+        guildId,
+        enabled: data.enabled ?? false,
+        channelId: data.channelId ?? null,
+        logChannelId: data.logChannelId ?? null,
+      },
+      select: {
+        enabled: true,
+        channelId: true,
+        logChannelId: true,
+      },
+    })
+
+    return {
+      success: true,
+      config: {
+        enabled: updated.enabled,
+        channelId: updated.channelId,
+        logChannelId: updated.logChannelId,
+      },
+    }
+  })
+
+  // Listar sugestões por guild
+  fastify.get('/:guildId/suggestions', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const query = request.query as { status?: string; limit?: string; cursor?: string }
+    const status = query.status === 'pending' || query.status === 'accepted' || query.status === 'denied' ? query.status : undefined
+
+    const limit_raw = query.limit ? Number(query.limit) : 25
+    const limit = Number.isFinite(limit_raw) ? Math.min(Math.max(1, limit_raw), 100) : 25
+
+    const cursor = typeof query.cursor === 'string' && query.cursor.trim().length > 0 ? query.cursor.trim() : undefined
+
+    try {
+      const items = await prisma.suggestion.findMany({
+        where: {
+          guildId,
+          ...(status ? { status } : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        select: {
+          id: true,
+          userId: true,
+          sourceChannelId: true,
+          sourceMessageId: true,
+          messageId: true,
+          content: true,
+          status: true,
+          upvotes: true,
+          downvotes: true,
+          decidedAt: true,
+          decidedByUserId: true,
+          decisionNote: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      })
+
+      const nextCursor = items.length === limit ? items[items.length - 1]?.id : null
+
+      return { success: true, suggestions: items, nextCursor }
+    } catch (error: unknown) {
+      request.log.error({ err: safe_error_details(error) }, 'Failed to list suggestions')
+      return reply.code(500).send({ error: 'Internal server error' })
     }
   })
 
