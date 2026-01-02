@@ -4,6 +4,7 @@ import type { Client, GuildBasedChannel, GuildMember, Role, User } from 'discord
 import { prisma } from '@yuebot/database';
 import { CONFIG } from '../config';
 import { moderationLogService } from '../services/moderationLog.service';
+import { ticketService } from '../services/ticket.service';
 import { logger } from '../utils/logger';
 import { safe_error_details } from '../utils/safe_error';
 
@@ -20,6 +21,11 @@ type api_error_body = {
 type send_message_body = {
   content: string;
 };
+
+type ticket_panel_publish_body = {
+  moderatorId: string
+  channelId: string
+}
 
 type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
 
@@ -87,6 +93,12 @@ function extract_send_message_params(pathname: string) {
   return { guildId: match[1], channelId: match[2] };
 }
 
+function extract_ticket_panel_publish_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/tickets\/panel$/)
+  if (!match) return null
+  return { guildId: match[1] }
+}
+
 function extract_moderation_params(pathname: string) {
   const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/moderation\/(ban|unban|kick|timeout|untimeout)$/)
   if (!match) return null
@@ -148,6 +160,14 @@ function is_valid_moderation_body(body: unknown): body is moderation_body {
   if (b.reason !== undefined && typeof b.reason !== 'string') return false
   if (b.duration !== undefined && typeof b.duration !== 'string') return false
   if (b.deleteMessageDays !== undefined && typeof b.deleteMessageDays !== 'number') return false
+  return true
+}
+
+function is_valid_ticket_panel_publish_body(body: unknown): body is ticket_panel_publish_body {
+  if (!body || typeof body !== 'object') return false
+  const b = body as Record<string, unknown>
+  if (typeof b.moderatorId !== 'string' || b.moderatorId.trim().length === 0) return false
+  if (typeof b.channelId !== 'string' || b.channelId.trim().length === 0) return false
   return true
 }
 
@@ -233,6 +253,76 @@ export function start_internal_api(client: Client, options: internal_api_options
       }
 
       if (req.method === 'POST') {
+        const ticket_panel_params = extract_ticket_panel_publish_params(url.pathname)
+        if (ticket_panel_params) {
+          const body = await read_json_body(req).catch(() => null)
+          if (!is_valid_ticket_panel_publish_body(body)) {
+            return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
+          }
+
+          const guild = await client.guilds.fetch(ticket_panel_params.guildId).catch(() => null)
+          if (!guild) {
+            return send_json(res, 404, { error: 'Guild not found' } satisfies api_error_body)
+          }
+
+          const is_owner_moderator = CONFIG.admin.ownerUserIds.includes(body.moderatorId)
+          if (!is_owner_moderator) {
+            const moderator = await guild.members.fetch(body.moderatorId).catch(() => null)
+            if (!moderator) {
+              return send_json(res, 404, { error: 'Moderator not found' } satisfies api_error_body)
+            }
+
+            const can_manage =
+              moderator.permissions.has(PermissionFlagsBits.ManageGuild) ||
+              moderator.permissions.has(PermissionFlagsBits.Administrator)
+            if (!can_manage) {
+              return send_json(res, 403, { error: 'Forbidden' } satisfies api_error_body)
+            }
+          }
+
+          const channel = await guild.channels.fetch(body.channelId).catch(() => null)
+          if (!channel || !channel.isTextBased() || channel.isDMBased()) {
+            return send_json(res, 404, { error: 'Channel not found' } satisfies api_error_body)
+          }
+
+          const me = await guild.members.fetchMe().catch(() => null)
+          if (!me) {
+            return send_json(res, 403, { error: 'Bot lacks permissions' } satisfies api_error_body)
+          }
+
+          const perms =
+            'permissionsFor' in channel &&
+            typeof channel.permissionsFor === 'function'
+              ? channel.permissionsFor(me)
+              : null
+
+          if (!perms?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
+            return send_json(res, 403, { error: 'Bot lacks permissions' } satisfies api_error_body)
+          }
+
+          const current = await prisma.ticketConfig.findUnique({
+            where: { guildId: guild.id },
+            select: { panelMessageId: true },
+          })
+
+          const ensured = await ticketService.ensure_panel_message(guild, body.channelId, current?.panelMessageId ?? null)
+
+          await prisma.ticketConfig.upsert({
+            where: { guildId: guild.id },
+            update: {
+              panelChannelId: body.channelId,
+              panelMessageId: ensured.messageId,
+            },
+            create: {
+              guildId: guild.id,
+              panelChannelId: body.channelId,
+              panelMessageId: ensured.messageId,
+            },
+          })
+
+          return send_json(res, 200, { messageId: ensured.messageId })
+        }
+
         const message_params = extract_send_message_params(url.pathname);
         if (message_params) {
           const body = await read_json_body(req).catch(() => null);
