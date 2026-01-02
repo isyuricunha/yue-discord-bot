@@ -5,6 +5,7 @@ import { prisma } from '@yuebot/database';
 import { CONFIG } from '../config';
 import { moderationLogService } from '../services/moderationLog.service';
 import { ticketService } from '../services/ticket.service';
+import { reactionRoleService } from '../services/reactionRole.service'
 import { logger } from '../utils/logger';
 import { safe_error_details } from '../utils/safe_error';
 
@@ -23,6 +24,11 @@ type send_message_body = {
 };
 
 type ticket_panel_publish_body = {
+  moderatorId: string
+  channelId: string
+}
+
+type reaction_role_panel_publish_body = {
   moderatorId: string
   channelId: string
 }
@@ -99,6 +105,12 @@ function extract_ticket_panel_publish_params(pathname: string) {
   return { guildId: match[1] }
 }
 
+function extract_reaction_role_panel_publish_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/reaction-roles\/panels\/([^/]+)\/publish$/)
+  if (!match) return null
+  return { guildId: match[1], panelId: match[2] }
+}
+
 function extract_moderation_params(pathname: string) {
   const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/moderation\/(ban|unban|kick|timeout|untimeout)$/)
   if (!match) return null
@@ -164,6 +176,14 @@ function is_valid_moderation_body(body: unknown): body is moderation_body {
 }
 
 function is_valid_ticket_panel_publish_body(body: unknown): body is ticket_panel_publish_body {
+  if (!body || typeof body !== 'object') return false
+  const b = body as Record<string, unknown>
+  if (typeof b.moderatorId !== 'string' || b.moderatorId.trim().length === 0) return false
+  if (typeof b.channelId !== 'string' || b.channelId.trim().length === 0) return false
+  return true
+}
+
+function is_valid_reaction_role_panel_publish_body(body: unknown): body is reaction_role_panel_publish_body {
   if (!body || typeof body !== 'object') return false
   const b = body as Record<string, unknown>
   if (typeof b.moderatorId !== 'string' || b.moderatorId.trim().length === 0) return false
@@ -317,6 +337,75 @@ export function start_internal_api(client: Client, options: internal_api_options
               guildId: guild.id,
               panelChannelId: body.channelId,
               panelMessageId: ensured.messageId,
+            },
+          })
+
+          return send_json(res, 200, { messageId: ensured.messageId })
+        }
+
+        const rr_publish_params = extract_reaction_role_panel_publish_params(url.pathname)
+        if (rr_publish_params) {
+          const body = await read_json_body(req).catch(() => null)
+          if (!is_valid_reaction_role_panel_publish_body(body)) {
+            return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
+          }
+
+          const guild = await client.guilds.fetch(rr_publish_params.guildId).catch(() => null)
+          if (!guild) {
+            return send_json(res, 404, { error: 'Guild not found' } satisfies api_error_body)
+          }
+
+          const is_owner_moderator = CONFIG.admin.ownerUserIds.includes(body.moderatorId)
+          if (!is_owner_moderator) {
+            const moderator = await guild.members.fetch(body.moderatorId).catch(() => null)
+            if (!moderator) {
+              return send_json(res, 404, { error: 'Moderator not found' } satisfies api_error_body)
+            }
+
+            const can_manage =
+              moderator.permissions.has(PermissionFlagsBits.ManageGuild) ||
+              moderator.permissions.has(PermissionFlagsBits.Administrator)
+            if (!can_manage) {
+              return send_json(res, 403, { error: 'Forbidden' } satisfies api_error_body)
+            }
+          }
+
+          const panel = await prisma.reactionRolePanel.findUnique({
+            where: { id: rr_publish_params.panelId },
+            select: { id: true, guildId: true, messageId: true },
+          })
+
+          if (!panel || panel.guildId !== guild.id) {
+            return send_json(res, 404, { error: 'Panel not found' } satisfies api_error_body)
+          }
+
+          const channel = await guild.channels.fetch(body.channelId).catch(() => null)
+          if (!channel || !channel.isTextBased() || channel.isDMBased()) {
+            return send_json(res, 404, { error: 'Channel not found' } satisfies api_error_body)
+          }
+
+          const me = await guild.members.fetchMe().catch(() => null)
+          if (!me) {
+            return send_json(res, 403, { error: 'Bot lacks permissions' } satisfies api_error_body)
+          }
+
+          const perms =
+            'permissionsFor' in channel &&
+            typeof channel.permissionsFor === 'function'
+              ? channel.permissionsFor(me)
+              : null
+
+          if (!perms?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks])) {
+            return send_json(res, 403, { error: 'Bot lacks permissions' } satisfies api_error_body)
+          }
+
+          const ensured = await reactionRoleService.ensure_panel_message(guild, panel.id, body.channelId, panel.messageId ?? null)
+
+          await prisma.reactionRolePanel.update({
+            where: { id: panel.id },
+            data: {
+              channelId: body.channelId,
+              messageId: ensured.messageId,
             },
           })
 

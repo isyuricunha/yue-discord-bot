@@ -63,6 +63,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
     if (interaction.customId === 'giveaway_participate') {
       const { handleGiveawayParticipate } = await import('../handlers/giveawayHandlers');
       await handleGiveawayParticipate(interaction);
+    } else if (interaction.customId.startsWith('rr:')) {
+      const { reactionRoleService } = await import('../services/reactionRole.service')
+      await reactionRoleService.handle_button(interaction)
     } else if (interaction.customId.startsWith('suggestion:')) {
       const { suggestionService } = await import('../services/suggestion.service');
       await suggestionService.handle_button(interaction);
