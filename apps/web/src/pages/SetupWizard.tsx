@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
 import axios from 'axios'
-import { ArrowLeft, Check, LifeBuoy, Mail, Sparkles, UserPlus, Wand2 } from 'lucide-react'
+import { ArrowLeft, Check, LifeBuoy, Mail, Shield, Sparkles, UserPlus, Wand2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
@@ -38,6 +38,11 @@ type guild_config = {
   leaveChannelId?: string | null
   welcomeMessage?: string | null
   leaveMessage?: string | null
+
+  modLogChannelId?: string | null
+  linkFilterEnabled?: boolean
+  linkBlockAll?: boolean
+  linkAction?: string
 }
 
 const CHANNEL_TYPE_GUILD_TEXT = 0
@@ -54,7 +59,7 @@ export default function SetupWizardPage() {
   const queryClient = useQueryClient()
 
   const [step, setStep] = useState(1)
-  const total_steps = 5
+  const total_steps = 6
 
   const has_initialized_tickets = useRef(false)
   const has_initialized_guild_config = useRef(false)
@@ -112,7 +117,7 @@ export default function SetupWizardPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['autorole-config', guildId] })
       toast_success('Autorole configurado!')
-      setStep(4)
+      setStep(5)
     },
     onError: (error: any) => {
       const message = error.response?.data?.error || error.message || 'Erro ao salvar autorole'
@@ -133,7 +138,7 @@ export default function SetupWizardPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['xp-config', guildId] })
       toast_success('XP configurado!')
-      setStep(5)
+      setStep(6)
     },
     onError: (error: any) => {
       const message = error.response?.data?.error || error.message || 'Erro ao salvar XP'
@@ -246,6 +251,11 @@ export default function SetupWizardPage() {
   const [welcome_message, set_welcome_message] = useState('')
   const [leave_message, set_leave_message] = useState('')
 
+  const [automod_modlog_channel_id, set_automod_modlog_channel_id] = useState('')
+  const [automod_link_enabled, set_automod_link_enabled] = useState(false)
+  const [automod_link_block_all, set_automod_link_block_all] = useState(false)
+  const [automod_link_action, set_automod_link_action] = useState('delete')
+
   const [autorole_enabled, set_autorole_enabled] = useState(false)
   const [autorole_delay_seconds, set_autorole_delay_seconds] = useState(0)
   const [autorole_only_after_first_message, set_autorole_only_after_first_message] = useState(false)
@@ -280,7 +290,34 @@ export default function SetupWizardPage() {
     set_leave_channel_id(cfg.leaveChannelId ?? '')
     set_welcome_message(cfg.welcomeMessage ?? '')
     set_leave_message(cfg.leaveMessage ?? '')
+
+    set_automod_modlog_channel_id(cfg.modLogChannelId ?? '')
+    set_automod_link_enabled(Boolean(cfg.linkFilterEnabled))
+    set_automod_link_block_all(Boolean(cfg.linkBlockAll))
+    set_automod_link_action(cfg.linkAction ? String(cfg.linkAction) : 'delete')
   }, [guild_data])
+
+  const save_automod_mutation = useMutation({
+    mutationFn: async () => {
+      if (!guildId) throw new Error('Missing guildId')
+
+      await axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
+        modLogChannelId: automod_modlog_channel_id || null,
+        linkFilterEnabled: automod_link_enabled,
+        linkBlockAll: automod_link_block_all,
+        linkAction: automod_link_action,
+      })
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      toast_success('AutoMod configurado!')
+      setStep(4)
+    },
+    onError: (error: any) => {
+      const message = error.response?.data?.error || error.message || 'Erro ao salvar AutoMod'
+      toast_error(message)
+    },
+  })
 
   useEffect(() => {
     if (!autorole_data) return
@@ -382,6 +419,11 @@ export default function SetupWizardPage() {
   }
 
   const can_proceed_step_3 = () => {
+    if (!automod_link_enabled) return true
+    return Boolean(automod_link_action)
+  }
+
+  const can_proceed_step_4 = () => {
     if (!autorole_enabled) return true
     return autorole_role_ids.length > 0
   }
@@ -674,6 +716,90 @@ export default function SetupWizardPage() {
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+                <Shield className="h-5 w-5" />
+              </span>
+              <div>
+                <div className="text-base font-semibold">AutoMod (básico)</div>
+                <div className="text-xs text-muted-foreground">Logs e filtro de links</div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div>
+                <div className="text-sm font-medium">Canal de mod logs (opcional)</div>
+                <div className="mt-2">
+                  {is_channels_loading ? (
+                    <Skeleton className="h-11 w-full" />
+                  ) : (
+                    <Select value={automod_modlog_channel_id} onValueChange={set_automod_modlog_channel_id}>
+                      <option value="">Desativado</option>
+                      {text_channels.map((ch) => (
+                        <option key={ch.id} value={ch.id}>
+                          {channel_label(ch)}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
+                <div>
+                  <div className="text-sm font-medium">Filtro de links</div>
+                  <div className="mt-1 text-xs text-muted-foreground">Deleta mensagens com links e aplica a punição escolhida.</div>
+                </div>
+                <Switch checked={automod_link_enabled} onCheckedChange={set_automod_link_enabled} label="Links" />
+              </div>
+
+              {automod_link_enabled && (
+                <>
+                  <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
+                    <div>
+                      <div className="text-sm font-medium">Bloquear todos os links</div>
+                      <div className="mt-1 text-xs text-muted-foreground">Quando desativado, você pode permitir domínios na página de AutoMod.</div>
+                    </div>
+                    <Switch checked={automod_link_block_all} onCheckedChange={set_automod_link_block_all} label="Bloquear" />
+                  </div>
+
+                  <div>
+                    <div className="text-sm font-medium">Ação</div>
+                    <div className="mt-2">
+                      <Select value={automod_link_action} onValueChange={set_automod_link_action}>
+                        <option value="delete">Deletar</option>
+                        <option value="warn">Avisar</option>
+                        <option value="mute">Silenciar</option>
+                        <option value="kick">Expulsar</option>
+                        <option value="ban">Banir</option>
+                      </Select>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div className="flex items-center justify-between border-t border-border/80 pt-6">
+              <Button variant="outline" onClick={() => setStep(2)}>
+                Voltar
+              </Button>
+
+              <Button
+                onClick={() => save_automod_mutation.mutate()}
+                isLoading={save_automod_mutation.isPending}
+                disabled={!can_proceed_step_3()}
+              >
+                <Check className="h-4 w-4" />
+                Concluir AutoMod
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {step === 4 && (
+        <Card>
+          <CardContent className="space-y-6 p-6">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
                 <UserPlus className="h-5 w-5" />
               </span>
               <div>
@@ -768,14 +894,14 @@ export default function SetupWizardPage() {
             </div>
 
             <div className="flex items-center justify-between border-t border-border/80 pt-6">
-              <Button variant="outline" onClick={() => setStep(2)}>
+              <Button variant="outline" onClick={() => setStep(3)}>
                 Voltar
               </Button>
 
               <Button
                 onClick={() => save_autorole_mutation.mutate()}
                 isLoading={save_autorole_mutation.isPending}
-                disabled={!can_proceed_step_3()}
+                disabled={!can_proceed_step_4()}
               >
                 <Check className="h-4 w-4" />
                 Concluir autorole
@@ -785,7 +911,7 @@ export default function SetupWizardPage() {
         </Card>
       )}
 
-      {step === 4 && (
+      {step === 5 && (
         <Card>
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
@@ -839,7 +965,7 @@ export default function SetupWizardPage() {
             </div>
 
             <div className="flex items-center justify-between border-t border-border/80 pt-6">
-              <Button variant="outline" onClick={() => setStep(3)}>
+              <Button variant="outline" onClick={() => setStep(4)}>
                 Voltar
               </Button>
 
@@ -852,7 +978,7 @@ export default function SetupWizardPage() {
         </Card>
       )}
 
-      {step === 5 && (
+      {step === 6 && (
         <Card>
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
@@ -871,6 +997,7 @@ export default function SetupWizardPage() {
               <div className="mt-1">Painel: {ticket_panel_channel_id ? <span className="font-mono">{ticket_panel_channel_id}</span> : '—'}</div>
               <div className="mt-1">Mensagem do painel: {published_message_id ? <span className="font-mono">{published_message_id}</span> : '—'}</div>
               <div className="mt-2">Boas-vindas: {welcome_channel_id ? <span className="font-mono">{welcome_channel_id}</span> : '—'}</div>
+              <div className="mt-1">AutoMod: {automod_link_enabled ? `Links ${automod_link_block_all ? '(block all)' : ''}` : 'Links off'}</div>
               <div className="mt-1">Autorole: {autorole_enabled ? `Ativo (${autorole_role_ids.length} cargos)` : 'Desativado'}</div>
               <div className="mt-1">XP: {xp_enabled ? 'Ativo' : 'Desativado'}</div>
             </div>
