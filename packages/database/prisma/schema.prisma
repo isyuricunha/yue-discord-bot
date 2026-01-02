@@ -35,6 +35,8 @@ model Guild {
 
   suggestionConfig SuggestionConfig?
   suggestions      Suggestion[]
+
+  reactionRolePanels ReactionRolePanel[]
   
   @@map("guilds")
 }
@@ -503,6 +505,47 @@ model SuggestionVote {
   @@index([suggestionId])
   @@index([userId])
   @@map("suggestion_votes")
+}
+
+model ReactionRolePanel {
+  id String @id @default(cuid())
+
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  name String
+
+  enabled Boolean @default(true)
+  mode    String  @default("multiple") // single | multiple
+
+  channelId String?
+  messageId String?
+
+  items ReactionRoleItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([guildId, createdAt])
+  @@map("reaction_role_panels")
+}
+
+model ReactionRoleItem {
+  id String @id @default(cuid())
+
+  panelId String
+  panel   ReactionRolePanel @relation(fields: [panelId], references: [id], onDelete: Cascade)
+
+  roleId String
+
+  label String?
+  emoji String?
+
+  createdAt DateTime @default(now())
+
+  @@unique([panelId, roleId])
+  @@index([panelId])
+  @@map("reaction_role_items")
 }
 
 model User {

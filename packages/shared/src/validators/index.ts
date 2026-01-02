@@ -205,6 +205,23 @@ export const suggestionConfigSchema = z.object({
   logChannelId: z.string().nullable().optional(),
 });
 
+export const reactionRoleItemSchema = z.object({
+  roleId: z.string().min(1),
+  label: z.string().min(1).max(80).nullable().optional(),
+  emoji: z.string().min(1).max(64).nullable().optional(),
+});
+
+export const reactionRolePanelUpsertSchema = z.object({
+  name: z.string().min(1).max(64),
+  enabled: z.boolean().optional(),
+  mode: z.enum(['single', 'multiple']).optional(),
+  items: z.array(reactionRoleItemSchema).min(1).max(25),
+});
+
+export const reactionRolePanelPublishSchema = z.object({
+  channelId: z.string().min(1),
+});
+
 export const xpResetSchema = z.object({
   scope: z.enum(['guild', 'user']).default('guild'),
   userId: z.string().min(1).optional(),
@@ -302,6 +319,9 @@ export type GuildAutoroleConfigInput = z.infer<typeof guildAutoroleConfigSchema>
 export type TicketConfigInput = z.infer<typeof ticketConfigSchema>;
 export type TicketPanelPublishInput = z.infer<typeof ticketPanelPublishSchema>;
 export type SuggestionConfigInput = z.infer<typeof suggestionConfigSchema>;
+export type ReactionRoleItemInput = z.infer<typeof reactionRoleItemSchema>;
+export type ReactionRolePanelUpsertInput = z.infer<typeof reactionRolePanelUpsertSchema>;
+export type ReactionRolePanelPublishInput = z.infer<typeof reactionRolePanelPublishSchema>;
 export type XpRoleRewardInput = z.infer<typeof xpRoleRewardSchema>;
 export type XpResetInput = z.infer<typeof xpResetSchema>;
 export type GlobalXpResetInput = z.infer<typeof globalXpResetSchema>;
