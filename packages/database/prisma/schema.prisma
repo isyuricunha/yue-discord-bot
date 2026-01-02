@@ -29,6 +29,9 @@ model Guild {
   waifuRolls       WaifuRoll[]
   waifuUserStates  WaifuUserState[]
   waifuWishlists   WaifuWishlist[]
+
+  ticketConfig TicketConfig?
+  tickets      Ticket[]
   
   @@map("guilds")
 }
@@ -386,6 +389,49 @@ model GuildAutorolePending {
   @@unique([guildId, userId])
   @@index([guildId, executeAt])
   @@map("guild_autorole_pendings")
+}
+
+model TicketConfig {
+  id      String @id @default(cuid())
+  guildId String @unique
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  enabled Boolean @default(false)
+
+  categoryId   String?
+  logChannelId String?
+
+  supportRoleIds Json @default("[]")
+
+  panelChannelId String?
+  panelMessageId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("ticket_configs")
+}
+
+model Ticket {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  userId    String
+  channelId String @unique
+
+  status String @default("open") // open | closed
+
+  closedAt       DateTime?
+  closedByUserId String?
+  closeReason    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([guildId, status, createdAt])
+  @@index([guildId, userId, createdAt])
+  @@map("tickets")
 }
 
 model User {

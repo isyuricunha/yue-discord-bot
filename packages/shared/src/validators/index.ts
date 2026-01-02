@@ -185,6 +185,15 @@ export const guildAutoroleConfigSchema = z.object({
   roleIds: z.array(z.string().min(1)).max(20).optional(),
 });
 
+export const ticketConfigSchema = z.object({
+  enabled: z.boolean().optional(),
+
+  categoryId: z.string().nullable().optional(),
+  logChannelId: z.string().nullable().optional(),
+
+  supportRoleIds: z.array(z.string().min(1)).max(20).optional(),
+});
+
 export const xpResetSchema = z.object({
   scope: z.enum(['guild', 'user']).default('guild'),
   userId: z.string().min(1).optional(),
@@ -279,6 +288,7 @@ export type CoinflipActionInput = z.infer<typeof coinflipActionSchema>;
 export type AutoModConfigInput = z.infer<typeof autoModConfigSchema>;
 export type GuildXpConfigInput = z.infer<typeof guildXpConfigSchema>;
 export type GuildAutoroleConfigInput = z.infer<typeof guildAutoroleConfigSchema>;
+export type TicketConfigInput = z.infer<typeof ticketConfigSchema>;
 export type XpRoleRewardInput = z.infer<typeof xpRoleRewardSchema>;
 export type XpResetInput = z.infer<typeof xpResetSchema>;
 export type GlobalXpResetInput = z.infer<typeof globalXpResetSchema>;
