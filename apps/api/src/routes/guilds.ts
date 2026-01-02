@@ -1,6 +1,12 @@
 import type { FastifyInstance } from 'fastify';
 import { prisma } from '@yuebot/database';
-import { autoModConfigSchema, guildAutoroleConfigSchema, guildXpConfigSchema, xpResetSchema } from '@yuebot/shared';
+import {
+  autoModConfigSchema,
+  guildAutoroleConfigSchema,
+  guildXpConfigSchema,
+  ticketConfigSchema,
+  xpResetSchema,
+} from '@yuebot/shared';
 import { get_guild_channels, get_guild_roles, is_guild_admin, send_guild_message } from '../internal/bot_internal_api';
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
@@ -466,6 +472,179 @@ export default async function guildRoutes(fastify: FastifyInstance) {
 
     return { success: true, config, roleIds: roles.map((r) => r.roleId) };
   });
+
+  // Buscar configuração de Tickets
+  fastify.get('/:guildId/ticket-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string };
+    const user = request.user;
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' });
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const config = await prisma.ticketConfig.findUnique({
+      where: { guildId },
+      select: {
+        enabled: true,
+        categoryId: true,
+        logChannelId: true,
+        supportRoleIds: true,
+        panelChannelId: true,
+        panelMessageId: true,
+      },
+    })
+
+    return {
+      success: true,
+      config: {
+        enabled: config?.enabled ?? false,
+        categoryId: config?.categoryId ?? null,
+        logChannelId: config?.logChannelId ?? null,
+        supportRoleIds: Array.isArray(config?.supportRoleIds) ? (config?.supportRoleIds as string[]) : [],
+        panelChannelId: config?.panelChannelId ?? null,
+        panelMessageId: config?.panelMessageId ?? null,
+      },
+    }
+  })
+
+  // Atualizar configuração de Tickets
+  fastify.put('/:guildId/ticket-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string };
+    const user = request.user;
+    const parsed = ticketConfigSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' });
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const data = parsed.data
+
+    const updated = await prisma.ticketConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(data.enabled !== undefined ? { enabled: data.enabled } : {}),
+        ...(data.categoryId !== undefined ? { categoryId: data.categoryId ?? null } : {}),
+        ...(data.logChannelId !== undefined ? { logChannelId: data.logChannelId ?? null } : {}),
+        ...(data.supportRoleIds !== undefined ? { supportRoleIds: data.supportRoleIds } : {}),
+      },
+      create: {
+        guildId,
+        enabled: data.enabled ?? false,
+        categoryId: data.categoryId ?? null,
+        logChannelId: data.logChannelId ?? null,
+        supportRoleIds: data.supportRoleIds ?? [],
+      },
+      select: {
+        enabled: true,
+        categoryId: true,
+        logChannelId: true,
+        supportRoleIds: true,
+        panelChannelId: true,
+        panelMessageId: true,
+      },
+    })
+
+    return {
+      success: true,
+      config: {
+        enabled: updated.enabled,
+        categoryId: updated.categoryId,
+        logChannelId: updated.logChannelId,
+        supportRoleIds: Array.isArray(updated.supportRoleIds) ? (updated.supportRoleIds as string[]) : [],
+        panelChannelId: updated.panelChannelId,
+        panelMessageId: updated.panelMessageId,
+      },
+    }
+  })
+
+  // Listar tickets por guild
+  fastify.get('/:guildId/tickets', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string };
+    const user = request.user;
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' });
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const query = request.query as { status?: string; limit?: string; cursor?: string }
+    const status = query.status === 'open' || query.status === 'closed' ? query.status : undefined
+
+    const limit_raw = query.limit ? Number(query.limit) : 25
+    const limit = Number.isFinite(limit_raw) ? Math.min(Math.max(1, limit_raw), 100) : 25
+
+    const cursor = typeof query.cursor === 'string' && query.cursor.trim().length > 0 ? query.cursor.trim() : undefined
+
+    const items = await prisma.ticket.findMany({
+      where: {
+        guildId,
+        ...(status ? { status } : {}),
+      },
+      orderBy: { createdAt: 'desc' },
+      take: limit,
+      ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+      select: {
+        id: true,
+        userId: true,
+        channelId: true,
+        status: true,
+        createdAt: true,
+        closedAt: true,
+        closedByUserId: true,
+        closeReason: true,
+      },
+    })
+
+    const nextCursor = items.length === limit ? items[items.length - 1]?.id : null
+
+    return { success: true, tickets: items, nextCursor }
+  })
 
   // Atualizar configuração de XP/Levels
   fastify.put('/:guildId/xp-config', {
