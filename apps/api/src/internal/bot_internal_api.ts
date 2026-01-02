@@ -44,6 +44,15 @@ type send_message_response = {
   messageId: string;
 };
 
+type ticket_panel_publish_body = {
+  moderatorId: string
+  channelId: string
+}
+
+type ticket_panel_publish_response = {
+  messageId: string
+}
+
 type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
 
 type admin_check_response = {
@@ -330,4 +339,21 @@ export async function moderate_guild_member(
     method: 'POST',
     body: JSON.stringify(body),
   })) as moderate_member_response
+}
+
+export async function publish_ticket_panel(
+  input: { guildId: string; channelId: string; moderatorId: string },
+  log: FastifyBaseLogger
+) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${input.guildId}/tickets/panel`
+
+  const body: ticket_panel_publish_body = {
+    moderatorId: input.moderatorId,
+    channelId: input.channelId,
+  }
+
+  return (await fetch_json_with_timeout_ms(url, log, 20_000, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })) as ticket_panel_publish_response
 }

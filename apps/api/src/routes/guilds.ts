@@ -5,9 +5,16 @@ import {
   guildAutoroleConfigSchema,
   guildXpConfigSchema,
   ticketConfigSchema,
+  ticketPanelPublishSchema,
   xpResetSchema,
 } from '@yuebot/shared';
-import { get_guild_channels, get_guild_roles, is_guild_admin, send_guild_message } from '../internal/bot_internal_api';
+import {
+  get_guild_channels,
+  get_guild_roles,
+  is_guild_admin,
+  publish_ticket_panel,
+  send_guild_message,
+} from '../internal/bot_internal_api';
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
 import { validation_error_details } from '../utils/validation_error'
@@ -644,6 +651,48 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const nextCursor = items.length === limit ? items[items.length - 1]?.id : null
 
     return { success: true, tickets: items, nextCursor }
+  })
+
+  // Publicar/atualizar painel de tickets (mensagem com botão) via bot
+  fastify.post('/:guildId/tickets/panel', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = ticketPanelPublishSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    try {
+      const res = await publish_ticket_panel(
+        { guildId, channelId: parsed.data.channelId, moderatorId: user.userId },
+        request.log
+      )
+
+      return reply.send({ success: true, messageId: res.messageId })
+    } catch (error: unknown) {
+      request.log.error({ err: safe_error_details(error) }, 'Failed to publish ticket panel via bot internal API')
+      return reply.code(502).send({ error: public_error_message(fastify, 'Failed to publish ticket panel', 'Bad gateway') })
+    }
   })
 
   // Atualizar configuração de XP/Levels
