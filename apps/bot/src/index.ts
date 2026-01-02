@@ -40,6 +40,29 @@ const client = new Client({
 client.commands = new Collection<string, Command>();
 client.contextMenuCommands = new Collection<string, ContextMenuCommand>();
 
+async function prune_stale_guilds_from_database(discord_client: Client) {
+  const current_ids = new Set(Array.from(discord_client.guilds.cache.keys()));
+
+  try {
+    const existing = await prisma.guild.findMany({ select: { id: true } });
+    const stale_ids = existing.map((g) => g.id).filter((id) => !current_ids.has(id));
+
+    if (stale_ids.length === 0) return;
+
+    logger.info(`🧹 Removendo ${stale_ids.length} guild(s) stale do banco de dados...`);
+
+    const result = await prisma.guild.deleteMany({
+      where: {
+        id: { in: stale_ids },
+      },
+    });
+
+    logger.info(`✅ Guilds stale removidas: ${result.count}`);
+  } catch (error) {
+    logger.error({ error }, '❌ Erro ao remover guilds stale do banco');
+  }
+}
+
 async function sync_guilds_to_database(discord_client: Client) {
   const guilds = Array.from(discord_client.guilds.cache.values());
 
@@ -75,6 +98,7 @@ client.once('ready', async () => {
   logger.info(`📊 Servidores: ${client.guilds.cache.size}`);
   logger.info(`👥 Usuários: ${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)}`);
 
+  await prune_stale_guilds_from_database(client);
   await sync_guilds_to_database(client);
 
   initModerationPersistenceService(client)
@@ -136,8 +160,15 @@ client.on('guildCreate', async (guild) => {
 });
 
 // Event: Guild delete (bot leaves server)
-client.on('guildDelete', (guild) => {
+client.on('guildDelete', async (guild) => {
   logger.info(`➖ Bot removido do servidor: ${guild.name} (${guild.id})`);
+
+  try {
+    await prisma.guild.deleteMany({ where: { id: guild.id } });
+    logger.info(`✅ Servidor removido do banco de dados: ${guild.name} (${guild.id})`);
+  } catch (error) {
+    logger.error({ error, guildId: guild.id }, '❌ Erro ao remover servidor do banco de dados');
+  }
 });
 
 // Event: Interaction create (slash commands)
