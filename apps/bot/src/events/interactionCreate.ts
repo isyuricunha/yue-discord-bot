@@ -63,6 +63,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
     if (interaction.customId === 'giveaway_participate') {
       const { handleGiveawayParticipate } = await import('../handlers/giveawayHandlers');
       await handleGiveawayParticipate(interaction);
+    } else if (interaction.customId.startsWith('suggestion:')) {
+      const { suggestionService } = await import('../services/suggestion.service');
+      await suggestionService.handle_button(interaction);
     } else if (interaction.customId === 'ticket:open') {
       const { ticketService } = await import('../services/ticket.service');
       await ticketService.handle_open(interaction);
@@ -119,6 +122,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
     } else if (interaction.customId.startsWith('ticket:close_reason:')) {
       const { ticketService } = await import('../services/ticket.service');
       await ticketService.handle_close_modal(interaction);
+    } else if (interaction.customId.startsWith('suggestion:decision:')) {
+      const { suggestionService } = await import('../services/suggestion.service');
+      await suggestionService.handle_decision_modal(interaction);
     } else if (interaction.customId.startsWith('wizard_basic_')) {
       const { handleBasicInfo } = await import('../commands/sorteio-wizard');
       await handleBasicInfo(interaction);

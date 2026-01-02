@@ -1,6 +1,7 @@
 import type { Message } from 'discord.js';
 import { autoModService } from '../services/automod.service';
 import { autoroleService } from '../services/autorole.service';
+import { suggestionService } from '../services/suggestion.service';
 import { xpService } from '../services/xp.service';
 import { logger } from '../utils/logger';
 
@@ -10,6 +11,9 @@ export async function handleMessageCreate(message: Message) {
 
   try {
     await autoroleService.handle_message(message);
+
+    const handled_by_suggestions = await suggestionService.handle_message(message)
+    if (handled_by_suggestions) return
 
     // Verificar AutoMod
     const deleted_by_automod = await autoModService.checkMessage(message);
