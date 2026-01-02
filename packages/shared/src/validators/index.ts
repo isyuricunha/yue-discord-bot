@@ -198,6 +198,13 @@ export const ticketPanelPublishSchema = z.object({
   channelId: z.string().min(1),
 });
 
+export const suggestionConfigSchema = z.object({
+  enabled: z.boolean().optional(),
+
+  channelId: z.string().nullable().optional(),
+  logChannelId: z.string().nullable().optional(),
+});
+
 export const xpResetSchema = z.object({
   scope: z.enum(['guild', 'user']).default('guild'),
   userId: z.string().min(1).optional(),
@@ -294,6 +301,7 @@ export type GuildXpConfigInput = z.infer<typeof guildXpConfigSchema>;
 export type GuildAutoroleConfigInput = z.infer<typeof guildAutoroleConfigSchema>;
 export type TicketConfigInput = z.infer<typeof ticketConfigSchema>;
 export type TicketPanelPublishInput = z.infer<typeof ticketPanelPublishSchema>;
+export type SuggestionConfigInput = z.infer<typeof suggestionConfigSchema>;
 export type XpRoleRewardInput = z.infer<typeof xpRoleRewardSchema>;
 export type XpResetInput = z.infer<typeof xpResetSchema>;
 export type GlobalXpResetInput = z.infer<typeof globalXpResetSchema>;

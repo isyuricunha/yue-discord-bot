@@ -32,6 +32,9 @@ model Guild {
 
   ticketConfig TicketConfig?
   tickets      Ticket[]
+
+  suggestionConfig SuggestionConfig?
+  suggestions      Suggestion[]
   
   @@map("guilds")
 }
@@ -432,6 +435,74 @@ model Ticket {
   @@index([guildId, status, createdAt])
   @@index([guildId, userId, createdAt])
   @@map("tickets")
+}
+
+model SuggestionConfig {
+  id      String @id @default(cuid())
+  guildId String @unique
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  enabled Boolean @default(false)
+
+  channelId    String?
+  logChannelId String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("suggestion_configs")
+}
+
+model Suggestion {
+  id      String @id @default(cuid())
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  userId String
+
+  sourceChannelId String
+  sourceMessageId String
+
+  messageId String @unique
+
+  content String @db.Text
+
+  status String @default("pending") // pending | accepted | denied
+
+  upvotes   Int @default(0)
+  downvotes Int @default(0)
+
+  decidedAt       DateTime?
+  decidedByUserId String?
+  decisionNote    String? @db.Text
+
+  votes SuggestionVote[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([guildId, sourceMessageId])
+  @@index([guildId, status, createdAt])
+  @@index([guildId, userId, createdAt])
+  @@map("suggestions")
+}
+
+model SuggestionVote {
+  id String @id @default(cuid())
+
+  suggestionId String
+  suggestion   Suggestion @relation(fields: [suggestionId], references: [id], onDelete: Cascade)
+
+  userId String
+
+  vote String // up | down
+
+  createdAt DateTime @default(now())
+
+  @@unique([suggestionId, userId])
+  @@index([suggestionId])
+  @@index([userId])
+  @@map("suggestion_votes")
 }
 
 model User {
