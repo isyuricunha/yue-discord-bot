@@ -251,7 +251,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
       const auth_header = request.headers.authorization
       const using_bearer_token = typeof auth_header === 'string' && auth_header.toLowerCase().startsWith('bearer ')
       if (using_bearer_token) {
-        return { token: newToken }
+        return { success: true, token: newToken }
       }
 
       return { success: true }

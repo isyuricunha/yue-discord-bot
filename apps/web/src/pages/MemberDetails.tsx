@@ -51,7 +51,7 @@ export default function MemberDetailsPage() {
     queryKey: ['member', guildId, userId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds/${guildId}/members/${userId}`)
-      return response.data as MemberDetails
+      return (response.data as { success: boolean; member: MemberDetails }).member
     },
   })
 

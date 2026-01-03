@@ -59,7 +59,7 @@ export async function membersRoutes(fastify: FastifyInstance) {
         orderBy: { joinedAt: 'desc' },
       })
 
-      return reply.send(members)
+      return reply.send({ success: true, members })
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to list guild members')
       return reply.code(500).send({ error: 'Internal server error' })
@@ -104,7 +104,7 @@ export async function membersRoutes(fastify: FastifyInstance) {
         return reply.code(404).send({ error: 'Member not found' })
       }
 
-      return reply.send(member)
+      return reply.send({ success: true, member })
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to get member details')
       return reply.code(500).send({ error: 'Internal server error' })
@@ -141,7 +141,7 @@ export async function membersRoutes(fastify: FastifyInstance) {
         data: { notes },
       })
 
-      return reply.send(member)
+      return reply.send({ success: true, member })
     } catch (error: unknown) {
       const prismaError = error as { code?: unknown }
       if (prismaError.code === 'P2025') {
