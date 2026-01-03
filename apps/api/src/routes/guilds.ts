@@ -15,6 +15,7 @@ import {
 import {
   get_guild_channels,
   get_guild_roles,
+  get_bot_commands,
   is_guild_admin,
   publish_reaction_role_panel,
   publish_ticket_panel,
@@ -359,6 +360,38 @@ export default async function guildRoutes(fastify: FastifyInstance) {
 
     return { logs: enriched, total };
   });
+
+  // Listar comandos disponíveis no bot
+  fastify.get('/:guildId/commands', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    try {
+      const commands = await get_bot_commands(request.log)
+      return reply.send({ success: true, ...commands })
+    } catch (error: unknown) {
+      fastify.log.error({ err: safe_error_details(error) }, 'Failed to list bot commands')
+      return reply.code(500).send({ error: 'Internal server error' })
+    }
+  })
 
   // Buscar configuração de XP/Levels
   fastify.get('/:guildId/xp-config', {

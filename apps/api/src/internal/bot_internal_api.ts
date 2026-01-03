@@ -62,6 +62,11 @@ type reaction_role_panel_publish_response = {
   messageId: string
 }
 
+type internal_commands_response = {
+  slashCommands: Array<{ name: string; json: unknown }>
+  contextMenuCommands: Array<{ name: string; json: unknown }>
+}
+
 type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
 
 type admin_check_response = {
@@ -382,4 +387,9 @@ export async function publish_reaction_role_panel(
     method: 'POST',
     body: JSON.stringify(body),
   })) as reaction_role_panel_publish_response
+}
+
+export async function get_bot_commands(log: FastifyBaseLogger) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/commands`
+  return (await fetch_with_timeout_ms(url, log, 8_000)) as internal_commands_response
 }

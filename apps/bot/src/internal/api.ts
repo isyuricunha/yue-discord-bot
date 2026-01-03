@@ -1,6 +1,6 @@
 import http from 'node:http';
 import { PermissionFlagsBits } from 'discord.js';
-import type { Client, GuildBasedChannel, GuildMember, Role, User } from 'discord.js';
+import type { Client, GuildBasedChannel, GuildMember, Role, User, RESTPostAPIApplicationCommandsJSONBody } from 'discord.js';
 import { prisma } from '@yuebot/database';
 import { CONFIG } from '../config';
 import { moderationLogService } from '../services/moderationLog.service';
@@ -49,6 +49,11 @@ type admin_check_response = {
 
 type guild_counts_response = {
   approximateMemberCount: number
+}
+
+type internal_commands_response = {
+  slashCommands: Array<{ name: string; json: RESTPostAPIApplicationCommandsJSONBody }>
+  contextMenuCommands: Array<{ name: string; json: RESTPostAPIApplicationCommandsJSONBody }>
 }
 
 async function ensure_member_row(input: {
@@ -245,6 +250,21 @@ export function start_internal_api(client: Client, options: internal_api_options
 
       if (url.pathname === '/internal/health') {
         return send_json(res, 200, { status: 'ok' });
+      }
+
+      if (req.method === 'GET' && url.pathname === '/internal/commands') {
+        const slash = Array.from(client.commands.values())
+          .map((cmd) => ({ name: cmd.data.name, json: cmd.data.toJSON() }))
+          .sort((a, b) => a.name.localeCompare(b.name))
+
+        const context = Array.from(client.contextMenuCommands.values())
+          .map((cmd) => ({ name: cmd.data.name, json: cmd.data.toJSON() }))
+          .sort((a, b) => a.name.localeCompare(b.name))
+
+        return send_json(res, 200, {
+          slashCommands: slash,
+          contextMenuCommands: context,
+        } satisfies internal_commands_response)
       }
 
       if (req.method === 'GET') {
