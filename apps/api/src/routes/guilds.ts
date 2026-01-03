@@ -6,6 +6,7 @@ import {
   guildXpConfigSchema,
   reactionRolePanelPublishSchema,
   reactionRolePanelUpsertSchema,
+  starboardConfigSchema,
   suggestionConfigSchema,
   ticketConfigSchema,
   ticketPanelPublishSchema,
@@ -1067,6 +1068,178 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     } catch (error: unknown) {
       request.log.error({ err: safe_error_details(error) }, 'Failed to publish reaction role panel via bot internal API')
       return reply.code(502).send({ error: public_error_message(fastify, 'Failed to publish reaction role panel', 'Bad gateway') })
+    }
+  })
+
+  // Buscar configuração de Starboard
+  fastify.get('/:guildId/starboard-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const config = await prisma.starboardConfig.findUnique({
+      where: { guildId },
+      select: {
+        enabled: true,
+        channelId: true,
+        emoji: true,
+        threshold: true,
+        ignoreBots: true,
+      },
+    })
+
+    return {
+      success: true,
+      config: {
+        enabled: config?.enabled ?? false,
+        channelId: config?.channelId ?? null,
+        emoji: config?.emoji ?? '⭐',
+        threshold: typeof config?.threshold === 'number' ? config.threshold : 3,
+        ignoreBots: config?.ignoreBots ?? true,
+      },
+    }
+  })
+
+  // Atualizar configuração de Starboard
+  fastify.put('/:guildId/starboard-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = starboardConfigSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const data = parsed.data
+
+    const updated = await prisma.starboardConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(data.enabled !== undefined ? { enabled: data.enabled } : {}),
+        ...(data.channelId !== undefined ? { channelId: data.channelId ?? null } : {}),
+        ...(data.emoji !== undefined ? { emoji: data.emoji } : {}),
+        ...(data.threshold !== undefined ? { threshold: data.threshold } : {}),
+        ...(data.ignoreBots !== undefined ? { ignoreBots: data.ignoreBots } : {}),
+      },
+      create: {
+        guildId,
+        enabled: data.enabled ?? false,
+        channelId: data.channelId ?? null,
+        emoji: data.emoji ?? '⭐',
+        threshold: data.threshold ?? 3,
+        ignoreBots: data.ignoreBots ?? true,
+      },
+      select: {
+        enabled: true,
+        channelId: true,
+        emoji: true,
+        threshold: true,
+        ignoreBots: true,
+      },
+    })
+
+    return {
+      success: true,
+      config: {
+        enabled: updated.enabled,
+        channelId: updated.channelId,
+        emoji: updated.emoji,
+        threshold: updated.threshold,
+        ignoreBots: updated.ignoreBots,
+      },
+    }
+  })
+
+  // Listar posts do Starboard por guild
+  fastify.get('/:guildId/starboard/posts', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const query = request.query as { limit?: string; cursor?: string }
+
+    const limit_raw = query.limit ? Number(query.limit) : 25
+    const limit = Number.isFinite(limit_raw) ? Math.min(Math.max(1, limit_raw), 100) : 25
+
+    const cursor = typeof query.cursor === 'string' && query.cursor.trim().length > 0 ? query.cursor.trim() : undefined
+
+    try {
+      const items = await prisma.starboardPost.findMany({
+        where: { guildId },
+        orderBy: { createdAt: 'desc' },
+        take: limit,
+        ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}),
+        select: {
+          id: true,
+          sourceChannelId: true,
+          sourceMessageId: true,
+          starboardChannelId: true,
+          starboardMessageId: true,
+          authorId: true,
+          starCount: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+      })
+
+      const nextCursor = items.length === limit ? items[items.length - 1]?.id : null
+      return { success: true, posts: items, nextCursor }
+    } catch (error: unknown) {
+      request.log.error({ err: safe_error_details(error) }, 'Failed to list starboard posts')
+      return reply.code(500).send({ error: 'Internal server error' })
     }
   })
 
