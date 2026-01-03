@@ -53,6 +53,7 @@ export default function CoinflipPage() {
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/coinflip/stats/me`)
       return res.data as {
+        success: boolean
         played: number
         wins: number
         losses: number
@@ -72,7 +73,7 @@ export default function CoinflipPage() {
     queryKey: ['coinflip', 'games'],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/coinflip/games`, { params: { limit: 50, offset: 0 } })
-      return res.data as { games: game_row[]; total: number }
+      return res.data as { success: boolean; games: game_row[]; total: number }
     },
   })
 

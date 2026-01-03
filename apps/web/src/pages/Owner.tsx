@@ -70,13 +70,13 @@ export default function OwnerPage() {
   const previewAnnouncementMutation = useMutation({
     mutationFn: async () => {
       const payload = {
-        content: announcement_content,
+        content: announcement_content.trim(),
         query: query || undefined,
         addedFrom: added_from || undefined,
         addedTo: added_to || undefined,
       }
       const response = await axios.post(`${API_URL}/api/owner/announcements/preview`, payload)
-      return response.data as { previewId: string; preview: any }
+      return response.data as { success: boolean; previewId: string; preview: any }
     },
     onSuccess: (data) => {
       set_announcement_preview_id(data.previewId)

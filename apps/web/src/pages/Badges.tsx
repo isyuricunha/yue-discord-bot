@@ -35,6 +35,7 @@ export default function BadgesPage() {
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/badges/${holders_badge_id}/holders?limit=200&offset=0`)
       return response.data as {
+        success: boolean
         badge: badge_row
         holders: Array<{
           userId: string
@@ -58,7 +59,7 @@ export default function BadgesPage() {
     queryKey: ['badges'],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/badges`)
-      return (response.data as { badges: badge_row[] }).badges
+      return (response.data as { success: boolean; badges: badge_row[] }).badges
     },
   })
 
