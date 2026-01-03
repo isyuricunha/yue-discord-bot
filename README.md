@@ -79,229 +79,229 @@ Note:
 
 #### Moderation
 
-- `/ban` (pt-BR: `/banir`) — Ban a member.
+- `/ban` (pt-BR: `/banir`) - Ban a member.
   - Options: `usuario` (required), `razao` (optional), `deletar_mensagens` (optional, 0-7 days)
   - Example: `/ban usuario:@User razao:"spam" deletar_mensagens:1`
-- `/kick` (pt-BR: `/expulsar`) — Kick a member.
+- `/kick` (pt-BR: `/expulsar`) - Kick a member.
   - Options: `usuario` (required), `razao` (optional)
   - Example: `/kick usuario:@User razao:"rule violation"`
-- `/mute` (pt-BR: `/silenciar`) — Apply a Discord timeout.
+- `/mute` (pt-BR: `/silenciar`) - Apply a Discord timeout.
   - Options: `usuario` (required), `duracao` (required; `5m`, `2h`, `1d`), `razao` (optional)
   - Example: `/mute usuario:@User duracao:30m razao:"cool down"`
-- `/unmute` (pt-BR: `/dessilenciar`) — Remove a timeout.
+- `/unmute` (pt-BR: `/dessilenciar`) - Remove a timeout.
   - Options: `usuario` (required)
   - Example: `/unmute usuario:@User`
-- `/warn` (pt-BR: `/avisar`) — Add a warning.
+- `/warn` (pt-BR: `/avisar`) - Add a warning.
   - Options: `usuario` (required), `razao` (required)
   - Example: `/warn usuario:@User razao:"caps"`
-- `/unwarn` (pt-BR: `/remover-aviso`) — Remove warnings.
+- `/unwarn` (pt-BR: `/remover-aviso`) - Remove warnings.
   - Options: `usuario` (required), `quantidade` (optional; omit to remove all)
   - Example: `/unwarn usuario:@User quantidade:1`
-- `/modlog` — Show moderation history.
+- `/modlog` - Show moderation history.
   - Options: `usuario` (required), `tipo` (optional: `ban|kick|warn|mute|unmute`), `limite` (optional, 1-25)
   - Example: `/modlog usuario:@User tipo:warn limite:10`
-- `/baninfo` — Check if an ID is banned and display ban details.
+- `/baninfo` - Check if an ID is banned and display ban details.
   - Options: `usuario_id` (required)
   - Example: `/baninfo usuario_id:123456789012345678`
 
 #### Utility
 
-- `/limpar` — Bulk delete messages.
+- `/limpar` - Bulk delete messages.
   - Requires: Manage Messages
   - Options: `quantidade` (required, 1-1000), `usuario` (optional), `filtro` (optional: `bots|humans|links|attachments`)
   - Example: `/limpar quantidade:50 filtro:links`
-- `/lock` (pt-BR: `/trancar`) — Lock a text channel (deny `SendMessages` for `@everyone`).
+- `/lock` (pt-BR: `/trancar`) - Lock a text channel (deny `SendMessages` for `@everyone`).
   - Requires: Manage Channels
   - Options: `canal` (optional, defaults to current), `razao` (optional)
   - Example: `/lock canal:#general razao:"raid"`
-- `/unlock` (pt-BR: `/destrancar`) — Unlock a previously locked channel.
+- `/unlock` (pt-BR: `/destrancar`) - Unlock a previously locked channel.
   - Requires: Manage Channels
   - Options: `canal` (optional, defaults to current)
   - Example: `/unlock canal:#general`
-- `/painel` — Send the admin panel URL.
+- `/painel` - Send the admin panel URL.
   - Example: `/painel`
-- `/say` — Make the bot send a message (supports templates and JSON).
+- `/say` - Make the bot send a message (supports templates and JSON).
   - Requires: Manage Messages
   - Options: `mensagem` (required; plain text or JSON `{ "content": "...", "embeds": [...] }`), `canal` (optional)
   - Example (text): `/say mensagem:"Hello!" canal:#announcements`
   - Example (JSON): `/say mensagem:"{\"content\":\"Hello\"}"`
-- `/ticket` — Configure the tickets system.
+- `/ticket` - Configure the tickets system.
   - Requires: Manage Server
   - Subcommands:
-    - `setup` — Options: `canal` (required), `categoria` (optional), `log` (optional), `cargo_suporte` (optional), `ativar` (optional)
+    - `setup` - Options: `canal` (required), `categoria` (optional), `log` (optional), `cargo_suporte` (optional), `ativar` (optional)
       - Example: `/ticket setup canal:#tickets categoria:"Suporte" log:#logs cargo_suporte:@Suporte ativar:true`
-- `/config` — Configure server modules.
+- `/config` - Configure server modules.
   - Requires: Manage Server
   - Subcommand groups:
-    - `channels` — Set/clear channels (modlog, welcome, leave, announcement, giveaway)
+    - `channels` - Set/clear channels (modlog, welcome, leave, announcement, giveaway)
       - Example: `/config channels modlog canal:#modlog`
-    - `templates` — Set/clear templates (welcome, leave, modlog)
+    - `templates` - Set/clear templates (welcome, leave, modlog)
       - Example: `/config templates welcome template:"Bem-vindo {user.mention}!"`
-    - `automod` — Configure filters (words, links, caps, domains, warn thresholds)
+    - `automod` - Configure filters (words, links, caps, domains, warn thresholds)
       - Example: `/config automod link ativar:true block_all:false acao:delete`
-    - `xp` — Configure XP enablement and parameters
+    - `xp` - Configure XP enablement and parameters
       - Example: `/config xp enabled ativar:true`
-- `/reactionroles` — Manage reaction-roles panels.
+- `/reactionroles` - Manage reaction-roles panels.
   - Requires: Manage Server
   - Subcommands: `create`, `list`, `show`, `publish`, `delete`, `add-item`, `remove-item`, `set`, `sync`
   - Example (create): `/reactionroles create name:"Cargos" role:@Cargo mode:multiple enabled:true`
   - Example (publish): `/reactionroles publish panel_id:<id> channel:#cargos`
-- `/evento` — Server events and reminders.
+- `/evento` - Server events and reminders.
   - Requires: Manage Server
   - Subcommands:
-    - `criar` — Options: `titulo` (required), `data_hora` (required), `canal` (required), `descricao` (optional)
+    - `criar` - Options: `titulo` (required), `data_hora` (required), `canal` (required), `descricao` (optional)
       - Example: `/evento criar titulo:"Movie Night" data_hora:"2026-01-03 20:00" canal:#anuncios descricao:"Sessão do filme"`
-    - `listar` — No options
+    - `listar` - No options
       - Example: `/evento listar`
-    - `cancelar` — Options: `event_id` (required)
+    - `cancelar` - Options: `event_id` (required)
 
 #### Giveaways
 
-- `/sorteio` — Manage reaction-based giveaways.
+- `/sorteio` - Manage reaction-based giveaways.
   - Requires: Manage Server
   - Subcommands:
-    - `criar` — Options: `titulo`, `descricao`, `vencedores` (1-20), `duracao` (`1h`, `3d`, `1w`), `canal` (optional), `cargo` (optional)
+    - `criar` - Options: `titulo`, `descricao`, `vencedores` (1-20), `duracao` (`1h`, `3d`, `1w`), `canal` (optional), `cargo` (optional)
       - Example: `/sorteio criar titulo:"Nitro" descricao:"Good luck" vencedores:1 duracao:3d`
-    - `finalizar` — Options: `id`
+    - `finalizar` - Options: `id`
       - Example: `/sorteio finalizar id:abc123`
-    - `reroll` — Options: `id`
+    - `reroll` - Options: `id`
       - Example: `/sorteio reroll id:abc123`
-- `/sorteio-lista` — Giveaway with item list + preference picking.
+- `/sorteio-lista` - Giveaway with item list + preference picking.
   - Requires: Manage Server
   - Options: `titulo`, `descricao`, `itens`, `vencedores` (1-50), `duracao`, `min-escolhas` (optional), `max-escolhas` (optional), `canal` (optional), `cargo-obrigatorio` (optional)
   - Example: `/sorteio-lista titulo:"Skins" descricao:"Escolha" itens:"A,B,C" vencedores:2 duracao:2d`
-- `/sorteio-wizard` — Step-by-step giveaway assistant.
+- `/sorteio-wizard` - Step-by-step giveaway assistant.
   - Requires: Manage Server
   - Example: `/sorteio-wizard`
 
 #### XP / Levels
 
-- `/rank` — Show XP rank.
+- `/rank` - Show XP rank.
   - Options: `global` (optional), `usuario` (optional)
   - Example: `/rank usuario:@User`
-- `/leaderboard` — Show XP top list.
+- `/leaderboard` - Show XP top list.
   - Options: `global` (optional), `limite` (optional, 1-25)
   - Example: `/leaderboard limite:10`
 
 #### Profile / Badges
 
-- `/profile` (pt-BR: `/perfil`) — Show a user's profile and visible badges.
+- `/profile` (pt-BR: `/perfil`) - Show a user's profile and visible badges.
   - Options: `usuario` (optional)
   - Example: `/profile usuario:@User`
-- `/badges` — List and manage badges.
+- `/badges` - List and manage badges.
   - Subcommands:
-    - `list` (pt-BR: `listar`) — Options: `usuario` (optional)
+    - `list` (pt-BR: `listar`) - Options: `usuario` (optional)
       - Example: `/badges list usuario:@User`
-    - `grant` (pt-BR: `conceder`) — Admin-only. Options: `usuario` (required), `badge` (required)
+    - `grant` (pt-BR: `conceder`) - Admin-only. Options: `usuario` (required), `badge` (required)
       - Example: `/badges grant usuario:@User badge:early_supporter`
-    - `revoke` (pt-BR: `remover`) — Admin-only. Options: `usuario` (required), `badge` (required)
+    - `revoke` (pt-BR: `remover`) - Admin-only. Options: `usuario` (required), `badge` (required)
       - Example: `/badges revoke usuario:@User badge:early_supporter`
-    - `holders` — Admin-only. Options: `badge` (required), `limite` (optional), `offset` (optional)
+    - `holders` - Admin-only. Options: `badge` (required), `limite` (optional), `offset` (optional)
       - Example: `/badges holders badge:early_supporter limite:10 offset:0`
 
 #### Fan art
 
-- `/fanart` — Submit and review fan arts.
+- `/fanart` - Submit and review fan arts.
   - Subcommands:
-    - `submit` (pt-BR: `enviar`) — Options: `imagem` (required), `titulo` (optional), `descricao` (optional), `tags` (optional)
+    - `submit` (pt-BR: `enviar`) - Options: `imagem` (required), `titulo` (optional), `descricao` (optional), `tags` (optional)
       - Example: `/fanart submit imagem:<upload> titulo:"my art" tags:"yue,fanart"`
-    - `review` (pt-BR: `revisar`) — Reviewer-only. Options: `id` (required), `status` (required: `approved|rejected`), `nota` (optional)
+    - `review` (pt-BR: `revisar`) - Reviewer-only. Options: `id` (required), `status` (required: `approved|rejected`), `nota` (optional)
       - Example: `/fanart review id:fa_123 status:approved nota:"great"`
 
 #### Economy (luazinhas)
 
-- `/luazinhas` — Balance and transfers.
+- `/luazinhas` - Balance and transfers.
   - Subcommands:
-    - `saldo` — Options: `usuario` (optional)
+    - `saldo` - Options: `usuario` (optional)
       - Example: `/luazinhas saldo`
-    - `transferir` — Options: `usuario` (required), `quantia` (required), `motivo` (optional)
+    - `transferir` - Options: `usuario` (required), `quantia` (required), `motivo` (optional)
       - Example: `/luazinhas transferir usuario:@User quantia:100 motivo:"gift"`
-    - `admin_add` — Owner-only. Options: `usuario` (required), `quantia` (required), `motivo` (optional)
-    - `admin_remove` — Owner-only. Options: `usuario` (required), `quantia` (required), `motivo` (optional)
+    - `admin_add` - Owner-only. Options: `usuario` (required), `quantia` (required), `motivo` (optional)
+    - `admin_remove` - Owner-only. Options: `usuario` (required), `quantia` (required), `motivo` (optional)
 
 #### Games (coinflip)
 
-- `/coinflip` — Heads or tails.
+- `/coinflip` - Heads or tails.
   - Subcommands:
-    - `flip` — No options.
+    - `flip` - No options.
       - Example: `/coinflip flip`
-    - `bet` — Options: `usuario` (required), `quantia` (required), `lado` (required: `heads|tails`)
+    - `bet` - Options: `usuario` (required), `quantia` (required), `lado` (required: `heads|tails`)
       - Example: `/coinflip bet usuario:@User quantia:250 lado:heads`
-    - `stats` — Options: `usuario` (optional)
+    - `stats` - Options: `usuario` (optional)
       - Example: `/coinflip stats usuario:@User`
-    - `info` — No options.
+    - `info` - No options.
 
 #### Waifu / Husbando / Marriage system
 
-- `/waifu` — Roll a waifu (claim via the button).
-- `/husbando` — Roll a husbando (claim via the button).
-- `/casar` — Roll a character (claim via the button).
+- `/waifu` - Roll a waifu (claim via the button).
+- `/husbando` - Roll a husbando (claim via the button).
+- `/casar` - Roll a character (claim via the button).
   - Options: `genero` (optional: `any|female|male`)
   - Example: `/casar genero:female`
-- `/marry` — Alias of `/casar` (same options).
-- `/reroll` — Reroll your last roll in the current channel (cooldown applies).
-- `/meuharem` — Show your harem.
+- `/marry` - Alias of `/casar` (same options).
+- `/reroll` - Reroll your last roll in the current channel (cooldown applies).
+- `/meuharem` - Show your harem.
   - Options: `pagina` (optional)
   - Example: `/meuharem pagina:2`
-- `/harem` — Alias of `/meuharem`.
-- `/divorciar` — Divorce a character from your harem.
+- `/harem` - Alias of `/meuharem`.
+- `/divorciar` - Divorce a character from your harem.
   - Options: `nome` (required)
   - Example: `/divorciar nome:"Asuna"`
-- `/divorce` — Alias of `/divorciar`.
-- `/infocasamento` — Show character info and who owns it in the server.
+- `/divorce` - Alias of `/divorciar`.
+- `/infocasamento` - Show character info and who owns it in the server.
   - Options: `nome` (required)
-- `/desejos` — Wishlist management.
+- `/desejos` - Wishlist management.
   - Subcommands: `adicionar`, `remover`, `listar`
   - Example: `/desejos adicionar nome:"Asuna"`
-- `/wishlist` — Alias of `/desejos`.
-- `/waifupontos` — Points system.
+- `/wishlist` - Alias of `/desejos`.
+- `/waifupontos` - Points system.
   - Subcommands: `meu`, `rank` (option: `pagina`)
 
 #### Authenticated messages (verification)
 
-- `/verificarmensagem` — Verify an authenticated message image.
+- `/verificarmensagem` - Verify an authenticated message image.
   - Subcommands:
-    - `url` — Options: `url` (required), `json` (optional)
-    - `arquivo` — Options: `arquivo` (required), `json` (optional)
+    - `url` - Options: `url` (required), `json` (optional)
+    - `arquivo` - Options: `arquivo` (required), `json` (optional)
 
 #### Context menu (right click a message)
 
 Available under `Apps` on the message context menu:
 
-- `Salvar mensagem (Enviar aqui)` — Generates a signed image of the message and replies in the channel.
-- `Salvar mensagem (Enviar na DM)` — Generates a signed image of the message and sends it to your DM.
+- `Salvar mensagem (Enviar aqui)` - Generates a signed image of the message and replies in the channel.
+- `Salvar mensagem (Enviar na DM)` - Generates a signed image of the message and sends it to your DM.
 
 #### Anime (AniList)
 
-- `/anime` — Search and recommendations.
+- `/anime` - Search and recommendations.
   - Subcommands:
-    - `search` (pt-BR: `buscar`) — Options: `titulo` (required), `tipo` (optional: `anime|manga`)
+    - `search` (pt-BR: `buscar`) - Options: `titulo` (required), `tipo` (optional: `anime|manga`)
       - Example: `/anime search titulo:"Fullmetal Alchemist" tipo:anime`
-    - `trending` — Options: `tipo` (optional: `anime|manga`), `quantidade` (optional, 1-10)
+    - `trending` - Options: `tipo` (optional: `anime|manga`), `quantidade` (optional, 1-10)
       - Example: `/anime trending tipo:anime quantidade:5`
-    - `recommend` (pt-BR: `recomendar`) — Options: `genero` (required), `tipo` (optional), `quantidade` (optional, 1-10)
+    - `recommend` (pt-BR: `recomendar`) - Options: `genero` (required), `tipo` (optional), `quantidade` (optional, 1-10)
       - Example: `/anime recommend genero:"Romance" tipo:anime quantidade:10`
   - Subcommand group `watchlist`:
-    - `add`/`remove`/`list` — Manage user watchlist
+    - `add`/`remove`/`list` - Manage user watchlist
       - Example: `/anime watchlist add titulo:"Frieren" tipo:anime`
-    - `dm` — Enable/disable reminders by DM
+    - `dm` - Enable/disable reminders by DM
       - Example: `/anime watchlist dm ativar:true`
-    - `channel-set`/`channel-clear` — Configure reminder channel for the current guild
+    - `channel-set`/`channel-clear` - Configure reminder channel for the current guild
 
 #### Shop / Inventory
 
-- `/loja` — Shop items using luazinhas.
+- `/loja` - Shop items using luazinhas.
   - Subcommands:
-    - `listar` — No options
+    - `listar` - No options
       - Example: `/loja listar`
-    - `comprar` — Options: `item_id` (required), `quantidade` (optional), `motivo` (optional)
+    - `comprar` - Options: `item_id` (required), `quantidade` (optional), `motivo` (optional)
       - Example: `/loja comprar item_id:<id> quantidade:1 motivo:"boost"`
-    - `admin_criar` — Admin-only. Create/enable shop items
-- `/inventario` — Manage inventory items.
+    - `admin_criar` - Admin-only. Create/enable shop items
+- `/inventario` - Manage inventory items.
   - Subcommands:
-    - `listar` — No options
+    - `listar` - No options
       - Example: `/inventario listar`
-    - `usar` — Options: `item_id` (required)
+    - `usar` - Options: `item_id` (required)
       - Example: `/inventario usar item_id:<id>`
 
 Bot internal API (used by the backend):
