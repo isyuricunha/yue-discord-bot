@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Lightbulb, Save } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, ErrorState, Select, Skeleton, Switch } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -170,10 +170,25 @@ export default function SuggestionsPage() {
           </div>
         </div>
 
-        <Button onClick={handle_save} isLoading={save_mutation.isPending} disabled={is_save_disabled} className="shrink-0">
-          <Save className="h-4 w-4" />
-          <span>Salvar</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-10"
+            onClick={() => {
+              refetch_channels()
+              refetch_config()
+              suggestions_query.refetch()
+            }}
+          >
+            Atualizar
+          </Button>
+
+          <Button onClick={handle_save} isLoading={save_mutation.isPending} disabled={is_save_disabled} className="shrink-0">
+            <Save className="h-4 w-4" />
+            <span>Salvar</span>
+          </Button>
+        </div>
       </div>
 
       {is_error && (
@@ -265,7 +280,10 @@ export default function SuggestionsPage() {
               onAction={() => suggestions_query.refetch()}
             />
           ) : all_suggestions.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nenhuma sugestão encontrada.</div>
+            <EmptyState
+              title="Nenhuma sugestão encontrada"
+              description={status_filter === 'pending' ? 'Ainda não há sugestões pendentes.' : status_filter === 'all' ? 'Ainda não há sugestões.' : 'Ainda não há sugestões nesse status.'}
+            />
           ) : (
             <div className="space-y-2">
               {all_suggestions.map((s) => (
