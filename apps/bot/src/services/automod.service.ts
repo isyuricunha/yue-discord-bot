@@ -7,6 +7,7 @@ import { EMOJIS, find_first_banned_word_match } from '@yuebot/shared';
 import { isShortUrl, expandUrl } from '../utils/urlExpander';
 import { getSendableChannel } from '../utils/discord';
 import { moderationLogService } from './moderationLog.service';
+import { WarnService } from './warnService'
 
 interface AutoModResult {
   violated: boolean;
@@ -362,7 +363,7 @@ export class AutoModService {
   }
 
   private async applyWarn(member: GuildMember, reason: string, metadata: Prisma.InputJsonValue): Promise<void> {
-    await prisma.guildMember.upsert({
+    const updated = await prisma.guildMember.upsert({
       where: {
         userId_guildId: {
           userId: member.id,
@@ -394,6 +395,9 @@ export class AutoModService {
         metadata,
       },
     });
+
+    const warn_service = new WarnService(member.client)
+    await warn_service.checkAndApplyThresholds(member.guild.id, member.id, updated.warnings)
   }
 
   private async applyMute(member: GuildMember, duration: string, reason: string, metadata: Prisma.InputJsonValue): Promise<void> {

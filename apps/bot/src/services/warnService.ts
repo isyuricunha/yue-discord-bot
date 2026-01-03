@@ -1,7 +1,7 @@
 import type { Client, GuildMember } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
-import { warnThresholdsSchema } from '@yuebot/shared'
+import { find_triggered_warn_threshold, warnThresholdsSchema } from '@yuebot/shared'
 import { moderationLogService } from './moderationLog.service'
 import { safe_error_details } from '../utils/safe_error'
 
@@ -52,7 +52,7 @@ export class WarnService {
       const thresholds = parsedThresholds.data
       
       // Encontrar threshold que foi atingido
-      const triggeredThreshold = thresholds.find(t => t.warns === currentWarns)
+      const triggeredThreshold = find_triggered_warn_threshold(thresholds, currentWarns)
       
       if (!triggeredThreshold) {
         return
@@ -68,16 +68,21 @@ export class WarnService {
       if (!member) return
 
       // Aplicar ação
+      let applied = false
       switch (triggeredThreshold.action) {
         case 'mute':
-          await this.applyMute(member, triggeredThreshold.duration || '1h')
+          applied = await this.applyMute(member, triggeredThreshold.duration || '1h')
           break
         case 'kick':
-          await this.applyKick(member)
+          applied = await this.applyKick(member)
           break
         case 'ban':
-          await this.applyBan(member)
+          applied = await this.applyBan(member)
           break
+      }
+
+      if (!applied) {
+        return
       }
 
       // Registrar no modlog
@@ -116,31 +121,37 @@ export class WarnService {
     }
   }
 
-  private async applyMute(member: GuildMember, duration: string) {
+  private async applyMute(member: GuildMember, duration: string): Promise<boolean> {
     try {
       const duration_ms = this.parse_duration(duration) ?? 3_600_000
       await member.timeout(duration_ms, '[AutoMod] Threshold de warns atingido')
       logger.info(`Timeout aplicado para ${member.id} por ${duration}`)
+      return true
     } catch (error) {
       logger.error({ err: safe_error_details(error) }, 'Erro ao aplicar timeout')
+      return false
     }
   }
 
-  private async applyKick(member: GuildMember) {
+  private async applyKick(member: GuildMember): Promise<boolean> {
     try {
       await member.kick('[AutoMod] Threshold de warns atingido')
       logger.info(`Kick aplicado para ${member.id}`)
+      return true
     } catch (error) {
       logger.error({ err: safe_error_details(error) }, 'Erro ao aplicar kick')
+      return false
     }
   }
 
-  private async applyBan(member: GuildMember) {
+  private async applyBan(member: GuildMember): Promise<boolean> {
     try {
       await member.ban({ reason: '[AutoMod] Threshold de warns atingido' })
       logger.info(`Ban aplicado para ${member.id}`)
+      return true
     } catch (error) {
       logger.error({ err: safe_error_details(error) }, 'Erro ao aplicar ban')
+      return false
     }
   }
 }
