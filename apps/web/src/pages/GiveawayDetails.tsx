@@ -4,7 +4,7 @@ import axios from 'axios'
 import { ArrowLeft, Trophy, Calendar, Users, CheckCircle, Download } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Skeleton } from '../components/ui'
 
 const API_URL = getApiUrl()
 
@@ -50,15 +50,21 @@ export default function GiveawayDetailsPage() {
   const { guildId, giveawayId } = useParams()
   const navigate = useNavigate()
 
-  const { data, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError,
+    refetch,
+    error,
+  } = useQuery({
     queryKey: ['giveaway', guildId, giveawayId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds/${guildId}/giveaways/${giveawayId}`)
-      return response.data
+      return response.data as { success: boolean; giveaway: Giveaway }
     },
   })
 
-  const giveaway = data?.giveaway as Giveaway | undefined
+  const giveaway = data?.giveaway
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -97,7 +103,13 @@ export default function GiveawayDetailsPage() {
         )}
       </div>
 
-      {isLoading ? (
+      {isError ? (
+        <ErrorState
+          title="Erro ao carregar sorteio"
+          description={(error as any)?.response?.data?.error || 'Não foi possível buscar os detalhes do sorteio.'}
+          onAction={() => void refetch()}
+        />
+      ) : isLoading ? (
         <div className="space-y-4">
           <Card>
             <CardContent className="p-6">

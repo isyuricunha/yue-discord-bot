@@ -384,7 +384,7 @@ export default function ModLogsPage() {
 
                 <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
                   <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
-                  <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
+                  <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
 {JSON.stringify(
   {
     content: '',
@@ -437,57 +437,35 @@ export default function ModLogsPage() {
             </div>
           </div>
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              size="sm"
-              variant={actionFilter === 'all' ? 'solid' : 'outline'}
-              onClick={() => {
-                setActionFilter('all')
+          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">
+            <Select
+              value={actionFilter}
+              onValueChange={(value) => {
+                setActionFilter(value)
                 setPage(1)
               }}
             >
-              Todas ({logs.length})
-            </Button>
-            <Button
-              size="sm"
-              variant={actionFilter === 'ban' ? 'solid' : 'outline'}
-              onClick={() => {
-                setActionFilter('ban')
-                setPage(1)
-              }}
-            >
-              Ban ({logs.filter((l: ModLog) => l.action.toLowerCase() === 'ban').length})
-            </Button>
-            <Button
-              size="sm"
-              variant={actionFilter === 'kick' ? 'solid' : 'outline'}
-              onClick={() => {
-                setActionFilter('kick')
-                setPage(1)
-              }}
-            >
-              Kick ({logs.filter((l: ModLog) => l.action.toLowerCase() === 'kick').length})
-            </Button>
-            <Button
-              size="sm"
-              variant={actionFilter === 'mute' ? 'solid' : 'outline'}
-              onClick={() => {
-                setActionFilter('mute')
-                setPage(1)
-              }}
-            >
-              Mute ({logs.filter((l: ModLog) => l.action.toLowerCase() === 'mute').length})
-            </Button>
-            <Button
-              size="sm"
-              variant={actionFilter === 'warn' ? 'solid' : 'outline'}
-              onClick={() => {
-                setActionFilter('warn')
-                setPage(1)
-              }}
-            >
-              Warn ({logs.filter((l: ModLog) => l.action.toLowerCase() === 'warn').length})
-            </Button>
+              <option value="all">Todas as ações</option>
+              <option value="ban">Ban</option>
+              <option value="kick">Kick</option>
+              <option value="mute">Mute</option>
+              <option value="warn">Warn</option>
+            </Select>
+
+            {(searchTerm || actionFilter !== 'all') && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setSearchTerm('')
+                  setActionFilter('all')
+                  setPage(1)
+                }}
+                className="h-10"
+              >
+                Limpar
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>

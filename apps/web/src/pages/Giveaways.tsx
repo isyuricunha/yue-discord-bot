@@ -4,7 +4,7 @@ import axios from 'axios'
 import { Trophy, Calendar, Users, CheckCircle, Clock, Plus } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, Select, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -80,7 +80,12 @@ export default function GiveawaysPage() {
     },
   })
 
-  const { data, isLoading } = useQuery({
+  const {
+    data,
+    isLoading,
+    isError: is_giveaways_error,
+    refetch: refetch_giveaways,
+  } = useQuery({
     queryKey: ['giveaways', guildId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds/${guildId}/giveaways`)
@@ -167,7 +172,13 @@ export default function GiveawaysPage() {
         </CardContent>
       </Card>
 
-      {isLoading ? (
+      {is_giveaways_error ? (
+        <ErrorState
+          title="Erro ao carregar sorteios"
+          description="Não foi possível buscar a lista de sorteios."
+          onAction={() => void refetch_giveaways()}
+        />
+      ) : isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           {Array.from({ length: 4 }).map((_, i) => (
             <Card key={i}>
