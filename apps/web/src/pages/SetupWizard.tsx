@@ -305,7 +305,7 @@ export default function SetupWizardPage() {
         axios.put(`${API_URL}/api/guilds/${guildId}/modlog-config`, {
           modLogChannelId: automod_modlog_channel_id || null,
         }),
-        axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
+        axios.put(`${API_URL}/api/guilds/${guildId}/automod-config`, {
           linkFilterEnabled: automod_link_enabled,
           linkBlockAll: automod_link_block_all,
           linkAction: automod_link_action,

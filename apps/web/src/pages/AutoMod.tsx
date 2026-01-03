@@ -53,7 +53,6 @@ interface GuildConfig {
   bannedDomains: string[]
   allowedDomains: string[]
   linkAction: string
-  modLogChannelId: string | null
 }
 
 export default function AutoModPage() {
@@ -73,10 +72,10 @@ export default function AutoModPage() {
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['guild', guildId],
+    queryKey: ['automod-config', guildId],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
-      const initialConfig = response.data.guild.config || {
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/automod-config`)
+      const initialConfig = response.data.config || {
         wordFilterEnabled: false,
         bannedWords: [],
         capsEnabled: false,
@@ -90,16 +89,16 @@ export default function AutoModPage() {
         linkAction: 'delete',
       }
       setConfig(initialConfig)
-      return response.data.guild
+      return response.data
     },
   })
 
   const mutation = useMutation({
     mutationFn: async (data: Partial<GuildConfig>) => {
-      await axios.put(`${API_URL}/api/guilds/${guildId}/config`, data)
+      await axios.put(`${API_URL}/api/guilds/${guildId}/automod-config`, data)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      queryClient.invalidateQueries({ queryKey: ['automod-config', guildId] })
       toast_success('Configurações salvas com sucesso!')
     },
     onError: (error: any) => {
