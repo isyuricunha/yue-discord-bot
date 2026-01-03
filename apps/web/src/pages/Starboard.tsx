@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Save, Star } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -171,10 +171,25 @@ export default function StarboardPage() {
           </div>
         </div>
 
-        <Button onClick={handle_save} isLoading={save_mutation.isPending} disabled={is_save_disabled} className="shrink-0">
-          <Save className="h-4 w-4" />
-          <span>Salvar</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-10"
+            onClick={() => {
+              refetch_channels()
+              refetch_config()
+              posts_query.refetch()
+            }}
+          >
+            Atualizar
+          </Button>
+
+          <Button onClick={handle_save} isLoading={save_mutation.isPending} disabled={is_save_disabled} className="shrink-0">
+            <Save className="h-4 w-4" />
+            <span>Salvar</span>
+          </Button>
+        </div>
       </div>
 
       {is_error && (
@@ -272,7 +287,7 @@ export default function StarboardPage() {
               onAction={() => posts_query.refetch()}
             />
           ) : all_posts.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nenhum post ainda.</div>
+            <EmptyState title="Nenhum post ainda" description="Mensagens que entrarem no starboard aparecerão aqui." />
           ) : (
             <div className="space-y-2">
               {all_posts.map((p) => (
