@@ -3,7 +3,7 @@ import { prisma } from '@yuebot/database';
 import type { GuildConfig } from '@yuebot/database';
 import type { Prisma } from '@yuebot/database';
 import { logger } from '../utils/logger';
-import { EMOJIS } from '@yuebot/shared';
+import { EMOJIS, find_first_banned_word_match } from '@yuebot/shared';
 import { isShortUrl, expandUrl } from '../utils/urlExpander';
 import { getSendableChannel } from '../utils/discord';
 import { moderationLogService } from './moderationLog.service';
@@ -140,22 +140,18 @@ export class AutoModService {
 
   private checkBannedWords(content: string, config: GuildConfig): AutoModResult {
     const bannedWords = config.bannedWords as Array<{ word: string; action: string }>;
-    const lowerContent = content.toLowerCase();
 
-    for (const entry of bannedWords) {
-      const word = entry.word.toLowerCase();
-      
-      // Verificar se a palavra está presente
-      if (lowerContent.includes(word)) {
-        return {
-          violated: true,
-          reason: `Palavra proibida detectada: "${entry.word}"`,
-          action: entry.action,
-          rule: 'word',
-          details: {
-            word: entry.word,
-          } satisfies Prisma.InputJsonObject,
-        };
+    const match = find_first_banned_word_match(content, bannedWords)
+    if (match) {
+      return {
+        violated: true,
+        reason: `Palavra proibida detectada: "${match.entry.word}"`,
+        action: match.entry.action,
+        rule: 'word',
+        details: {
+          word: match.entry.word,
+          matchKind: match.match_kind,
+        } satisfies Prisma.InputJsonObject,
       }
     }
 
