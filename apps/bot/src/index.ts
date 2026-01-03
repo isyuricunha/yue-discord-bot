@@ -5,6 +5,7 @@ import { prisma } from '@yuebot/database';
 import { GiveawayScheduler } from './services/giveawayScheduler';
 import { WarnExpirationService } from './services/warnExpirationService';
 import { AutoroleScheduler } from './services/autoroleScheduler';
+import { ScheduledEventScheduler } from './services/scheduledEventScheduler';
 import { initModerationPersistenceService } from './services/moderationPersistence.service';
 import { initPunishmentRoleService } from './services/punishmentRole.service';
 import type { Command, ContextMenuCommand } from './commands';
@@ -130,6 +131,10 @@ client.once('ready', async () => {
   // Iniciar scheduler de autorole
   const autoroleScheduler = new AutoroleScheduler(client);
   autoroleScheduler.start();
+
+  // Iniciar scheduler de eventos agendados
+  const scheduledEventScheduler = new ScheduledEventScheduler(client)
+  scheduledEventScheduler.start()
 });
 
 // Event: Guild create (bot joins server)
