@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { LifeBuoy, Save, Trash2, RefreshCcw } from 'lucide-react'
+import { LifeBuoy, Save, Trash2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch } from '../components/ui'
