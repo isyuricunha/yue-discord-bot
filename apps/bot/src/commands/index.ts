@@ -73,6 +73,9 @@ export async function loadCommands(client: Client): Promise<void> {
   // Authenticated message commands
   const { verifyMessageCommand } = await import('./authenticated/verify_message');
 
+  // Anime commands
+  const { animeCommand } = await import('./anime')
+
   // Economy commands
   const { luazinhasCommand } = await import('./luazinhas');
   const { lojaCommand } = await import('./loja')
@@ -123,6 +126,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(badgesCommand.data.name, badgesCommand);
   commands.set(fanartCommand.data.name, { data: fanartCommand.data, execute: fanartCommand.execute });
   commands.set(verifyMessageCommand.data.name, verifyMessageCommand);
+  commands.set(animeCommand.data.name, animeCommand)
   commands.set(luazinhasCommand.data.name, luazinhasCommand);
   commands.set(lojaCommand.data.name, lojaCommand)
   commands.set(inventarioCommand.data.name, inventarioCommand)
