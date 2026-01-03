@@ -30,6 +30,7 @@ import AutorolePage from './pages/Autorole'
 import TicketsPage from './pages/Tickets'
 import SetupWizardPage from './pages/SetupWizard'
 import SuggestionsPage from './pages/Suggestions'
+import ReactionRolesPage from './pages/ReactionRoles'
 import BadgesPage from './pages/Badges'
 import FanArtsPage from './pages/FanArts'
 import EconomyPage from './pages/Economy'
@@ -104,6 +105,7 @@ function App() {
           <Route path="/guild/:guildId/autorole" element={<AutorolePage />} />
           <Route path="/guild/:guildId/tickets" element={<TicketsPage />} />
           <Route path="/guild/:guildId/suggestions" element={<SuggestionsPage />} />
+          <Route path="/guild/:guildId/reaction-roles" element={<ReactionRolesPage />} />
           <Route path="/guild/:guildId/setup" element={<SetupWizardPage />} />
           <Route path="/guild/:guildId/moderation" element={<ModerationPage />} />
           <Route path="/guild/:guildId/welcome" element={<WelcomePage />} />
