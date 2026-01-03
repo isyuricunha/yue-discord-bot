@@ -125,6 +125,35 @@ Note:
   - Options: `mensagem` (required; plain text or JSON `{ "content": "...", "embeds": [...] }`), `canal` (optional)
   - Example (text): `/say mensagem:"Hello!" canal:#announcements`
   - Example (JSON): `/say mensagem:"{\"content\":\"Hello\"}"`
+- `/ticket` — Configure the tickets system.
+  - Requires: Manage Server
+  - Subcommands:
+    - `setup` — Options: `canal` (required), `categoria` (optional), `log` (optional), `cargo_suporte` (optional), `ativar` (optional)
+      - Example: `/ticket setup canal:#tickets categoria:"Suporte" log:#logs cargo_suporte:@Suporte ativar:true`
+- `/config` — Configure server modules.
+  - Requires: Manage Server
+  - Subcommand groups:
+    - `channels` — Set/clear channels (modlog, welcome, leave, announcement, giveaway)
+      - Example: `/config channels modlog canal:#modlog`
+    - `templates` — Set/clear templates (welcome, leave, modlog)
+      - Example: `/config templates welcome template:"Bem-vindo {user.mention}!"`
+    - `automod` — Configure filters (words, links, caps, domains, warn thresholds)
+      - Example: `/config automod link ativar:true block_all:false acao:delete`
+    - `xp` — Configure XP enablement and parameters
+      - Example: `/config xp enabled ativar:true`
+- `/reactionroles` — Manage reaction-roles panels.
+  - Requires: Manage Server
+  - Subcommands: `create`, `list`, `show`, `publish`, `delete`, `add-item`, `remove-item`, `set`, `sync`
+  - Example (create): `/reactionroles create name:"Cargos" role:@Cargo mode:multiple enabled:true`
+  - Example (publish): `/reactionroles publish panel_id:<id> channel:#cargos`
+- `/evento` — Server events and reminders.
+  - Requires: Manage Server
+  - Subcommands:
+    - `criar` — Options: `titulo` (required), `data_hora` (required), `canal` (required), `descricao` (optional)
+      - Example: `/evento criar titulo:"Movie Night" data_hora:"2026-01-03 20:00" canal:#anuncios descricao:"Sessão do filme"`
+    - `listar` — No options
+      - Example: `/evento listar`
+    - `cancelar` — Options: `event_id` (required)
 
 #### Giveaways
 
@@ -242,6 +271,39 @@ Available under `Apps` on the message context menu:
 - `Salvar mensagem (Enviar aqui)` — Generates a signed image of the message and replies in the channel.
 - `Salvar mensagem (Enviar na DM)` — Generates a signed image of the message and sends it to your DM.
 
+#### Anime (AniList)
+
+- `/anime` — Search and recommendations.
+  - Subcommands:
+    - `search` (pt-BR: `buscar`) — Options: `titulo` (required), `tipo` (optional: `anime|manga`)
+      - Example: `/anime search titulo:"Fullmetal Alchemist" tipo:anime`
+    - `trending` — Options: `tipo` (optional: `anime|manga`), `quantidade` (optional, 1-10)
+      - Example: `/anime trending tipo:anime quantidade:5`
+    - `recommend` (pt-BR: `recomendar`) — Options: `genero` (required), `tipo` (optional), `quantidade` (optional, 1-10)
+      - Example: `/anime recommend genero:"Romance" tipo:anime quantidade:10`
+  - Subcommand group `watchlist`:
+    - `add`/`remove`/`list` — Manage user watchlist
+      - Example: `/anime watchlist add titulo:"Frieren" tipo:anime`
+    - `dm` — Enable/disable reminders by DM
+      - Example: `/anime watchlist dm ativar:true`
+    - `channel-set`/`channel-clear` — Configure reminder channel for the current guild
+
+#### Shop / Inventory
+
+- `/loja` — Shop items using luazinhas.
+  - Subcommands:
+    - `listar` — No options
+      - Example: `/loja listar`
+    - `comprar` — Options: `item_id` (required), `quantidade` (optional), `motivo` (optional)
+      - Example: `/loja comprar item_id:<id> quantidade:1 motivo:"boost"`
+    - `admin_criar` — Admin-only. Create/enable shop items
+- `/inventario` — Manage inventory items.
+  - Subcommands:
+    - `listar` — No options
+      - Example: `/inventario listar`
+    - `usar` — Options: `item_id` (required)
+      - Example: `/inventario usar item_id:<id>`
+
 Bot internal API (used by the backend):
 
 - Auth: `Authorization: Bearer ${INTERNAL_API_SECRET}`
@@ -327,6 +389,21 @@ The schema covers guild configuration, moderation logs, giveaways, XP (guild + g
 - CORS is **allowlist-based**.
 - State-changing requests authenticated by cookie enforce `Origin` checks to mitigate CSRF when needed.
 - Production error responses avoid exposing validation details.
+
+### Security best practices
+
+- Treat all of these as secrets: `DISCORD_TOKEN`, `DISCORD_CLIENT_SECRET`, `JWT_SECRET`, `INTERNAL_API_SECRET`, database credentials.
+- Never commit secrets to git. Use `.env` / `.env.local` (already gitignored) or a secret manager in production.
+- Use long random values (32+ chars) for `JWT_SECRET` and `INTERNAL_API_SECRET` and rotate them if they leak.
+- Restrict internal services:
+  - Prefer running the internal bot API on the same private network as the API (Docker network / localhost).
+  - Do not expose the bot internal API to the public internet.
+- Use least privilege:
+  - Keep allowlists (`OWNER_USER_IDS`, `FAN_ART_REVIEWER_USER_IDS`, etc.) as small as possible.
+  - Run the bot with only the Discord permissions it needs.
+- Use HTTPS in production:
+  - Set `COOKIE_SECURE=true` when serving over HTTPS, especially if using `SameSite=None`.
+  - Keep `CORS_ORIGINS` strict and avoid `*`.
 
 ## Production deployment notes
 
