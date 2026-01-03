@@ -17,6 +17,7 @@ import GuildPage from './pages/Guild'
 import OverviewPage from './pages/Overview'
 import AutoModPage from './pages/AutoMod'
 import ModLogsPage from './pages/ModLogs'
+import AuditLogsPage from './pages/AuditLogs'
 import MembersPage from './pages/Members'
 import MemberDetailsPage from './pages/MemberDetails'
 import GiveawaysPage from './pages/Giveaways'
@@ -97,6 +98,7 @@ function App() {
           <Route path="/guild/:guildId/overview" element={<OverviewPage />} />
           <Route path="/guild/:guildId/automod" element={<AutoModPage />} />
           <Route path="/guild/:guildId/modlogs" element={<ModLogsPage />} />
+          <Route path="/guild/:guildId/audit" element={<AuditLogsPage />} />
           <Route path="/guild/:guildId/members" element={<MembersPage />} />
           <Route path="/guild/:guildId/members/:userId" element={<MemberDetailsPage />} />
           <Route path="/guild/:guildId/giveaways" element={<GiveawaysPage />} />

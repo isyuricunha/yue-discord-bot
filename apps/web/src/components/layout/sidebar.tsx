@@ -12,6 +12,7 @@ import {
   Swords,
   Shield,
   FileText,
+  ClipboardList,
   Users,
   Trophy,
   Sparkles,
@@ -123,6 +124,11 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
             to: `/guild/${guildId}/modlogs`,
             label: 'Logs',
             icon: <FileText className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/audit`,
+            label: 'Audit',
+            icon: <ClipboardList className="h-4 w-4" />,
           },
           {
             to: `/guild/${guildId}/members`,
