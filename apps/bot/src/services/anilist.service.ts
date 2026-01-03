@@ -8,6 +8,7 @@ export type anilist_character = {
     full: string | null
     native: string | null
   }
+
   image: {
     large: string | null
   }
@@ -34,6 +35,32 @@ export type anilist_anime = {
   status: string | null
   seasonYear: number | null
   format: string | null
+}
+
+export type anilist_manga = {
+  id: number
+  title: {
+    romaji: string | null
+    english: string | null
+    native: string | null
+  }
+  coverImage: {
+    extraLarge: string | null
+    large: string | null
+  }
+  description: string | null
+  siteUrl: string | null
+  genres: string[]
+  averageScore: number | null
+  chapters: number | null
+  status: string | null
+  seasonYear: number | null
+  format: string | null
+}
+
+export type anilist_next_airing_episode = {
+  airingAt: number
+  episode: number
 }
 
 type anilist_graphql_response<T> = {
@@ -97,6 +124,119 @@ export class AniListService {
     const per_page = Math.min(25, Math.max(1, input.perPage ?? 10))
 
     const data = await anilist_graphql<{ Page: { media: anilist_anime[] } }>(query, {
+      search: input.title,
+      page: 1,
+      perPage: per_page,
+    })
+
+    return data.Page.media
+  }
+
+  async trending_manga(input: { perPage?: number }): Promise<anilist_manga[]> {
+    const query = `
+      query ($page: Int, $perPage: Int) {
+        Page(page: $page, perPage: $perPage) {
+          media(type: MANGA, sort: TRENDING_DESC) {
+            id
+            title { romaji english native }
+            coverImage { extraLarge large }
+            description
+            siteUrl
+            genres
+            averageScore
+            chapters
+            status
+            seasonYear
+            format
+          }
+        }
+      }
+    `
+
+    const per_page = Math.min(25, Math.max(1, input.perPage ?? 10))
+
+    const data = await anilist_graphql<{ Page: { media: anilist_manga[] } }>(query, {
+      page: 1,
+      perPage: per_page,
+    })
+
+    return data.Page.media
+  }
+
+  async recommend_manga_by_genre(input: { genre: string; perPage?: number }): Promise<anilist_manga[]> {
+    const query = `
+      query ($page: Int, $perPage: Int, $genres: [String]) {
+        Page(page: $page, perPage: $perPage) {
+          media(type: MANGA, genre_in: $genres, sort: SCORE_DESC) {
+            id
+            title { romaji english native }
+            coverImage { extraLarge large }
+            description
+            siteUrl
+            genres
+            averageScore
+            chapters
+            status
+            seasonYear
+            format
+          }
+        }
+      }
+    `
+
+    const per_page = Math.min(25, Math.max(1, input.perPage ?? 10))
+    const genre = input.genre.trim()
+
+    const data = await anilist_graphql<{ Page: { media: anilist_manga[] } }>(query, {
+      page: 1,
+      perPage: per_page,
+      genres: [genre],
+    })
+
+    return data.Page.media
+  }
+
+  async get_anime_next_airing_episode(input: { animeId: number }): Promise<anilist_next_airing_episode | null> {
+    const query = `
+      query ($id: Int) {
+        Media(id: $id, type: ANIME) {
+          id
+          nextAiringEpisode { airingAt episode }
+        }
+      }
+    `
+
+    const data = await anilist_graphql<{
+      Media: { id: number; nextAiringEpisode: anilist_next_airing_episode | null } | null
+    }>(query, { id: input.animeId })
+
+    return data.Media?.nextAiringEpisode ?? null
+  }
+
+  async search_manga_by_title(input: { title: string; perPage?: number }): Promise<anilist_manga[]> {
+    const query = `
+      query ($search: String, $page: Int, $perPage: Int) {
+        Page(page: $page, perPage: $perPage) {
+          media(search: $search, type: MANGA, sort: POPULARITY_DESC) {
+            id
+            title { romaji english native }
+            coverImage { extraLarge large }
+            description
+            siteUrl
+            genres
+            averageScore
+            chapters
+            status
+            seasonYear
+            format
+          }
+        }
+      }
+    `
+
+    const per_page = Math.min(25, Math.max(1, input.perPage ?? 10))
+
+    const data = await anilist_graphql<{ Page: { media: anilist_manga[] } }>(query, {
       search: input.title,
       page: 1,
       perPage: per_page,
