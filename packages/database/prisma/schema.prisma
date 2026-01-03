@@ -38,6 +38,8 @@ model Guild {
 
   reactionRolePanels ReactionRolePanel[]
 
+  scheduledEvents ScheduledEvent[]
+
   starboardConfig StarboardConfig?
   starboardPosts  StarboardPost[]
   
@@ -226,6 +228,39 @@ model GiveawayWinner {
   
   @@index([giveawayId])
   @@map("giveaway_winners")
+}
+
+model ScheduledEvent {
+  id String @id @default(cuid())
+
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  channelId String
+  creatorId String
+
+  title       String
+  description String? @db.Text
+
+  startsAt DateTime
+
+  ended     Boolean @default(false)
+  cancelled Boolean @default(false)
+
+  reminder24hSent Boolean @default(false)
+  reminder1hSent  Boolean @default(false)
+  reminder10mSent Boolean @default(false)
+
+  reminder24hAt DateTime?
+  reminder1hAt  DateTime?
+  reminder10mAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([guildId, startsAt])
+  @@index([guildId, ended, cancelled, startsAt])
+  @@map("scheduled_events")
 }
 
 model OwnerActionLog {
