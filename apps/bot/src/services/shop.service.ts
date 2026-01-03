@@ -16,7 +16,6 @@ export type shop_purchase_result =
         | 'item_disabled'
         | 'insufficient_funds'
         | 'invalid_price'
-        | 'not_stackable'
     }
 
 type tx_client = Prisma.TransactionClient
@@ -48,6 +47,10 @@ async function with_serializable_retry<T>(fn: (tx: tx_client) => Promise<T>, max
 function normalize_quantity(input: number): number {
   if (!Number.isFinite(input)) return 0
   return Math.max(0, Math.floor(input))
+}
+
+function clamp_quantity(input: number): number {
+  return Math.min(Math.max(input, 0), 50)
 }
 
 export class ShopService {
@@ -93,7 +96,7 @@ export class ShopService {
     quantity: number
     reason?: string | null
   }): Promise<shop_purchase_result> {
-    const quantity = normalize_quantity(input.quantity)
+    const quantity = clamp_quantity(normalize_quantity(input.quantity))
     if (quantity <= 0) return { success: false as const, error: 'invalid_quantity' }
 
     return await with_serializable_retry(async (tx) => {
@@ -121,10 +124,6 @@ export class ShopService {
       if (!item) return { success: false as const, error: 'item_not_found' }
       if (!item.enabled) return { success: false as const, error: 'item_disabled' }
       if (item.price < 0n) return { success: false as const, error: 'invalid_price' }
-
-      if (!item.stackable && quantity !== 1) {
-        return { success: false as const, error: 'not_stackable' }
-      }
 
       // Ensure wallet exists
       const wallet = await tx.wallet.upsert({
