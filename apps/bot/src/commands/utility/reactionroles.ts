@@ -4,7 +4,7 @@ import {
   PermissionFlagsBits,
   SlashCommandBuilder,
 } from 'discord.js'
-import type { ChatInputCommandInteraction } from 'discord.js'
+import type { AutocompleteInteraction, ChatInputCommandInteraction } from 'discord.js'
 
 import { prisma } from '@yuebot/database'
 import { COLORS, EMOJIS } from '@yuebot/shared'
@@ -25,6 +25,10 @@ function normalize_optional_string(input: string | null | undefined): string | n
 
 function clamp_string(input: string, max_len: number): string {
   return input.length > max_len ? input.slice(0, max_len) : input
+}
+
+function clamp_autocomplete_name(input: string): string {
+  return clamp_string(input, 100)
 }
 
 function must_be_in_guild(interaction: ChatInputCommandInteraction): interaction is ChatInputCommandInteraction & { guild: NonNullable<ChatInputCommandInteraction['guild']> } {
@@ -103,6 +107,7 @@ export const reactionrolesCommand: Command = {
             .setName('panel_id')
             .setDescription('ID do painel')
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand((sub) =>
@@ -114,6 +119,7 @@ export const reactionrolesCommand: Command = {
             .setName('panel_id')
             .setDescription('ID do painel')
             .setRequired(true)
+            .setAutocomplete(true)
         )
         .addChannelOption((opt) =>
           opt
@@ -132,6 +138,7 @@ export const reactionrolesCommand: Command = {
             .setName('panel_id')
             .setDescription('ID do painel')
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand((sub) =>
@@ -143,6 +150,7 @@ export const reactionrolesCommand: Command = {
             .setName('panel_id')
             .setDescription('ID do painel')
             .setRequired(true)
+            .setAutocomplete(true)
         )
         .addRoleOption((opt) =>
           opt
@@ -174,6 +182,7 @@ export const reactionrolesCommand: Command = {
             .setName('panel_id')
             .setDescription('ID do painel')
             .setRequired(true)
+            .setAutocomplete(true)
         )
         .addRoleOption((opt) =>
           opt
@@ -191,6 +200,7 @@ export const reactionrolesCommand: Command = {
             .setName('panel_id')
             .setDescription('ID do painel')
             .setRequired(true)
+            .setAutocomplete(true)
         )
         .addStringOption((opt) =>
           opt
@@ -215,7 +225,58 @@ export const reactionrolesCommand: Command = {
               { name: 'single', value: 'single' }
             )
         )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('sync')
+        .setDescription('Re-sincronizar a mensagem já publicada (re-render + reações)')
+        .addStringOption((opt) =>
+          opt
+            .setName('panel_id')
+            .setDescription('ID do painel')
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
     ),
+
+  async autocomplete(interaction: AutocompleteInteraction) {
+    if (!interaction.guildId) {
+      await interaction.respond([])
+      return
+    }
+
+    const focused = interaction.options.getFocused(true)
+    if (focused.name !== 'panel_id') {
+      await interaction.respond([])
+      return
+    }
+
+    const query = typeof focused.value === 'string' ? focused.value.trim() : ''
+    const where =
+      query.length > 0
+        ? {
+            guildId: interaction.guildId,
+            OR: [
+              { id: { contains: query } },
+              { name: { contains: query, mode: 'insensitive' as const } },
+            ],
+          }
+        : { guildId: interaction.guildId }
+
+    const panels = await prisma.reactionRolePanel.findMany({
+      where,
+      orderBy: { createdAt: 'desc' },
+      take: 25,
+      select: { id: true, name: true },
+    })
+
+    await interaction.respond(
+      panels.map((p) => ({
+        name: clamp_autocomplete_name(`${p.name} — ${p.id}`),
+        value: p.id,
+      }))
+    )
+  },
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!must_be_in_guild(interaction)) {
@@ -487,6 +548,45 @@ export const reactionrolesCommand: Command = {
       })
 
       await interaction.editReply({ content: `${EMOJIS.SUCCESS} Painel atualizado: \`${panel_id}\`` })
+      return
+    }
+
+    if (sub === 'sync') {
+      await interaction.deferReply({ ephemeral: true })
+
+      const panel = await prisma.reactionRolePanel.findUnique({
+        where: { id: panel_id },
+        select: { id: true, guildId: true, channelId: true, messageId: true },
+      })
+
+      if (!panel || panel.guildId !== interaction.guild.id) {
+        await interaction.editReply({ content: `${EMOJIS.ERROR} Painel não encontrado.` })
+        return
+      }
+
+      if (!panel.channelId) {
+        await interaction.editReply({ content: `${EMOJIS.ERROR} Este painel ainda não foi publicado. Use /reactionroles publish.` })
+        return
+      }
+
+      const ensured = await reactionRoleService.ensure_panel_message(
+        interaction.guild,
+        panel.id,
+        panel.channelId,
+        panel.messageId ?? null
+      )
+
+      await prisma.reactionRolePanel.update({
+        where: { id: panel.id },
+        data: { messageId: ensured.messageId },
+      })
+
+      const embed = new EmbedBuilder()
+        .setColor(COLORS.SUCCESS)
+        .setTitle(`${EMOJIS.SUCCESS} Painel sincronizado`)
+        .setDescription(`Canal: <#${panel.channelId}>\nMensagem: \`${ensured.messageId}\``)
+
+      await interaction.editReply({ embeds: [embed] })
       return
     }
 

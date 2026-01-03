@@ -1,5 +1,6 @@
 import { Collection, SlashCommandBuilder } from 'discord.js';
 import type {
+  AutocompleteInteraction,
   ChatInputCommandInteraction,
   Client,
   MessageContextMenuCommandInteraction,
@@ -16,6 +17,7 @@ type command_data =
 export interface Command {
   data: command_data;
   execute: (interaction: ChatInputCommandInteraction) => Promise<unknown>;
+  autocomplete?: (interaction: AutocompleteInteraction) => Promise<unknown>;
 }
 
 type context_menu_command_data = {

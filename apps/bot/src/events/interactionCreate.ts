@@ -4,6 +4,20 @@ import { EMOJIS } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
 
 export async function handleInteractionCreate(interaction: Interaction) {
+  // Handle autocomplete
+  if (interaction.isAutocomplete()) {
+    const command = interaction.client.commands.get(interaction.commandName)
+    if (!command?.autocomplete) return
+
+    try {
+      await command.autocomplete(interaction)
+    } catch (error) {
+      logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao executar autocomplete')
+    }
+
+    return
+  }
+
   // Handle slash commands
   if (interaction.isChatInputCommand()) {
     const command = interaction.client.commands.get(interaction.commandName);
