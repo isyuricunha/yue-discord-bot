@@ -21,6 +21,14 @@ type audit_row = {
   createdAt: string
 }
 
+type audit_logs_response = {
+  success: boolean
+  logs: audit_row[]
+  total: number
+  limit?: number
+  offset?: number
+}
+
 function format_ts_iso(iso: string) {
   const d = new Date(iso)
   if (Number.isNaN(d.getTime())) return iso
@@ -47,7 +55,7 @@ export default function AuditLogsPage() {
           limit: 200,
         },
       })
-      return res.data as { logs: audit_row[]; total: number }
+      return res.data as audit_logs_response
     },
   })
 
@@ -164,7 +172,7 @@ export default function AuditLogsPage() {
                   </div>
 
                   {l.data ? (
-                    <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl border border-border/60 bg-surface/60 p-3 text-xs text-foreground">
+                    <pre className="mt-3 whitespace-pre-wrap wrap-break-word rounded-xl border border-border/60 bg-surface/60 p-3 text-xs text-foreground">
                       {JSON.stringify(l.data, null, 2)}
                     </pre>
                   ) : null}
