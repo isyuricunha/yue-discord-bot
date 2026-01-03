@@ -48,8 +48,15 @@ model Guild {
   starboardPosts  StarboardPost[]
 
   auditLogs AuditLog[]
+
+  commandOverrides GuildCommandOverride[]
   
   @@map("guilds")
+}
+
+enum GuildCommandType {
+  slash
+  context
 }
 
 // Configurações do Servidor
@@ -110,6 +117,24 @@ model GuildConfig {
   updatedAt DateTime @updatedAt
   
   @@map("guild_configs")
+}
+
+model GuildCommandOverride {
+  id String @id @default(cuid())
+
+  guildId String
+  guild   Guild @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  commandType GuildCommandType
+  commandName String
+  enabled     Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([guildId, commandType, commandName])
+  @@index([guildId])
+  @@map("guild_command_overrides")
 }
 
 // Membro do Servidor
