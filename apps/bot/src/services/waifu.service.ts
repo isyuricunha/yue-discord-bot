@@ -1,6 +1,7 @@
 import { prisma, Prisma } from '@yuebot/database'
 
 import { aniListService } from './anilist.service'
+import { inventoryService } from './inventory.service'
 
 export type waifu_source = 'ANILIST'
 
@@ -523,13 +524,30 @@ export class WaifuService {
       }
 
       const quota = await this.consume_roll_use({ tx, guildId: input.guildId, userId: input.userId, now })
+      const rollResetAt = quota.rollResetAt
+      let rollsRemaining = 0
+
       if (!quota.allowed) {
-        return {
-          success: false as const,
-          error: 'roll_cooldown',
-          message: `Você já usou seus ${ROLL_MAX_USES} rolls nesta janela.`,
-          rollResetAt: quota.rollResetAt,
+        const consumed = await inventoryService.consume_reroll_ticket_if_available({
+          tx,
+          userId: input.userId,
+          guildId: input.guildId,
+          now,
+        })
+
+        if (!consumed) {
+          return {
+            success: false as const,
+            error: 'roll_cooldown',
+            message: `Você já usou seus ${ROLL_MAX_USES} rolls nesta janela.`,
+            rollResetAt,
+          }
         }
+
+        // Ticket consumed: allow reroll, but the window quota is still exhausted.
+        rollsRemaining = 0
+      } else {
+        rollsRemaining = quota.rollsRemaining
       }
 
       const desiredGender: desired_gender =
@@ -601,8 +619,8 @@ export class WaifuService {
         kind: old.kind as waifu_roll_kind,
         oldRollId: old.id,
         oldMessageId: old.messageId,
-        rollsRemaining: quota.rollsRemaining,
-        rollResetAt: quota.rollResetAt,
+        rollsRemaining,
+        rollResetAt,
         newRoll: {
           rollId: created_roll.id,
           character: {

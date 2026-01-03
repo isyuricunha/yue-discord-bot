@@ -3,6 +3,7 @@ import { prisma } from '@yuebot/database';
 import type { GuildXpConfig } from '@yuebot/database';
 import { pick_discord_message_template_variant, render_discord_message_template } from '@yuebot/shared';
 import { logger } from '../utils/logger';
+import { inventoryService } from './inventory.service'
 
 function normalize_content_for_repeat_check(content: string): string {
   return content.trim().replace(/\s+/g, ' ').toLowerCase();
@@ -64,8 +65,36 @@ export class XpService {
   private config_cache: Map<string, { config: GuildXpConfig | null; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000;
 
+  private xp_boost_cache: Map<string, { multiplier: number; timestamp: number }> = new Map()
+  private readonly XP_BOOST_TTL = 30 * 1000
+
   clear_cache(guild_id: string) {
     this.config_cache.delete(guild_id)
+  }
+
+  private async get_xp_boost_multiplier(input: { guild_id: string; user_id: string; now: Date }): Promise<number> {
+    const key = `${input.guild_id}:${input.user_id}`
+    const cached = this.xp_boost_cache.get(key)
+    const now_ms = input.now.getTime()
+
+    if (cached && now_ms - cached.timestamp < this.XP_BOOST_TTL) {
+      return cached.multiplier
+    }
+
+    try {
+      const multiplier = await inventoryService.get_active_xp_boost_multiplier({
+        userId: input.user_id,
+        guildId: input.guild_id,
+        now: input.now,
+      })
+
+      const safe = Number.isFinite(multiplier) && multiplier > 1 ? multiplier : 1
+      this.xp_boost_cache.set(key, { multiplier: safe, timestamp: now_ms })
+      return safe
+    } catch {
+      this.xp_boost_cache.set(key, { multiplier: 1, timestamp: now_ms })
+      return 1
+    }
   }
 
   private async get_guild_xp_config(guild_id: string): Promise<GuildXpConfig | null> {
@@ -151,8 +180,11 @@ export class XpService {
       }
     }
 
-    const xp_cap_with_multiplier = Math.max(1, Math.round(config.xpCap * multiplier));
-    const xp_gain = Math.min(Math.round(base_xp * multiplier), xp_cap_with_multiplier);
+    const xp_boost_multiplier = await this.get_xp_boost_multiplier({ guild_id, user_id, now })
+    const combined_multiplier = multiplier * xp_boost_multiplier
+
+    const xp_cap_with_multiplier = Math.max(1, Math.round(config.xpCap * combined_multiplier));
+    const xp_gain = Math.min(Math.round(base_xp * combined_multiplier), xp_cap_with_multiplier);
     if (xp_gain <= 0) {
       await prisma.guildXpMember.upsert({
         where: {
