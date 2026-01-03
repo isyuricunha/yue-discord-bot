@@ -2268,9 +2268,14 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
     try {
       const data = await get_guild_channels(guildId, request.log);
-      return { channels: data.channels };
+      return reply.send({ success: true, channels: data.channels })
     } catch (error: unknown) {
       request.log.error({ err: safe_error_details(error) }, 'Failed to fetch channels from bot internal API');
       return reply.code(502).send({ error: public_error_message(fastify, 'Failed to fetch channels', 'Bad gateway') });
@@ -2288,9 +2293,14 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
     try {
       const data = await get_guild_roles(guildId, request.log);
-      return { roles: data.roles };
+      return reply.send({ success: true, roles: data.roles })
     } catch (error: unknown) {
       request.log.error({ err: safe_error_details(error) }, 'Failed to fetch roles from bot internal API');
       return reply.code(502).send({ error: public_error_message(fastify, 'Failed to fetch roles', 'Bad gateway') });
