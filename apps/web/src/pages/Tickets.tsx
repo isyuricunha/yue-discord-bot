@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { LifeBuoy, Save, Trash2 } from 'lucide-react'
+import { LifeBuoy, Save, Trash2, RefreshCcw } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, ErrorState, Select, Skeleton, Switch } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -212,10 +212,26 @@ export default function TicketsPage() {
           </div>
         </div>
 
-        <Button onClick={handle_save} isLoading={save_mutation.isPending} disabled={!config || is_loading} className="shrink-0">
-          <Save className="h-4 w-4" />
-          <span>Salvar</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            className="h-10"
+            onClick={() => {
+              refetch_channels()
+              refetch_roles()
+              refetch_ticket_config()
+              tickets_query.refetch()
+            }}
+          >
+            Atualizar
+          </Button>
+
+          <Button onClick={handle_save} isLoading={save_mutation.isPending} disabled={!config || is_loading} className="shrink-0">
+            <Save className="h-4 w-4" />
+            <span>Salvar</span>
+          </Button>
+        </div>
       </div>
 
       {is_error && (
@@ -395,7 +411,10 @@ export default function TicketsPage() {
               onAction={() => tickets_query.refetch()}
             />
           ) : all_tickets.length === 0 ? (
-            <div className="text-sm text-muted-foreground">Nenhum ticket encontrado.</div>
+            <EmptyState
+              title="Nenhum ticket encontrado"
+              description={status_filter === 'closed' ? 'Ainda não há tickets fechados.' : status_filter === 'all' ? 'Ainda não há tickets.' : 'Ainda não há tickets abertos.'}
+            />
           ) : (
             <div className="space-y-2">
               {all_tickets.map((t) => (
