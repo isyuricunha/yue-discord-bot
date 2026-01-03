@@ -1054,6 +1054,11 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
     const config =
       (await prisma.guildXpConfig.findUnique({ where: { guildId } })) ??
       (await prisma.guildXpConfig.create({ data: { guildId } }));
@@ -1063,7 +1068,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       orderBy: { level: 'asc' },
     });
 
-    return { config, rewards };
+    return reply.send({ success: true, config, rewards })
   });
 
   // Buscar configuração de Autorole
@@ -1077,6 +1082,11 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
     const config =
       (await prisma.guildAutoroleConfig.findUnique({ where: { guildId } })) ??
       (await prisma.guildAutoroleConfig.create({ data: { guildId } }));
@@ -1086,10 +1096,11 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       orderBy: { roleId: 'asc' },
     });
 
-    return {
+    return reply.send({
+      success: true,
       config,
       roleIds: roles.map((r) => r.roleId),
-    };
+    })
   });
 
   // Atualizar configuração de Autorole

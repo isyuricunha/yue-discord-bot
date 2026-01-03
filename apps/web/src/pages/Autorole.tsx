@@ -56,6 +56,7 @@ export default function AutorolePage() {
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/autorole-config`)
       return res.data as {
+        success: boolean
         config: { enabled: boolean; delaySeconds: number; onlyAfterFirstMessage: boolean }
         roleIds: string[]
       }

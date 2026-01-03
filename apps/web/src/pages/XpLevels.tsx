@@ -178,7 +178,7 @@ export default function XpLevelsPage() {
     queryKey: ['xp-config', guildId],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/xp-config`)
-      return res.data as { config: xp_config; rewards: xp_reward[] }
+      return res.data as { success: boolean; config: xp_config; rewards: xp_reward[] }
     },
   })
 

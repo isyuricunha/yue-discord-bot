@@ -207,6 +207,7 @@ export default function SetupWizardPage() {
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/autorole-config`)
       return res.data as {
+        success: boolean
         config: { enabled: boolean; delaySeconds: number; onlyAfterFirstMessage: boolean }
         roleIds: string[]
       }
@@ -221,7 +222,7 @@ export default function SetupWizardPage() {
     queryKey: ['xp-config', guildId],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/xp-config`)
-      return res.data as { config: any }
+      return res.data as { success: boolean; config: any; rewards: any[] }
     },
   })
 
