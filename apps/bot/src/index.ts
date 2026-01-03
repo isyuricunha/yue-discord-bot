@@ -1,5 +1,5 @@
 import { Client, GatewayIntentBits, Collection, Partials } from 'discord.js';
-import { CONFIG } from './config';
+import { assert_bot_runtime_env, CONFIG } from './config';
 import { logger } from './utils/logger';
 import { prisma } from '@yuebot/database';
 import { GiveawayScheduler } from './services/giveawayScheduler';
@@ -99,6 +99,7 @@ async function sync_guilds_to_database(discord_client: Client) {
 
 // Event: Bot ready
 client.once('ready', async () => {
+  assert_bot_runtime_env();
   logger.info(`🤖 Bot conectado como ${client.user?.tag}`);
   logger.info(`📊 Servidores: ${client.guilds.cache.size}`);
   logger.info(`👥 Usuários: ${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)}`);

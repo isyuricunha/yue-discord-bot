@@ -16,18 +16,40 @@ function parse_csv_env(value: string | undefined) {
     .filter(Boolean);
 }
 
+function required_env(name: string): string {
+  const value = process.env[name]
+  if (!value) {
+    throw new Error(
+      `Variável de ambiente faltando: ${name}\n` +
+        `Por favor, configure o arquivo .env baseado no .env.example`
+    )
+  }
+  return value
+}
+
+function required_env_one_of(names: string[], label: string): string {
+  for (const name of names) {
+    const value = process.env[name]
+    if (value) return value
+  }
+  throw new Error(
+    `Variável de ambiente faltando: ${label}\n` +
+      `Por favor, configure o arquivo .env baseado no .env.example`
+  )
+}
+
 export const CONFIG = {
   discord: {
-    token: (process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN)!,
-    clientId: process.env.DISCORD_CLIENT_ID!,
+    token: process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN || '',
+    clientId: process.env.DISCORD_CLIENT_ID || '',
   },
   internalApi: {
     host: process.env.BOT_INTERNAL_HOST || '127.0.0.1',
     port: parse_int_env(process.env.BOT_INTERNAL_PORT, 3100),
-    secret: process.env.INTERNAL_API_SECRET!,
+    secret: process.env.INTERNAL_API_SECRET || '',
   },
   database: {
-    url: process.env.DATABASE_URL!,
+    url: process.env.DATABASE_URL || '',
   },
   environment: process.env.NODE_ENV || 'development',
   logLevel: process.env.LOG_LEVEL || 'info',
@@ -38,21 +60,18 @@ export const CONFIG = {
   },
 } as const;
 
-// Validação de variáveis obrigatórias
-const requiredEnvVars = ['DISCORD_CLIENT_ID', 'DATABASE_URL', 'INTERNAL_API_SECRET'];
-const missingEnvVars = requiredEnvVars.filter((key) => !process.env[key]);
-
-if (!process.env.DISCORD_TOKEN && !process.env.DISCORD_BOT_TOKEN) {
-  missingEnvVars.push('DISCORD_TOKEN (ou DISCORD_BOT_TOKEN)');
+export function assert_deploy_commands_env(): void {
+  required_env('DISCORD_CLIENT_ID')
+  required_env_one_of(['DISCORD_TOKEN', 'DISCORD_BOT_TOKEN'], 'DISCORD_TOKEN (ou DISCORD_BOT_TOKEN)')
 }
 
-if (missingEnvVars.length > 0) {
-  throw new Error(
-    `Variáveis de ambiente faltando: ${missingEnvVars.join(', ')}\n` +
-    `Por favor, configure o arquivo .env baseado no .env.example`
-  );
-}
+export function assert_bot_runtime_env(): void {
+  required_env('DISCORD_CLIENT_ID')
+  required_env_one_of(['DISCORD_TOKEN', 'DISCORD_BOT_TOKEN'], 'DISCORD_TOKEN (ou DISCORD_BOT_TOKEN)')
+  required_env('DATABASE_URL')
+  required_env('INTERNAL_API_SECRET')
 
-if (CONFIG.internalApi.secret.length < 32) {
-  throw new Error('INTERNAL_API_SECRET deve ter no mínimo 32 caracteres');
+  if ((process.env.INTERNAL_API_SECRET ?? '').length < 32) {
+    throw new Error('INTERNAL_API_SECRET deve ter no mínimo 32 caracteres')
+  }
 }

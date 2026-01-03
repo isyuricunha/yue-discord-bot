@@ -1,10 +1,11 @@
 import { REST, Routes } from 'discord.js';
-import { CONFIG } from './config';
+import { assert_deploy_commands_env, CONFIG } from './config';
 import { logger } from './utils/logger';
 import type { Command, ContextMenuCommand } from './commands';
 
 export async function deployCommands() {
   try {
+    assert_deploy_commands_env()
     logger.info('🚀 Iniciando deploy de comandos slash...');
 
     // Load commands
@@ -26,7 +27,7 @@ export async function deployCommands() {
     logger.info(`📦 ${commands.length} comandos para registrar`);
 
     // Construct and prepare an instance of the REST module
-    const rest = new REST().setToken(CONFIG.discord.token);
+    const rest = new REST({ timeout: 15_000 }).setToken(CONFIG.discord.token);
 
     // Deploy commands globally
     const data = await rest.put(
