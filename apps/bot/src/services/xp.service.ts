@@ -64,6 +64,10 @@ export class XpService {
   private config_cache: Map<string, { config: GuildXpConfig | null; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000;
 
+  clear_cache(guild_id: string) {
+    this.config_cache.delete(guild_id)
+  }
+
   private async get_guild_xp_config(guild_id: string): Promise<GuildXpConfig | null> {
     const cached = this.config_cache.get(guild_id);
     const now = Date.now();
