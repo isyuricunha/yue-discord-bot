@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { Search, Shield, AlertTriangle, User } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton } from '../components/ui'
 
 const API_URL = getApiUrl()
 
@@ -61,6 +61,8 @@ export default function MembersPage() {
   const startIndex = (page - 1) * itemsPerPage
   const paginatedMembers = filteredMembers?.slice(startIndex, startIndex + itemsPerPage)
 
+  const has_filters = searchTerm.trim().length > 0 || warningFilter !== 'all'
+
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -93,52 +95,39 @@ export default function MembersPage() {
             />
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant={warningFilter === 'all' ? 'solid' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setWarningFilter('all')
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">
+            <Select
+              value={warningFilter}
+              onValueChange={(value) => {
+                setWarningFilter(value)
                 setPage(1)
               }}
             >
-              Todos ({members?.length || 0})
-            </Button>
-            <Button
-              variant={warningFilter === 'clean' ? 'solid' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setWarningFilter('clean')
-                setPage(1)
-              }}
-            >
-              Sem warns ({members?.filter((m) => m.warnings === 0).length || 0})
-            </Button>
-            <Button
-              variant={warningFilter === 'low' ? 'solid' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setWarningFilter('low')
-                setPage(1)
-              }}
-            >
-              1-3 warns ({members?.filter((m) => m.warnings >= 1 && m.warnings <= 3).length || 0})
-            </Button>
-            <Button
-              variant={warningFilter === 'high' ? 'solid' : 'outline'}
-              size="sm"
-              onClick={() => {
-                setWarningFilter('high')
-                setPage(1)
-              }}
-            >
-              4+ warns ({members?.filter((m) => m.warnings >= 4).length || 0})
-            </Button>
+              <option value="all">Todos os membros</option>
+              <option value="clean">Sem warns</option>
+              <option value="low">1-3 warns</option>
+              <option value="high">4+ warns</option>
+            </Select>
+
+            {has_filters && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setSearchTerm('')
+                  setWarningFilter('all')
+                  setPage(1)
+                }}
+                className="h-10"
+              >
+                Limpar
+              </Button>
+            )}
           </div>
 
-          {(searchTerm || warningFilter !== 'all') && (
+          {has_filters && (
             <div className="text-sm text-muted-foreground">
-              {filteredMembers?.length || 0} membro{(filteredMembers?.length || 0) !== 1 ? 's' : ''} encontrado
+              {(filteredMembers?.length || 0)} membro{(filteredMembers?.length || 0) !== 1 ? 's' : ''} encontrado
               {(filteredMembers?.length || 0) !== 1 ? 's' : ''}
             </div>
           )}
@@ -235,36 +224,6 @@ export default function MembersPage() {
                 <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
                   Anterior
                 </Button>
-                
-                <div className="flex gap-1">
-                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                    let pageNum;
-                    if (totalPages <= 5) {
-                      pageNum = i + 1;
-                    } else if (page <= 3) {
-                      pageNum = i + 1;
-                    } else if (page >= totalPages - 2) {
-                      pageNum = totalPages - 4 + i;
-                    } else {
-                      pageNum = page - 2 + i;
-                    }
-                    
-                    return (
-                      <button
-                        key={pageNum}
-                        onClick={() => setPage(pageNum)}
-                        className={
-                          page === pageNum
-                            ? 'h-9 rounded-xl bg-accent px-3 text-sm font-medium text-black'
-                            : 'h-9 rounded-xl border border-border/80 bg-surface/50 px-3 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground'
-                        }
-                      >
-                        {pageNum}
-                      </button>
-                    );
-                  })}
-                </div>
-
                 <Button
                   variant="outline"
                   size="sm"
@@ -276,31 +235,8 @@ export default function MembersPage() {
               </div>
             </div>
           )}
-          </>
-        )}
-
-        {/* Stats Summary */}
-        {filteredMembers && filteredMembers.length > 0 && (
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-sm font-semibold">Resumo</div>
-              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-3">
-                <div>
-                  <div className="text-sm text-muted-foreground">Total de membros</div>
-                  <div className="mt-1 text-2xl font-semibold">{filteredMembers.length}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Com warns</div>
-                  <div className="mt-1 text-2xl font-semibold text-accent">{filteredMembers.filter((m) => m.warnings > 0).length}</div>
-                </div>
-                <div>
-                  <div className="text-sm text-muted-foreground">Com notas</div>
-                  <div className="mt-1 text-2xl font-semibold">{filteredMembers.filter((m) => Boolean(m.notes)).length}</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
+        </>
+      )}
     </div>
   )
 }
