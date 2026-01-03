@@ -43,9 +43,9 @@ export default function OverviewPage() {
     error: guildError,
     refetch: refetchGuild,
   } = useQuery({
-    queryKey: ['guild', guildId],
+    queryKey: ['guild-summary', guildId],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/summary`)
       return (response.data as { guild: guild_summary }).guild
     },
   })

@@ -35,9 +35,9 @@ export default function GuildPage() {
   const navigate = useNavigate()
 
   const { data: guild, isLoading } = useQuery({
-    queryKey: ['guild', guildId],
+    queryKey: ['guild-summary', guildId],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/summary`)
       return response.data.guild as Guild
     },
   })

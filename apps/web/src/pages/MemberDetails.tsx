@@ -92,7 +92,7 @@ export default function MemberDetailsPage() {
       toast_success('Ação executada com sucesso!')
       setConfirmText('')
       await queryClient.invalidateQueries({ queryKey: ['member', guildId, userId] })
-      await queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      await queryClient.invalidateQueries({ queryKey: ['guild-summary', guildId] })
       await queryClient.invalidateQueries({ queryKey: ['members', guildId] })
     },
     onError: (error: any) => {

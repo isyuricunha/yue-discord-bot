@@ -99,6 +99,32 @@ export default async function guildRoutes(fastify: FastifyInstance) {
   });
 
   // Obter configuração de uma guild
+  fastify.get('/:guildId/summary', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const guild = await prisma.guild.findUnique({
+      where: { id: guildId },
+      select: {
+        id: true,
+        name: true,
+        icon: true,
+      },
+    })
+
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    return reply.send({ guild })
+  })
+
   fastify.get('/:guildId', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
