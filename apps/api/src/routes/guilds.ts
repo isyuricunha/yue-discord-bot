@@ -4,6 +4,8 @@ import {
   autoModConfigSchema,
   guildAutoroleConfigSchema,
   guildXpConfigSchema,
+  reactionRolePanelPublishSchema,
+  reactionRolePanelUpsertSchema,
   suggestionConfigSchema,
   ticketConfigSchema,
   ticketPanelPublishSchema,
@@ -13,6 +15,7 @@ import {
   get_guild_channels,
   get_guild_roles,
   is_guild_admin,
+  publish_reaction_role_panel,
   publish_ticket_panel,
   send_guild_message,
 } from '../internal/bot_internal_api';
@@ -765,6 +768,305 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     } catch (error: unknown) {
       request.log.error({ err: safe_error_details(error) }, 'Failed to list suggestions')
       return reply.code(500).send({ error: 'Internal server error' })
+    }
+  })
+
+  // Listar painéis de Reaction Roles
+  fastify.get('/:guildId/reaction-roles/panels', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const panels = await prisma.reactionRolePanel.findMany({
+      where: { guildId },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        enabled: true,
+        mode: true,
+        channelId: true,
+        messageId: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { items: true } },
+      },
+    })
+
+    return {
+      success: true,
+      panels: panels.map((p) => ({
+        ...p,
+        itemsCount: p._count.items,
+        _count: undefined,
+      })),
+    }
+  })
+
+  // Buscar painel de Reaction Roles
+  fastify.get('/:guildId/reaction-roles/panels/:panelId', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId, panelId } = request.params as { guildId: string; panelId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const panel = await prisma.reactionRolePanel.findUnique({
+      where: { id: panelId },
+      select: {
+        id: true,
+        guildId: true,
+        name: true,
+        enabled: true,
+        mode: true,
+        channelId: true,
+        messageId: true,
+        createdAt: true,
+        updatedAt: true,
+        items: {
+          orderBy: { createdAt: 'asc' },
+          select: { id: true, roleId: true, label: true, emoji: true, createdAt: true },
+        },
+      },
+    })
+
+    if (!panel || panel.guildId !== guildId) {
+      return reply.code(404).send({ error: 'Panel not found' })
+    }
+
+    return { success: true, panel }
+  })
+
+  // Criar painel de Reaction Roles
+  fastify.post('/:guildId/reaction-roles/panels', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = reactionRolePanelUpsertSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const data = parsed.data
+
+    const created = await prisma.reactionRolePanel.create({
+      data: {
+        guildId,
+        name: data.name,
+        enabled: data.enabled ?? true,
+        mode: data.mode ?? 'multiple',
+        items: {
+          create: data.items.map((i) => ({
+            roleId: i.roleId,
+            label: i.label ?? null,
+            emoji: i.emoji ?? null,
+          })),
+        },
+      },
+      select: { id: true },
+    })
+
+    return reply.code(201).send({ success: true, panelId: created.id })
+  })
+
+  // Atualizar painel de Reaction Roles
+  fastify.put('/:guildId/reaction-roles/panels/:panelId', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId, panelId } = request.params as { guildId: string; panelId: string }
+    const user = request.user
+    const parsed = reactionRolePanelUpsertSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const existing = await prisma.reactionRolePanel.findUnique({
+      where: { id: panelId },
+      select: { id: true, guildId: true },
+    })
+
+    if (!existing || existing.guildId !== guildId) {
+      return reply.code(404).send({ error: 'Panel not found' })
+    }
+
+    const data = parsed.data
+
+    await prisma.$transaction(async (tx) => {
+      await tx.reactionRoleItem.deleteMany({ where: { panelId } })
+
+      await tx.reactionRolePanel.update({
+        where: { id: panelId },
+        data: {
+          name: data.name,
+          enabled: data.enabled ?? true,
+          mode: data.mode ?? 'multiple',
+          items: {
+            create: data.items.map((i) => ({
+              roleId: i.roleId,
+              label: i.label ?? null,
+              emoji: i.emoji ?? null,
+            })),
+          },
+        },
+      })
+    })
+
+    return { success: true }
+  })
+
+  // Deletar painel de Reaction Roles
+  fastify.delete('/:guildId/reaction-roles/panels/:panelId', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId, panelId } = request.params as { guildId: string; panelId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const existing = await prisma.reactionRolePanel.findUnique({
+      where: { id: panelId },
+      select: { id: true, guildId: true },
+    })
+
+    if (!existing || existing.guildId !== guildId) {
+      return reply.code(404).send({ error: 'Panel not found' })
+    }
+
+    await prisma.reactionRolePanel.delete({ where: { id: panelId } })
+    return { success: true }
+  })
+
+  // Publicar/atualizar painel de Reaction Roles via bot
+  fastify.post('/:guildId/reaction-roles/panels/:panelId/publish', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId, panelId } = request.params as { guildId: string; panelId: string }
+    const user = request.user
+    const parsed = reactionRolePanelPublishSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const existing = await prisma.reactionRolePanel.findUnique({
+      where: { id: panelId },
+      select: { id: true, guildId: true },
+    })
+
+    if (!existing || existing.guildId !== guildId) {
+      return reply.code(404).send({ error: 'Panel not found' })
+    }
+
+    try {
+      const res = await publish_reaction_role_panel(
+        { guildId, panelId, channelId: parsed.data.channelId, moderatorId: user.userId },
+        request.log
+      )
+
+      return reply.send({ success: true, messageId: res.messageId })
+    } catch (error: unknown) {
+      request.log.error({ err: safe_error_details(error) }, 'Failed to publish reaction role panel via bot internal API')
+      return reply.code(502).send({ error: public_error_message(fastify, 'Failed to publish reaction role panel', 'Bad gateway') })
     }
   })
 

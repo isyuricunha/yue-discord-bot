@@ -53,6 +53,15 @@ type ticket_panel_publish_response = {
   messageId: string
 }
 
+type reaction_role_panel_publish_body = {
+  moderatorId: string
+  channelId: string
+}
+
+type reaction_role_panel_publish_response = {
+  messageId: string
+}
+
 type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
 
 type admin_check_response = {
@@ -356,4 +365,21 @@ export async function publish_ticket_panel(
     method: 'POST',
     body: JSON.stringify(body),
   })) as ticket_panel_publish_response
+}
+
+export async function publish_reaction_role_panel(
+  input: { guildId: string; panelId: string; channelId: string; moderatorId: string },
+  log: FastifyBaseLogger
+) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${input.guildId}/reaction-roles/panels/${input.panelId}/publish`
+
+  const body: reaction_role_panel_publish_body = {
+    moderatorId: input.moderatorId,
+    channelId: input.channelId,
+  }
+
+  return (await fetch_json_with_timeout_ms(url, log, 20_000, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })) as reaction_role_panel_publish_response
 }
