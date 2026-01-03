@@ -75,7 +75,7 @@ export async function auditRoutes(fastify: FastifyInstance) {
         prisma.auditLog.count({ where }),
       ])
 
-      return reply.send({ logs: rows, total, limit: take, offset: skip })
+      return reply.send({ success: true, logs: rows, total, limit: take, offset: skip })
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to list audit logs')
       return reply.code(500).send({ error: 'Internal server error' })
