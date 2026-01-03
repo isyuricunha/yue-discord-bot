@@ -35,6 +35,32 @@ function anime_line(item: anilist_anime, index: number): string {
   return `${index}. **${title}**${year}${score}${url ? `\n${url}` : ''}`
 }
 
+function anime_meta(item: anilist_anime): { label: string; value: string }[] {
+  const fields: { label: string; value: string }[] = []
+
+  if (item.genres?.length) {
+    fields.push({ label: 'Gêneros', value: item.genres.slice(0, 6).join(', ') })
+  }
+
+  if (item.episodes) {
+    fields.push({ label: 'Episódios', value: String(item.episodes) })
+  }
+
+  if (item.status) {
+    fields.push({ label: 'Status', value: item.status })
+  }
+
+  if (item.format) {
+    fields.push({ label: 'Formato', value: item.format })
+  }
+
+  if (typeof item.averageScore === 'number') {
+    fields.push({ label: 'Nota', value: `${item.averageScore}/100` })
+  }
+
+  return fields
+}
+
 export const animeCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('anime')
@@ -119,10 +145,21 @@ export const animeCommand: Command = {
 
         const top = results[0]
 
+        const description = top.description ? shorten(strip_html(top.description), 400) : ''
+
         const embed = new EmbedBuilder()
           .setColor(COLORS.INFO)
           .setTitle(`${EMOJIS.INFO} Anime: resultados para "${shorten(title, 60)}"`)
           .setDescription(results.map((r, idx) => anime_line(r, idx + 1)).join('\n\n'))
+
+        if (description) {
+          embed.addFields([{ name: 'Sobre o 1º resultado', value: description, inline: false }])
+        }
+
+        const meta = anime_meta(top)
+        if (meta.length) {
+          embed.addFields(meta.map((m) => ({ name: m.label, value: m.value, inline: true })))
+        }
 
         const image = top.coverImage?.extraLarge ?? top.coverImage?.large
         if (image) embed.setThumbnail(image)
@@ -143,6 +180,9 @@ export const animeCommand: Command = {
       try {
         const results = await aniListService.trending_anime({ perPage: count })
 
+        const top = results[0]
+        const description = top?.description ? shorten(strip_html(top.description), 400) : ''
+
         const embed = new EmbedBuilder()
           .setColor(COLORS.INFO)
           .setTitle(`${EMOJIS.INFO} Anime trending`)
@@ -152,7 +192,18 @@ export const animeCommand: Command = {
         } else {
           embed.setDescription(results.map((r, idx) => anime_line(r, idx + 1)).join('\n\n'))
 
-          const image = results[0].coverImage?.extraLarge ?? results[0].coverImage?.large
+          if (description) {
+            embed.addFields([{ name: 'Destaque', value: description, inline: false }])
+          }
+
+          if (top) {
+            const meta = anime_meta(top)
+            if (meta.length) {
+              embed.addFields(meta.map((m) => ({ name: m.label, value: m.value, inline: true })))
+            }
+          }
+
+          const image = top?.coverImage?.extraLarge ?? top?.coverImage?.large
           if (image) embed.setThumbnail(image)
         }
 
@@ -173,6 +224,9 @@ export const animeCommand: Command = {
       try {
         const results = await aniListService.recommend_anime_by_genre({ genre, perPage: count })
 
+        const top = results[0]
+        const description = top?.description ? shorten(strip_html(top.description), 400) : ''
+
         const embed = new EmbedBuilder()
           .setColor(COLORS.INFO)
           .setTitle(`${EMOJIS.INFO} Recomendações: ${shorten(genre, 30)}`)
@@ -182,7 +236,18 @@ export const animeCommand: Command = {
         } else {
           embed.setDescription(results.map((r, idx) => anime_line(r, idx + 1)).join('\n\n'))
 
-          const image = results[0].coverImage?.extraLarge ?? results[0].coverImage?.large
+          if (description) {
+            embed.addFields([{ name: 'Destaque', value: description, inline: false }])
+          }
+
+          if (top) {
+            const meta = anime_meta(top)
+            if (meta.length) {
+              embed.addFields(meta.map((m) => ({ name: m.label, value: m.value, inline: true })))
+            }
+          }
+
+          const image = top?.coverImage?.extraLarge ?? top?.coverImage?.large
           if (image) embed.setThumbnail(image)
         }
 
