@@ -4,7 +4,7 @@ import axios from 'axios'
 import { Award, Save, Trash2, UserPlus, UserMinus } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge as UiBadge, Button, Card, CardContent, ErrorState, Input, Skeleton } from '../components/ui'
+import { Badge as UiBadge, Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -166,7 +166,11 @@ export default function BadgesPage() {
       </div>
 
       {isError && (
-        <ErrorState title="Falha ao carregar badges" description="Não foi possível buscar /api/badges" />
+        <ErrorState
+          title="Falha ao carregar badges"
+          description="Não foi possível buscar /api/badges"
+          onAction={() => refetch()}
+        />
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
@@ -183,7 +187,7 @@ export default function BadgesPage() {
             )}
 
             {!isLoading && grouped.length === 0 && (
-              <div className="text-sm text-muted-foreground">Nenhuma badge cadastrada.</div>
+              <EmptyState title="Nenhuma badge cadastrada" description="Crie a primeira badge para começar." />
             )}
 
             {!isLoading && grouped.length > 0 && (
@@ -224,7 +228,37 @@ export default function BadgesPage() {
         <div className="space-y-6">
           <Card>
             <CardContent className="space-y-4 pt-6">
-              <div className="text-sm font-medium">Criar/Editar</div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-medium">Criar/Editar</div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="h-10"
+                    onClick={() =>
+                      setEditing({
+                        id: '',
+                        name: '',
+                        description: null,
+                        category: 'community',
+                        icon: null,
+                        hidden: false,
+                      })
+                    }
+                  >
+                    Nova
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-10"
+                    onClick={() => setEditing(null)}
+                    disabled={!editing}
+                  >
+                    Limpar
+                  </Button>
+                </div>
+              </div>
 
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">ID</div>
@@ -302,7 +336,7 @@ export default function BadgesPage() {
                   <Save className="h-4 w-4" />
                   Salvar
                 </Button>
-                <Button variant="ghost" onClick={() => setEditing(null)} className="h-10">
+                <Button variant="ghost" onClick={() => setEditing(null)} className="h-10" disabled={!editing}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
@@ -375,10 +409,15 @@ export default function BadgesPage() {
                 <Input value={holders_badge_id} onChange={(e) => setHoldersBadgeId(e.target.value)} />
               </div>
 
+              {!holders_badge_id.trim() && (
+                <div className="text-sm text-muted-foreground">Informe um Badge ID para buscar os holders.</div>
+              )}
+
               {holders_query.isError && (
                 <ErrorState
                   title="Falha ao carregar holders"
                   description="Você precisa estar em BADGE_ADMIN_USER_IDS"
+                  onAction={() => void holders_query.refetch()}
                 />
               )}
 
