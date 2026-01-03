@@ -5,9 +5,11 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import type { Command } from './index'
 
-import { aniListService, type anilist_anime } from '../services/anilist.service'
+import { aniListService, type anilist_anime, type anilist_manga } from '../services/anilist.service'
 
-function pick_title(title: anilist_anime['title']): string {
+type anilist_media = anilist_anime | anilist_manga
+
+function pick_title(title: anilist_media['title']): string {
   return title.english ?? title.romaji ?? title.native ?? 'Unknown'
 }
 
@@ -27,7 +29,7 @@ function shorten(input: string, max_len: number): string {
   return trimmed.slice(0, Math.max(0, max_len - 3)).trimEnd() + '...'
 }
 
-function anime_line(item: anilist_anime, index: number): string {
+function media_line(item: anilist_media, index: number): string {
   const title = pick_title(item.title)
   const year = item.seasonYear ? ` (${item.seasonYear})` : ''
   const score = typeof item.averageScore === 'number' ? ` — ${item.averageScore}/100` : ''
@@ -35,15 +37,19 @@ function anime_line(item: anilist_anime, index: number): string {
   return `${index}. **${title}**${year}${score}${url ? `\n${url}` : ''}`
 }
 
-function anime_meta(item: anilist_anime): { label: string; value: string }[] {
+function media_meta(item: anilist_media): { label: string; value: string }[] {
   const fields: { label: string; value: string }[] = []
 
   if (item.genres?.length) {
     fields.push({ label: 'Gêneros', value: item.genres.slice(0, 6).join(', ') })
   }
 
-  if (item.episodes) {
+  if ('episodes' in item && item.episodes) {
     fields.push({ label: 'Episódios', value: String(item.episodes) })
+  }
+
+  if ('chapters' in item && item.chapters) {
+    fields.push({ label: 'Capítulos', value: String(item.chapters) })
   }
 
   if (item.status) {
@@ -75,6 +81,18 @@ export const animeCommand: Command = {
         .setDescriptionLocalizations({ 'pt-BR': 'Buscar anime por título' })
         .addStringOption((opt) =>
           opt
+            .setName('tipo')
+            .setNameLocalizations({ 'pt-BR': 'tipo' })
+            .setDescription('Type: anime or manga')
+            .setDescriptionLocalizations({ 'pt-BR': 'Tipo: anime ou mangá' })
+            .addChoices(
+              { name: 'Anime', value: 'anime' },
+              { name: 'Mangá', value: 'manga' }
+            )
+            .setRequired(false)
+        )
+        .addStringOption((opt) =>
+          opt
             .setName('titulo')
             .setNameLocalizations({ 'pt-BR': 'titulo' })
             .setDescription('Title')
@@ -89,6 +107,18 @@ export const animeCommand: Command = {
         .setNameLocalizations({ 'pt-BR': 'trending' })
         .setDescription('Trending anime right now')
         .setDescriptionLocalizations({ 'pt-BR': 'Animes em alta agora' })
+        .addStringOption((opt) =>
+          opt
+            .setName('tipo')
+            .setNameLocalizations({ 'pt-BR': 'tipo' })
+            .setDescription('Type: anime or manga')
+            .setDescriptionLocalizations({ 'pt-BR': 'Tipo: anime ou mangá' })
+            .addChoices(
+              { name: 'Anime', value: 'anime' },
+              { name: 'Mangá', value: 'manga' }
+            )
+            .setRequired(false)
+        )
         .addIntegerOption((opt) =>
           opt
             .setName('quantidade')
@@ -106,6 +136,18 @@ export const animeCommand: Command = {
         .setNameLocalizations({ 'pt-BR': 'recomendar' })
         .setDescription('Recommend anime by genre')
         .setDescriptionLocalizations({ 'pt-BR': 'Recomendar anime por gênero' })
+        .addStringOption((opt) =>
+          opt
+            .setName('tipo')
+            .setNameLocalizations({ 'pt-BR': 'tipo' })
+            .setDescription('Type: anime or manga')
+            .setDescriptionLocalizations({ 'pt-BR': 'Tipo: anime ou mangá' })
+            .addChoices(
+              { name: 'Anime', value: 'anime' },
+              { name: 'Mangá', value: 'manga' }
+            )
+            .setRequired(false)
+        )
         .addStringOption((opt) =>
           opt
             .setName('genero')
@@ -130,13 +172,18 @@ export const animeCommand: Command = {
   async execute(interaction: ChatInputCommandInteraction) {
     const sub = interaction.options.getSubcommand()
 
+    const kind = (interaction.options.getString('tipo') ?? 'anime') as 'anime' | 'manga'
+
     if (sub === 'search') {
       const title = interaction.options.getString('titulo', true)
 
       await interaction.deferReply()
 
       try {
-        const results = await aniListService.search_anime_by_title({ title, perPage: 5 })
+        const results =
+          kind === 'manga'
+            ? await aniListService.search_manga_by_title({ title, perPage: 5 })
+            : await aniListService.search_anime_by_title({ title, perPage: 5 })
 
         if (results.length === 0) {
           await interaction.editReply({ content: `${EMOJIS.WARNING} Nenhum resultado encontrado.` })
@@ -149,14 +196,14 @@ export const animeCommand: Command = {
 
         const embed = new EmbedBuilder()
           .setColor(COLORS.INFO)
-          .setTitle(`${EMOJIS.INFO} Anime: resultados para "${shorten(title, 60)}"`)
-          .setDescription(results.map((r, idx) => anime_line(r, idx + 1)).join('\n\n'))
+          .setTitle(`${EMOJIS.INFO} ${kind === 'manga' ? 'Mangá' : 'Anime'}: resultados para "${shorten(title, 60)}"`)
+          .setDescription(results.map((r, idx) => media_line(r, idx + 1)).join('\n\n'))
 
         if (description) {
           embed.addFields([{ name: 'Sobre o 1º resultado', value: description, inline: false }])
         }
 
-        const meta = anime_meta(top)
+        const meta = media_meta(top)
         if (meta.length) {
           embed.addFields(meta.map((m) => ({ name: m.label, value: m.value, inline: true })))
         }
@@ -165,7 +212,7 @@ export const animeCommand: Command = {
         if (image) embed.setThumbnail(image)
 
         await interaction.editReply({ embeds: [embed] })
-      } catch (error) {
+      } catch {
         await interaction.editReply({ content: `${EMOJIS.ERROR} Falha ao buscar no AniList.` })
       }
 
@@ -178,26 +225,29 @@ export const animeCommand: Command = {
       await interaction.deferReply()
 
       try {
-        const results = await aniListService.trending_anime({ perPage: count })
+        const results =
+          kind === 'manga'
+            ? await aniListService.trending_manga({ perPage: count })
+            : await aniListService.trending_anime({ perPage: count })
 
         const top = results[0]
         const description = top?.description ? shorten(strip_html(top.description), 400) : ''
 
         const embed = new EmbedBuilder()
           .setColor(COLORS.INFO)
-          .setTitle(`${EMOJIS.INFO} Anime trending`)
+          .setTitle(`${EMOJIS.INFO} ${kind === 'manga' ? 'Mangá' : 'Anime'} trending`)
 
         if (results.length === 0) {
           embed.setDescription('Nenhum resultado.')
         } else {
-          embed.setDescription(results.map((r, idx) => anime_line(r, idx + 1)).join('\n\n'))
+          embed.setDescription(results.map((r, idx) => media_line(r, idx + 1)).join('\n\n'))
 
           if (description) {
             embed.addFields([{ name: 'Destaque', value: description, inline: false }])
           }
 
           if (top) {
-            const meta = anime_meta(top)
+            const meta = media_meta(top)
             if (meta.length) {
               embed.addFields(meta.map((m) => ({ name: m.label, value: m.value, inline: true })))
             }
@@ -222,26 +272,29 @@ export const animeCommand: Command = {
       await interaction.deferReply()
 
       try {
-        const results = await aniListService.recommend_anime_by_genre({ genre, perPage: count })
+        const results =
+          kind === 'manga'
+            ? await aniListService.recommend_manga_by_genre({ genre, perPage: count })
+            : await aniListService.recommend_anime_by_genre({ genre, perPage: count })
 
         const top = results[0]
         const description = top?.description ? shorten(strip_html(top.description), 400) : ''
 
         const embed = new EmbedBuilder()
           .setColor(COLORS.INFO)
-          .setTitle(`${EMOJIS.INFO} Recomendações: ${shorten(genre, 30)}`)
+          .setTitle(`${EMOJIS.INFO} Recomendações (${kind === 'manga' ? 'mangá' : 'anime'}): ${shorten(genre, 30)}`)
 
         if (results.length === 0) {
           embed.setDescription('Nenhum resultado.')
         } else {
-          embed.setDescription(results.map((r, idx) => anime_line(r, idx + 1)).join('\n\n'))
+          embed.setDescription(results.map((r, idx) => media_line(r, idx + 1)).join('\n\n'))
 
           if (description) {
             embed.addFields([{ name: 'Destaque', value: description, inline: false }])
           }
 
           if (top) {
-            const meta = anime_meta(top)
+            const meta = media_meta(top)
             if (meta.length) {
               embed.addFields(meta.map((m) => ({ name: m.label, value: m.value, inline: true })))
             }
