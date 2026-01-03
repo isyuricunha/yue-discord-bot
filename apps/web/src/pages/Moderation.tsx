@@ -22,24 +22,31 @@ type guild_config = {
   muteRoleId?: string | null
 }
 
+type automod_config_response = {
+  success: boolean
+  config: {
+    muteRoleId: string | null
+  }
+}
+
 export default function ModerationPage() {
   const { guildId } = useParams()
   const queryClient = useQueryClient()
 
   const {
-    data: guild,
-    isLoading: is_guild_loading,
-    isError: is_guild_error,
-    refetch: refetch_guild,
+    data: config_data,
+    isLoading: is_config_loading,
+    isError: is_config_error,
+    refetch: refetch_config,
   } = useQuery({
-    queryKey: ['guild', guildId],
+    queryKey: ['automod-config', guildId],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
-      return response.data
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/automod-config`)
+      return response.data as automod_config_response
     },
   })
 
-  const config = guild?.guild?.config as guild_config | undefined
+  const config = (config_data?.config as guild_config | undefined) ?? undefined
 
   const { data: roles_data, isLoading: is_roles_loading } = useQuery({
     queryKey: ['roles', guildId],
@@ -70,12 +77,12 @@ export default function ModerationPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      await axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
+      await axios.put(`${API_URL}/api/guilds/${guildId}/automod-config`, {
         muteRoleId: mute_role_id || undefined,
       })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      queryClient.invalidateQueries({ queryKey: ['automod-config', guildId] })
       toast_success('Configurações salvas com sucesso!')
     },
     onError: (error: any) => {
@@ -94,7 +101,7 @@ export default function ModerationPage() {
         <Button
           onClick={() => saveMutation.mutate()}
           isLoading={saveMutation.isPending}
-          disabled={is_guild_loading || is_guild_error || is_roles_loading}
+          disabled={is_config_loading || is_config_error || is_roles_loading}
           className="shrink-0"
         >
           <Save className="h-4 w-4" />
@@ -102,11 +109,11 @@ export default function ModerationPage() {
         </Button>
       </div>
 
-      {is_guild_error && (
+      {is_config_error && (
         <ErrorState
           title="Falha ao carregar configurações"
           description="Não foi possível carregar os dados do servidor."
-          onAction={() => void refetch_guild()}
+          onAction={() => void refetch_config()}
         />
       )}
 
