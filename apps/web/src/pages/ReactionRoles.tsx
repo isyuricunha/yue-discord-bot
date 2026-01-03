@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Save, Trash2, Wand2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -330,6 +330,21 @@ export default function ReactionRolesPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            className="h-10"
+            onClick={() => {
+              refetch_channels()
+              refetch_roles()
+              refetch_panels()
+              refetch_panel()
+            }}
+          >
+            Atualizar
+          </Button>
+
           <Button type="button" variant="outline" onClick={() => create_mutation.mutate()} isLoading={create_mutation.isPending} disabled={is_loading}>
             <span>Novo painel</span>
           </Button>
@@ -365,6 +380,8 @@ export default function ReactionRolesPage() {
               <div className="mt-2">
                 {is_panels_loading ? (
                   <Skeleton className="h-11 w-full" />
+                ) : panels.length === 0 ? (
+                  <EmptyState title="Nenhum painel" description="Crie um painel para começar." />
                 ) : (
                   <Select value={selected_panel_id} onValueChange={(v) => {
                     set_selected_panel_id(v)
@@ -452,7 +469,7 @@ export default function ReactionRolesPage() {
           {is_panel_loading && selected_panel_id ? (
             <Skeleton className="h-32 w-full" />
           ) : !selected_panel_id ? (
-            <div className="text-sm text-muted-foreground">Selecione um painel para editar.</div>
+            <EmptyState title="Selecione um painel" description="Escolha um painel para editar os itens e publicar no Discord." />
           ) : !editor ? (
             <div className="text-sm text-muted-foreground">Carregando...</div>
           ) : (
