@@ -48,6 +48,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const { painelCommand } = await import('./utility/painel');
   const { sayCommand } = await import('./utility/say');
   const { ticketCommand } = await import('./utility/ticket');
+  const { configCommand } = await import('./utility/config');
   
   // Import giveaway commands
   const giveawayCommand = await import('./giveaway');
@@ -104,6 +105,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(painelCommand.data.name, painelCommand);
   commands.set(sayCommand.data.name, sayCommand);
   commands.set(ticketCommand.data.name, ticketCommand);
+  commands.set(configCommand.data.name, configCommand);
   commands.set(giveawayCommand.data.name, { data: giveawayCommand.data, execute: giveawayCommand.execute });
   commands.set(giveawayListaCommand.data.name, { data: giveawayListaCommand.data, execute: giveawayListaCommand.execute });
   commands.set(giveawayWizardCommand.data.name, { data: giveawayWizardCommand.data, execute: giveawayWizardCommand.execute });
