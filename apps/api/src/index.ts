@@ -19,6 +19,7 @@ import { fanartsRoutes } from './routes/fanarts.routes'
 import { economyRoutes } from './routes/economy.routes'
 import { coinflipRoutes } from './routes/coinflip.routes'
 import { ownerRoutes } from './routes/owner.routes'
+import { auditRoutes } from './routes/audit.routes'
 import { safe_error_details } from './utils/safe_error'
 
 const app = Fastify({
@@ -191,6 +192,9 @@ app.register(fanartsRoutes, { prefix: '/api' })
 // Economy/Coinflip routes
 app.register(economyRoutes, { prefix: '/api' })
 app.register(coinflipRoutes, { prefix: '/api' })
+
+// Audit routes
+app.register(auditRoutes, { prefix: '/api' })
 
 // Owner routes
 app.register(ownerRoutes, { prefix: '/api' })
