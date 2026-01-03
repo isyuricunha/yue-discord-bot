@@ -4,7 +4,7 @@ import axios from 'axios'
 import { Image as ImageIcon, RefreshCcw, Check, X } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, ErrorState, Input, Skeleton } from '../components/ui'
+import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -146,7 +146,7 @@ export default function FanArtsPage() {
                 ))}
               </div>
             ) : approved.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Nenhuma fan art aprovada ainda.</div>
+              <EmptyState title="Nenhuma fan art aprovada" description="As fan arts aprovadas aparecerão aqui." />
             ) : (
               <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 {approved.map((fa) => (
@@ -190,7 +190,7 @@ export default function FanArtsPage() {
                   <Skeleton className="h-12 w-full" />
                 </div>
               ) : pending.length === 0 ? (
-                <div className="text-sm text-muted-foreground">Nenhuma pendente.</div>
+                <EmptyState title="Nenhuma pendente" description="Não há fan arts aguardando revisão." />
               ) : (
                 <div className="space-y-2">
                   {pending.map((fa) => (
@@ -224,7 +224,7 @@ export default function FanArtsPage() {
               <div className="text-sm font-medium">Revisão</div>
 
               {!selected ? (
-                <div className="text-sm text-muted-foreground">Selecione uma pendente acima.</div>
+                <EmptyState title="Selecione uma pendente" description="Escolha uma fan art na lista para revisar." />
               ) : (
                 <div className="space-y-3">
                   <a
