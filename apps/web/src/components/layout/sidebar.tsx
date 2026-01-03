@@ -13,6 +13,11 @@ import {
   Shield,
   FileText,
   ClipboardList,
+  Wand2,
+  LifeBuoy,
+  Lightbulb,
+  MousePointerClick,
+  Star,
   Users,
   Trophy,
   Sparkles,
@@ -101,6 +106,16 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
     ? [
         ...sort_by_label_ptbr([
           {
+            to: `/guild/${guildId}`,
+            label: 'Painel',
+            icon: <LayoutDashboard className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/setup`,
+            label: 'Setup',
+            icon: <Wand2 className="h-4 w-4" />,
+          },
+          {
             to: `/guild/${guildId}/automod`,
             label: 'AutoMod',
             icon: <Shield className="h-4 w-4" />,
@@ -129,6 +144,26 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
             to: `/guild/${guildId}/audit`,
             label: 'Audit',
             icon: <ClipboardList className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/tickets`,
+            label: 'Tickets',
+            icon: <LifeBuoy className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/suggestions`,
+            label: 'Sugestões',
+            icon: <Lightbulb className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/reaction-roles`,
+            label: 'Reaction Roles',
+            icon: <MousePointerClick className="h-4 w-4" />,
+          },
+          {
+            to: `/guild/${guildId}/starboard`,
+            label: 'Starboard',
+            icon: <Star className="h-4 w-4" />,
           },
           {
             to: `/guild/${guildId}/members`,
