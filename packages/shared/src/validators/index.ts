@@ -174,6 +174,40 @@ export const guildGiveawayConfigSchema = z.object({
   giveawayChannelId: z.string().nullable().optional(),
 })
 
+export const guildAutomodConfigSchema = z.object({
+  muteRoleId: z.string().nullable().optional(),
+
+  wordFilterEnabled: z.boolean().optional(),
+  bannedWords: z
+    .array(
+      z.object({
+        word: z.string(),
+        action: z.enum(['warn', 'mute', 'kick', 'ban', 'delete']),
+      })
+    )
+    .optional(),
+  wordFilterWhitelistChannels: z.array(z.string()).optional(),
+  wordFilterWhitelistRoles: z.array(z.string()).optional(),
+
+  capsEnabled: z.boolean().optional(),
+  capsThreshold: z.number().min(0).max(100).optional(),
+  capsMinLength: z.number().min(1).optional(),
+  capsAction: z.enum(['warn', 'mute', 'kick', 'ban', 'delete']).optional(),
+  capsWhitelistChannels: z.array(z.string()).optional(),
+  capsWhitelistRoles: z.array(z.string()).optional(),
+
+  linkFilterEnabled: z.boolean().optional(),
+  linkBlockAll: z.boolean().optional(),
+  bannedDomains: z.array(z.string()).optional(),
+  allowedDomains: z.array(z.string()).optional(),
+  linkAction: z.enum(['warn', 'mute', 'kick', 'ban', 'delete']).optional(),
+  linkWhitelistChannels: z.array(z.string()).optional(),
+  linkWhitelistRoles: z.array(z.string()).optional(),
+
+  warnThresholds: warnThresholdsSchema.optional(),
+  warnExpiration: z.number().int().min(1).optional(),
+})
+
 export const xpRoleRewardSchema = z.object({
   level: z.number().int().min(0),
   roleId: z.string().min(1),

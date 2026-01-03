@@ -3,6 +3,7 @@ import { prisma } from '@yuebot/database';
 import {
   autoModConfigSchema,
   guildAnnouncementConfigSchema,
+  guildAutomodConfigSchema,
   guildAutoroleConfigSchema,
   guildGiveawayConfigSchema,
   guildModlogConfigSchema,
@@ -427,6 +428,175 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       success: true,
       config: updated,
     })
+  })
+
+  // Buscar configuração do AutoMod
+  fastify.get('/:guildId/automod-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const config =
+      (await prisma.guildConfig.findUnique({
+        where: { guildId },
+        select: {
+          muteRoleId: true,
+
+          wordFilterEnabled: true,
+          bannedWords: true,
+          wordFilterWhitelistChannels: true,
+          wordFilterWhitelistRoles: true,
+
+          capsEnabled: true,
+          capsThreshold: true,
+          capsMinLength: true,
+          capsAction: true,
+          capsWhitelistChannels: true,
+          capsWhitelistRoles: true,
+
+          linkFilterEnabled: true,
+          linkBlockAll: true,
+          bannedDomains: true,
+          allowedDomains: true,
+          linkAction: true,
+          linkWhitelistChannels: true,
+          linkWhitelistRoles: true,
+
+          warnThresholds: true,
+          warnExpiration: true,
+        },
+      })) ??
+      (await prisma.guildConfig.create({ data: { guildId } }))
+
+    return reply.send({ success: true, config })
+  })
+
+  // Atualizar configuração do AutoMod
+  fastify.put('/:guildId/automod-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = guildAutomodConfigSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const input = parsed.data
+    const updated = await prisma.guildConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(input.muteRoleId !== undefined ? { muteRoleId: input.muteRoleId } : {}),
+
+        ...(input.wordFilterEnabled !== undefined ? { wordFilterEnabled: input.wordFilterEnabled } : {}),
+        ...(input.bannedWords !== undefined ? { bannedWords: input.bannedWords } : {}),
+        ...(input.wordFilterWhitelistChannels !== undefined
+          ? { wordFilterWhitelistChannels: input.wordFilterWhitelistChannels }
+          : {}),
+        ...(input.wordFilterWhitelistRoles !== undefined ? { wordFilterWhitelistRoles: input.wordFilterWhitelistRoles } : {}),
+
+        ...(input.capsEnabled !== undefined ? { capsEnabled: input.capsEnabled } : {}),
+        ...(input.capsThreshold !== undefined ? { capsThreshold: input.capsThreshold } : {}),
+        ...(input.capsMinLength !== undefined ? { capsMinLength: input.capsMinLength } : {}),
+        ...(input.capsAction !== undefined ? { capsAction: input.capsAction } : {}),
+        ...(input.capsWhitelistChannels !== undefined ? { capsWhitelistChannels: input.capsWhitelistChannels } : {}),
+        ...(input.capsWhitelistRoles !== undefined ? { capsWhitelistRoles: input.capsWhitelistRoles } : {}),
+
+        ...(input.linkFilterEnabled !== undefined ? { linkFilterEnabled: input.linkFilterEnabled } : {}),
+        ...(input.linkBlockAll !== undefined ? { linkBlockAll: input.linkBlockAll } : {}),
+        ...(input.bannedDomains !== undefined ? { bannedDomains: input.bannedDomains } : {}),
+        ...(input.allowedDomains !== undefined ? { allowedDomains: input.allowedDomains } : {}),
+        ...(input.linkAction !== undefined ? { linkAction: input.linkAction } : {}),
+        ...(input.linkWhitelistChannels !== undefined ? { linkWhitelistChannels: input.linkWhitelistChannels } : {}),
+        ...(input.linkWhitelistRoles !== undefined ? { linkWhitelistRoles: input.linkWhitelistRoles } : {}),
+
+        ...(input.warnThresholds !== undefined ? { warnThresholds: input.warnThresholds } : {}),
+        ...(input.warnExpiration !== undefined ? { warnExpiration: input.warnExpiration } : {}),
+      },
+      create: {
+        guildId,
+        muteRoleId: input.muteRoleId ?? null,
+
+        wordFilterEnabled: input.wordFilterEnabled ?? false,
+        bannedWords: input.bannedWords ?? [],
+        wordFilterWhitelistChannels: input.wordFilterWhitelistChannels ?? [],
+        wordFilterWhitelistRoles: input.wordFilterWhitelistRoles ?? [],
+
+        capsEnabled: input.capsEnabled ?? false,
+        capsThreshold: input.capsThreshold ?? 70,
+        capsMinLength: input.capsMinLength ?? 10,
+        capsAction: input.capsAction ?? 'warn',
+        capsWhitelistChannels: input.capsWhitelistChannels ?? [],
+        capsWhitelistRoles: input.capsWhitelistRoles ?? [],
+
+        linkFilterEnabled: input.linkFilterEnabled ?? false,
+        linkBlockAll: input.linkBlockAll ?? false,
+        bannedDomains: input.bannedDomains ?? [],
+        allowedDomains: input.allowedDomains ?? [],
+        linkAction: input.linkAction ?? 'delete',
+        linkWhitelistChannels: input.linkWhitelistChannels ?? [],
+        linkWhitelistRoles: input.linkWhitelistRoles ?? [],
+
+        warnThresholds: input.warnThresholds ?? [],
+        warnExpiration: input.warnExpiration ?? 30,
+      },
+      select: {
+        muteRoleId: true,
+
+        wordFilterEnabled: true,
+        bannedWords: true,
+        wordFilterWhitelistChannels: true,
+        wordFilterWhitelistRoles: true,
+
+        capsEnabled: true,
+        capsThreshold: true,
+        capsMinLength: true,
+        capsAction: true,
+        capsWhitelistChannels: true,
+        capsWhitelistRoles: true,
+
+        linkFilterEnabled: true,
+        linkBlockAll: true,
+        bannedDomains: true,
+        allowedDomains: true,
+        linkAction: true,
+        linkWhitelistChannels: true,
+        linkWhitelistRoles: true,
+
+        warnThresholds: true,
+        warnExpiration: true,
+      },
+    })
+
+    return reply.send({ success: true, config: updated })
   })
 
   // Buscar configurações gerais
