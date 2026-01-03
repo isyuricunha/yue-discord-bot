@@ -45,7 +45,7 @@ export default function EconomyPage() {
     queryKey: ['economy', 'me'],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/economy/me`)
-      return res.data as { balance: string }
+      return res.data as { success: boolean; balance: string }
     },
   })
 
@@ -58,7 +58,7 @@ export default function EconomyPage() {
     queryKey: ['economy', 'transactions'],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/economy/transactions`, { params: { limit: 50, offset: 0 } })
-      return res.data as { transactions: tx_row[]; total: number }
+      return res.data as { success: boolean; transactions: tx_row[]; total: number }
     },
   })
 

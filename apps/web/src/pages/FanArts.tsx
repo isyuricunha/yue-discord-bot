@@ -39,7 +39,7 @@ export default function FanArtsPage() {
     queryKey: ['fanarts', 'approved'],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/fanarts?limit=60&offset=0`)
-      return response.data as { fanArts: fanart_row[]; total: number }
+      return response.data as { success: boolean; fanArts: fanart_row[]; total: number }
     },
   })
 
@@ -47,7 +47,7 @@ export default function FanArtsPage() {
     queryKey: ['fanarts', 'pending'],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/fanarts/pending?limit=60&offset=0`)
-      return response.data as { fanArts: fanart_row[]; total: number }
+      return response.data as { success: boolean; fanArts: fanart_row[]; total: number }
     },
   })
 

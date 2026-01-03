@@ -141,6 +141,7 @@ export default function XpLevelsPage() {
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/xp/global-leaderboard?limit=10&offset=0`)
       return res.data as {
+        success: boolean
         leaderboard: Array<{ userId: string; username: string; avatar: string | null; xp: number; level: number; position: number }>
         total: number
       }
@@ -194,7 +195,7 @@ export default function XpLevelsPage() {
     queryKey: ['xp-global-me'],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/xp/global-me`)
-      return res.data as { xp: number; level: number; position: number | null }
+      return res.data as { success: boolean; xp: number; level: number; position: number | null }
     },
   })
 
