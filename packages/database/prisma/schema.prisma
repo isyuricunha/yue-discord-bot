@@ -40,6 +40,10 @@ model Guild {
 
   scheduledEvents ScheduledEvent[]
 
+  shopItems ShopItem[]
+  purchases Purchase[]
+  inventoryItems InventoryItem[]
+  
   starboardConfig StarboardConfig?
   starboardPosts  StarboardPost[]
   
@@ -646,6 +650,9 @@ model User {
   luazinhaTransactionsSent     LuazinhaTransaction[] @relation("luazinha_transactions_sent")
   luazinhaTransactionsReceived LuazinhaTransaction[] @relation("luazinha_transactions_received")
 
+  purchases      Purchase[]
+  inventoryItems InventoryItem[]
+
   coinflipChallenges CoinflipGame[] @relation("coinflip_challenger")
   coinflipOpponents  CoinflipGame[] @relation("coinflip_opponent")
   coinflipWins       CoinflipGame[] @relation("coinflip_winner")
@@ -677,7 +684,7 @@ model Wallet {
 model LuazinhaTransaction {
   id String @id @default(cuid())
 
-  type String // transfer | admin_add | admin_remove | coinflip_bet | coinflip_payout
+  type String // transfer | admin_add | admin_remove | coinflip_bet | coinflip_payout | shop_purchase
 
   amount BigInt
 
@@ -697,6 +704,93 @@ model LuazinhaTransaction {
   @@index([fromUserId, createdAt])
   @@index([toUserId, createdAt])
   @@map("luazinha_transactions")
+}
+
+model ShopItem {
+  id String @id @default(cuid())
+
+  guildId String?
+  guild   Guild?  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  name        String
+  description String?
+
+  kind String
+
+  price BigInt
+
+  enabled   Boolean @default(true)
+  stackable Boolean @default(true)
+
+  metadata Json?
+
+  purchases Purchase[]
+  inventoryItems InventoryItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([guildId, enabled])
+  @@map("shop_items")
+}
+
+model Purchase {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  guildId String?
+  guild   Guild?  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  shopItemId String
+  shopItem   ShopItem @relation(fields: [shopItemId], references: [id], onDelete: Cascade)
+
+  quantity Int    @default(1)
+  total    BigInt
+
+  inventoryItems InventoryItem[]
+
+  createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([guildId, createdAt])
+  @@map("purchases")
+}
+
+model InventoryItem {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  guildId String?
+  guild   Guild?  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  purchaseId String?
+  purchase   Purchase? @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+
+  shopItemId String?
+  shopItem   ShopItem? @relation(fields: [shopItemId], references: [id], onDelete: SetNull)
+
+  kind        String
+  title       String
+  description String?
+
+  quantity     Int  @default(1)
+  usedQuantity Int  @default(0)
+
+  metadata Json?
+
+  activatedAt DateTime?
+  expiresAt   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([userId, guildId, kind, expiresAt])
+  @@map("inventory_items")
 }
 
 model CoinflipGame {
