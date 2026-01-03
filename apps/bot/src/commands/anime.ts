@@ -82,6 +82,15 @@ export const animeCommand: Command = {
         .setDescriptionLocalizations({ 'pt-BR': 'Buscar anime por título' })
         .addStringOption((opt) =>
           opt
+            .setName('titulo')
+            .setNameLocalizations({ 'pt-BR': 'titulo' })
+            .setDescription('Title')
+            .setDescriptionLocalizations({ 'pt-BR': 'Título' })
+            .setRequired(true)
+            .setMaxLength(100)
+        )
+        .addStringOption((opt) =>
+          opt
             .setName('tipo')
             .setNameLocalizations({ 'pt-BR': 'tipo' })
             .setDescription('Type: anime or manga')
@@ -91,15 +100,6 @@ export const animeCommand: Command = {
               { name: 'Mangá', value: 'manga' }
             )
             .setRequired(false)
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName('titulo')
-            .setNameLocalizations({ 'pt-BR': 'titulo' })
-            .setDescription('Title')
-            .setDescriptionLocalizations({ 'pt-BR': 'Título' })
-            .setRequired(true)
-            .setMaxLength(100)
         )
     )
     .addSubcommand((sub) =>
@@ -139,6 +139,15 @@ export const animeCommand: Command = {
         .setDescriptionLocalizations({ 'pt-BR': 'Recomendar anime por gênero' })
         .addStringOption((opt) =>
           opt
+            .setName('genero')
+            .setNameLocalizations({ 'pt-BR': 'genero' })
+            .setDescription('Genre (e.g. Action, Romance)')
+            .setDescriptionLocalizations({ 'pt-BR': 'Gênero (ex: Action, Romance)' })
+            .setRequired(true)
+            .setMaxLength(30)
+        )
+        .addStringOption((opt) =>
+          opt
             .setName('tipo')
             .setNameLocalizations({ 'pt-BR': 'tipo' })
             .setDescription('Type: anime or manga')
@@ -148,15 +157,6 @@ export const animeCommand: Command = {
               { name: 'Mangá', value: 'manga' }
             )
             .setRequired(false)
-        )
-        .addStringOption((opt) =>
-          opt
-            .setName('genero')
-            .setNameLocalizations({ 'pt-BR': 'genero' })
-            .setDescription('Genre (e.g. Action, Romance)')
-            .setDescriptionLocalizations({ 'pt-BR': 'Gênero (ex: Action, Romance)' })
-            .setRequired(true)
-            .setMaxLength(30)
         )
         .addIntegerOption((opt) =>
           opt
@@ -183,6 +183,15 @@ export const animeCommand: Command = {
             .setDescriptionLocalizations({ 'pt-BR': 'Adicionar anime/mangá por título' })
             .addStringOption((opt) =>
               opt
+                .setName('titulo')
+                .setNameLocalizations({ 'pt-BR': 'titulo' })
+                .setDescription('Title')
+                .setDescriptionLocalizations({ 'pt-BR': 'Título' })
+                .setRequired(true)
+                .setMaxLength(100)
+            )
+            .addStringOption((opt) =>
+              opt
                 .setName('tipo')
                 .setNameLocalizations({ 'pt-BR': 'tipo' })
                 .setDescription('Type: anime or manga')
@@ -192,15 +201,6 @@ export const animeCommand: Command = {
                   { name: 'Mangá', value: 'manga' }
                 )
                 .setRequired(false)
-            )
-            .addStringOption((opt) =>
-              opt
-                .setName('titulo')
-                .setNameLocalizations({ 'pt-BR': 'titulo' })
-                .setDescription('Title')
-                .setDescriptionLocalizations({ 'pt-BR': 'Título' })
-                .setRequired(true)
-                .setMaxLength(100)
             )
         )
         .addSubcommand((sub) =>

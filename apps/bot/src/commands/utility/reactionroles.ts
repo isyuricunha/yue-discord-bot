@@ -56,6 +56,12 @@ export const reactionrolesCommand: Command = {
             .setRequired(true)
             .setMaxLength(64)
         )
+        .addRoleOption((opt) =>
+          opt
+            .setName('role')
+            .setDescription('Primeiro cargo do painel')
+            .setRequired(true)
+        )
         .addStringOption((opt) =>
           opt
             .setName('mode')
@@ -71,12 +77,6 @@ export const reactionrolesCommand: Command = {
             .setName('enabled')
             .setDescription('Ativar o painel')
             .setRequired(false)
-        )
-        .addRoleOption((opt) =>
-          opt
-            .setName('role')
-            .setDescription('Primeiro cargo do painel')
-            .setRequired(true)
         )
         .addStringOption((opt) =>
           opt
