@@ -75,6 +75,8 @@ export async function loadCommands(client: Client): Promise<void> {
 
   // Economy commands
   const { luazinhasCommand } = await import('./luazinhas');
+  const { lojaCommand } = await import('./loja')
+  const { inventarioCommand } = await import('./inventario')
 
   // Coinflip commands
   const { coinflipCommand } = await import('./coinflip');
@@ -122,6 +124,8 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(fanartCommand.data.name, { data: fanartCommand.data, execute: fanartCommand.execute });
   commands.set(verifyMessageCommand.data.name, verifyMessageCommand);
   commands.set(luazinhasCommand.data.name, luazinhasCommand);
+  commands.set(lojaCommand.data.name, lojaCommand)
+  commands.set(inventarioCommand.data.name, inventarioCommand)
   commands.set(coinflipCommand.data.name, coinflipCommand);
   commands.set(waifuCommand.data.name, waifuCommand)
   commands.set(husbandoCommand.data.name, husbandoCommand)
