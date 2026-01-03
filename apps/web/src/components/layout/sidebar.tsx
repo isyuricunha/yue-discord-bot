@@ -35,6 +35,11 @@ type nav_item = {
   icon: React.ReactNode
 }
 
+type nav_section = {
+  title: string
+  items: nav_item[]
+}
+
 function sort_by_label_ptbr(items: nav_item[]) {
   return items.slice().sort((a, b) => a.label.localeCompare(b.label, 'pt-BR', { sensitivity: 'base' }))
 }
@@ -102,95 +107,53 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
 
   const base: nav_item[] = sort_by_label_ptbr(base_items)
 
-  const guild: nav_item[] = guildId
+  const guild_sections: nav_section[] = guildId
     ? [
-        ...sort_by_label_ptbr([
-          {
-            to: `/guild/${guildId}`,
-            label: 'Painel',
-            icon: <LayoutDashboard className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/setup`,
-            label: 'Setup',
-            icon: <Wand2 className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/automod`,
-            label: 'AutoMod',
-            icon: <Shield className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/autorole`,
-            label: 'Autorole',
-            icon: <UserPlus className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/welcome`,
-            label: 'Boas-vindas',
-            icon: <Sparkles className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/settings`,
-            label: 'Configurações',
-            icon: <Settings className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/modlogs`,
-            label: 'Logs',
-            icon: <FileText className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/audit`,
-            label: 'Audit',
-            icon: <ClipboardList className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/tickets`,
-            label: 'Tickets',
-            icon: <LifeBuoy className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/suggestions`,
-            label: 'Sugestões',
-            icon: <Lightbulb className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/reaction-roles`,
-            label: 'Reaction Roles',
-            icon: <MousePointerClick className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/starboard`,
-            label: 'Starboard',
-            icon: <Star className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/members`,
-            label: 'Membros',
-            icon: <Users className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/moderation`,
-            label: 'Moderação',
-            icon: <Shield className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/giveaways`,
-            label: 'Sorteios',
-            icon: <Trophy className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/overview`,
-            label: 'Visão geral',
-            icon: <BarChart3 className="h-4 w-4" />,
-          },
-          {
-            to: `/guild/${guildId}/xp`,
-            label: 'XP',
-            icon: <Sparkles className="h-4 w-4" />,
-          },
-        ]),
+        {
+          title: 'Primeiros passos',
+          items: [
+            { to: `/guild/${guildId}`, label: 'Painel', icon: <LayoutDashboard className="h-4 w-4" /> },
+            { to: `/guild/${guildId}/setup`, label: 'Setup', icon: <Wand2 className="h-4 w-4" /> },
+            { to: `/guild/${guildId}/overview`, label: 'Visão geral', icon: <BarChart3 className="h-4 w-4" /> },
+          ],
+        },
+        {
+          title: 'Moderação & logs',
+          items: [
+            { to: `/guild/${guildId}/moderation`, label: 'Moderação', icon: <Shield className="h-4 w-4" /> },
+            { to: `/guild/${guildId}/automod`, label: 'AutoMod', icon: <Shield className="h-4 w-4" /> },
+            { to: `/guild/${guildId}/modlogs`, label: 'Logs', icon: <FileText className="h-4 w-4" /> },
+            { to: `/guild/${guildId}/audit`, label: 'Audit', icon: <ClipboardList className="h-4 w-4" /> },
+          ],
+        },
+        {
+          title: 'Automações',
+          items: [
+            { to: `/guild/${guildId}/autorole`, label: 'Autorole', icon: <UserPlus className="h-4 w-4" /> },
+            { to: `/guild/${guildId}/welcome`, label: 'Boas-vindas', icon: <Sparkles className="h-4 w-4" /> },
+          ],
+        },
+        {
+          title: 'Engajamento',
+          items: [
+            { to: `/guild/${guildId}/xp`, label: 'XP', icon: <Sparkles className="h-4 w-4" /> },
+            { to: `/guild/${guildId}/reaction-roles`, label: 'Reaction Roles', icon: <MousePointerClick className="h-4 w-4" /> },
+            { to: `/guild/${guildId}/starboard`, label: 'Starboard', icon: <Star className="h-4 w-4" /> },
+            { to: `/guild/${guildId}/suggestions`, label: 'Sugestões', icon: <Lightbulb className="h-4 w-4" /> },
+          ],
+        },
+        {
+          title: 'Suporte',
+          items: [{ to: `/guild/${guildId}/tickets`, label: 'Tickets', icon: <LifeBuoy className="h-4 w-4" /> }],
+        },
+        {
+          title: 'Admin',
+          items: [
+            { to: `/guild/${guildId}/members`, label: 'Membros', icon: <Users className="h-4 w-4" /> },
+            { to: `/guild/${guildId}/giveaways`, label: 'Sorteios', icon: <Trophy className="h-4 w-4" /> },
+            { to: `/guild/${guildId}/settings`, label: 'Configurações', icon: <Settings className="h-4 w-4" /> },
+          ],
+        },
       ]
     : []
 
@@ -254,15 +217,21 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
             {!collapsed && <span className="truncate">Extras</span>}
           </a>
 
-          {guild.length > 0 && !collapsed && <div className="px-2 pt-4 text-xs text-muted-foreground">Guild</div>}
+          {guild_sections.map((section) => (
+            <React.Fragment key={section.title}>
+              {section.items.length > 0 && !collapsed && (
+                <div className="px-2 pt-4 text-xs text-muted-foreground">{section.title}</div>
+              )}
 
-          {guild.map((item) => (
-            <NavLink key={item.to} to={item.to} className={nav_link_class}>
-              <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
-                {item.icon}
-              </span>
-              {!collapsed && <span className="truncate">{item.label}</span>}
-            </NavLink>
+              {section.items.map((item) => (
+                <NavLink key={item.to} to={item.to} className={nav_link_class}>
+                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
+                    {item.icon}
+                  </span>
+                  {!collapsed && <span className="truncate">{item.label}</span>}
+                </NavLink>
+              ))}
+            </React.Fragment>
           ))}
         </nav>
 
