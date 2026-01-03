@@ -166,6 +166,14 @@ export const guildModlogConfigSchema = z.object({
   modLogMessage: z.string().nullable().optional(),
 })
 
+export const guildAnnouncementConfigSchema = z.object({
+  announcementChannelId: z.string().nullable().optional(),
+})
+
+export const guildGiveawayConfigSchema = z.object({
+  giveawayChannelId: z.string().nullable().optional(),
+})
+
 export const xpRoleRewardSchema = z.object({
   level: z.number().int().min(0),
   roleId: z.string().min(1),

@@ -2,7 +2,9 @@ import type { FastifyInstance } from 'fastify';
 import { prisma } from '@yuebot/database';
 import {
   autoModConfigSchema,
+  guildAnnouncementConfigSchema,
   guildAutoroleConfigSchema,
+  guildGiveawayConfigSchema,
   guildModlogConfigSchema,
   guildSettingsConfigSchema,
   guildWelcomeConfigSchema,
@@ -252,6 +254,172 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         leaveChannelId: true,
         welcomeMessage: true,
         leaveMessage: true,
+      },
+    })
+
+    return reply.send({
+      success: true,
+      config: updated,
+    })
+  })
+
+  // Buscar configuração de anúncio
+  fastify.get('/:guildId/announcement-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const config =
+      (await prisma.guildConfig.findUnique({
+        where: { guildId },
+        select: {
+          announcementChannelId: true,
+        },
+      })) ??
+      (await prisma.guildConfig.create({ data: { guildId } }))
+
+    return reply.send({
+      success: true,
+      config: {
+        announcementChannelId: config.announcementChannelId,
+      },
+    })
+  })
+
+  // Atualizar configuração de anúncio
+  fastify.put('/:guildId/announcement-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = guildAnnouncementConfigSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const input = parsed.data
+    const updated = await prisma.guildConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(input.announcementChannelId !== undefined ? { announcementChannelId: input.announcementChannelId } : {}),
+      },
+      create: {
+        guildId,
+        announcementChannelId: input.announcementChannelId ?? null,
+      },
+      select: {
+        announcementChannelId: true,
+      },
+    })
+
+    return reply.send({
+      success: true,
+      config: updated,
+    })
+  })
+
+  // Buscar configuração de sorteio
+  fastify.get('/:guildId/giveaway-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const config =
+      (await prisma.guildConfig.findUnique({
+        where: { guildId },
+        select: {
+          giveawayChannelId: true,
+        },
+      })) ??
+      (await prisma.guildConfig.create({ data: { guildId } }))
+
+    return reply.send({
+      success: true,
+      config: {
+        giveawayChannelId: config.giveawayChannelId,
+      },
+    })
+  })
+
+  // Atualizar configuração de sorteio
+  fastify.put('/:guildId/giveaway-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = guildGiveawayConfigSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const input = parsed.data
+    const updated = await prisma.guildConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(input.giveawayChannelId !== undefined ? { giveawayChannelId: input.giveawayChannelId } : {}),
+      },
+      create: {
+        guildId,
+        giveawayChannelId: input.giveawayChannelId ?? null,
+      },
+      select: {
+        giveawayChannelId: true,
       },
     })
 
