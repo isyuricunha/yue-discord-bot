@@ -301,12 +301,16 @@ export default function SetupWizardPage() {
     mutationFn: async () => {
       if (!guildId) throw new Error('Missing guildId')
 
-      await axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
-        modLogChannelId: automod_modlog_channel_id || null,
-        linkFilterEnabled: automod_link_enabled,
-        linkBlockAll: automod_link_block_all,
-        linkAction: automod_link_action,
-      })
+      await Promise.all([
+        axios.put(`${API_URL}/api/guilds/${guildId}/modlog-config`, {
+          modLogChannelId: automod_modlog_channel_id || null,
+        }),
+        axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
+          linkFilterEnabled: automod_link_enabled,
+          linkBlockAll: automod_link_block_all,
+          linkAction: automod_link_action,
+        }),
+      ])
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['guild', guildId] })

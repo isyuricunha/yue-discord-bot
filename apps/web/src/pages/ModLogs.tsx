@@ -32,6 +32,22 @@ type guild_config = {
   modLogMessage?: string | null
 }
 
+type modlog_config_response = {
+  success: boolean
+  config: {
+    modLogChannelId: string | null
+    modLogMessage: string | null
+  }
+}
+
+type guild_response = {
+  guild: {
+    config?: {
+      announcementChannelId?: string | null
+    } | null
+  }
+}
+
 interface ModLog {
   id: string
   guildId: string
@@ -81,7 +97,22 @@ export default function ModLogsPage() {
   const queryClient = useQueryClient()
 
   const {
-    data: guild,
+    data: config_data,
+    isLoading: is_config_loading,
+    isError: is_config_error,
+    refetch: refetch_config,
+  } = useQuery({
+    queryKey: ['modlog-config', guildId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/modlog-config`)
+      return response.data as modlog_config_response
+    },
+  })
+
+  const config = (config_data?.config as guild_config | undefined) ?? undefined
+
+  const {
+    data: guild_data,
     isLoading: is_guild_loading,
     isError: is_guild_error,
     refetch: refetch_guild,
@@ -89,11 +120,11 @@ export default function ModLogsPage() {
     queryKey: ['guild', guildId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
-      return response.data
+      return response.data as guild_response
     },
   })
 
-  const config = guild?.guild?.config as guild_config | undefined
+  const announcement_config = guild_data?.guild?.config
 
   const { data: channels_data, isLoading: is_channels_loading } = useQuery({
     queryKey: ['channels', guildId],
@@ -111,17 +142,25 @@ export default function ModLogsPage() {
   const [modlog_channel_id, set_modlog_channel_id] = useState('')
   const [announcement_channel_id, set_announcement_channel_id] = useState('')
   const [modLogMessage, setModLogMessage] = useState('')
-  const has_initialized = useRef(false)
+  const has_initialized_modlog = useRef(false)
+  const has_initialized_announcement = useRef(false)
 
   useEffect(() => {
     if (!config) return
-    if (has_initialized.current) return
-    has_initialized.current = true
+    if (has_initialized_modlog.current) return
+    has_initialized_modlog.current = true
 
     set_modlog_channel_id(config.modLogChannelId ?? '')
-    set_announcement_channel_id(config.announcementChannelId ?? '')
     setModLogMessage(config.modLogMessage ?? '')
   }, [config])
+
+  useEffect(() => {
+    if (!announcement_config) return
+    if (has_initialized_announcement.current) return
+    has_initialized_announcement.current = true
+
+    set_announcement_channel_id(announcement_config.announcementChannelId ?? '')
+  }, [announcement_config])
 
   const message_validation = useMemo(() => {
     if (!modLogMessage.trim()) return null
@@ -130,13 +169,18 @@ export default function ModLogsPage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      await axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
-        modLogChannelId: modlog_channel_id || undefined,
-        announcementChannelId: announcement_channel_id || undefined,
-        modLogMessage: modLogMessage || null,
-      })
+      await Promise.all([
+        axios.put(`${API_URL}/api/guilds/${guildId}/modlog-config`, {
+          modLogChannelId: modlog_channel_id || undefined,
+          modLogMessage: modLogMessage || null,
+        }),
+        axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
+          announcementChannelId: announcement_channel_id || undefined,
+        }),
+      ])
     },
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['modlog-config', guildId] })
       queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
       toast_success('Configurações salvas com sucesso!')
     },
@@ -248,18 +292,18 @@ export default function ModLogsPage() {
             <Button
               onClick={() => saveMutation.mutate()}
               isLoading={saveMutation.isPending}
-              disabled={Boolean(message_validation) || is_guild_loading || is_guild_error || is_channels_loading}
+              disabled={Boolean(message_validation) || is_config_loading || is_config_error || is_guild_loading || is_guild_error || is_channels_loading}
               className="shrink-0"
             >
               Salvar
             </Button>
           </div>
 
-          {is_guild_error && (
+          {(is_config_error || is_guild_error) && (
             <ErrorState
               title="Falha ao carregar configurações"
               description="Não foi possível carregar os dados do servidor."
-              onAction={() => void refetch_guild()}
+              onAction={() => void Promise.all([refetch_config(), refetch_guild()])}
             />
           )}
 
@@ -308,7 +352,7 @@ export default function ModLogsPage() {
           <div>
             <div className="text-sm font-medium">Template do Mod Log</div>
             <div className="mt-2">
-              {is_guild_loading ? (
+              {is_config_loading ? (
                 <Skeleton className="h-32 w-full" />
               ) : (
                 <MessageVariantEditor
