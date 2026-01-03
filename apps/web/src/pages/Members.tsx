@@ -127,8 +127,7 @@ export default function MembersPage() {
 
           {has_filters && (
             <div className="text-sm text-muted-foreground">
-              {(filteredMembers?.length || 0)} membro{(filteredMembers?.length || 0) !== 1 ? 's' : ''} encontrado
-              {(filteredMembers?.length || 0) !== 1 ? 's' : ''}
+              {(filteredMembers?.length || 0)} membro{(filteredMembers?.length || 0) !== 1 ? 's' : ''} encontrado{(filteredMembers?.length || 0) !== 1 ? 's' : ''}
             </div>
           )}
         </CardContent>
