@@ -187,6 +187,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
     } else if (interaction.customId.startsWith('coinflip:')) {
       const { handleCoinflipButton } = await import('../handlers/coinflipHandlers');
       await handleCoinflipButton(interaction);
+    } else if (interaction.customId.startsWith('anilist:')) {
+      const { handleAniListButton } = await import('../handlers/anilistHandlers')
+      await handleAniListButton(interaction)
     } else if (interaction.customId.startsWith('waifu:')) {
       const { handleWaifuButton } = await import('../handlers/waifuHandlers');
       await handleWaifuButton(interaction);
