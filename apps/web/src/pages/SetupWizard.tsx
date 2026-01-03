@@ -33,16 +33,31 @@ type ticket_config = {
   panelMessageId: string | null
 }
 
-type guild_config = {
-  welcomeChannelId?: string | null
-  leaveChannelId?: string | null
-  welcomeMessage?: string | null
-  leaveMessage?: string | null
+type welcome_config_response = {
+  success: boolean
+  config: {
+    welcomeChannelId: string | null
+    leaveChannelId: string | null
+    welcomeMessage: string | null
+    leaveMessage: string | null
+  }
+}
 
-  modLogChannelId?: string | null
-  linkFilterEnabled?: boolean
-  linkBlockAll?: boolean
-  linkAction?: string
+type modlog_config_response = {
+  success: boolean
+  config: {
+    modLogChannelId: string | null
+    modLogMessage: string | null
+  }
+}
+
+type automod_config_response = {
+  success: boolean
+  config: {
+    linkFilterEnabled: boolean
+    linkBlockAll: boolean
+    linkAction: string
+  }
 }
 
 const CHANNEL_TYPE_GUILD_TEXT = 0
@@ -147,15 +162,39 @@ export default function SetupWizardPage() {
   })
 
   const {
-    data: guild_data,
-    isLoading: is_guild_loading,
-    isError: is_guild_error,
-    refetch: refetch_guild,
+    data: welcome_config_data,
+    isLoading: is_welcome_config_loading,
+    isError: is_welcome_config_error,
+    refetch: refetch_welcome_config,
   } = useQuery({
-    queryKey: ['guild', guildId],
+    queryKey: ['welcome-config', guildId],
     queryFn: async () => {
-      const res = await axios.get(`${API_URL}/api/guilds/${guildId}`)
-      return res.data as { guild: { config: guild_config | null } }
+      const res = await axios.get(`${API_URL}/api/guilds/${guildId}/welcome-config`)
+      return res.data as welcome_config_response
+    },
+  })
+
+  const {
+    data: modlog_config_data,
+    isError: is_modlog_config_error,
+    refetch: refetch_modlog_config,
+  } = useQuery({
+    queryKey: ['modlog-config', guildId],
+    queryFn: async () => {
+      const res = await axios.get(`${API_URL}/api/guilds/${guildId}/modlog-config`)
+      return res.data as modlog_config_response
+    },
+  })
+
+  const {
+    data: automod_config_data,
+    isError: is_automod_config_error,
+    refetch: refetch_automod_config,
+  } = useQuery({
+    queryKey: ['automod-config', guildId],
+    queryFn: async () => {
+      const res = await axios.get(`${API_URL}/api/guilds/${guildId}/automod-config`)
+      return res.data as automod_config_response
     },
   })
 
@@ -281,7 +320,7 @@ export default function SetupWizardPage() {
   }, [ticket_config_data])
 
   useEffect(() => {
-    const cfg = guild_data?.guild?.config
+    const cfg = welcome_config_data?.config
     if (!cfg) return
     if (has_initialized_guild_config.current) return
     has_initialized_guild_config.current = true
@@ -290,12 +329,25 @@ export default function SetupWizardPage() {
     set_leave_channel_id(cfg.leaveChannelId ?? '')
     set_welcome_message(cfg.welcomeMessage ?? '')
     set_leave_message(cfg.leaveMessage ?? '')
+  }, [welcome_config_data])
+
+  useEffect(() => {
+    const cfg = modlog_config_data?.config
+    if (!cfg) return
+    if (has_initialized_guild_config.current) return
 
     set_automod_modlog_channel_id(cfg.modLogChannelId ?? '')
+  }, [modlog_config_data])
+
+  useEffect(() => {
+    const cfg = automod_config_data?.config
+    if (!cfg) return
+    if (has_initialized_guild_config.current) return
+
     set_automod_link_enabled(Boolean(cfg.linkFilterEnabled))
     set_automod_link_block_all(Boolean(cfg.linkBlockAll))
     set_automod_link_action(cfg.linkAction ? String(cfg.linkAction) : 'delete')
-  }, [guild_data])
+  }, [automod_config_data])
 
   const save_automod_mutation = useMutation({
     mutationFn: async () => {
@@ -313,7 +365,8 @@ export default function SetupWizardPage() {
       ])
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      await queryClient.invalidateQueries({ queryKey: ['modlog-config', guildId] })
+      await queryClient.invalidateQueries({ queryKey: ['automod-config', guildId] })
       toast_success('AutoMod configurado!')
       setStep(4)
     },
@@ -466,7 +519,14 @@ export default function SetupWizardPage() {
         </CardContent>
       </Card>
 
-      {(is_channels_error || is_roles_error || is_ticket_config_error || is_guild_error || is_autorole_error || is_xp_error) && (
+      {(is_channels_error ||
+        is_roles_error ||
+        is_ticket_config_error ||
+        is_welcome_config_error ||
+        is_modlog_config_error ||
+        is_automod_config_error ||
+        is_autorole_error ||
+        is_xp_error) && (
         <ErrorState
           title="Falha ao carregar dados"
           description="Não foi possível carregar dados/configurações da guild."
@@ -474,7 +534,9 @@ export default function SetupWizardPage() {
             void refetch_channels()
             void refetch_roles()
             void refetch_ticket_config()
-            void refetch_guild()
+            void refetch_welcome_config()
+            void refetch_modlog_config()
+            void refetch_automod_config()
             void refetch_autorole()
             void refetch_xp()
           }}
@@ -680,7 +742,7 @@ export default function SetupWizardPage() {
               <div className="md:col-span-2">
                 <div className="text-sm font-medium">Mensagem de boas-vindas (opcional)</div>
                 <div className="mt-2">
-                  {is_guild_loading ? (
+                  {is_welcome_config_loading ? (
                     <Skeleton className="h-24 w-full" />
                   ) : (
                     <Textarea value={welcome_message} onChange={(e) => set_welcome_message(e.target.value)} rows={4} placeholder="Ex: Olá {@user}!" />
@@ -692,7 +754,7 @@ export default function SetupWizardPage() {
               <div className="md:col-span-2">
                 <div className="text-sm font-medium">Mensagem de saída (opcional)</div>
                 <div className="mt-2">
-                  {is_guild_loading ? (
+                  {is_welcome_config_loading ? (
                     <Skeleton className="h-24 w-full" />
                   ) : (
                     <Textarea value={leave_message} onChange={(e) => set_leave_message(e.target.value)} rows={3} placeholder="Ex: {user} saiu do servidor." />
