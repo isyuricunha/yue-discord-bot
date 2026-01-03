@@ -38,7 +38,7 @@ export function AppShell() {
         <Sidebar collapsed={collapsed} onToggle={toggle} />
 
         <div className="min-w-0 flex flex-1 flex-col">
-          <div className="min-h-0 flex-1 overflow-y-auto">
+          <div className="scrollbar-yue min-h-0 flex-1 overflow-y-auto">
             <Topbar />
             <main className={cn('px-5 py-6', 'animate-fadeIn')} key={content_key}>
               <Outlet />

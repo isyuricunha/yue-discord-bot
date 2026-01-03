@@ -196,7 +196,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
           </button>
         </div>
 
-        <nav className={cn('min-h-0 flex-1 space-y-1 overflow-y-auto px-3', collapsed && 'px-2')}>
+        <nav className={cn('scrollbar-yue min-h-0 flex-1 space-y-1 overflow-y-auto px-3', collapsed && 'px-2')}>
           {base.map((item) => (
             <NavLink key={item.to} to={item.to} className={nav_link_class} end>
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
