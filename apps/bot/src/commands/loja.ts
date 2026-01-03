@@ -34,6 +34,13 @@ function kind_label(kind: string): string {
   return kind
 }
 
+function normalize_hex_color(input: string): string | null {
+  const trimmed = input.trim()
+  const normalized = trimmed.startsWith('#') ? trimmed : `#${trimmed}`
+  if (!/^#[0-9a-fA-F]{6}$/.test(normalized)) return null
+  return normalized.toUpperCase()
+}
+
 export const lojaCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('loja')
@@ -311,18 +318,46 @@ export const lojaCommand: Command = {
       const metadata: Record<string, unknown> = {}
 
       if (kind === 'xp_boost') {
-        if (typeof multiplier === 'number' && multiplier > 1) metadata.multiplier = multiplier
-        if (typeof duration_minutes === 'number' && duration_minutes > 0) metadata.durationMinutes = duration_minutes
+        if (!(typeof multiplier === 'number' && multiplier > 1)) {
+          await interaction.editReply({ content: `${EMOJIS.ERROR} Para xp_boost, informe multiplier > 1.` })
+          return
+        }
+        if (!(typeof duration_minutes === 'number' && duration_minutes > 0)) {
+          await interaction.editReply({ content: `${EMOJIS.ERROR} Para xp_boost, informe duracao_minutos.` })
+          return
+        }
+
+        metadata.multiplier = multiplier
+        metadata.durationMinutes = duration_minutes
       }
 
       if (kind === 'temp_role') {
-        if (role) metadata.roleId = role.id
-        if (typeof duration_minutes === 'number' && duration_minutes > 0) metadata.durationMinutes = duration_minutes
+        if (!role) {
+          await interaction.editReply({ content: `${EMOJIS.ERROR} Para temp_role, informe cargo.` })
+          return
+        }
+        if (!(typeof duration_minutes === 'number' && duration_minutes > 0)) {
+          await interaction.editReply({ content: `${EMOJIS.ERROR} Para temp_role, informe duracao_minutos.` })
+          return
+        }
+
+        metadata.roleId = role.id
+        metadata.durationMinutes = duration_minutes
       }
 
       if (kind === 'nick_color') {
-        if (typeof duration_minutes === 'number' && duration_minutes > 0) metadata.durationMinutes = duration_minutes
-        if (color) metadata.color = color
+        const normalized = color ? normalize_hex_color(color) : null
+        if (!normalized) {
+          await interaction.editReply({ content: `${EMOJIS.ERROR} Para nick_color, informe cor HEX (ex: #FF00AA).` })
+          return
+        }
+        if (!(typeof duration_minutes === 'number' && duration_minutes > 0)) {
+          await interaction.editReply({ content: `${EMOJIS.ERROR} Para nick_color, informe duracao_minutos.` })
+          return
+        }
+
+        metadata.durationMinutes = duration_minutes
+        metadata.color = normalized
       }
 
       const created = await prisma.shopItem.create({

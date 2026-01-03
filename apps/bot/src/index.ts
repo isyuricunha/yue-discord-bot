@@ -6,6 +6,7 @@ import { GiveawayScheduler } from './services/giveawayScheduler';
 import { WarnExpirationService } from './services/warnExpirationService';
 import { AutoroleScheduler } from './services/autoroleScheduler';
 import { ScheduledEventScheduler } from './services/scheduledEventScheduler';
+import { InventoryExpirationScheduler } from './services/inventoryExpirationScheduler';
 import { initModerationPersistenceService } from './services/moderationPersistence.service';
 import { initPunishmentRoleService } from './services/punishmentRole.service';
 import type { Command, ContextMenuCommand } from './commands';
@@ -135,6 +136,10 @@ client.once('ready', async () => {
   // Iniciar scheduler de eventos agendados
   const scheduledEventScheduler = new ScheduledEventScheduler(client)
   scheduledEventScheduler.start()
+
+  // Iniciar scheduler de expiração de inventário (roles/nick-color/xp boost)
+  const inventoryExpirationScheduler = new InventoryExpirationScheduler(client)
+  inventoryExpirationScheduler.start()
 });
 
 // Event: Guild create (bot joins server)

@@ -184,6 +184,105 @@ export class InventoryService {
     })
   }
 
+  async activate_nick_color(input: {
+    userId: string
+    guildId: string
+    inventoryItemId: string
+    now?: Date
+    ensure_color_role: (color: string) => Promise<string | null>
+    add_role: (role_id: string) => Promise<boolean>
+    remove_role: (role_id: string) => Promise<void>
+  }): Promise<inventory_use_result> {
+    const now = input.now ?? new Date()
+
+    const row = await prisma.inventoryItem.findUnique({
+      where: { id: input.inventoryItemId },
+      select: {
+        id: true,
+        userId: true,
+        guildId: true,
+        kind: true,
+        title: true,
+        description: true,
+        quantity: true,
+        usedQuantity: true,
+        metadata: true,
+        activatedAt: true,
+        expiresAt: true,
+        expiredHandledAt: true,
+        createdAt: true,
+      },
+    })
+
+    if (!row || row.userId !== input.userId) return { success: false as const, error: 'not_found' }
+    if (row.guildId && row.guildId !== input.guildId) return { success: false as const, error: 'not_in_guild' }
+    if (row.usedQuantity >= row.quantity) return { success: false as const, error: 'already_used' }
+    if (row.activatedAt) return { success: false as const, error: 'already_active' }
+
+    const meta = row.metadata as Record<string, unknown> | null
+    if (!meta) return { success: false as const, error: 'missing_metadata' }
+
+    const color = typeof meta.color === 'string' ? meta.color : null
+    const duration_minutes = normalize_duration_minutes(meta.durationMinutes)
+    if (!color || !duration_minutes) return { success: false as const, error: 'invalid_metadata' }
+
+    const role_id = await input.ensure_color_role(color)
+    if (!role_id) return { success: false as const, error: 'discord_action_failed' }
+
+    const ok = await input.add_role(role_id)
+    if (!ok) return { success: false as const, error: 'discord_action_failed' }
+
+    const expires_at = new Date(now.getTime() + duration_minutes * 60 * 1000)
+
+    const updated = await with_serializable_retry(async (tx) => {
+      const count = await tx.inventoryItem.updateMany({
+        where: {
+          id: row.id,
+          userId: input.userId,
+          activatedAt: null,
+          usedQuantity: { lt: row.quantity },
+        },
+        data: {
+          usedQuantity: { increment: 1 },
+          activatedAt: now,
+          expiresAt: expires_at,
+          metadata: {
+            ...(meta as Prisma.InputJsonObject),
+            roleId: role_id,
+          } satisfies Prisma.InputJsonObject,
+        },
+      })
+
+      if (count.count === 0) return null
+
+      return await tx.inventoryItem.findUnique({
+        where: { id: row.id },
+        select: {
+          id: true,
+          guildId: true,
+          shopItemId: true,
+          kind: true,
+          title: true,
+          description: true,
+          quantity: true,
+          usedQuantity: true,
+          metadata: true,
+          activatedAt: true,
+          expiresAt: true,
+          expiredHandledAt: true,
+          createdAt: true,
+        },
+      })
+    })
+
+    if (!updated) {
+      await input.remove_role(role_id)
+      return { success: false as const, error: 'already_active' }
+    }
+
+    return { success: true as const, item: updated }
+  }
+
   async activate_xp_boost(input: { userId: string; guildId: string | null; inventoryItemId: string; now?: Date }): Promise<inventory_use_result> {
     const now = input.now ?? new Date()
 

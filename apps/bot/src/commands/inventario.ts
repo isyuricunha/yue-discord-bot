@@ -6,6 +6,13 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 import type { Command } from './index'
 import { inventoryService } from '../services/inventory.service'
 
+function normalize_hex_color(input: string): string | null {
+  const trimmed = input.trim()
+  const normalized = trimmed.startsWith('#') ? trimmed : `#${trimmed}`
+  if (!/^#[0-9a-fA-F]{6}$/.test(normalized)) return null
+  return normalized.toUpperCase()
+}
+
 function clamp_autocomplete_name(input: string): string {
   return input.length > 100 ? input.slice(0, 100) : input
 }
@@ -160,6 +167,76 @@ export const inventarioCommand: Command = {
         const embed = new EmbedBuilder()
           .setColor(COLORS.SUCCESS)
           .setTitle(`${EMOJIS.SUCCESS} Cargo aplicado`)
+          .setDescription(`Expira em: ${expires}`)
+
+        await interaction.editReply({ embeds: [embed] })
+        return
+      }
+
+      if (picked.kind === 'nick_color') {
+        const guild = interaction.guild
+        if (!guild) {
+          await interaction.editReply({ content: `${EMOJIS.ERROR} Guild não encontrada.` })
+          return
+        }
+
+        const res = await inventoryService.activate_nick_color({
+          userId: interaction.user.id,
+          guildId: interaction.guildId,
+          inventoryItemId: item_id,
+          ensure_color_role: async (color_raw) => {
+            const color = normalize_hex_color(color_raw)
+            if (!color) return null
+
+            const existing = guild.roles.cache.find((r) => r.name === `Yue Color ${color}`)
+            if (existing) return existing.id
+
+            const parsed = Number.parseInt(color.slice(1), 16)
+            if (!Number.isFinite(parsed)) return null
+
+            try {
+              const created = await guild.roles.create({
+                name: `Yue Color ${color}`,
+                color: parsed,
+                reason: 'inventory nick_color activation',
+              })
+              return created.id
+            } catch {
+              return null
+            }
+          },
+          add_role: async (role_id) => {
+            try {
+              const member = await guild.members.fetch(interaction.user.id)
+              await member.roles.add(role_id)
+              return true
+            } catch {
+              return false
+            }
+          },
+          remove_role: async (role_id) => {
+            try {
+              const member = await guild.members.fetch(interaction.user.id)
+              await member.roles.remove(role_id)
+            } catch {
+              // ignore
+            }
+          },
+        })
+
+        if (!res.success) {
+          const err = 'error' in res ? res.error : 'invalid_metadata'
+          await interaction.editReply({ content: `${EMOJIS.ERROR} Não foi possível ativar este item (${err}).` })
+          return
+        }
+
+        const expires = res.item.expiresAt
+          ? `<t:${Math.floor(res.item.expiresAt.getTime() / 1000)}:F> (<t:${Math.floor(res.item.expiresAt.getTime() / 1000)}:R>)`
+          : '—'
+
+        const embed = new EmbedBuilder()
+          .setColor(COLORS.SUCCESS)
+          .setTitle(`${EMOJIS.SUCCESS} Cor do nick aplicada`)
           .setDescription(`Expira em: ${expires}`)
 
         await interaction.editReply({ embeds: [embed] })
