@@ -30,76 +30,83 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
   }
 
   // Verificar se é uma reaction de giveaway
-  if (reaction.emoji.name !== '🎉') return
+  if (reaction.emoji.name === '🎉') {
+    const message = reaction.message
+    if (!message.guild) return
 
-  const message = reaction.message
-  if (!message.guild) return
-
-  // Buscar giveaway
-  const giveaway = await prisma.giveaway.findFirst({
-    where: {
-      messageId: message.id,
-      ended: false,
-    },
-  })
-
-  if (!giveaway) return
-
-  if (giveaway.format !== 'reaction') return
-
-  // Verificar se já está participando
-  const existing = await prisma.giveawayEntry.findUnique({
-    where: {
-      giveawayId_userId: {
-        giveawayId: giveaway.id,
-        userId: user.id,
+    // Buscar giveaway
+    const giveaway = await prisma.giveaway.findFirst({
+      where: {
+        messageId: message.id,
+        ended: false,
       },
-    },
-  })
+    })
 
-  if (existing) return
+    if (!giveaway) return
 
-  // Verificar cargo necessário
-  if (giveaway.requiredRoleId) {
-    try {
-      const member = await message.guild.members.fetch(user.id)
-      if (!member.roles.cache.has(giveaway.requiredRoleId)) {
-        await reaction.users.remove(user.id)
+    if (giveaway.format !== 'reaction') return
+
+    // Verificar se já está participando
+    const existing = await prisma.giveawayEntry.findUnique({
+      where: {
+        giveawayId_userId: {
+          giveawayId: giveaway.id,
+          userId: user.id,
+        },
+      },
+    })
+
+    if (existing) return
+
+    // Verificar cargo necessário
+    if (giveaway.requiredRoleId) {
+      try {
+        const member = await message.guild.members.fetch(user.id)
+        if (!member.roles.cache.has(giveaway.requiredRoleId)) {
+          await reaction.users.remove(user.id)
+          return
+        }
+      } catch (error) {
+        logger.warn({ err: safe_error_details(error) }, 'Erro ao verificar cargo')
         return
       }
-    } catch (error) {
-      logger.warn({ err: safe_error_details(error) }, 'Erro ao verificar cargo')
-      return
+    }
+
+    // Criar entrada
+    await prisma.giveawayEntry.create({
+      data: {
+        giveawayId: giveaway.id,
+        userId: user.id,
+        username: (user as User).username,
+        avatar: (user as User).avatar,
+      },
+    })
+
+    // Atualizar embed com contagem
+    const entriesCount = await prisma.giveawayEntry.count({
+      where: { giveawayId: giveaway.id, disqualified: false },
+    })
+
+    const embed = message.embeds[0]
+    if (embed) {
+      const newEmbed = {
+        ...embed.data,
+        fields: embed.fields.map(field => {
+          if (field.name === '📋 Participantes') {
+            return { ...field, value: String(entriesCount) }
+          }
+          return field
+        }),
+      }
+
+      await message.edit({ embeds: [newEmbed] })
     }
   }
 
-  // Criar entrada
-  await prisma.giveawayEntry.create({
-    data: {
-      giveawayId: giveaway.id,
-      userId: user.id,
-      username: (user as User).username,
-      avatar: (user as User).avatar,
-    },
-  })
-
-  // Atualizar embed com contagem
-  const entriesCount = await prisma.giveawayEntry.count({
-    where: { giveawayId: giveaway.id, disqualified: false },
-  })
-
-  const embed = message.embeds[0]
-  if (embed) {
-    const newEmbed = {
-      ...embed.data,
-      fields: embed.fields.map(field => {
-        if (field.name === '📋 Participantes') {
-          return { ...field, value: String(entriesCount) }
-        }
-        return field
-      }),
-    }
-
-    await message.edit({ embeds: [newEmbed] })
+  try {
+    const { starboardService } = await import('../services/starboard.service')
+    await starboardService.handle_reaction_update(reaction, user)
+  } catch (error: unknown) {
+    logger.warn({ err: safe_error_details(error) }, 'starboard: failed to handle reaction add')
   }
 }
