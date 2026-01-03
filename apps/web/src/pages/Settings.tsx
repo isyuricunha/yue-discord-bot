@@ -16,20 +16,25 @@ interface GuildConfig {
   timezone: string
 }
 
+type settings_config_response = {
+  success: boolean
+  config: GuildConfig
+}
+
 export default function SettingsPage() {
   const { guildId } = useParams()
   const queryClient = useQueryClient()
 
   const {
-    data: guild,
-    isLoading: is_guild_loading,
-    isError: is_guild_error,
-    refetch: refetch_guild,
+    data: config_data,
+    isLoading: is_config_loading,
+    isError: is_config_error,
+    refetch: refetch_config,
   } = useQuery({
-    queryKey: ['guild', guildId],
+    queryKey: ['settings-config', guildId],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
-      return response.data
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/settings-config`)
+      return response.data as settings_config_response
     },
   })
 
@@ -39,7 +44,7 @@ export default function SettingsPage() {
 
   const has_initialized = useRef(false)
 
-  const config = guild?.guild?.config as GuildConfig | undefined
+  const config = config_data?.config
 
   useEffect(() => {
     if (!config) return
@@ -54,11 +59,11 @@ export default function SettingsPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: Partial<GuildConfig>) => {
-      const response = await axios.put(`${API_URL}/api/guilds/${guildId}/config`, data)
+      const response = await axios.put(`${API_URL}/api/guilds/${guildId}/settings-config`, data)
       return response.data
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      queryClient.invalidateQueries({ queryKey: ['settings-config', guildId] })
       toast_success('Configurações salvas com sucesso!')
     },
     onError: (error: any) => {
@@ -93,11 +98,11 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      {is_guild_error && (
+      {is_config_error && (
         <ErrorState
           title="Falha ao carregar configurações"
           description="Não foi possível carregar os dados do servidor."
-          onAction={() => refetch_guild()}
+          onAction={() => refetch_config()}
         />
       )}
 
@@ -107,7 +112,7 @@ export default function SettingsPage() {
             <div>
               <div className="text-sm font-medium">Prefixo dos comandos</div>
               <div className="mt-2">
-                {is_guild_loading ? (
+                {is_config_loading ? (
                   <Skeleton className="h-11 w-full" />
                 ) : (
                   <Input
@@ -124,10 +129,10 @@ export default function SettingsPage() {
             <div>
               <div className="text-sm font-medium">Idioma</div>
               <div className="mt-2">
-                {is_guild_loading ? (
+                {is_config_loading ? (
                   <Skeleton className="h-11 w-full" />
                 ) : (
-                  <Select value={locale} onValueChange={(value) => setLocale(value)}>
+                  <Select value={locale} onValueChange={setLocale}>
                     <option value="pt-BR">Português (Brasil)</option>
                     <option value="en-US">English (US)</option>
                     <option value="es-ES">Español</option>
@@ -139,10 +144,10 @@ export default function SettingsPage() {
             <div>
               <div className="text-sm font-medium">Fuso horário</div>
               <div className="mt-2">
-                {is_guild_loading ? (
+                {is_config_loading ? (
                   <Skeleton className="h-11 w-full" />
                 ) : (
-                  <Select value={timezone} onValueChange={(value) => setTimezone(value)}>
+                  <Select value={timezone} onValueChange={setTimezone}>
                     <option value="America/Sao_Paulo">São Paulo (BRT)</option>
                     <option value="America/New_York">New York (EST)</option>
                     <option value="Europe/London">London (GMT)</option>

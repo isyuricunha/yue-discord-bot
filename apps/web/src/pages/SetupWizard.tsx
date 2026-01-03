@@ -83,7 +83,7 @@ export default function SetupWizardPage() {
     mutationFn: async () => {
       if (!guildId) throw new Error('Missing guildId')
 
-      await axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
+      await axios.put(`${API_URL}/api/guilds/${guildId}/welcome-config`, {
         welcomeChannelId: welcome_channel_id || undefined,
         leaveChannelId: leave_channel_id || undefined,
         welcomeMessage: welcome_message ? welcome_message : null,
@@ -91,7 +91,7 @@ export default function SetupWizardPage() {
       })
     },
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      await queryClient.invalidateQueries({ queryKey: ['welcome-config', guildId] })
       toast_success('Boas-vindas configurado!')
       setStep(3)
     },

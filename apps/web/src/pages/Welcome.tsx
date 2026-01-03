@@ -28,6 +28,16 @@ type guild_config = {
   leaveMessage?: string | null
 }
 
+type welcome_config_response = {
+  success: boolean
+  config: {
+    welcomeChannelId: string | null
+    leaveChannelId: string | null
+    welcomeMessage: string | null
+    leaveMessage: string | null
+  }
+}
+
 function channel_label(channel: api_channel) {
   return `#${channel.name}`
 }
@@ -37,19 +47,19 @@ export default function WelcomePage() {
   const queryClient = useQueryClient()
 
   const {
-    data: guild,
-    isLoading: is_guild_loading,
-    isError: is_guild_error,
-    refetch: refetch_guild,
+    data: config_data,
+    isLoading: is_config_loading,
+    isError: is_config_error,
+    refetch: refetch_config,
   } = useQuery({
-    queryKey: ['guild', guildId],
+    queryKey: ['welcome-config', guildId],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
-      return response.data
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/welcome-config`)
+      return response.data as welcome_config_response
     },
   })
 
-  const config = guild?.guild?.config as guild_config | undefined
+  const config = (config_data?.config as guild_config | undefined) ?? undefined
 
   const { data: channels_data, isLoading: is_channels_loading } = useQuery({
     queryKey: ['channels', guildId],
@@ -94,7 +104,7 @@ export default function WelcomePage() {
 
   const saveMutation = useMutation({
     mutationFn: async () => {
-      await axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
+      await axios.put(`${API_URL}/api/guilds/${guildId}/welcome-config`, {
         welcomeChannelId: welcome_channel_id || undefined,
         leaveChannelId: leave_channel_id || undefined,
         welcomeMessage: welcome_message || null,
@@ -102,7 +112,7 @@ export default function WelcomePage() {
       })
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      queryClient.invalidateQueries({ queryKey: ['welcome-config', guildId] })
       toast_success('Configurações salvas com sucesso!')
     },
     onError: (error: any) => {
@@ -121,7 +131,7 @@ export default function WelcomePage() {
         <Button
           onClick={() => saveMutation.mutate()}
           isLoading={saveMutation.isPending}
-          disabled={is_guild_loading || is_guild_error || is_channels_loading || has_errors}
+          disabled={is_config_loading || is_config_error || is_channels_loading || has_errors}
           className="shrink-0"
         >
           <Save className="h-4 w-4" />
@@ -129,11 +139,11 @@ export default function WelcomePage() {
         </Button>
       </div>
 
-      {is_guild_error && (
+      {is_config_error && (
         <ErrorState
           title="Falha ao carregar configurações"
           description="Não foi possível carregar os dados do servidor."
-          onAction={() => void refetch_guild()}
+          onAction={() => refetch_config()}
         />
       )}
 
@@ -145,10 +155,13 @@ export default function WelcomePage() {
               <div>
                 <div className="text-sm font-medium">Canal de boas-vindas</div>
                 <div className="mt-2">
-                  {is_channels_loading ? (
+                  {is_config_loading ? (
                     <Skeleton className="h-11 w-full" />
                   ) : (
-                    <Select value={welcome_channel_id} onValueChange={(value) => set_welcome_channel_id(value)}>
+                    <Select
+                      value={welcome_channel_id}
+                      onValueChange={(value) => set_welcome_channel_id(value)}
+                    >
                       <option value="">Desativado</option>
                       {available_channels.map((ch) => (
                         <option key={ch.id} value={ch.id}>
@@ -163,10 +176,13 @@ export default function WelcomePage() {
               <div>
                 <div className="text-sm font-medium">Canal de saída</div>
                 <div className="mt-2">
-                  {is_channels_loading ? (
+                  {is_config_loading ? (
                     <Skeleton className="h-11 w-full" />
                   ) : (
-                    <Select value={leave_channel_id} onValueChange={(value) => set_leave_channel_id(value)}>
+                    <Select
+                      value={leave_channel_id}
+                      onValueChange={(value) => set_leave_channel_id(value)}
+                    >
                       <option value="">Desativado</option>
                       {available_channels.map((ch) => (
                         <option key={ch.id} value={ch.id}>
@@ -183,7 +199,7 @@ export default function WelcomePage() {
           <div className="border-t border-border/80 pt-6">
             <div className="text-sm font-semibold">Mensagens</div>
             <div className="mt-4 grid grid-cols-1 gap-6">
-              {is_guild_loading ? (
+              {is_config_loading ? (
                 <>
                   <Skeleton className="h-32 w-full" />
                   <Skeleton className="h-32 w-full" />
