@@ -5,6 +5,7 @@ import {
   guildAnnouncementConfigSchema,
   guildAutomodConfigSchema,
   guildAutoroleConfigSchema,
+  guildCommandOverridesUpsertSchema,
   guildGiveawayConfigSchema,
   guildModlogConfigSchema,
   guildSettingsConfigSchema,
@@ -1046,6 +1047,117 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to list bot commands')
       return reply.code(500).send({ error: 'Internal server error' })
     }
+  })
+
+  // Buscar overrides de comandos (enable/disable)
+  fastify.get('/:guildId/commands-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const overrides = await prisma.guildCommandOverride.findMany({
+      where: { guildId },
+      select: {
+        commandType: true,
+        commandName: true,
+        enabled: true,
+      },
+      orderBy: [{ commandType: 'asc' }, { commandName: 'asc' }],
+    })
+
+    return reply.send({ success: true, overrides })
+  })
+
+  // Atualizar overrides de comandos (enable/disable)
+  fastify.put('/:guildId/commands-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = guildCommandOverridesUpsertSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const ops = parsed.data.overrides.map((ov) => {
+      if (ov.enabled) {
+        return prisma.guildCommandOverride.deleteMany({
+          where: {
+            guildId,
+            commandType: ov.commandType,
+            commandName: ov.commandName,
+          },
+        })
+      }
+
+      return prisma.guildCommandOverride.upsert({
+        where: {
+          guildId_commandType_commandName: {
+            guildId,
+            commandType: ov.commandType,
+            commandName: ov.commandName,
+          },
+        },
+        update: {
+          enabled: false,
+        },
+        create: {
+          guildId,
+          commandType: ov.commandType,
+          commandName: ov.commandName,
+          enabled: false,
+        },
+      })
+    })
+
+    await prisma.$transaction(ops)
+
+    const overrides = await prisma.guildCommandOverride.findMany({
+      where: { guildId },
+      select: {
+        commandType: true,
+        commandName: true,
+        enabled: true,
+      },
+      orderBy: [{ commandType: 'asc' }, { commandName: 'asc' }],
+    })
+
+    return reply.send({ success: true, overrides })
   })
 
   // Buscar configuração de XP/Levels

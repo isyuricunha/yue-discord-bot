@@ -208,6 +208,16 @@ export const guildAutomodConfigSchema = z.object({
   warnExpiration: z.number().int().min(1).optional(),
 })
 
+export const guildCommandOverrideSchema = z.object({
+  commandType: z.enum(['slash', 'context']),
+  commandName: z.string().min(1),
+  enabled: z.boolean(),
+})
+
+export const guildCommandOverridesUpsertSchema = z.object({
+  overrides: z.array(guildCommandOverrideSchema).min(1),
+})
+
 export const xpRoleRewardSchema = z.object({
   level: z.number().int().min(0),
   roleId: z.string().min(1),
