@@ -4,7 +4,7 @@ import axios from 'axios'
 import { ArrowRightLeft, Coins, Shield } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, CardHeader, ErrorState, Input, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, CardHeader, EmptyState, ErrorState, Input, Skeleton } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { useAuthStore } from '../store/auth'
 import { format_luazinhas } from '../lib/luazinhas'
@@ -110,19 +110,6 @@ export default function EconomyPage() {
     }
   }
 
-  if (is_me_error || is_tx_error) {
-    return (
-      <ErrorState
-        title="Não foi possível carregar a economia"
-        description="Falha ao buscar saldo e/ou histórico."
-        onAction={() => {
-          void refetch_me()
-          void refetch_txs()
-        }}
-      />
-    )
-  }
-
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <div className="flex items-start justify-between gap-4">
@@ -130,6 +117,18 @@ export default function EconomyPage() {
           <div className="text-2xl font-semibold tracking-tight">Economia</div>
           <div className="mt-1 text-sm text-muted-foreground">Saldo e transações (luazinhas)</div>
         </div>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="h-10"
+          onClick={() => {
+            void refetch_me()
+            void refetch_txs()
+          }}
+        >
+          Atualizar
+        </Button>
 
         <Card className="min-w-[220px]">
           <CardContent className="p-4">
@@ -147,6 +146,17 @@ export default function EconomyPage() {
           </CardContent>
         </Card>
       </div>
+
+      {(is_me_error || is_tx_error) && (
+        <ErrorState
+          title="Não foi possível carregar a economia"
+          description="Falha ao buscar saldo e/ou histórico."
+          onAction={() => {
+            void refetch_me()
+            void refetch_txs()
+          }}
+        />
+      )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Card>
@@ -234,7 +244,7 @@ export default function EconomyPage() {
               ))}
             </div>
           ) : (
-            <div className="text-sm text-muted-foreground">Nenhuma transação encontrada.</div>
+            <EmptyState title="Nenhuma transação" description="Ainda não há movimentações para exibir." />
           )}
         </CardContent>
       </Card>
