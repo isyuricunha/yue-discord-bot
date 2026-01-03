@@ -3,6 +3,8 @@ import { prisma } from '@yuebot/database';
 import {
   autoModConfigSchema,
   guildAutoroleConfigSchema,
+  guildSettingsConfigSchema,
+  guildWelcomeConfigSchema,
   guildXpConfigSchema,
   reactionRolePanelPublishSchema,
   reactionRolePanelUpsertSchema,
@@ -159,6 +161,201 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const result = await send_guild_message(guildId, body.channelId, content, request.log);
     return reply.send({ success: true, messageId: result.messageId });
   });
+
+  // Buscar configuração de boas-vindas
+  fastify.get('/:guildId/welcome-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const config =
+      (await prisma.guildConfig.findUnique({
+        where: { guildId },
+        select: {
+          welcomeChannelId: true,
+          leaveChannelId: true,
+          welcomeMessage: true,
+          leaveMessage: true,
+        },
+      })) ??
+      (await prisma.guildConfig.create({ data: { guildId } }))
+
+    return reply.send({
+      success: true,
+      config: {
+        welcomeChannelId: config.welcomeChannelId,
+        leaveChannelId: config.leaveChannelId,
+        welcomeMessage: config.welcomeMessage,
+        leaveMessage: config.leaveMessage,
+      },
+    })
+  })
+
+  // Atualizar configuração de boas-vindas
+  fastify.put('/:guildId/welcome-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = guildWelcomeConfigSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const input = parsed.data
+    const updated = await prisma.guildConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(input.welcomeChannelId !== undefined ? { welcomeChannelId: input.welcomeChannelId } : {}),
+        ...(input.leaveChannelId !== undefined ? { leaveChannelId: input.leaveChannelId } : {}),
+        ...(input.welcomeMessage !== undefined ? { welcomeMessage: input.welcomeMessage } : {}),
+        ...(input.leaveMessage !== undefined ? { leaveMessage: input.leaveMessage } : {}),
+      },
+      create: {
+        guildId,
+        welcomeChannelId: input.welcomeChannelId ?? null,
+        leaveChannelId: input.leaveChannelId ?? null,
+        welcomeMessage: input.welcomeMessage ?? null,
+        leaveMessage: input.leaveMessage ?? null,
+      },
+      select: {
+        welcomeChannelId: true,
+        leaveChannelId: true,
+        welcomeMessage: true,
+        leaveMessage: true,
+      },
+    })
+
+    return reply.send({
+      success: true,
+      config: updated,
+    })
+  })
+
+  // Buscar configurações gerais
+  fastify.get('/:guildId/settings-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const config =
+      (await prisma.guildConfig.findUnique({
+        where: { guildId },
+        select: {
+          prefix: true,
+          locale: true,
+          timezone: true,
+        },
+      })) ??
+      (await prisma.guildConfig.create({ data: { guildId } }))
+
+    return reply.send({
+      success: true,
+      config: {
+        prefix: config.prefix ?? '/',
+        locale: config.locale ?? 'pt-BR',
+        timezone: config.timezone ?? 'America/Sao_Paulo',
+      },
+    })
+  })
+
+  // Atualizar configurações gerais
+  fastify.put('/:guildId/settings-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = guildSettingsConfigSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const input = parsed.data
+    const updated = await prisma.guildConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(typeof input.prefix === 'string' ? { prefix: input.prefix } : {}),
+        ...(typeof input.locale === 'string' ? { locale: input.locale } : {}),
+        ...(typeof input.timezone === 'string' ? { timezone: input.timezone } : {}),
+      },
+      create: {
+        guildId,
+        prefix: input.prefix ?? '/',
+        locale: input.locale ?? 'pt-BR',
+        timezone: input.timezone ?? 'America/Sao_Paulo',
+      },
+      select: {
+        prefix: true,
+        locale: true,
+        timezone: true,
+      },
+    })
+
+    return reply.send({
+      success: true,
+      config: {
+        prefix: updated.prefix ?? '/',
+        locale: updated.locale ?? 'pt-BR',
+        timezone: updated.timezone ?? 'America/Sao_Paulo',
+      },
+    })
+  })
 
   // Atualizar configuração de AutoMod
   fastify.put('/:guildId/config', {

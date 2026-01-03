@@ -147,6 +147,20 @@ export const autoModConfigSchema = z.object({
   timezone: z.string().min(1).optional(),
 });
 
+export const guildWelcomeConfigSchema = z.object({
+  welcomeChannelId: z.string().nullable().optional(),
+  leaveChannelId: z.string().nullable().optional(),
+
+  welcomeMessage: z.string().nullable().optional(),
+  leaveMessage: z.string().nullable().optional(),
+})
+
+export const guildSettingsConfigSchema = z.object({
+  prefix: z.string().min(1).optional(),
+  locale: z.string().min(1).optional(),
+  timezone: z.string().min(1).optional(),
+})
+
 export const xpRoleRewardSchema = z.object({
   level: z.number().int().min(0),
   roleId: z.string().min(1),
