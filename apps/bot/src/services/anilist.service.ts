@@ -15,6 +15,27 @@ export type anilist_character = {
   favourites: number | null
 }
 
+export type anilist_anime = {
+  id: number
+  title: {
+    romaji: string | null
+    english: string | null
+    native: string | null
+  }
+  coverImage: {
+    extraLarge: string | null
+    large: string | null
+  }
+  description: string | null
+  siteUrl: string | null
+  genres: string[]
+  averageScore: number | null
+  episodes: number | null
+  status: string | null
+  seasonYear: number | null
+  format: string | null
+}
+
 type anilist_graphql_response<T> = {
   data?: T
   errors?: { message: string }[]
@@ -52,6 +73,102 @@ async function anilist_graphql<T>(query: string, variables: Record<string, unkno
 }
 
 export class AniListService {
+  async search_anime_by_title(input: { title: string; perPage?: number }): Promise<anilist_anime[]> {
+    const query = `
+      query ($search: String, $page: Int, $perPage: Int) {
+        Page(page: $page, perPage: $perPage) {
+          media(search: $search, type: ANIME, sort: POPULARITY_DESC) {
+            id
+            title { romaji english native }
+            coverImage { extraLarge large }
+            description
+            siteUrl
+            genres
+            averageScore
+            episodes
+            status
+            seasonYear
+            format
+          }
+        }
+      }
+    `
+
+    const per_page = Math.min(25, Math.max(1, input.perPage ?? 10))
+
+    const data = await anilist_graphql<{ Page: { media: anilist_anime[] } }>(query, {
+      search: input.title,
+      page: 1,
+      perPage: per_page,
+    })
+
+    return data.Page.media
+  }
+
+  async trending_anime(input: { perPage?: number }): Promise<anilist_anime[]> {
+    const query = `
+      query ($page: Int, $perPage: Int) {
+        Page(page: $page, perPage: $perPage) {
+          media(type: ANIME, sort: TRENDING_DESC) {
+            id
+            title { romaji english native }
+            coverImage { extraLarge large }
+            description
+            siteUrl
+            genres
+            averageScore
+            episodes
+            status
+            seasonYear
+            format
+          }
+        }
+      }
+    `
+
+    const per_page = Math.min(25, Math.max(1, input.perPage ?? 10))
+
+    const data = await anilist_graphql<{ Page: { media: anilist_anime[] } }>(query, {
+      page: 1,
+      perPage: per_page,
+    })
+
+    return data.Page.media
+  }
+
+  async recommend_anime_by_genre(input: { genre: string; perPage?: number }): Promise<anilist_anime[]> {
+    const query = `
+      query ($page: Int, $perPage: Int, $genres: [String]) {
+        Page(page: $page, perPage: $perPage) {
+          media(type: ANIME, genre_in: $genres, sort: SCORE_DESC) {
+            id
+            title { romaji english native }
+            coverImage { extraLarge large }
+            description
+            siteUrl
+            genres
+            averageScore
+            episodes
+            status
+            seasonYear
+            format
+          }
+        }
+      }
+    `
+
+    const per_page = Math.min(25, Math.max(1, input.perPage ?? 10))
+    const genre = input.genre.trim()
+
+    const data = await anilist_graphql<{ Page: { media: anilist_anime[] } }>(query, {
+      page: 1,
+      perPage: per_page,
+      genres: [genre],
+    })
+
+    return data.Page.media
+  }
+
   async search_character_by_name(input: { name: string }): Promise<anilist_character[]> {
     const query = `
       query ($search: String, $page: Int, $perPage: Int) {
