@@ -37,6 +37,9 @@ model Guild {
   suggestions      Suggestion[]
 
   reactionRolePanels ReactionRolePanel[]
+
+  starboardConfig StarboardConfig?
+  starboardPosts  StarboardPost[]
   
   @@map("guilds")
 }
@@ -546,6 +549,50 @@ model ReactionRoleItem {
   @@unique([panelId, roleId])
   @@index([panelId])
   @@map("reaction_role_items")
+}
+
+model StarboardConfig {
+  id String @id @default(cuid())
+
+  guildId String @unique
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  enabled Boolean @default(false)
+
+  channelId String?
+  emoji     String @default("⭐")
+  threshold Int    @default(3)
+  ignoreBots Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("starboard_configs")
+}
+
+model StarboardPost {
+  id String @id @default(cuid())
+
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  sourceChannelId String
+  sourceMessageId String
+
+  starboardChannelId String
+  starboardMessageId String @unique
+
+  authorId String
+
+  starCount Int @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([guildId, sourceMessageId])
+  @@index([guildId, createdAt])
+  @@index([guildId, starCount])
+  @@map("starboard_posts")
 }
 
 model User {

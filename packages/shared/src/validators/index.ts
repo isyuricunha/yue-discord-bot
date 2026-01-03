@@ -222,6 +222,14 @@ export const reactionRolePanelPublishSchema = z.object({
   channelId: z.string().min(1),
 });
 
+export const starboardConfigSchema = z.object({
+  enabled: z.boolean().optional(),
+  channelId: z.string().nullable().optional(),
+  emoji: z.string().min(1).max(64).optional(),
+  threshold: z.number().int().min(1).max(50).optional(),
+  ignoreBots: z.boolean().optional(),
+});
+
 export const xpResetSchema = z.object({
   scope: z.enum(['guild', 'user']).default('guild'),
   userId: z.string().min(1).optional(),
@@ -322,6 +330,7 @@ export type SuggestionConfigInput = z.infer<typeof suggestionConfigSchema>;
 export type ReactionRoleItemInput = z.infer<typeof reactionRoleItemSchema>;
 export type ReactionRolePanelUpsertInput = z.infer<typeof reactionRolePanelUpsertSchema>;
 export type ReactionRolePanelPublishInput = z.infer<typeof reactionRolePanelPublishSchema>;
+export type StarboardConfigInput = z.infer<typeof starboardConfigSchema>;
 export type XpRoleRewardInput = z.infer<typeof xpRoleRewardSchema>;
 export type XpResetInput = z.infer<typeof xpResetSchema>;
 export type GlobalXpResetInput = z.infer<typeof globalXpResetSchema>;
