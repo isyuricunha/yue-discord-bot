@@ -956,6 +956,11 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
     const logs = await prisma.modLog.findMany({
       where: { guildId },
       orderBy: { createdAt: 'desc' },
@@ -1008,7 +1013,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       };
     });
 
-    return { logs: enriched, total };
+    return reply.send({ success: true, logs: enriched, total })
   });
 
   // Listar comandos disponíveis no bot
@@ -2144,6 +2149,11 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
     const rows = await prisma.guildXpMember.findMany({
       where: { guildId },
       orderBy: [{ xp: 'desc' }, { updatedAt: 'asc' }],
@@ -2175,7 +2185,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       };
     });
 
-    return { leaderboard, total };
+    return reply.send({ success: true, leaderboard, total })
   });
 
   // Meu rank/XP na guild
@@ -2189,6 +2199,11 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
     const member = await prisma.guildXpMember.findUnique({
       where: {
         userId_guildId: {
@@ -2199,7 +2214,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     });
 
     if (!member) {
-      return { xp: 0, level: 0, position: null };
+      return reply.send({ success: true, xp: 0, level: 0, position: null })
     }
 
     const above = await prisma.guildXpMember.count({
@@ -2209,7 +2224,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       },
     });
 
-    return { xp: member.xp, level: member.level, position: above + 1 };
+    return reply.send({ success: true, xp: member.xp, level: member.level, position: above + 1 })
   });
 
   // Zerar XP (guild inteira ou usuário específico)
