@@ -59,7 +59,7 @@ export default function StarboardPage() {
     queryKey: ['channels', guildId],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`)
-      return res.data as { channels: api_channel[] }
+      return res.data as { success: boolean; channels: api_channel[] }
     },
   })
 

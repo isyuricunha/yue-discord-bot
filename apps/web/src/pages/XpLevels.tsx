@@ -104,7 +104,7 @@ export default function XpLevelsPage() {
     queryKey: ['channels', guildId],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`)
-      return res.data as { channels: api_channel[] }
+      return res.data as { success: boolean; channels: api_channel[] }
     },
   })
 
@@ -166,7 +166,7 @@ export default function XpLevelsPage() {
     queryKey: ['roles', guildId],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/roles`)
-      return res.data as { roles: api_role[] }
+      return res.data as { success: boolean; roles: api_role[] }
     },
   })
 
@@ -187,7 +187,7 @@ export default function XpLevelsPage() {
     queryKey: ['xp-me', guildId],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/xp-me`)
-      return res.data as { xp: number; level: number; position: number | null }
+      return res.data as { success: boolean; xp: number; level: number; position: number | null }
     },
   })
 
@@ -204,6 +204,7 @@ export default function XpLevelsPage() {
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/xp-leaderboard?limit=10&offset=0`)
       return res.data as {
+        success: boolean
         leaderboard: Array<{ userId: string; username: string; avatar: string | null; xp: number; level: number; position: number }>
         total: number
       }

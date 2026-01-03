@@ -127,7 +127,7 @@ export default function ModLogsPage() {
     queryKey: ['channels', guildId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`)
-      return response.data as { channels: api_channel[] }
+      return response.data as { success: boolean; channels: api_channel[] }
     },
   })
 
@@ -201,7 +201,7 @@ export default function ModLogsPage() {
     queryKey: ['modlogs', guildId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds/${guildId}/modlogs?limit=500`)
-      return response.data
+      return response.data as { success: boolean; logs: ModLog[]; total: number }
     },
   })
 

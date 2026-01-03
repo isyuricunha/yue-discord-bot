@@ -65,7 +65,7 @@ export default function WelcomePage() {
     queryKey: ['channels', guildId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`)
-      return response.data as { channels: api_channel[] }
+      return response.data as { success: boolean; channels: api_channel[] }
     },
   })
 

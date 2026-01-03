@@ -52,7 +52,7 @@ export default function ModerationPage() {
     queryKey: ['roles', guildId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds/${guildId}/roles`)
-      return response.data as { roles: api_role[] }
+      return response.data as { success: boolean; roles: api_role[] }
     },
   })
 

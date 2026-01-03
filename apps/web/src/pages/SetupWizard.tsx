@@ -90,7 +90,7 @@ export default function SetupWizardPage() {
     queryKey: ['channels', guildId],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`)
-      return res.data as { channels: api_channel[] }
+      return res.data as { success: boolean; channels: api_channel[] }
     },
   })
 
@@ -235,7 +235,7 @@ export default function SetupWizardPage() {
     queryKey: ['roles', guildId],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/roles`)
-      return res.data as { roles: api_role[] }
+      return res.data as { success: boolean; roles: api_role[] }
     },
   })
 

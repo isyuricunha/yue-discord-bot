@@ -42,7 +42,7 @@ export default function AutorolePage() {
     queryKey: ['roles', guildId],
     queryFn: async () => {
       const res = await axios.get(`${API_URL}/api/guilds/${guildId}/roles`)
-      return res.data as { roles: api_role[] }
+      return res.data as { success: boolean; roles: api_role[] }
     },
   })
 
