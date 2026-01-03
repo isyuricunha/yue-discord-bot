@@ -784,6 +784,7 @@ model InventoryItem {
 
   activatedAt DateTime?
   expiresAt   DateTime?
+  expiredHandledAt DateTime?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
