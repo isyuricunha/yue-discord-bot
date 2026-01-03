@@ -82,6 +82,113 @@ export default function ExtrasCommandsPage() {
 
       <Card>
         <CardHeader>
+          <div className="text-base font-semibold">Administração do servidor</div>
+          <div className="mt-1 text-sm text-muted-foreground">Comandos para configurar módulos e painéis (normalmente requer permissão).</div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {command_item({
+            name: '/ticket setup',
+            description: 'Configurar e publicar o painel de tickets',
+            children: (
+              <>
+                <div>
+                  Opções: <InlineCode>{'canal'}</InlineCode> (obrigatório), <InlineCode>{'categoria'}</InlineCode> (opcional),{' '}
+                  <InlineCode>{'log'}</InlineCode> (opcional), <InlineCode>{'cargo_suporte'}</InlineCode> (opcional),{' '}
+                  <InlineCode>{'ativar'}</InlineCode> (opcional; padrão: true)
+                </div>
+                <div>
+                  Exemplo: <InlineCode>{'/ticket setup canal:#tickets categoria:"Suporte" log:#logs cargo_suporte:@Suporte ativar:true'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/config',
+            description: 'Configurar canais, templates, AutoMod e XP',
+            children: (
+              <>
+                <div>
+                  Exemplos (canais):
+                </div>
+                <div>
+                  - <InlineCode>{'/config channels modlog canal:#modlog'}</InlineCode>
+                </div>
+                <div>
+                  - <InlineCode>{'/config channels welcome canal:#boas-vindas'}</InlineCode>
+                </div>
+                <div>
+                  Exemplos (templates):
+                </div>
+                <div>
+                  - <InlineCode>{'/config templates welcome template:"Bem-vindo {user.mention}!"'}</InlineCode>
+                </div>
+                <div>
+                  Exemplos (AutoMod):
+                </div>
+                <div>
+                  - <InlineCode>{'/config automod word ativar:true'}</InlineCode>
+                </div>
+                <div>
+                  - <InlineCode>{'/config automod link ativar:true block_all:false acao:delete'}</InlineCode>
+                </div>
+                <div>
+                  Exemplos (XP):
+                </div>
+                <div>
+                  - <InlineCode>{'/config xp enabled ativar:true'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/reactionroles',
+            description: 'Gerenciar painéis de cargos por botões/reações',
+            children: (
+              <>
+                <div>
+                  Fluxo típico:
+                </div>
+                <div>
+                  1) Criar: <InlineCode>{'/reactionroles create name:"Cargos" role:@Cargo mode:multiple enabled:true'}</InlineCode>
+                </div>
+                <div>
+                  2) Publicar: <InlineCode>{'/reactionroles publish panel_id:<id> channel:#cargos'}</InlineCode>
+                </div>
+                <div>
+                  3) Adicionar item: <InlineCode>{'/reactionroles add-item panel_id:<id> role:@OutroCargo label:"Opcional" emoji:"😄"'}</InlineCode>
+                </div>
+                <div>
+                  Dicas: use <InlineCode>{'/reactionroles list'}</InlineCode> para encontrar IDs e <InlineCode>{'/reactionroles sync'}</InlineCode> para re-sincronizar.
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/evento',
+            description: 'Agenda do servidor: criar, listar e cancelar eventos',
+            children: (
+              <>
+                <div>
+                  Subcomandos: <InlineCode>{'criar'}</InlineCode>, <InlineCode>{'listar'}</InlineCode>, <InlineCode>{'cancelar'}</InlineCode>
+                </div>
+                <div>
+                  Exemplo (criar):{' '}
+                  <InlineCode>{'/evento criar titulo:"Movie Night" data_hora:"2026-01-03 20:00" canal:#anuncios descricao:"Sessão do filme"'}</InlineCode>
+                </div>
+                <div>
+                  Exemplo (listar): <InlineCode>{'/evento listar'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <div className="text-base font-semibold">Moderação</div>
           <div className="mt-1 text-sm text-muted-foreground">Comandos para punir, registrar e consultar histórico.</div>
         </CardHeader>
@@ -485,6 +592,83 @@ export default function ExtrasCommandsPage() {
 
       <Card>
         <CardHeader>
+          <div className="text-base font-semibold">Anime (AniList)</div>
+          <div className="mt-1 text-sm text-muted-foreground">Busca, recomendações e watchlist com lembretes.</div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {command_item({
+            name: '/anime search (buscar)',
+            description: 'Buscar anime/mangá por título',
+            children: (
+              <>
+                <div>
+                  Opções: <InlineCode>{'titulo'}</InlineCode> (obrigatório), <InlineCode>{'tipo'}</InlineCode> (opcional: anime/manga)
+                </div>
+                <div>
+                  Exemplo: <InlineCode>{'/anime search titulo:"Fullmetal Alchemist" tipo:anime'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/anime trending',
+            description: 'Ver animes/mangás em alta',
+            children: (
+              <>
+                <div>
+                  Opções: <InlineCode>{'tipo'}</InlineCode> (opcional), <InlineCode>{'quantidade'}</InlineCode> (opcional, 1-10)
+                </div>
+                <div>
+                  Exemplo: <InlineCode>{'/anime trending tipo:anime quantidade:5'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/anime recommend (recomendar)',
+            description: 'Recomendar por gênero',
+            children: (
+              <>
+                <div>
+                  Opções: <InlineCode>{'genero'}</InlineCode> (obrigatório), <InlineCode>{'tipo'}</InlineCode> (opcional), <InlineCode>{'quantidade'}</InlineCode> (opcional, 1-10)
+                </div>
+                <div>
+                  Exemplo: <InlineCode>{'/anime recommend genero:"Romance" tipo:anime quantidade:10'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/anime watchlist',
+            description: 'Gerenciar watchlist e lembretes',
+            children: (
+              <>
+                <div>
+                  Exemplos:
+                </div>
+                <div>
+                  - <InlineCode>{'/anime watchlist add titulo:"Frieren" tipo:anime'}</InlineCode>
+                </div>
+                <div>
+                  - <InlineCode>{'/anime watchlist list tipo:anime pagina:1'}</InlineCode>
+                </div>
+                <div>
+                  - <InlineCode>{'/anime watchlist dm ativar:true'}</InlineCode>
+                </div>
+                <div>
+                  - <InlineCode>{'/anime watchlist channel-set canal:#animes'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <div className="text-base font-semibold">Economia (luazinhas)</div>
           <div className="mt-1 text-sm text-muted-foreground">Saldo, transferências e comandos administrativos.</div>
         </CardHeader>
@@ -526,6 +710,68 @@ export default function ExtrasCommandsPage() {
               <>
                 <div>
                   Esses subcomandos são restritos e dependem de allowlist (owners).
+                </div>
+              </>
+            ),
+          })}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="text-base font-semibold">Loja e inventário</div>
+          <div className="mt-1 text-sm text-muted-foreground">Comprar itens e usar benefícios.</div>
+        </CardHeader>
+        <CardContent className="space-y-2">
+          {command_item({
+            name: '/loja listar',
+            description: 'Listar itens disponíveis na loja',
+            children: (
+              <>
+                <div>
+                  Exemplo: <InlineCode>{'/loja listar'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/loja comprar',
+            description: 'Comprar um item (usa luazinhas)',
+            children: (
+              <>
+                <div>
+                  Opções: <InlineCode>{'item_id'}</InlineCode> (obrigatório), <InlineCode>{'quantidade'}</InlineCode> (opcional), <InlineCode>{'motivo'}</InlineCode> (opcional)
+                </div>
+                <div>
+                  Exemplo: <InlineCode>{'/loja comprar item_id:<id> quantidade:1 motivo:"boost"'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/inventario listar',
+            description: 'Ver seus itens comprados (e expiração)',
+            children: (
+              <>
+                <div>
+                  Exemplo: <InlineCode>{'/inventario listar'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/inventario usar',
+            description: 'Ativar/consumir um item do inventário',
+            children: (
+              <>
+                <div>
+                  Opções: <InlineCode>{'item_id'}</InlineCode> (obrigatório; use autocomplete)
+                </div>
+                <div>
+                  Exemplo: <InlineCode>{'/inventario usar item_id:<id>'}</InlineCode>
                 </div>
               </>
             ),
@@ -618,6 +864,36 @@ export default function ExtrasCommandsPage() {
               <div className="mt-1 text-xs text-muted-foreground">Rolar personagem (filtro por gênero opcional).</div>
             </div>
           </div>
+
+          {command_item({
+            name: '/waifu',
+            description: 'Rolar uma waifu aleatória (claim via botão ❤️)',
+            children: (
+              <>
+                <div>
+                  Exemplo: <InlineCode>{'/waifu'}</InlineCode>
+                </div>
+                <div>
+                  Observação: o claim é feito pelo botão <InlineCode>{'❤️ Claim'}</InlineCode> na mensagem.
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/husbando',
+            description: 'Rolar um husbando aleatório (claim via botão ❤️)',
+            children: (
+              <>
+                <div>
+                  Exemplo: <InlineCode>{'/husbando'}</InlineCode>
+                </div>
+                <div>
+                  Observação: o claim é feito pelo botão <InlineCode>{'❤️ Claim'}</InlineCode> na mensagem.
+                </div>
+              </>
+            ),
+          })}
 
           {command_item({
             name: '/casar',
@@ -740,6 +1016,65 @@ export default function ExtrasCommandsPage() {
                 </div>
                 <div>
                   Exemplo: <InlineCode>{'/waifupontos rank pagina:1'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {section_title({ children: 'Aliases' })}
+
+          {command_item({
+            name: '/wishlist',
+            description: 'Alias de /desejos',
+            children: (
+              <>
+                <div>
+                  Exemplo: <InlineCode>{'/wishlist listar'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/harem',
+            description: 'Alias de /meuharem',
+            children: (
+              <>
+                <div>
+                  Opções: <InlineCode>{'pagina'}</InlineCode> (opcional)
+                </div>
+                <div>
+                  Exemplo: <InlineCode>{'/harem pagina:1'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/marry',
+            description: 'Alias de /casar',
+            children: (
+              <>
+                <div>
+                  Opções: <InlineCode>{'genero'}</InlineCode> (opcional)
+                </div>
+                <div>
+                  Exemplo: <InlineCode>{'/marry genero:any'}</InlineCode>
+                </div>
+              </>
+            ),
+          })}
+
+          {command_item({
+            name: '/divorce',
+            description: 'Alias de /divorciar',
+            children: (
+              <>
+                <div>
+                  Opções: <InlineCode>{'nome'}</InlineCode> (obrigatório)
+                </div>
+                <div>
+                  Exemplo: <InlineCode>{'/divorce nome:"Asuna"'}</InlineCode>
                 </div>
               </>
             ),
