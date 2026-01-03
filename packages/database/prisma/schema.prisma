@@ -30,6 +30,8 @@ model Guild {
   waifuUserStates  WaifuUserState[]
   waifuWishlists   WaifuWishlist[]
 
+  aniListNotificationChannels AniListNotificationChannel[]
+
   ticketConfig TicketConfig?
   tickets      Ticket[]
 
@@ -716,10 +718,84 @@ model User {
   waifuUserStates WaifuUserState[]
   waifuWishlists  WaifuWishlist[]
 
+  aniListWatchlistItems       AniListWatchlistItem[]
+  aniListNotificationSettings AniListNotificationSettings?
+  aniListNotificationChannels AniListNotificationChannel[]
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("users")
+}
+
+enum AniListMediaType {
+  anime
+  manga
+}
+
+model AniListWatchlistItem {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  mediaId   Int
+  mediaType AniListMediaType
+
+  title    String
+  siteUrl  String?
+  imageUrl String?
+
+  enabled Boolean @default(true)
+
+  // Scheduler cache/state (only used for anime reminders)
+  nextAiringAt      Int?
+  nextAiringEpisode Int?
+  lastNotifiedAiringAt Int?
+  lastCheckedAt     DateTime?
+  nextCheckAt       DateTime @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, mediaType, mediaId])
+  @@index([mediaType, enabled, nextCheckAt])
+  @@index([userId, mediaType, createdAt])
+  @@map("anilist_watchlist_items")
+}
+
+model AniListNotificationSettings {
+  userId String @id
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  dmEnabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("anilist_notification_settings")
+}
+
+model AniListNotificationChannel {
+  id String @id @default(cuid())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  guildId String
+  guild   Guild   @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  channelId String
+
+  enabled Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, guildId])
+  @@index([guildId])
+  @@index([userId])
+  @@map("anilist_notification_channels")
 }
 
 model Wallet {
