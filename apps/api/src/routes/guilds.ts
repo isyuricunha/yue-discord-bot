@@ -75,14 +75,14 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         select: { id: true, name: true, icon: true, ownerId: true, addedAt: true },
         orderBy: { name: 'asc' },
       });
-      return { guilds: installed };
+      return { success: true, guilds: installed };
     }
 
     const guildsData = user.guildsData || [];
 
     const guild_ids = guildsData.map((guild) => guild.id);
     if (guild_ids.length === 0) {
-      return { guilds: [] };
+      return { success: true, guilds: [] };
     }
 
     const installed = await prisma.guild.findMany({
@@ -95,7 +95,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const installed_ids = new Set(installed.map((g) => g.id));
 
     // Retornar somente guilds onde o bot está instalado (presentes no banco)
-    return { guilds: guildsData.filter((guild) => installed_ids.has(guild.id)) };
+    return { success: true, guilds: guildsData.filter((guild) => installed_ids.has(guild.id)) };
   });
 
   // Obter configuração de uma guild
@@ -122,7 +122,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(404).send({ error: 'Guild not found' })
     }
 
-    return reply.send({ guild })
+    return reply.send({ success: true, guild })
   })
 
   fastify.get('/:guildId', {
@@ -145,7 +145,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(404).send({ error: 'Guild not found' });
     }
 
-    return { guild };
+    return reply.send({ success: true, guild })
   });
 
   fastify.post('/:guildId/messages', {
