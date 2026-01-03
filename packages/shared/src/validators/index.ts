@@ -161,6 +161,11 @@ export const guildSettingsConfigSchema = z.object({
   timezone: z.string().min(1).optional(),
 })
 
+export const guildModlogConfigSchema = z.object({
+  modLogChannelId: z.string().nullable().optional(),
+  modLogMessage: z.string().nullable().optional(),
+})
+
 export const xpRoleRewardSchema = z.object({
   level: z.number().int().min(0),
   roleId: z.string().min(1),

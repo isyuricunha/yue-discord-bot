@@ -3,6 +3,7 @@ import { prisma } from '@yuebot/database';
 import {
   autoModConfigSchema,
   guildAutoroleConfigSchema,
+  guildModlogConfigSchema,
   guildSettingsConfigSchema,
   guildWelcomeConfigSchema,
   guildXpConfigSchema,
@@ -490,6 +491,94 @@ export default async function guildRoutes(fastify: FastifyInstance) {
 
     return { success: true, config };
   });
+
+  // Buscar configuração de modlog
+  fastify.get('/:guildId/modlog-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const config =
+      (await prisma.guildConfig.findUnique({
+        where: { guildId },
+        select: {
+          modLogChannelId: true,
+          modLogMessage: true,
+        },
+      })) ??
+      (await prisma.guildConfig.create({ data: { guildId } }))
+
+    return reply.send({
+      success: true,
+      config: {
+        modLogChannelId: config.modLogChannelId,
+        modLogMessage: config.modLogMessage,
+      },
+    })
+  })
+
+  // Atualizar configuração de modlog
+  fastify.put('/:guildId/modlog-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = guildModlogConfigSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!guild) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const input = parsed.data
+    const updated = await prisma.guildConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(input.modLogChannelId !== undefined ? { modLogChannelId: input.modLogChannelId } : {}),
+        ...(input.modLogMessage !== undefined ? { modLogMessage: input.modLogMessage } : {}),
+      },
+      create: {
+        guildId,
+        modLogChannelId: input.modLogChannelId ?? null,
+        modLogMessage: input.modLogMessage ?? null,
+      },
+      select: {
+        modLogChannelId: true,
+        modLogMessage: true,
+      },
+    })
+
+    return reply.send({
+      success: true,
+      config: updated,
+    })
+  })
 
   // Buscar logs de moderação
   fastify.get('/:guildId/modlogs', {
