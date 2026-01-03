@@ -104,6 +104,13 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
   }
 
   try {
+    const { reactionRoleService } = await import('../services/reactionRole.service')
+    await reactionRoleService.handle_reaction_add(reaction, user)
+  } catch (error: unknown) {
+    logger.warn({ err: safe_error_details(error) }, 'reaction roles: failed to handle reaction add')
+  }
+
+  try {
     const { starboardService } = await import('../services/starboard.service')
     await starboardService.handle_reaction_update(reaction, user)
   } catch (error: unknown) {

@@ -5,7 +5,16 @@ import {
   EmbedBuilder,
   PermissionFlagsBits,
 } from 'discord.js'
-import type { ButtonInteraction, Guild, GuildTextBasedChannel, Role } from 'discord.js'
+import type {
+  ButtonInteraction,
+  Guild,
+  GuildTextBasedChannel,
+  MessageReaction,
+  PartialMessageReaction,
+  PartialUser,
+  Role,
+  User,
+} from 'discord.js'
 
 import { prisma } from '@yuebot/database'
 import { COLORS, EMOJIS } from '@yuebot/shared'
@@ -69,6 +78,37 @@ function normalize_panel(row: {
 
 function build_custom_id(panel_id: string, role_id: string) {
   return `rr:${panel_id}:${role_id}`
+}
+
+function normalize_emoji_id(input: string): string | null {
+  const trimmed = input.trim()
+  if (!trimmed) return null
+
+  const id_match = trimmed.match(/\d{15,}/)
+  if (id_match) return id_match[0]!
+
+  const parts = trimmed.split(':')
+  const last = parts.at(-1)
+  if (last && /^\d{15,}$/.test(last)) return last
+
+  return null
+}
+
+function normalize_reaction_key_from_item_emoji(emoji: string | null) {
+  if (!emoji) return null
+
+  const maybe_id = normalize_emoji_id(emoji)
+  if (maybe_id) return { kind: 'id' as const, value: maybe_id, react_input: maybe_id }
+
+  const name = emoji.trim()
+  if (!name) return null
+
+  return { kind: 'name' as const, value: name, react_input: name }
+}
+
+function normalize_reaction_key_from_reaction(reaction: MessageReaction | PartialMessageReaction) {
+  if (reaction.emoji.id) return { kind: 'id' as const, value: reaction.emoji.id }
+  return { kind: 'name' as const, value: reaction.emoji.name ?? '' }
 }
 
 function build_embed(input: {
@@ -148,6 +188,46 @@ export class ReactionRoleService {
     return normalize_panel(row)
   }
 
+  private async get_panel_by_message_id(guild_id: string, message_id: string): Promise<reaction_role_panel | null> {
+    const row = await prisma.reactionRolePanel.findFirst({
+      where: { guildId: guild_id, messageId: message_id },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        guildId: true,
+        name: true,
+        enabled: true,
+        mode: true,
+        channelId: true,
+        messageId: true,
+        items: {
+          orderBy: { createdAt: 'asc' },
+          select: {
+            roleId: true,
+            label: true,
+            emoji: true,
+          },
+        },
+      },
+    })
+
+    return normalize_panel(row)
+  }
+
+  private async ensure_panel_message_reactions(panel: reaction_role_panel, message: { react: (emoji: string) => Promise<unknown> }) {
+    const unique = new Set<string>()
+
+    for (const item of panel.items) {
+      const key = normalize_reaction_key_from_item_emoji(item.emoji)
+      if (!key) continue
+      unique.add(key.react_input)
+    }
+
+    for (const emoji of unique) {
+      await message.react(emoji)
+    }
+  }
+
   async ensure_panel_message(guild: Guild, panel_id: string, channel_id: string, message_id: string | null) {
     const panel = await this.get_panel(panel_id)
     if (!panel) {
@@ -177,11 +257,25 @@ export class ReactionRoleService {
       const existing = await channel.messages.fetch(message_id).catch(() => null)
       if (existing) {
         await existing.edit({ embeds: [embed], components })
+
+        try {
+          await this.ensure_panel_message_reactions(panel, existing)
+        } catch (error: unknown) {
+          logger.warn({ err: safe_error_details(error), guildId: guild.id, panelId: panel.id }, 'Failed to ensure reaction role panel reactions')
+        }
+
         return { channel, messageId: existing.id }
       }
     }
 
     const sent = await channel.send({ embeds: [embed], components, allowedMentions: { parse: [] } })
+
+    try {
+      await this.ensure_panel_message_reactions(panel, sent)
+    } catch (error: unknown) {
+      logger.warn({ err: safe_error_details(error), guildId: guild.id, panelId: panel.id }, 'Failed to ensure reaction role panel reactions')
+    }
+
     return { channel, messageId: sent.id }
   }
 
@@ -264,6 +358,93 @@ export class ReactionRoleService {
     } catch (error: unknown) {
       logger.warn({ err: safe_error_details(error), guildId: interaction.guild.id, panelId: panel_id }, 'Failed to apply reaction role')
       await interaction.editReply({ content: `${EMOJIS.ERROR} Não foi possível atualizar seu cargo. Verifique permissões/hierarquia.` })
+    }
+  }
+
+  async handle_reaction_add(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser): Promise<void> {
+    if (!reaction.message.guild) return
+    if (user.bot) return
+    if (!reaction.message.id) return
+
+    const panel = await this.get_panel_by_message_id(reaction.message.guild.id, reaction.message.id)
+    if (!panel) return
+    if (!panel.enabled) return
+
+    const reaction_key = normalize_reaction_key_from_reaction(reaction)
+    if (!reaction_key.value) return
+
+    const item = panel.items.find((i) => {
+      const key = normalize_reaction_key_from_item_emoji(i.emoji)
+      if (!key) return false
+      return key.kind === reaction_key.kind && key.value === reaction_key.value
+    })
+
+    if (!item) return
+
+    const member = await reaction.message.guild.members.fetch(user.id).catch(() => null)
+    if (!member) return
+
+    const role = await reaction.message.guild.roles.fetch(item.roleId).catch(() => null)
+    if (!role) return
+
+    try {
+      await this.ensure_can_manage_role(reaction.message.guild, role)
+
+      if (panel.mode === 'single') {
+        const other_role_ids = panel.items.map((i) => i.roleId).filter((id) => id !== item.roleId)
+        const to_remove = other_role_ids.filter((id) => member.roles.cache.has(id))
+        if (to_remove.length > 0) {
+          await member.roles.remove(to_remove, `reaction role panel ${panel.id} single-select`)
+        }
+      }
+
+      if (!member.roles.cache.has(item.roleId)) {
+        await member.roles.add(item.roleId, `reaction role panel ${panel.id}`)
+      }
+    } catch (error: unknown) {
+      logger.warn(
+        { err: safe_error_details(error), guildId: reaction.message.guild.id, panelId: panel.id, roleId: item.roleId },
+        'Failed to apply reaction role (reaction add)'
+      )
+    }
+  }
+
+  async handle_reaction_remove(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser): Promise<void> {
+    if (!reaction.message.guild) return
+    if (user.bot) return
+    if (!reaction.message.id) return
+
+    const panel = await this.get_panel_by_message_id(reaction.message.guild.id, reaction.message.id)
+    if (!panel) return
+    if (!panel.enabled) return
+
+    const reaction_key = normalize_reaction_key_from_reaction(reaction)
+    if (!reaction_key.value) return
+
+    const item = panel.items.find((i) => {
+      const key = normalize_reaction_key_from_item_emoji(i.emoji)
+      if (!key) return false
+      return key.kind === reaction_key.kind && key.value === reaction_key.value
+    })
+
+    if (!item) return
+
+    const member = await reaction.message.guild.members.fetch(user.id).catch(() => null)
+    if (!member) return
+
+    if (!member.roles.cache.has(item.roleId)) return
+
+    const role = await reaction.message.guild.roles.fetch(item.roleId).catch(() => null)
+    if (!role) return
+
+    try {
+      await this.ensure_can_manage_role(reaction.message.guild, role)
+      await member.roles.remove(item.roleId, `reaction role panel ${panel.id}`)
+    } catch (error: unknown) {
+      logger.warn(
+        { err: safe_error_details(error), guildId: reaction.message.guild.id, panelId: panel.id, roleId: item.roleId },
+        'Failed to apply reaction role (reaction remove)'
+      )
     }
   }
 }
