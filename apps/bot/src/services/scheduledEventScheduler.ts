@@ -6,10 +6,6 @@ import { logger } from '../utils/logger'
 import { getSendableChannel } from '../utils/discord'
 import { safe_error_details } from '../utils/safe_error'
 
-const REMINDER_24H_MS = 24 * 60 * 60 * 1000
-const REMINDER_1H_MS = 60 * 60 * 1000
-const REMINDER_10M_MS = 10 * 60 * 1000
-
 function to_unix_seconds(date: Date) {
   return Math.floor(date.getTime() / 1000)
 }
@@ -65,7 +61,7 @@ export class ScheduledEventScheduler {
     })
 
     for (const event of due) {
-      await this.send_reminder(now, event, 'reminder24hSent', 'reminder24hAt', '⏰ Faltam 24 horas')
+      await this.send_24h_reminder(now, event)
     }
   }
 
@@ -83,7 +79,7 @@ export class ScheduledEventScheduler {
     })
 
     for (const event of due) {
-      await this.send_reminder(now, event, 'reminder1hSent', 'reminder1hAt', '⏰ Faltam 1 hora')
+      await this.send_1h_reminder(now, event)
     }
   }
 
@@ -101,22 +97,45 @@ export class ScheduledEventScheduler {
     })
 
     for (const event of due) {
-      await this.send_reminder(now, event, 'reminder10mSent', 'reminder10mAt', '⏰ Faltam 10 minutos')
+      await this.send_10m_reminder(now, event)
     }
   }
 
-  private async send_reminder(
+  private async send_24h_reminder(
     now: Date,
-    event: {
-      id: string
-      guildId: string
-      channelId: string
-      title: string
-      description: string | null
-      startsAt: Date
-    },
-    sent_field: 'reminder24hSent' | 'reminder1hSent' | 'reminder10mSent',
-    at_field: 'reminder24hAt' | 'reminder1hAt' | 'reminder10mAt',
+    event: { id: string; guildId: string; channelId: string; title: string; description: string | null; startsAt: Date }
+  ) {
+    await this.send_reminder_message(event, '⏰ Faltam 24 horas')
+    await prisma.scheduledEvent.update({
+      where: { id: event.id },
+      data: { reminder24hSent: true, reminder24hAt: now },
+    })
+  }
+
+  private async send_1h_reminder(
+    now: Date,
+    event: { id: string; guildId: string; channelId: string; title: string; description: string | null; startsAt: Date }
+  ) {
+    await this.send_reminder_message(event, '⏰ Faltam 1 hora')
+    await prisma.scheduledEvent.update({
+      where: { id: event.id },
+      data: { reminder1hSent: true, reminder1hAt: now },
+    })
+  }
+
+  private async send_10m_reminder(
+    now: Date,
+    event: { id: string; guildId: string; channelId: string; title: string; description: string | null; startsAt: Date }
+  ) {
+    await this.send_reminder_message(event, '⏰ Faltam 10 minutos')
+    await prisma.scheduledEvent.update({
+      where: { id: event.id },
+      data: { reminder10mSent: true, reminder10mAt: now },
+    })
+  }
+
+  private async send_reminder_message(
+    event: { id: string; guildId: string; channelId: string; title: string; description: string | null; startsAt: Date },
     header: string
   ) {
     try {
@@ -124,13 +143,6 @@ export class ScheduledEventScheduler {
       const sendable = getSendableChannel(channel)
       if (!sendable) {
         logger.warn({ scheduledEventId: event.id, guildId: event.guildId, channelId: event.channelId }, 'Canal do evento não é enviável; ignorando reminder')
-        await prisma.scheduledEvent.update({
-          where: { id: event.id },
-          data: {
-            [sent_field]: true,
-            [at_field]: now,
-          },
-        })
         return
       }
 
@@ -148,14 +160,6 @@ export class ScheduledEventScheduler {
         content: `${EMOJIS.INFO} **Evento:** ${event.title}`,
         embeds: [embed],
         allowedMentions: { parse: [] },
-      })
-
-      await prisma.scheduledEvent.update({
-        where: { id: event.id },
-        data: {
-          [sent_field]: true,
-          [at_field]: now,
-        },
       })
     } catch (error) {
       logger.error({ err: safe_error_details(error), scheduledEventId: event.id }, 'Falha ao enviar reminder de evento agendado')
