@@ -30,11 +30,14 @@ const client = new Client({
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.GuildMembers,
     GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildModeration,
   ],
   partials: [
     Partials.Message,
     Partials.Channel,
     Partials.Reaction,
+    Partials.GuildMember,
+    Partials.User,
   ],
 });
 
@@ -209,6 +212,42 @@ client.on('guildMemberRemove', async (member) => {
 client.on('guildMemberUpdate', async (old_member, new_member) => {
   const { handleGuildMemberUpdate } = await import('./events/guildMemberUpdate')
   await handleGuildMemberUpdate(old_member, new_member)
+})
+
+// Event: Guild member update (Audit)
+client.on('guildMemberUpdate', async (old_member, new_member) => {
+  const { handleAuditGuildMemberUpdate } = await import('./events/auditGuildMemberUpdate')
+  await handleAuditGuildMemberUpdate(old_member, new_member)
+})
+
+// Event: Message delete/update (Audit)
+client.on('messageDelete', async (message) => {
+  const { handleMessageDelete } = await import('./events/messageDelete')
+  await handleMessageDelete(message)
+})
+
+client.on('messageUpdate', async (old_message, new_message) => {
+  const { handleMessageUpdate } = await import('./events/messageUpdate')
+  await handleMessageUpdate(old_message, new_message)
+})
+
+// Event: Channel create/update/delete (Audit)
+client.on('channelCreate', async (channel) => {
+  if (!('guild' in channel)) return
+  const { handleChannelCreate } = await import('./events/channelCreate')
+  await handleChannelCreate(channel as any)
+})
+
+client.on('channelUpdate', async (old_channel, new_channel) => {
+  if (!('guild' in new_channel)) return
+  const { handleChannelUpdate } = await import('./events/channelUpdate')
+  await handleChannelUpdate(old_channel as any, new_channel as any)
+})
+
+client.on('channelDelete', async (channel) => {
+  if (!('guild' in channel)) return
+  const { handleChannelDelete } = await import('./events/channelDelete')
+  await handleChannelDelete(channel as any)
 })
 
 // Event: Message reaction add (Giveaways)
