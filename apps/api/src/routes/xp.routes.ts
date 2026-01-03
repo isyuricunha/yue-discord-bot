@@ -16,7 +16,7 @@ export default async function xpRoutes(fastify: FastifyInstance) {
     });
 
     if (!member) {
-      return { xp: 0, level: 0, position: null };
+      return { success: true, xp: 0, level: 0, position: null };
     }
 
     const above = await prisma.globalXpMember.count({
@@ -25,7 +25,7 @@ export default async function xpRoutes(fastify: FastifyInstance) {
       },
     });
 
-    return { xp: member.xp, level: member.level, position: above + 1 };
+    return { success: true, xp: member.xp, level: member.level, position: above + 1 };
   });
 
   fastify.get('/global-leaderboard', {
@@ -50,7 +50,7 @@ export default async function xpRoutes(fastify: FastifyInstance) {
       position: Number(offset) + index + 1,
     }));
 
-    return { leaderboard, total };
+    return { success: true, leaderboard, total };
   });
 
   // Zerar XP global (apenas allowlist)

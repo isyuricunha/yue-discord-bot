@@ -90,7 +90,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return { giveaways };
+    return { success: true, giveaways };
   });
 
   // Obter detalhes de um sorteio
@@ -119,7 +119,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       return reply.code(404).send({ error: 'Giveaway not found' });
     }
 
-    return { giveaway };
+    return { success: true, giveaway };
   });
 
   // Cancelar sorteio
@@ -212,7 +212,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
         },
       })
 
-      return reply.send(entry)
+      return reply.send({ success: true, ...entry })
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to add giveaway entry')
       return reply.code(500).send({ error: 'Internal server error' })
@@ -268,7 +268,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
         },
       })
 
-      return reply.send(entry)
+      return reply.send({ success: true, ...entry })
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to update giveaway entry choices')
       return reply.code(500).send({ error: 'Internal server error' })

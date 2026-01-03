@@ -40,7 +40,7 @@ export async function fanartsRoutes(fastify: FastifyInstance) {
 
     const total = await prisma.fanArt.count({ where: { status: 'approved' } })
 
-    return { fanArts: rows, total }
+    return { success: true, fanArts: rows, total }
   })
 
   fastify.post('/fanarts', {
@@ -77,7 +77,7 @@ export async function fanartsRoutes(fastify: FastifyInstance) {
       },
     })
 
-    return reply.send({ fanArt: fan_art })
+    return reply.send({ success: true, fanArt: fan_art })
   })
 
   fastify.get('/fanarts/pending', {
@@ -101,7 +101,7 @@ export async function fanartsRoutes(fastify: FastifyInstance) {
 
     const total = await prisma.fanArt.count({ where: { status: 'pending' } })
 
-    return reply.send({ fanArts: rows, total })
+    return reply.send({ success: true, fanArts: rows, total })
   })
 
   fastify.post('/fanarts/:fanArtId/review', {
@@ -140,6 +140,6 @@ export async function fanartsRoutes(fastify: FastifyInstance) {
       },
     })
 
-    return reply.send({ fanArt: updated })
+    return reply.send({ success: true, fanArt: updated })
   })
 }

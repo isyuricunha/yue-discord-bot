@@ -53,7 +53,7 @@ export async function economyRoutes(fastify: FastifyInstance) {
     const user = request.user
 
     const wallet = await prisma.wallet.findUnique({ where: { userId: user.userId }, select: { balance: true } })
-    return { balance: (wallet?.balance ?? 0n).toString() }
+    return { success: true, balance: (wallet?.balance ?? 0n).toString() }
   })
 
   fastify.get('/economy/transactions', { preHandler: [fastify.authenticate] }, async (request) => {
@@ -78,6 +78,7 @@ export async function economyRoutes(fastify: FastifyInstance) {
     ])
 
     return {
+      success: true,
       transactions: rows.map((tx) => ({
         ...tx,
         amount: tx.amount.toString(),
