@@ -46,6 +46,8 @@ model Guild {
   
   starboardConfig StarboardConfig?
   starboardPosts  StarboardPost[]
+
+  auditLogs AuditLog[]
   
   @@map("guilds")
 }
@@ -150,6 +152,32 @@ model ModLog {
   @@index([guildId, createdAt])
   @@index([userId])
   @@map("mod_logs")
+}
+
+model AuditLog {
+  id String @id @default(cuid())
+
+  guildId String
+  guild   Guild  @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  action String
+
+  actorUserId String?
+
+  targetUserId    String?
+  targetChannelId String?
+  targetMessageId String?
+
+  data Json?
+
+  createdAt DateTime @default(now())
+
+  @@index([guildId, createdAt])
+  @@index([guildId, action, createdAt])
+  @@index([guildId, actorUserId, createdAt])
+  @@index([guildId, targetUserId, createdAt])
+  @@index([guildId, targetChannelId, createdAt])
+  @@map("audit_logs")
 }
 
 // Sorteio
