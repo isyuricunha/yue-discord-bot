@@ -31,7 +31,7 @@ export async function badgesRoutes(fastify: FastifyInstance) {
       orderBy: [{ category: 'asc' }, { name: 'asc' }],
     })
 
-    return { badges }
+    return { success: true, badges }
   })
 
   fastify.get('/badges/:badgeId/holders', {
@@ -67,7 +67,7 @@ export async function badgesRoutes(fastify: FastifyInstance) {
       },
     })
 
-    return reply.send({ badge, holders: rows, total })
+    return reply.send({ success: true, badge, holders: rows, total })
   })
 
   fastify.put('/badges', {
@@ -104,7 +104,7 @@ export async function badgesRoutes(fastify: FastifyInstance) {
       },
     })
 
-    return reply.send({ badge })
+    return reply.send({ success: true, badge })
   })
 
   fastify.post('/badges/grant', {
@@ -160,7 +160,7 @@ export async function badgesRoutes(fastify: FastifyInstance) {
       include: { badge: true },
     })
 
-    return reply.send({ userBadge: user_badge })
+    return reply.send({ success: true, userBadge: user_badge })
   })
 
   fastify.post('/badges/revoke', {

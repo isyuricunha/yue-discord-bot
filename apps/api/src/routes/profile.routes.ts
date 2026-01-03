@@ -36,6 +36,7 @@ export async function profileRoutes(fastify: FastifyInstance) {
     const viewer_is_admin = is_badge_admin(fastify, request.user.userId)
 
     return reply.send({
+      success: true,
       user: {
         id: user.id,
         username: user.username,
@@ -66,7 +67,7 @@ export async function profileRoutes(fastify: FastifyInstance) {
       include: { profile: true },
     })
 
-    return { user }
+    return { success: true, user }
   })
 
   fastify.patch('/profile/me', {
@@ -93,6 +94,6 @@ export async function profileRoutes(fastify: FastifyInstance) {
       create: { userId: user_id, bio: bio ?? null },
     })
 
-    return reply.send({ profile })
+    return reply.send({ success: true, profile })
   })
 }

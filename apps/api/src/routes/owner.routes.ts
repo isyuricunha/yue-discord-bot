@@ -303,7 +303,7 @@ export async function ownerRoutes(fastify: FastifyInstance) {
       },
     })
 
-    return reply.send({ previewId: log.id, preview })
+    return reply.send({ success: true, previewId: log.id, preview })
   })
 
   fastify.post('/owner/announcements/execute', {
