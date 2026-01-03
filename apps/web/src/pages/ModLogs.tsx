@@ -40,14 +40,6 @@ type modlog_config_response = {
   }
 }
 
-type guild_response = {
-  guild: {
-    config?: {
-      announcementChannelId?: string | null
-    } | null
-  }
-}
-
 type announcement_config_response = {
   success: boolean
   config: {
@@ -119,19 +111,8 @@ export default function ModLogsPage() {
   const config = (config_data?.config as guild_config | undefined) ?? undefined
 
   const {
-    isLoading: is_guild_loading,
-    isError: is_guild_error,
-    refetch: refetch_guild,
-  } = useQuery({
-    queryKey: ['guild', guildId],
-    queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
-      return response.data as guild_response
-    },
-  })
-
-  const {
     data: announcement_data,
+    isLoading: is_announcement_loading,
     isError: is_announcement_error,
     refetch: refetch_announcement,
   } = useQuery({
@@ -309,18 +290,25 @@ export default function ModLogsPage() {
             <Button
               onClick={() => saveMutation.mutate()}
               isLoading={saveMutation.isPending}
-              disabled={Boolean(message_validation) || is_config_loading || is_config_error || is_guild_loading || is_guild_error || is_channels_loading}
+              disabled={
+                Boolean(message_validation) ||
+                is_config_loading ||
+                is_config_error ||
+                is_announcement_loading ||
+                is_announcement_error ||
+                is_channels_loading
+              }
               className="shrink-0"
             >
               Salvar
             </Button>
           </div>
 
-          {(is_config_error || is_guild_error || is_announcement_error) && (
+          {(is_config_error || is_announcement_error) && (
             <ErrorState
               title="Falha ao carregar configurações"
               description="Não foi possível carregar os dados do servidor."
-              onAction={() => void Promise.all([refetch_config(), refetch_guild(), refetch_announcement()])}
+              onAction={() => void Promise.all([refetch_config(), refetch_announcement()])}
             />
           )}
 
