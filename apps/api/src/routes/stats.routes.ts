@@ -129,6 +129,7 @@ export async function statsRoutes(fastify: FastifyInstance) {
       }
 
       return reply.send({
+        success: true,
         totalMembers,
         moderationActions7d,
         moderationActions30d,

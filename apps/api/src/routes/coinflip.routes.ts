@@ -97,6 +97,7 @@ export async function coinflipRoutes(fastify: FastifyInstance) {
     const lost = losses_sum._sum.betAmount ?? 0n
 
     return {
+      success: true,
       played,
       wins,
       losses,
@@ -137,7 +138,7 @@ export async function coinflipRoutes(fastify: FastifyInstance) {
       prisma.coinflipGame.count({ where }),
     ])
 
-    return { games: rows.map((g) => serialize_game(g)), total }
+    return { success: true, games: rows.map((g) => serialize_game(g)), total }
   })
 
   fastify.post('/coinflip/bet', { preHandler: [fastify.authenticate] }, async (request, reply) => {
@@ -176,7 +177,7 @@ export async function coinflipRoutes(fastify: FastifyInstance) {
       },
     })
 
-    return reply.send({ game: serialize_game(game) })
+    return reply.send({ success: true, game: serialize_game(game) })
   })
 
   fastify.post('/coinflip/decline', { preHandler: [fastify.authenticate] }, async (request, reply) => {
