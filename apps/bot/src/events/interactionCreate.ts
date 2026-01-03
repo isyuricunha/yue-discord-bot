@@ -2,10 +2,67 @@ import type { Interaction } from 'discord.js';
 import { logger } from '../utils/logger';
 import { EMOJIS } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
+import { prisma } from '@yuebot/database'
+
+type command_type = 'slash' | 'context'
+
+type command_override_cache_entry = {
+  disabled: boolean
+  expires_at_ms: number
+}
+
+const command_override_cache = new Map<string, command_override_cache_entry>()
+
+function command_override_cache_key(guild_id: string, type: command_type, name: string) {
+  return `${guild_id}:${type}:${name}`
+}
+
+async function is_command_disabled(guild_id: string, type: command_type, name: string): Promise<boolean> {
+  const key = command_override_cache_key(guild_id, type, name)
+  const now = Date.now()
+
+  const cached = command_override_cache.get(key)
+  if (cached && cached.expires_at_ms > now) {
+    return cached.disabled
+  }
+
+  try {
+    const override = await prisma.guildCommandOverride.findUnique({
+      where: {
+        guildId_commandType_commandName: {
+          guildId: guild_id,
+          commandType: type,
+          commandName: name,
+        },
+      },
+      select: { enabled: true },
+    })
+
+    const disabled = override ? override.enabled === false : false
+    command_override_cache.set(key, { disabled, expires_at_ms: now + 60_000 })
+    return disabled
+  } catch (error) {
+    logger.error({ err: safe_error_details(error), guild_id, command_type: type, command_name: name }, 'Erro ao verificar comando desativado')
+    return false
+  }
+}
 
 export async function handleInteractionCreate(interaction: Interaction) {
   // Handle autocomplete
   if (interaction.isAutocomplete()) {
+    const guild_id = interaction.guildId
+    if (guild_id) {
+      const disabled = await is_command_disabled(guild_id, 'slash', interaction.commandName)
+      if (disabled) {
+        try {
+          await interaction.respond([])
+        } catch (error) {
+          logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao responder autocomplete de comando desativado')
+        }
+        return
+      }
+    }
+
     const command = interaction.client.commands.get(interaction.commandName)
     if (!command?.autocomplete) return
 
@@ -20,11 +77,30 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
   // Handle slash commands
   if (interaction.isChatInputCommand()) {
+    const guild_id = interaction.guildId
     const command = interaction.client.commands.get(interaction.commandName);
 
     if (!command) {
       logger.warn(`Comando não encontrado: ${interaction.commandName}`);
       return;
+    }
+
+    if (guild_id) {
+      const disabled = await is_command_disabled(guild_id, 'slash', interaction.commandName)
+      if (disabled) {
+        const message = {
+          content: `${EMOJIS.ERROR} Este comando está desativado neste servidor.`,
+          ephemeral: true,
+        }
+
+        try {
+          await interaction.reply(message)
+        } catch (error) {
+          logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao responder comando desativado')
+        }
+
+        return
+      }
     }
 
     try {
@@ -47,11 +123,30 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
   // Handle message context menu commands
   if (interaction.isMessageContextMenuCommand()) {
+    const guild_id = interaction.guildId
     const command = interaction.client.contextMenuCommands.get(interaction.commandName);
 
     if (!command) {
       logger.warn(`Context menu comando não encontrado: ${interaction.commandName}`);
       return;
+    }
+
+    if (guild_id) {
+      const disabled = await is_command_disabled(guild_id, 'context', interaction.commandName)
+      if (disabled) {
+        const message = {
+          content: `${EMOJIS.ERROR} Este comando está desativado neste servidor.`,
+          ephemeral: true,
+        }
+
+        try {
+          await interaction.reply(message)
+        } catch (error) {
+          logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao responder comando desativado')
+        }
+
+        return
+      }
     }
 
     try {
