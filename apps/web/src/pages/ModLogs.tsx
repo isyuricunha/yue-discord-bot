@@ -48,6 +48,13 @@ type guild_response = {
   }
 }
 
+type announcement_config_response = {
+  success: boolean
+  config: {
+    announcementChannelId: string | null
+  }
+}
+
 interface ModLog {
   id: string
   guildId: string
@@ -112,7 +119,6 @@ export default function ModLogsPage() {
   const config = (config_data?.config as guild_config | undefined) ?? undefined
 
   const {
-    data: guild_data,
     isLoading: is_guild_loading,
     isError: is_guild_error,
     refetch: refetch_guild,
@@ -124,7 +130,17 @@ export default function ModLogsPage() {
     },
   })
 
-  const announcement_config = guild_data?.guild?.config
+  const {
+    data: announcement_data,
+    isError: is_announcement_error,
+    refetch: refetch_announcement,
+  } = useQuery({
+    queryKey: ['announcement-config', guildId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/announcement-config`)
+      return response.data as announcement_config_response
+    },
+  })
 
   const { data: channels_data, isLoading: is_channels_loading } = useQuery({
     queryKey: ['channels', guildId],
@@ -155,12 +171,13 @@ export default function ModLogsPage() {
   }, [config])
 
   useEffect(() => {
-    if (!announcement_config) return
+    const cfg = announcement_data?.config
+    if (!cfg) return
     if (has_initialized_announcement.current) return
     has_initialized_announcement.current = true
 
-    set_announcement_channel_id(announcement_config.announcementChannelId ?? '')
-  }, [announcement_config])
+    set_announcement_channel_id(cfg.announcementChannelId ?? '')
+  }, [announcement_data])
 
   const message_validation = useMemo(() => {
     if (!modLogMessage.trim()) return null
@@ -174,14 +191,14 @@ export default function ModLogsPage() {
           modLogChannelId: modlog_channel_id || undefined,
           modLogMessage: modLogMessage || null,
         }),
-        axios.put(`${API_URL}/api/guilds/${guildId}/config`, {
+        axios.put(`${API_URL}/api/guilds/${guildId}/announcement-config`, {
           announcementChannelId: announcement_channel_id || undefined,
         }),
       ])
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['modlog-config', guildId] })
-      queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      queryClient.invalidateQueries({ queryKey: ['announcement-config', guildId] })
       toast_success('Configurações salvas com sucesso!')
     },
     onError: (error: any) => {
@@ -299,11 +316,11 @@ export default function ModLogsPage() {
             </Button>
           </div>
 
-          {(is_config_error || is_guild_error) && (
+          {(is_config_error || is_guild_error || is_announcement_error) && (
             <ErrorState
               title="Falha ao carregar configurações"
               description="Não foi possível carregar os dados do servidor."
-              onAction={() => void Promise.all([refetch_config(), refetch_guild()])}
+              onAction={() => void Promise.all([refetch_config(), refetch_guild(), refetch_announcement()])}
             />
           )}
 

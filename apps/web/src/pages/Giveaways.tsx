@@ -42,19 +42,19 @@ export default function GiveawaysPage() {
   const queryClient = useQueryClient()
 
   const {
-    data: guild,
-    isLoading: is_guild_loading,
-    isError: is_guild_error,
-    refetch: refetch_guild,
+    data: config_data,
+    isLoading: is_config_loading,
+    isError: is_config_error,
+    refetch: refetch_config,
   } = useQuery({
-    queryKey: ['guild', guildId],
+    queryKey: ['giveaway-config', guildId],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}`)
-      return response.data
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/giveaway-config`)
+      return response.data as { success: boolean; config: { giveawayChannelId: string | null } }
     },
   })
 
-  const config = guild?.guild?.config as { giveawayChannelId?: string | null } | undefined
+  const config = config_data?.config
 
   const { data: channels_data, isLoading: is_channels_loading } = useQuery({
     queryKey: ['channels', guildId],
@@ -69,10 +69,10 @@ export default function GiveawaysPage() {
 
   const updateMutation = useMutation({
     mutationFn: async (data: { giveawayChannelId?: string | undefined }) => {
-      await axios.put(`${API_URL}/api/guilds/${guildId}/config`, data)
+      await axios.put(`${API_URL}/api/guilds/${guildId}/giveaway-config`, data)
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['guild', guildId] })
+      queryClient.invalidateQueries({ queryKey: ['giveaway-config', guildId] })
       toast_success('Configurações salvas com sucesso!')
     },
     onError: (error: any) => {
@@ -123,7 +123,7 @@ export default function GiveawaysPage() {
             <Button
               onClick={() => updateMutation.mutate({ giveawayChannelId: giveaway_channel_id || undefined })}
               isLoading={updateMutation.isPending}
-              disabled={is_guild_loading || is_guild_error || is_channels_loading}
+              disabled={is_config_loading || is_config_error || is_channels_loading}
               className="shrink-0"
             >
               Salvar
@@ -131,9 +131,9 @@ export default function GiveawaysPage() {
           </div>
 
           <div className="mt-4">
-            {is_guild_error ? (
+            {is_config_error ? (
               <div className="text-sm text-muted-foreground">
-                Falha ao carregar guild. <button className="underline" onClick={() => void refetch_guild()}>Tentar novamente</button>
+                Falha ao carregar configuração. <button className="underline" onClick={() => void refetch_config()}>Tentar novamente</button>
               </div>
             ) : is_channels_loading ? (
               <Skeleton className="h-11 w-full" />
@@ -143,16 +143,13 @@ export default function GiveawaysPage() {
                 onValueChange={(value) => {
                   const next = value
                   // optimistic update in cache so UI reflects selection without local state
-                  queryClient.setQueryData(['guild', guildId], (prev: any) => {
-                    if (!prev?.guild) return prev
+                  queryClient.setQueryData(['giveaway-config', guildId], (prev: any) => {
+                    if (!prev?.config) return prev
                     return {
                       ...prev,
-                      guild: {
-                        ...prev.guild,
-                        config: {
-                          ...(prev.guild.config ?? {}),
-                          giveawayChannelId: next || null,
-                        },
+                      config: {
+                        ...prev.config,
+                        giveawayChannelId: next || null,
                       },
                     }
                   })
