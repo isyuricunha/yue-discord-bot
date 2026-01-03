@@ -164,7 +164,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
   return (
     <aside
       className={cn(
-        'relative h-screen shrink-0 border-r border-border/80 bg-background/90 backdrop-blur-md',
+        'relative h-screen shrink-0 overflow-hidden border-r border-border/80 bg-background/90 backdrop-blur-md',
         'transition-[width] duration-200 ease-out',
         width
       )}
@@ -196,7 +196,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
           </button>
         </div>
 
-        <nav className={cn('flex-1 space-y-1 px-3', collapsed && 'px-2')}>
+        <nav className={cn('min-h-0 flex-1 space-y-1 overflow-y-auto px-3', collapsed && 'px-2')}>
           {base.map((item) => (
             <NavLink key={item.to} to={item.to} className={nav_link_class} end>
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
