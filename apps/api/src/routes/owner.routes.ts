@@ -1,7 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
 
-import { InternalBotApiError, get_guild_info, send_guild_message } from '../internal/bot_internal_api'
+import { InternalBotApiError, get_guild_info, send_guild_message, set_bot_presence } from '../internal/bot_internal_api'
 import { is_owner } from '../utils/permissions'
 import { safe_error_details } from '../utils/safe_error'
 
@@ -10,6 +10,68 @@ type announcement_preview_input = {
   query?: string
   addedFrom?: string
   addedTo?: string
+}
+
+type bot_presence_settings = {
+  presenceEnabled: boolean
+  presenceStatus: 'online' | 'idle' | 'dnd' | 'invisible'
+  activityType: 'playing' | 'streaming' | 'listening' | 'watching' | 'competing' | null
+  activityName: string | null
+  activityUrl: string | null
+}
+
+function parse_presence_status(value: unknown): bot_presence_settings['presenceStatus'] {
+  const raw = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  if (raw === 'online' || raw === 'idle' || raw === 'dnd' || raw === 'invisible') return raw
+  return 'online'
+}
+
+function parse_activity_type(value: unknown): bot_presence_settings['activityType'] {
+  const raw = typeof value === 'string' ? value.trim().toLowerCase() : ''
+  if (raw === 'playing' || raw === 'streaming' || raw === 'listening' || raw === 'watching' || raw === 'competing') return raw
+  return null
+}
+
+function normalize_optional_string(value: unknown, max_len: number): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+  return trimmed.length > max_len ? trimmed.slice(0, max_len) : trimmed
+}
+
+function normalize_optional_url(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  if (!trimmed) return null
+
+  try {
+    const url = new URL(trimmed)
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return null
+    return url.toString()
+  } catch {
+    return null
+  }
+}
+
+function parse_bot_presence_settings(body: unknown): bot_presence_settings | null {
+  if (!is_object(body)) return null
+
+  if (typeof body.presenceEnabled !== 'boolean') return null
+
+  const presenceStatus = parse_presence_status(body.presenceStatus)
+  const activityType = parse_activity_type(body.activityType)
+  const activityName = normalize_optional_string(body.activityName, 128)
+  const activityUrl = normalize_optional_url(body.activityUrl)
+
+  if (activityType === 'streaming' && activityName && !activityUrl) return null
+
+  return {
+    presenceEnabled: body.presenceEnabled,
+    presenceStatus,
+    activityType,
+    activityName,
+    activityUrl,
+  }
 }
 
 type announcement_preview_target = {
@@ -119,6 +181,110 @@ function matches_query(input: { id: string; name: string; ownerId: string }, que
 }
 
 export async function ownerRoutes(fastify: FastifyInstance) {
+  fastify.get('/owner/bot/presence', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const user = request.user
+    if (!is_owner(user.userId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const row = await prisma.botSettings.findUnique({
+      where: { id: 'global' },
+      select: {
+        presenceEnabled: true,
+        presenceStatus: true,
+        activityType: true,
+        activityName: true,
+        activityUrl: true,
+      },
+    })
+
+    const presence: bot_presence_settings = {
+      presenceEnabled: row?.presenceEnabled ?? false,
+      presenceStatus: parse_presence_status(row?.presenceStatus),
+      activityType: parse_activity_type(row?.activityType),
+      activityName: typeof row?.activityName === 'string' ? row.activityName : null,
+      activityUrl: typeof row?.activityUrl === 'string' ? row.activityUrl : null,
+    }
+
+    return reply.send({ success: true, presence })
+  })
+
+  fastify.put('/owner/bot/presence', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const user = request.user
+    if (!is_owner(user.userId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const input = parse_bot_presence_settings(request.body)
+    if (!input) {
+      return reply.code(400).send({ error: 'Invalid body' })
+    }
+
+    const saved = await prisma.botSettings.upsert({
+      where: { id: 'global' },
+      update: {
+        presenceEnabled: input.presenceEnabled,
+        presenceStatus: input.presenceStatus,
+        activityType: input.activityType,
+        activityName: input.activityName,
+        activityUrl: input.activityUrl,
+      },
+      create: {
+        id: 'global',
+        presenceEnabled: input.presenceEnabled,
+        presenceStatus: input.presenceStatus,
+        activityType: input.activityType,
+        activityName: input.activityName,
+        activityUrl: input.activityUrl,
+      },
+      select: {
+        presenceEnabled: true,
+        presenceStatus: true,
+        activityType: true,
+        activityName: true,
+        activityUrl: true,
+      },
+    })
+
+    try {
+      await set_bot_presence(
+        {
+          presenceEnabled: saved.presenceEnabled,
+          presenceStatus: parse_presence_status(saved.presenceStatus),
+          activityType: parse_activity_type(saved.activityType),
+          activityName: typeof saved.activityName === 'string' ? saved.activityName : null,
+          activityUrl: typeof saved.activityUrl === 'string' ? saved.activityUrl : null,
+        },
+        request.log
+      )
+    } catch (error: unknown) {
+      if (error instanceof InternalBotApiError) {
+        if (error.status >= 400 && error.status < 500) {
+          return reply.code(error.status).send({ error: internal_bot_api_error_message(error) })
+        }
+        request.log.error({ err: safe_error_details(error), status: error.status }, 'Failed to apply bot presence via internal bot API')
+        return reply.code(502).send({ error: 'Bad gateway' })
+      }
+
+      request.log.error({ err: safe_error_details(error) }, 'Failed to apply bot presence')
+      return reply.code(500).send({ error: 'Internal server error' })
+    }
+
+    const presence: bot_presence_settings = {
+      presenceEnabled: saved.presenceEnabled,
+      presenceStatus: parse_presence_status(saved.presenceStatus),
+      activityType: parse_activity_type(saved.activityType),
+      activityName: typeof saved.activityName === 'string' ? saved.activityName : null,
+      activityUrl: typeof saved.activityUrl === 'string' ? saved.activityUrl : null,
+    }
+
+    return reply.send({ success: true, presence })
+  })
+
   fastify.post('/owner/guilds/:guildId/sync', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {

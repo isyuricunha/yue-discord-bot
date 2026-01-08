@@ -1,11 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Crown, ExternalLink, RefreshCw, Search, Send, Settings, Shield, Users } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, Input, Select, Skeleton, Textarea } from '../components/ui'
+import { Badge, Button, Card, CardContent, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -18,6 +18,14 @@ type guild = {
   addedAt?: string
 }
 
+type bot_presence_settings = {
+  presenceEnabled: boolean
+  presenceStatus: 'online' | 'idle' | 'dnd' | 'invisible'
+  activityType: 'playing' | 'streaming' | 'listening' | 'watching' | 'competing' | null
+  activityName: string | null
+  activityUrl: string | null
+}
+
 export default function OwnerPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -25,6 +33,14 @@ export default function OwnerPage() {
   const [sort, setSort] = useState<'name_asc' | 'name_desc' | 'added_desc' | 'added_asc'>('name_asc')
   const [added_from, setAddedFrom] = useState('')
   const [added_to, setAddedTo] = useState('')
+
+  const [presence_enabled, set_presence_enabled] = useState(false)
+  const [presence_status, set_presence_status] = useState<bot_presence_settings['presenceStatus']>('online')
+  const [activity_type, set_activity_type] = useState<bot_presence_settings['activityType']>(null)
+  const [activity_name, set_activity_name] = useState('')
+  const [activity_url, set_activity_url] = useState('')
+
+  const has_initialized_presence = useRef(false)
 
   const [announcement_content, set_announcement_content] = useState('')
   const [announcement_preview_id, set_announcement_preview_id] = useState<string | null>(null)
@@ -37,6 +53,49 @@ export default function OwnerPage() {
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds`)
       return response.data.guilds as guild[]
+    },
+  })
+
+  const { data: presence_data, isLoading: isPresenceLoading } = useQuery({
+    queryKey: ['owner', 'bot', 'presence'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/owner/bot/presence`)
+      const presence = (response.data as { success: boolean; presence: bot_presence_settings }).presence
+      return presence
+    },
+  })
+
+  useEffect(() => {
+    if (!presence_data) return
+    if (has_initialized_presence.current) return
+    has_initialized_presence.current = true
+
+    set_presence_enabled(Boolean(presence_data.presenceEnabled))
+    set_presence_status((presence_data.presenceStatus ?? 'online') as bot_presence_settings['presenceStatus'])
+    set_activity_type((presence_data.activityType ?? null) as bot_presence_settings['activityType'])
+    set_activity_name(presence_data.activityName ?? '')
+    set_activity_url(presence_data.activityUrl ?? '')
+  }, [presence_data])
+
+  const savePresenceMutation = useMutation({
+    mutationFn: async () => {
+      const payload: bot_presence_settings = {
+        presenceEnabled: presence_enabled,
+        presenceStatus: presence_status,
+        activityType: activity_type,
+        activityName: activity_name.trim() ? activity_name.trim() : null,
+        activityUrl: activity_url.trim() ? activity_url.trim() : null,
+      }
+
+      const response = await axios.put(`${API_URL}/api/owner/bot/presence`, payload)
+      return response.data as { success: boolean; presence: bot_presence_settings }
+    },
+    onSuccess: (data) => {
+      toast_success('Rich Presence atualizado.', 'Presence')
+      queryClient.setQueryData(['owner', 'bot', 'presence'], data.presence)
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao atualizar presence', 'Presence falhou')
     },
   })
 
@@ -185,6 +244,88 @@ export default function OwnerPage() {
           Acesso global aos servidores onde o bot está instalado.
         </div>
       </div>
+
+      <Card className="border-accent/20">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-base font-semibold">Rich Presence</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                Configuração global do status do bot (aplica imediatamente).
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => savePresenceMutation.mutate()}
+              isLoading={savePresenceMutation.isPending}
+              disabled={isPresenceLoading}
+            >
+              Salvar
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="flex items-center justify-between rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
+              <div>
+                <div className="text-sm font-semibold">Ativar presence</div>
+                <div className="text-xs text-muted-foreground">Liga/desliga atividades e status</div>
+              </div>
+              <Switch checked={presence_enabled} onCheckedChange={set_presence_enabled} disabled={isPresenceLoading} />
+            </div>
+
+            <div>
+              <div className="mb-2 text-xs text-muted-foreground">Status</div>
+              <Select
+                value={presence_status}
+                onValueChange={(value) => set_presence_status(value as bot_presence_settings['presenceStatus'])}
+                disabled={isPresenceLoading}
+              >
+                <option value="online">Online</option>
+                <option value="idle">Idle</option>
+                <option value="dnd">DND</option>
+                <option value="invisible">Invisible</option>
+              </Select>
+            </div>
+
+            <div>
+              <div className="mb-2 text-xs text-muted-foreground">Activity type</div>
+              <Select
+                value={activity_type ?? ''}
+                onValueChange={(value) => set_activity_type((value || null) as bot_presence_settings['activityType'])}
+                disabled={isPresenceLoading}
+                placeholder="Nenhuma"
+              >
+                <option value="">Nenhuma</option>
+                <option value="playing">Playing</option>
+                <option value="listening">Listening</option>
+                <option value="watching">Watching</option>
+                <option value="competing">Competing</option>
+                <option value="streaming">Streaming</option>
+              </Select>
+            </div>
+
+            <div>
+              <div className="mb-2 text-xs text-muted-foreground">Activity name</div>
+              <Input
+                value={activity_name}
+                onChange={(e) => set_activity_name(e.target.value)}
+                placeholder="Ex: /help"
+                disabled={isPresenceLoading}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="mb-2 text-xs text-muted-foreground">Activity URL (apenas streaming)</div>
+              <Input
+                value={activity_url}
+                onChange={(e) => set_activity_url(e.target.value)}
+                placeholder="https://twitch.tv/..."
+                disabled={isPresenceLoading}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       <Card className="border-accent/20">
         <CardContent className="space-y-4 p-6">

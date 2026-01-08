@@ -67,6 +67,24 @@ type internal_commands_response = {
   contextMenuCommands: Array<{ name: string; json: unknown }>
 }
 
+type set_presence_body = {
+  presenceEnabled: boolean
+  presenceStatus: string
+  activityType: string | null
+  activityName: string | null
+  activityUrl: string | null
+}
+
+type set_presence_response = {
+  presence: {
+    presenceEnabled: boolean
+    presenceStatus: string
+    activityType: string | null
+    activityName: string | null
+    activityUrl: string | null
+  }
+}
+
 type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
 
 type admin_check_response = {
@@ -392,4 +410,12 @@ export async function publish_reaction_role_panel(
 export async function get_bot_commands(log: FastifyBaseLogger) {
   const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/commands`
   return (await fetch_with_timeout_ms(url, log, 8_000)) as internal_commands_response
+}
+
+export async function set_bot_presence(input: set_presence_body, log: FastifyBaseLogger) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/presence`
+  return (await fetch_json_with_timeout_ms(url, log, 8_000, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })) as set_presence_response
 }

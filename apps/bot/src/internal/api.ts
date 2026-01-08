@@ -6,6 +6,7 @@ import { CONFIG } from '../config';
 import { moderationLogService } from '../services/moderationLog.service';
 import { ticketService } from '../services/ticket.service';
 import { reactionRoleService } from '../services/reactionRole.service'
+import { apply_presence, normalize_presence_body } from '../services/presence.service'
 import { logger } from '../utils/logger';
 import { safe_error_details } from '../utils/safe_error';
 
@@ -54,6 +55,16 @@ type guild_counts_response = {
 type internal_commands_response = {
   slashCommands: Array<{ name: string; json: RESTPostAPIApplicationCommandsJSONBody }>
   contextMenuCommands: Array<{ name: string; json: RESTPostAPIApplicationCommandsJSONBody }>
+}
+
+type presence_update_response = {
+  presence: {
+    presenceEnabled: boolean
+    presenceStatus: string
+    activityType: string | null
+    activityName: string | null
+    activityUrl: string | null
+  }
 }
 
 async function ensure_member_row(input: {
@@ -293,6 +304,26 @@ export function start_internal_api(client: Client, options: internal_api_options
       }
 
       if (req.method === 'POST') {
+        if (url.pathname === '/internal/presence') {
+          const body = await read_json_body(req).catch(() => null)
+          const parsed = normalize_presence_body(body)
+          if (!parsed) {
+            return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
+          }
+
+          apply_presence(client, parsed)
+
+          return send_json(res, 200, {
+            presence: {
+              presenceEnabled: parsed.presenceEnabled,
+              presenceStatus: parsed.presenceStatus,
+              activityType: parsed.activityType,
+              activityName: parsed.activityName,
+              activityUrl: parsed.activityUrl,
+            },
+          } satisfies presence_update_response)
+        }
+
         const ticket_panel_params = extract_ticket_panel_publish_params(url.pathname)
         if (ticket_panel_params) {
           const body = await read_json_body(req).catch(() => null)
