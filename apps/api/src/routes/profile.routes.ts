@@ -80,6 +80,9 @@ export async function profileRoutes(fastify: FastifyInstance) {
     }
 
     const user_id = request.user.userId
+    if (!is_owner(user_id)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
     const { bio } = parsed.data
 
     await prisma.user.upsert({
