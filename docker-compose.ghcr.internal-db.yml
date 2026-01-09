@@ -20,6 +20,8 @@ services:
       context: .
     image: ghcr.io/isyuricunha/yue-discord-bot:latest
     restart: unless-stopped
+    volumes:
+      - ./prompts:/app/prompts:ro
     depends_on:
       db:
         condition: service_healthy

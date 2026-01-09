@@ -30,6 +30,9 @@ services:
     environment:
       NODE_ENV: production
 
+    volumes:
+      - ./prompts:/app/prompts:ro
+
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
       interval: 30s
