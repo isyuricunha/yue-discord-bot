@@ -15,6 +15,20 @@ function parse_int_env(value: string | undefined, fallback: number): number {
   return parsed
 }
 
+function with_timeout<T>(promise: Promise<T>, timeout_ms: number, label: string): Promise<T> {
+  if (timeout_ms <= 0) return promise
+
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error(`${label} timed out after ${timeout_ms}ms`))
+      }, timeout_ms)
+      ;(timer as any).unref?.()
+    }),
+  ])
+}
+
 function now_ms() {
   return Date.now()
 }
@@ -85,14 +99,29 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
   private async get_client() {
     if (this.client) return this.client
 
+    const connect_timeout_ms = Math.max(100, parse_int_env(process.env.REDIS_CONNECT_TIMEOUT_MS, 800))
+    const command_timeout_ms = Math.max(100, parse_int_env(process.env.REDIS_COMMAND_TIMEOUT_MS, 800))
+
     const client = createClient({
       url: this.redis_url,
       ...(this.redis_password ? { password: this.redis_password } : {}),
+      socket: {
+        connectTimeout: connect_timeout_ms,
+        reconnectStrategy: () => new Error('Redis reconnect disabled for Groq conversation store'),
+      },
+      disableOfflineQueue: true,
     })
     client.on('error', () => {})
-    await client.connect()
+
+    try {
+      await with_timeout(client.connect(), connect_timeout_ms, 'Redis connect')
+    } catch (error) {
+      await client.disconnect().catch(() => undefined)
+      throw error
+    }
 
     this.client = client
+    ;(this.client as any).__command_timeout_ms = command_timeout_ms
     return client
   }
 
@@ -108,7 +137,8 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
 
   async get_history(key: string): Promise<conversation_message[]> {
     const client = await this.get_client()
-    const raw = await client.get(this.build_key(key))
+    const command_timeout_ms = Number((client as any).__command_timeout_ms) || 0
+    const raw = await with_timeout(client.get(this.build_key(key)), command_timeout_ms, 'Redis GET')
     if (!raw) return []
 
     try {
@@ -128,7 +158,8 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
 
   async get_last_activity_ms(key: string): Promise<number | null> {
     const client = await this.get_client()
-    const raw = await client.get(this.build_key(key))
+    const command_timeout_ms = Number((client as any).__command_timeout_ms) || 0
+    const raw = await with_timeout(client.get(this.build_key(key)), command_timeout_ms, 'Redis GET')
     if (!raw) return null
 
     try {
@@ -152,11 +183,13 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
       last_activity_ms: now_ms(),
     }
 
-    await client.set(redis_key, JSON.stringify(payload), { EX: this.ttl_seconds })
+    const command_timeout_ms = Number((client as any).__command_timeout_ms) || 0
+    await with_timeout(client.set(redis_key, JSON.stringify(payload), { EX: this.ttl_seconds }), command_timeout_ms, 'Redis SET')
   }
 
   async clear(key: string): Promise<void> {
     const client = await this.get_client()
-    await client.del(this.build_key(key))
+    const command_timeout_ms = Number((client as any).__command_timeout_ms) || 0
+    await with_timeout(client.del(this.build_key(key)), command_timeout_ms, 'Redis DEL')
   }
 }
