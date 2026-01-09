@@ -30,6 +30,7 @@ function normalize_redis_string(value: string | Buffer): string {
 
 export class RedisGroqConversationStore implements groq_conversation_backend {
   private readonly redis_url: string
+  private readonly redis_password: string | null
   private readonly key_prefix: string
   private readonly ttl_seconds: number
   private readonly max_messages: number
@@ -38,6 +39,7 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
 
   constructor(input?: {
     redis_url?: string
+    redis_password?: string
     key_prefix?: string
     ttl_seconds?: number
     max_messages?: number
@@ -49,6 +51,23 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
     }
 
     this.redis_url = redis_url.trim()
+
+    const password_from_env = typeof process.env.REDIS_PASSWORD === 'string' ? process.env.REDIS_PASSWORD.trim() : ''
+    const password_from_input = typeof input?.redis_password === 'string' ? input.redis_password.trim() : ''
+
+    let url_has_password = false
+    try {
+      const parsed = new URL(this.redis_url)
+      url_has_password = typeof parsed.password === 'string' && parsed.password.length > 0
+    } catch {
+      url_has_password = false
+    }
+
+    this.redis_password =
+      url_has_password
+        ? null
+        : (password_from_input || password_from_env) ? (password_from_input || password_from_env) : null
+
     this.key_prefix = normalize_prefix(input?.key_prefix ?? process.env.GROQ_CONTEXT_REDIS_PREFIX ?? 'yue:groq:context')
 
     this.ttl_seconds = Math.max(60, input?.ttl_seconds ?? parse_int_env(process.env.GROQ_CONTEXT_TTL_SECONDS, 30 * 60))
@@ -66,7 +85,10 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
   private async get_client() {
     if (this.client) return this.client
 
-    const client = createClient({ url: this.redis_url })
+    const client = createClient({
+      url: this.redis_url,
+      ...(this.redis_password ? { password: this.redis_password } : {}),
+    })
     client.on('error', () => {})
     await client.connect()
 
