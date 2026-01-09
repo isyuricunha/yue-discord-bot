@@ -1,7 +1,13 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
 
-import { InternalBotApiError, get_guild_info, send_guild_message, set_bot_presence } from '../internal/bot_internal_api'
+import {
+  InternalBotApiError,
+  get_guild_info,
+  send_guild_message,
+  set_bot_app_description,
+  set_bot_presence,
+} from '../internal/bot_internal_api'
 import { is_owner } from '../utils/permissions'
 import { safe_error_details } from '../utils/safe_error'
 
@@ -18,6 +24,10 @@ type bot_presence_settings = {
   activityType: 'playing' | 'streaming' | 'listening' | 'watching' | 'competing' | null
   activityName: string | null
   activityUrl: string | null
+}
+
+type bot_app_description_settings = {
+  appDescription: string | null
 }
 
 function parse_presence_status(value: unknown): bot_presence_settings['presenceStatus'] {
@@ -72,6 +82,20 @@ function parse_bot_presence_settings(body: unknown): bot_presence_settings | nul
     activityName,
     activityUrl,
   }
+}
+
+function parse_bot_app_description_settings(body: unknown): bot_app_description_settings | null {
+  if (!is_object(body)) return null
+
+  const raw = body.appDescription
+  if (raw === null || raw === undefined) return { appDescription: null }
+
+  if (typeof raw !== 'string') return null
+  const trimmed = raw.trim()
+  if (!trimmed) return { appDescription: null }
+  if (trimmed.length > 4000) return null
+
+  return { appDescription: trimmed }
 }
 
 type announcement_preview_target = {
@@ -181,6 +205,63 @@ function matches_query(input: { id: string; name: string; ownerId: string }, que
 }
 
 export async function ownerRoutes(fastify: FastifyInstance) {
+  fastify.get('/owner/bot/app-description', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const user = request.user
+    if (!is_owner(user.userId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const row = await prisma.botSettings.findUnique({
+      where: { id: 'global' },
+      select: { appDescription: true },
+    })
+
+    return reply.send({
+      success: true,
+      appDescription: typeof row?.appDescription === 'string' ? row.appDescription : null,
+    })
+  })
+
+  fastify.put('/owner/bot/app-description', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const user = request.user
+    if (!is_owner(user.userId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const input = parse_bot_app_description_settings(request.body)
+    if (!input) {
+      return reply.code(400).send({ error: 'Invalid body' })
+    }
+
+    const saved = await prisma.botSettings.upsert({
+      where: { id: 'global' },
+      update: { appDescription: input.appDescription ?? null },
+      create: { id: 'global', appDescription: input.appDescription ?? null },
+      select: { appDescription: true },
+    })
+
+    try {
+      await set_bot_app_description({ appDescription: saved.appDescription ?? null }, request.log)
+    } catch (error: unknown) {
+      if (error instanceof InternalBotApiError) {
+        if (error.status >= 400 && error.status < 500) {
+          return reply.code(error.status).send({ error: internal_bot_api_error_message(error) })
+        }
+        request.log.error({ err: safe_error_details(error), status: error.status }, 'Failed to apply bot app description via internal bot API')
+        return reply.code(502).send({ error: 'Bad gateway' })
+      }
+
+      request.log.error({ err: safe_error_details(error) }, 'Failed to apply bot app description')
+      return reply.code(500).send({ error: 'Internal server error' })
+    }
+
+    return reply.send({ success: true, appDescription: saved.appDescription ?? null })
+  })
+
   fastify.get('/owner/bot/presence', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {

@@ -98,6 +98,15 @@ type set_profile_response = {
   }
 }
 
+type set_app_description_body = {
+  appDescription: string | null
+}
+
+type set_app_description_response = {
+  success: true
+  appDescription: string | null
+}
+
 type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
 
 type admin_check_response = {
@@ -439,4 +448,12 @@ export async function set_user_profile(input: set_profile_body, log: FastifyBase
     method: 'POST',
     body: JSON.stringify(input),
   })) as set_profile_response
+}
+
+export async function set_bot_app_description(input: set_app_description_body, log: FastifyBaseLogger) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/app-description`
+  return (await fetch_json_with_timeout_ms(url, log, 8_000, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  })) as set_app_description_response
 }
