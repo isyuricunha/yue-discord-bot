@@ -26,6 +26,22 @@ type bot_presence_settings = {
   activityUrl: string | null
 }
 
+type profile_me_response = {
+  success: boolean
+  user: {
+    profile: {
+      bio: string | null
+    } | null
+  }
+}
+
+type profile_update_response = {
+  success: boolean
+  profile: {
+    bio: string | null
+  }
+}
+
 export default function OwnerPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -33,6 +49,9 @@ export default function OwnerPage() {
   const [sort, setSort] = useState<'name_asc' | 'name_desc' | 'added_desc' | 'added_asc'>('name_asc')
   const [added_from, setAddedFrom] = useState('')
   const [added_to, setAddedTo] = useState('')
+
+  const [bio, set_bio] = useState('')
+  const has_initialized_bio = useRef(false)
 
   const [presence_enabled, set_presence_enabled] = useState(false)
   const [presence_status, set_presence_status] = useState<bot_presence_settings['presenceStatus']>('online')
@@ -56,12 +75,50 @@ export default function OwnerPage() {
     },
   })
 
+  const saveBioMutation = useMutation({
+    mutationFn: async () => {
+      const payload = {
+        bio: bio.trim().length > 0 ? bio.trim() : null,
+      }
+      const response = await axios.patch(`${API_URL}/api/profile/me`, payload)
+      return response.data as profile_update_response
+    },
+    onSuccess: (data) => {
+      toast_success('Bio atualizada.', 'Perfil')
+      queryClient.setQueryData(['owner', 'profile', 'me'], (prev: unknown) => {
+        const existing = prev as profile_me_response | undefined
+        if (!existing) return prev
+        return {
+          ...existing,
+          user: {
+            ...existing.user,
+            profile: {
+              ...(existing.user.profile ?? {}),
+              bio: data.profile.bio,
+            },
+          },
+        }
+      })
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao atualizar bio', 'Perfil falhou')
+    },
+  })
+
   const { data: presence_data, isLoading: isPresenceLoading } = useQuery({
     queryKey: ['owner', 'bot', 'presence'],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/owner/bot/presence`)
       const presence = (response.data as { success: boolean; presence: bot_presence_settings }).presence
       return presence
+    },
+  })
+
+  const { data: profile_me_data, isLoading: isProfileLoading } = useQuery({
+    queryKey: ['owner', 'profile', 'me'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/profile/me`)
+      return response.data as profile_me_response
     },
   })
 
@@ -76,6 +133,14 @@ export default function OwnerPage() {
     set_activity_name(presence_data.activityName ?? '')
     set_activity_url(presence_data.activityUrl ?? '')
   }, [presence_data])
+
+  useEffect(() => {
+    if (!profile_me_data) return
+    if (has_initialized_bio.current) return
+    has_initialized_bio.current = true
+
+    set_bio(profile_me_data.user.profile?.bio ?? '')
+  }, [profile_me_data])
 
   const savePresenceMutation = useMutation({
     mutationFn: async () => {
@@ -324,6 +389,37 @@ export default function OwnerPage() {
               />
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-accent/20">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-base font-semibold">Bio (Owner)</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                Campo de perfil restrito ao owner.
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => saveBioMutation.mutate()}
+              isLoading={saveBioMutation.isPending}
+              disabled={isProfileLoading}
+            >
+              Salvar
+            </Button>
+          </div>
+
+          <Textarea
+            value={bio}
+            onChange={(e) => set_bio(e.target.value)}
+            placeholder="Escreva uma bio (máx 300 caracteres)."
+            maxLength={300}
+            disabled={isProfileLoading}
+          />
+
+          <div className="text-xs text-muted-foreground">{bio.trim().length}/300</div>
         </CardContent>
       </Card>
 
