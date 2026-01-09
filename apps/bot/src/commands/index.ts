@@ -113,6 +113,11 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(unlockCommand.data.name, unlockCommand);
   commands.set(painelCommand.data.name, painelCommand);
   commands.set(sayCommand.data.name, sayCommand);
+
+  if (typeof process.env.GROQ_API_KEY === 'string' && process.env.GROQ_API_KEY.trim().length > 0) {
+    const { askCommand } = await import('./utility/ask')
+    commands.set(askCommand.data.name, askCommand)
+  }
   commands.set(ticketCommand.data.name, ticketCommand);
   commands.set(configCommand.data.name, configCommand);
   commands.set(reactionrolesCommand.data.name, reactionrolesCommand)
