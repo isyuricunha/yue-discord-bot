@@ -5,15 +5,10 @@ import { EMOJIS } from '@yuebot/shared'
 
 import { get_groq_client } from '../../services/groq_client_singleton'
 import { GroqApiError } from '../../services/groq.service'
+import { split_discord_message } from '../../utils/discord_message'
 import { safe_error_details } from '../../utils/safe_error'
 import { logger } from '../../utils/logger'
 import type { Command } from '../index'
-
-function clamp_discord_message(input: string, max = 1900): string {
-  const trimmed = input.trim()
-  if (trimmed.length <= max) return trimmed
-  return `${trimmed.slice(0, max)}…`
-}
 
 export const askCommand: Command = {
   data: new SlashCommandBuilder()
@@ -48,8 +43,15 @@ export const askCommand: Command = {
       }
       const completion = await client.create_completion({ user_prompt: question })
 
-      const content = clamp_discord_message(completion.content)
-      await interaction.editReply({ content })
+      const parts = split_discord_message(completion.content)
+      const first = parts[0] ?? ''
+
+      await interaction.editReply({ content: first })
+      if (parts.length > 1) {
+        for (const extra of parts.slice(1)) {
+          await interaction.followUp({ content: extra })
+        }
+      }
     } catch (error: unknown) {
       if (error instanceof GroqApiError) {
         if (error.status === 429) {
