@@ -26,20 +26,9 @@ type bot_presence_settings = {
   activityUrl: string | null
 }
 
-type profile_me_response = {
+type bot_app_description_response = {
   success: boolean
-  user: {
-    profile: {
-      bio: string | null
-    } | null
-  }
-}
-
-type profile_update_response = {
-  success: boolean
-  profile: {
-    bio: string | null
-  }
+  appDescription: string | null
 }
 
 export default function OwnerPage() {
@@ -50,8 +39,8 @@ export default function OwnerPage() {
   const [added_from, setAddedFrom] = useState('')
   const [added_to, setAddedTo] = useState('')
 
-  const [bio, set_bio] = useState('')
-  const has_initialized_bio = useRef(false)
+  const [app_description, set_app_description] = useState('')
+  const has_initialized_app_description = useRef(false)
 
   const [presence_enabled, set_presence_enabled] = useState(false)
   const [presence_status, set_presence_status] = useState<bot_presence_settings['presenceStatus']>('online')
@@ -75,33 +64,20 @@ export default function OwnerPage() {
     },
   })
 
-  const saveBioMutation = useMutation({
+  const saveAppDescriptionMutation = useMutation({
     mutationFn: async () => {
       const payload = {
-        bio: bio.trim().length > 0 ? bio.trim() : null,
+        appDescription: app_description.trim().length > 0 ? app_description.trim() : null,
       }
-      const response = await axios.patch(`${API_URL}/api/profile/me`, payload)
-      return response.data as profile_update_response
+      const response = await axios.put(`${API_URL}/api/owner/bot/app-description`, payload)
+      return response.data as bot_app_description_response
     },
     onSuccess: (data) => {
-      toast_success('Bio atualizada.', 'Perfil')
-      queryClient.setQueryData(['owner', 'profile', 'me'], (prev: unknown) => {
-        const existing = prev as profile_me_response | undefined
-        if (!existing) return prev
-        return {
-          ...existing,
-          user: {
-            ...existing.user,
-            profile: {
-              ...(existing.user.profile ?? {}),
-              bio: data.profile.bio,
-            },
-          },
-        }
-      })
+      toast_success('Bio do bot atualizada.', 'Bot')
+      queryClient.setQueryData(['owner', 'bot', 'app-description'], data.appDescription)
     },
     onError: (error: any) => {
-      toast_error(error.response?.data?.error || error.message || 'Erro ao atualizar bio', 'Perfil falhou')
+      toast_error(error.response?.data?.error || error.message || 'Erro ao atualizar bio do bot', 'Bot falhou')
     },
   })
 
@@ -114,11 +90,12 @@ export default function OwnerPage() {
     },
   })
 
-  const { data: profile_me_data, isLoading: isProfileLoading } = useQuery({
-    queryKey: ['owner', 'profile', 'me'],
+  const { data: app_description_data, isLoading: isAppDescriptionLoading } = useQuery({
+    queryKey: ['owner', 'bot', 'app-description'],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/profile/me`)
-      return response.data as profile_me_response
+      const response = await axios.get(`${API_URL}/api/owner/bot/app-description`)
+      const payload = response.data as { success: boolean; appDescription: string | null }
+      return payload.appDescription
     },
   })
 
@@ -135,12 +112,12 @@ export default function OwnerPage() {
   }, [presence_data])
 
   useEffect(() => {
-    if (!profile_me_data) return
-    if (has_initialized_bio.current) return
-    has_initialized_bio.current = true
+    if (app_description_data === undefined) return
+    if (has_initialized_app_description.current) return
+    has_initialized_app_description.current = true
 
-    set_bio(profile_me_data.user.profile?.bio ?? '')
-  }, [profile_me_data])
+    set_app_description(app_description_data ?? '')
+  }, [app_description_data])
 
   const savePresenceMutation = useMutation({
     mutationFn: async () => {
@@ -396,30 +373,30 @@ export default function OwnerPage() {
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="text-base font-semibold">Bio (Owner)</div>
+              <div className="text-base font-semibold">Bio do bot (Discord)</div>
               <div className="mt-1 text-sm text-muted-foreground">
-                Campo de perfil restrito ao owner.
+                Atualiza o “Sobre mim” do perfil do bot no Discord.
               </div>
             </div>
             <Button
               type="button"
-              onClick={() => saveBioMutation.mutate()}
-              isLoading={saveBioMutation.isPending}
-              disabled={isProfileLoading}
+              onClick={() => saveAppDescriptionMutation.mutate()}
+              isLoading={saveAppDescriptionMutation.isPending}
+              disabled={isAppDescriptionLoading}
             >
               Salvar
             </Button>
           </div>
 
           <Textarea
-            value={bio}
-            onChange={(e) => set_bio(e.target.value)}
-            placeholder="Escreva uma bio (máx 300 caracteres)."
-            maxLength={300}
-            disabled={isProfileLoading}
+            value={app_description}
+            onChange={(e) => set_app_description(e.target.value)}
+            placeholder="Escreva a bio do bot (máx 4000 caracteres)."
+            maxLength={4000}
+            disabled={isAppDescriptionLoading}
           />
 
-          <div className="text-xs text-muted-foreground">{bio.trim().length}/300</div>
+          <div className="text-xs text-muted-foreground">{app_description.trim().length}/4000</div>
         </CardContent>
       </Card>
 
