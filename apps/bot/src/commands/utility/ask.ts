@@ -3,7 +3,8 @@ import type { ChatInputCommandInteraction } from 'discord.js'
 
 import { EMOJIS } from '@yuebot/shared'
 
-import { GroqApiError, GroqClient } from '../../services/groq.service'
+import { get_groq_client } from '../../services/groq_client_singleton'
+import { GroqApiError } from '../../services/groq.service'
 import { safe_error_details } from '../../utils/safe_error'
 import { logger } from '../../utils/logger'
 import type { Command } from '../index'
@@ -33,14 +34,18 @@ export const askCommand: Command = {
   async execute(interaction: ChatInputCommandInteraction) {
     const question = interaction.options.getString('question', true).trim()
     if (!question) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Pergunta inválida.`, ephemeral: true })
+      await interaction.reply({ content: `${EMOJIS.ERROR} Pergunta inválida.` })
       return
     }
 
-    await interaction.deferReply({ ephemeral: true })
+    await interaction.deferReply()
 
     try {
-      const client = GroqClient.from_env()
+      const client = get_groq_client()
+      if (!client) {
+        await interaction.editReply({ content: `${EMOJIS.ERROR} Groq não configurado neste bot.` })
+        return
+      }
       const completion = await client.create_completion({ user_prompt: question })
 
       const content = clamp_discord_message(completion.content)
