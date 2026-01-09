@@ -39,6 +39,14 @@ export type groq_completion_result = {
   used_key_index: number
 }
 
+export type groq_completion_input = {
+  user_prompt: string
+  history?: Array<{
+    role: 'user' | 'assistant'
+    content: string
+  }>
+}
+
 export class GroqApiError extends Error {
   constructor(
     message: string,
@@ -170,13 +178,18 @@ export class GroqClient {
     this.keys[index]!.cooldown_until_ms = Math.max(this.keys[index]!.cooldown_until_ms, now + seconds * 1000)
   }
 
-  async create_completion(input: { user_prompt: string }): Promise<groq_completion_result> {
+  async create_completion(input: groq_completion_input): Promise<groq_completion_result> {
     const system_prompt = await this.system_prompt()
+
+    const history: groq_message[] = (input.history ?? [])
+      .filter((msg) => typeof msg?.content === 'string' && msg.content.trim().length > 0)
+      .map((msg) => ({ role: msg.role, content: msg.content.trim() }))
 
     const request: groq_chat_completion_request = {
       model: env_model(),
       messages: [
         { role: 'system', content: system_prompt },
+        ...history,
         { role: 'user', content: input.user_prompt },
       ],
       temperature: env_temperature(),
