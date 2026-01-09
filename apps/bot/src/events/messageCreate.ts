@@ -9,6 +9,7 @@ import { build_history_for_prompt, conversation_key_from_message, is_reply_to_bo
 import { GroqApiError } from '../services/groq.service'
 import { is_within_continuation_window } from '../services/groq_continuation'
 import { build_user_prompt_from_invocation, remove_bot_mention, remove_leading_yue } from '../services/groq_invocation'
+import { ddg_web_search, format_web_search_context, parse_web_search_query } from '../services/ddg_web_search'
 import { logger } from '../utils/logger';
 import { safe_error_details } from '../utils/safe_error'
 
@@ -23,6 +24,32 @@ function clamp_discord_message(input: string, max = 1900): string {
   const trimmed = input.trim()
   if (trimmed.length <= max) return trimmed
   return `${trimmed.slice(0, max)}…`
+}
+
+function start_typing_indicator(channel: unknown): () => void {
+  const candidate = channel as { sendTyping?: unknown } | null
+  if (!candidate || typeof candidate.sendTyping !== 'function') {
+    return () => {
+      // no-op
+    }
+  }
+
+  const send_typing = candidate.sendTyping as () => Promise<unknown>
+
+  let stopped = false
+
+  const send = async () => {
+    if (stopped) return
+    await send_typing().catch(() => null)
+  }
+
+  void send()
+  const interval = setInterval(send, 8_000)
+
+  return () => {
+    stopped = true
+    clearInterval(interval)
+  }
 }
 
 export async function handleMessageCreate(message: Message) {
@@ -90,17 +117,38 @@ export async function handleMessageCreate(message: Message) {
 
     if (prompt) {
       try {
-        const history = build_history_for_prompt(await conversation_backend.get_history(key))
-        const completion = await groq_client.create_completion({ user_prompt: prompt, history })
-        const content = clamp_discord_message(completion.content)
+        const stop_typing = start_typing_indicator(message.channel)
 
-        await conversation_backend.append(key, { role: 'user', content: prompt })
-        await conversation_backend.append(key, { role: 'assistant', content: completion.content })
+        try {
+          const history = build_history_for_prompt(await conversation_backend.get_history(key))
 
-        await message.reply({
-          content,
-          allowedMentions: { parse: [], repliedUser: false },
-        })
+          const web_query = parse_web_search_query(prompt)
+          const user_prompt = web_query ?? prompt
+
+          let web_context: string | null = null
+          if (web_query) {
+            const search = await ddg_web_search(web_query)
+            const formatted = format_web_search_context(search).trim()
+            web_context = formatted.length > 0 ? formatted : null
+          }
+
+          const final_user_prompt = web_context
+            ? `Use the following web search results to answer the question. If the results are insufficient, say so.\n\n${web_context}\n\nQuestion: ${user_prompt}`
+            : user_prompt
+
+          const completion = await groq_client.create_completion({ user_prompt: final_user_prompt, history })
+          const content = clamp_discord_message(completion.content)
+
+          await conversation_backend.append(key, { role: 'user', content: user_prompt })
+          await conversation_backend.append(key, { role: 'assistant', content: completion.content })
+
+          await message.reply({
+            content,
+            allowedMentions: { parse: [], repliedUser: false },
+          })
+        } finally {
+          stop_typing()
+        }
       } catch (error: unknown) {
         if (error instanceof GroqApiError) {
           logger.warn({ status: error.status }, 'Groq invocation failed')
