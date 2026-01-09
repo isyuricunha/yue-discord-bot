@@ -16,6 +16,7 @@ COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json ./
 COPY packages ./packages
 COPY apps ./apps
 COPY prompts ./prompts
+COPY groq_system_prompt.txt ./groq_system_prompt.txt
 
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
@@ -72,6 +73,7 @@ COPY packages/database/prisma ./packages/database/prisma
 
 # Copy prompt templates
 COPY prompts ./prompts
+COPY groq_system_prompt.txt ./groq_system_prompt.txt
 
 # Copy Prisma config (required for prisma migrate deploy in Prisma 7)
 COPY packages/database/prisma.config.ts ./packages/database/prisma.config.ts

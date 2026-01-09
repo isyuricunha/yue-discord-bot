@@ -5,7 +5,7 @@ services:
     image: isyuricunha/yue-discord-bot:latest
     restart: unless-stopped
     volumes:
-      - ./prompts:/app/prompts:ro
+      - ./groq_system_prompt.txt:/app/prompts/groq_system_prompt.txt:ro
     ports:
       - "${HOST_WEB_PORT:-80}:80"
       - "${HOST_API_PORT:-3000}:3000"
