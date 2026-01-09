@@ -10,6 +10,8 @@ import { GroqApiError } from '../services/groq.service'
 import { is_within_continuation_window } from '../services/groq_continuation'
 import { build_user_prompt_from_invocation, remove_bot_mention, remove_leading_yue } from '../services/groq_invocation'
 import { ddg_web_search, format_web_search_context, parse_web_search_query } from '../services/ddg_web_search'
+import { getSendableChannel } from '../utils/discord'
+import { split_discord_message } from '../utils/discord_message'
 import { logger } from '../utils/logger';
 import { safe_error_details } from '../utils/safe_error'
 
@@ -18,12 +20,6 @@ function parse_int_env(value: string | undefined, fallback: number): number {
   const parsed = Number.parseInt(value, 10)
   if (!Number.isFinite(parsed)) return fallback
   return parsed
-}
-
-function clamp_discord_message(input: string, max = 1900): string {
-  const trimmed = input.trim()
-  if (trimmed.length <= max) return trimmed
-  return `${trimmed.slice(0, max)}…`
 }
 
 function start_typing_indicator(channel: unknown): () => void {
@@ -137,15 +133,28 @@ export async function handleMessageCreate(message: Message) {
             : user_prompt
 
           const completion = await groq_client.create_completion({ user_prompt: final_user_prompt, history })
-          const content = clamp_discord_message(completion.content)
+          const parts = split_discord_message(completion.content)
+          const first = parts[0] ?? ''
 
           await conversation_backend.append(key, { role: 'user', content: user_prompt })
           await conversation_backend.append(key, { role: 'assistant', content: completion.content })
 
           await message.reply({
-            content,
+            content: first,
             allowedMentions: { parse: [], repliedUser: false },
           })
+
+          if (parts.length > 1) {
+            const channel = getSendableChannel(message.channel)
+            if (channel) {
+              for (const extra of parts.slice(1)) {
+                await channel.send({
+                  content: extra,
+                  allowedMentions: { parse: [] },
+                })
+              }
+            }
+          }
         } finally {
           stop_typing()
         }
