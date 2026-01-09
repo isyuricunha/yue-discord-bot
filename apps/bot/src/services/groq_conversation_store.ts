@@ -42,7 +42,7 @@ export class GroqConversationStore {
     this.max_message_chars = Math.max(1, max_message_chars)
   }
 
-  get_history(key: string): conversation_message[] {
+  async get_history(key: string): Promise<conversation_message[]> {
     const st = this.state.get(key)
     if (!st) return []
 
@@ -55,7 +55,7 @@ export class GroqConversationStore {
     return st.messages.slice()
   }
 
-  get_last_activity_ms(key: string): number | null {
+  async get_last_activity_ms(key: string): Promise<number | null> {
     const st = this.state.get(key)
     if (!st) return null
 
@@ -68,7 +68,7 @@ export class GroqConversationStore {
     return st.last_activity_ms
   }
 
-  append(key: string, message: conversation_message): void {
+  async append(key: string, message: conversation_message): Promise<void> {
     const now = now_ms()
     const expires_at_ms = now + this.ttl_ms
 
@@ -83,7 +83,7 @@ export class GroqConversationStore {
     this.state.set(key, { messages: next_messages, last_activity_ms: now, expires_at_ms })
   }
 
-  clear(key: string): void {
+  async clear(key: string): Promise<void> {
     this.state.delete(key)
   }
 }

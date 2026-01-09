@@ -4,7 +4,7 @@ import { autoroleService } from '../services/autorole.service';
 import { suggestionService } from '../services/suggestion.service';
 import { xpService } from '../services/xp.service';
 import { get_groq_client } from '../services/groq_client_singleton'
-import { groq_conversation_store } from '../services/groq_conversation_store'
+import { get_groq_conversation_backend } from '../services/groq_conversation_backend_factory'
 import { build_history_for_prompt, conversation_key_from_message, is_reply_to_bot } from '../services/groq_history'
 import { GroqApiError } from '../services/groq.service'
 import { build_user_prompt_from_invocation, remove_bot_mention, remove_leading_yue } from '../services/groq_invocation'
@@ -43,8 +43,9 @@ export async function handleMessageCreate(message: Message) {
       const mentions_bot = bot_user_id ? message.mentions.users.has(bot_user_id) : false
 
       const key = conversation_key_from_message(message)
+      const conversation_backend = get_groq_conversation_backend()
       const continuation_seconds = parse_int_env(process.env.GROQ_CONTEXT_CONTINUATION_SECONDS, 120)
-      const last_activity = groq_conversation_store.get_last_activity_ms(key)
+      const last_activity = await conversation_backend.get_last_activity_ms(key)
       const within_continuation_window =
         typeof last_activity === 'number' && Date.now() - last_activity <= Math.max(10, continuation_seconds) * 1000
 
@@ -73,12 +74,12 @@ export async function handleMessageCreate(message: Message) {
 
       if (prompt) {
         try {
-          const history = build_history_for_prompt(groq_conversation_store.get_history(key))
+          const history = build_history_for_prompt(await conversation_backend.get_history(key))
           const completion = await groq_client.create_completion({ user_prompt: prompt, history })
           const content = clamp_discord_message(completion.content)
 
-          groq_conversation_store.append(key, { role: 'user', content: prompt })
-          groq_conversation_store.append(key, { role: 'assistant', content: completion.content })
+          await conversation_backend.append(key, { role: 'user', content: prompt })
+          await conversation_backend.append(key, { role: 'assistant', content: completion.content })
 
           await message.reply({
             content,
