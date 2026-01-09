@@ -67,6 +67,19 @@ type presence_update_response = {
   }
 }
 
+type profile_sync_body = {
+  userId: string
+  bio: string | null
+}
+
+type profile_sync_response = {
+  success: true
+  profile: {
+    userId: string
+    bio: string | null
+  }
+}
+
 async function ensure_member_row(input: {
   guildId: string
   userId: string
@@ -207,6 +220,26 @@ function is_valid_reaction_role_panel_publish_body(body: unknown): body is react
   return true
 }
 
+function normalize_profile_sync_body(body: unknown): profile_sync_body | null {
+  if (!body || typeof body !== 'object') return null
+  const b = body as Record<string, unknown>
+
+  const user_id = typeof b.userId === 'string' ? b.userId.trim() : ''
+  if (!user_id) return null
+
+  const bio_raw = b.bio
+  if (bio_raw === null || bio_raw === undefined) {
+    return { userId: user_id, bio: null }
+  }
+
+  if (typeof bio_raw !== 'string') return null
+  const bio = bio_raw.trim()
+  if (bio.length === 0) return { userId: user_id, bio: null }
+  if (bio.length > 300) return null
+
+  return { userId: user_id, bio }
+}
+
 async function read_json_body(req: http.IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
 
@@ -322,6 +355,29 @@ export function start_internal_api(client: Client, options: internal_api_options
               activityUrl: parsed.activityUrl,
             },
           } satisfies presence_update_response)
+        }
+
+        if (url.pathname === '/internal/profile') {
+          const body = await read_json_body(req).catch(() => null)
+          const parsed = normalize_profile_sync_body(body)
+          if (!parsed) {
+            return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
+          }
+
+          await prisma.user.upsert({
+            where: { id: parsed.userId },
+            update: {},
+            create: { id: parsed.userId },
+          })
+
+          const profile = await prisma.userProfile.upsert({
+            where: { userId: parsed.userId },
+            update: { bio: parsed.bio ?? null },
+            create: { userId: parsed.userId, bio: parsed.bio ?? null },
+            select: { userId: true, bio: true },
+          })
+
+          return send_json(res, 200, { success: true, profile } satisfies profile_sync_response)
         }
 
         const ticket_panel_params = extract_ticket_panel_publish_params(url.pathname)

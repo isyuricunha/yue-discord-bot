@@ -1,8 +1,10 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
 import { profileUpdateSchema } from '@yuebot/shared'
+import { InternalBotApiError, set_user_profile } from '../internal/bot_internal_api'
 import { validation_error_details } from '../utils/validation_error'
 import { is_owner } from '../utils/permissions'
+import { safe_error_details } from '../utils/safe_error'
 
 function is_badge_admin(fastify: FastifyInstance, user_id: string): boolean {
   if (is_owner(user_id)) return true
@@ -97,6 +99,19 @@ export async function profileRoutes(fastify: FastifyInstance) {
       create: { userId: user_id, bio: bio ?? null },
     })
 
-    return reply.send({ success: true, profile })
+    let bot_synced = false
+
+    try {
+      await set_user_profile({ userId: user_id, bio: profile.bio ?? null }, request.log)
+      bot_synced = true
+    } catch (error: unknown) {
+      if (error instanceof InternalBotApiError) {
+        request.log.warn({ status: error.status, body: error.body }, 'Failed to sync profile to bot via internal API')
+      } else {
+        request.log.warn({ err: safe_error_details(error) }, 'Failed to sync profile to bot via internal API')
+      }
+    }
+
+    return reply.send({ success: true, profile, botSynced: bot_synced })
   })
 }
