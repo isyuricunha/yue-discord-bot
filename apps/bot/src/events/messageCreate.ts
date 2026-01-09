@@ -7,6 +7,7 @@ import { get_groq_client } from '../services/groq_client_singleton'
 import { get_groq_conversation_backend } from '../services/groq_conversation_backend_factory'
 import { build_history_for_prompt, conversation_key_from_message, is_reply_to_bot } from '../services/groq_history'
 import { GroqApiError } from '../services/groq.service'
+import { is_within_continuation_window } from '../services/groq_continuation'
 import { build_user_prompt_from_invocation, remove_bot_mention, remove_leading_yue } from '../services/groq_invocation'
 import { logger } from '../utils/logger';
 
@@ -46,8 +47,11 @@ export async function handleMessageCreate(message: Message) {
       const conversation_backend = get_groq_conversation_backend()
       const continuation_seconds = parse_int_env(process.env.GROQ_CONTEXT_CONTINUATION_SECONDS, 120)
       const last_activity = await conversation_backend.get_last_activity_ms(key)
-      const within_continuation_window =
-        typeof last_activity === 'number' && Date.now() - last_activity <= Math.max(10, continuation_seconds) * 1000
+      const within_continuation_window = is_within_continuation_window({
+        now_ms: Date.now(),
+        last_activity_ms: typeof last_activity === 'number' ? last_activity : null,
+        continuation_seconds,
+      })
 
       const replying_to_bot = await is_reply_to_bot(message)
 
