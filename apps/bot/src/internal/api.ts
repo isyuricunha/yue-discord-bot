@@ -7,6 +7,11 @@ import { moderationLogService } from '../services/moderationLog.service';
 import { ticketService } from '../services/ticket.service';
 import { reactionRoleService } from '../services/reactionRole.service'
 import { apply_presence, normalize_presence_body } from '../services/presence.service'
+import {
+  apply_app_description,
+  normalize_app_description_body,
+  save_app_description_settings,
+} from '../services/app_description.service'
 import { logger } from '../utils/logger';
 import { safe_error_details } from '../utils/safe_error';
 
@@ -78,6 +83,11 @@ type profile_sync_response = {
     userId: string
     bio: string | null
   }
+}
+
+type app_description_update_response = {
+  success: true
+  appDescription: string | null
 }
 
 async function ensure_member_row(input: {
@@ -355,6 +365,22 @@ export function start_internal_api(client: Client, options: internal_api_options
               activityUrl: parsed.activityUrl,
             },
           } satisfies presence_update_response)
+        }
+
+        if (url.pathname === '/internal/app-description') {
+          const body = await read_json_body(req).catch(() => null)
+          const parsed = normalize_app_description_body(body)
+          if (!parsed) {
+            return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
+          }
+
+          const saved = await save_app_description_settings(parsed)
+          await apply_app_description(client, saved)
+
+          return send_json(res, 200, {
+            success: true,
+            appDescription: saved.appDescription,
+          } satisfies app_description_update_response)
         }
 
         if (url.pathname === '/internal/profile') {

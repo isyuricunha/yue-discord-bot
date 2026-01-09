@@ -11,6 +11,7 @@ import { AniListWatchlistScheduler } from './services/anilistWatchlistScheduler'
 import { initModerationPersistenceService } from './services/moderationPersistence.service';
 import { initPunishmentRoleService } from './services/punishmentRole.service';
 import { apply_startup_presence } from './services/presence.service'
+import { apply_startup_app_description } from './services/app_description.service'
 import type { Command, ContextMenuCommand } from './commands';
 import { start_internal_api } from './internal/api';
 
@@ -107,6 +108,7 @@ client.once('ready', async () => {
   logger.info(`👥 Usuários: ${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)}`);
 
   await apply_startup_presence(client)
+  await apply_startup_app_description(client)
 
   await prune_stale_guilds_from_database(client);
   await sync_guilds_to_database(client);
