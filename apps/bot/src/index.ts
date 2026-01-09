@@ -10,8 +10,10 @@ import { InventoryExpirationScheduler } from './services/inventoryExpirationSche
 import { AniListWatchlistScheduler } from './services/anilistWatchlistScheduler';
 import { initModerationPersistenceService } from './services/moderationPersistence.service';
 import { initPunishmentRoleService } from './services/punishmentRole.service';
-import { apply_startup_presence } from './services/presence.service'
-import { apply_startup_app_description } from './services/app_description.service'
+import { get_groq_client } from './services/groq_client_singleton';
+import { get_groq_conversation_backend } from './services/groq_conversation_backend_factory';
+import { apply_startup_presence } from './services/presence.service';
+import { apply_startup_app_description } from './services/app_description.service';
 import type { Command, ContextMenuCommand } from './commands';
 import { start_internal_api } from './internal/api';
 
@@ -106,6 +108,13 @@ client.once('ready', async () => {
   logger.info(`🤖 Bot conectado como ${client.user?.tag}`);
   logger.info(`📊 Servidores: ${client.guilds.cache.size}`);
   logger.info(`👥 Usuários: ${client.guilds.cache.reduce((acc, guild) => acc + guild.memberCount, 0)}`);
+
+  const groq_client = get_groq_client();
+  if (groq_client) {
+    get_groq_conversation_backend();
+  } else {
+    logger.info({ backend: 'disabled' }, 'Groq features disabled, skipping conversation backend initialization');
+  }
 
   await apply_startup_presence(client)
   await apply_startup_app_description(client)

@@ -1,4 +1,6 @@
 import { createClient } from 'redis'
+ 
+import { logger } from '../utils/logger'
 
 import type { conversation_message } from './groq_conversation_store'
 import type { groq_conversation_backend } from './groq_conversation_backend'
@@ -50,6 +52,7 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
   private readonly max_messages: number
   private readonly max_message_chars: number
   private client: ReturnType<typeof createClient> | null = null
+  private has_logged_connection = false
 
   constructor(input?: {
     redis_url?: string
@@ -118,6 +121,26 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
     } catch (error) {
       await client.disconnect().catch(() => undefined)
       throw error
+    }
+
+    if (!this.has_logged_connection) {
+      this.has_logged_connection = true
+      try {
+        const parsed = new URL(this.redis_url)
+        logger.info(
+          {
+            backend: 'redis',
+            redis: {
+              scheme: parsed.protocol.replace(':', ''),
+              host: parsed.hostname,
+              port: parsed.port || '(default)',
+            },
+          },
+          'Redis Groq conversation store connected'
+        )
+      } catch {
+        logger.info({ backend: 'redis' }, 'Redis Groq conversation store connected')
+      }
     }
 
     this.client = client
