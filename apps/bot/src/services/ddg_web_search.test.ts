@@ -6,9 +6,11 @@ import { ddg_web_search, format_web_search_context, parse_web_search_query } fro
 test('ddg_web_search: parse_web_search_query parses pesquisa/web/search prefixes', () => {
   assert.equal(parse_web_search_query('pesquisa: one piece'), 'one piece')
   assert.equal(parse_web_search_query('Pesquisar: one piece'), 'one piece')
+  assert.equal(parse_web_search_query('pesquise: one piece'), 'one piece')
   assert.equal(parse_web_search_query('web: node 24'), 'node 24')
   assert.equal(parse_web_search_query('search: redis ttl'), 'redis ttl')
   assert.equal(parse_web_search_query('pesquisa one piece'), 'one piece')
+  assert.equal(parse_web_search_query('pesquise one piece'), 'one piece')
   assert.equal(parse_web_search_query('web node 24'), 'node 24')
 
   assert.equal(parse_web_search_query('hello'), null)
@@ -80,7 +82,9 @@ test('ddg_web_search: falls back to html results when json has no sources', asyn
         [
           '<html><body>',
           '<a class="result__a" href="https://duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2F1">Result One</a>',
+          '<div class="result__snippet">$1 = R$ 5,00</div>',
           '<a class="result__a" href="https://duckduckgo.com/l/?uddg=https%3A%2F%2Fexample.com%2F2">Result Two</a>',
+          '<div class="result__snippet">Segundo exemplo</div>',
           '</body></html>',
         ].join(''),
         { status: 200, headers: { 'content-type': 'text/html' } }
@@ -96,6 +100,7 @@ test('ddg_web_search: falls back to html results when json has no sources', asyn
   assert.equal(result.hits.length, 2)
   assert.equal(result.hits[0]?.url, 'https://example.com/1')
   assert.equal(result.hits[1]?.url, 'https://example.com/2')
+  assert.ok(result.hits[0]?.text.includes('$1 = R$ 5,00'))
 })
 
 test('ddg_web_search: format_web_search_context reports no sources when empty', () => {

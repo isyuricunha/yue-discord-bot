@@ -129,7 +129,13 @@ export async function handleMessageCreate(message: Message) {
           }
 
           const final_user_prompt = web_context
-            ? `Use the following web search results to answer the question. If the results are insufficient, say so.\n\n${web_context}\n\nQuestion: ${user_prompt}`
+            ? `You are given web search results. Answer the question using the provided results and include source URLs when relevant.
+
+Do not claim you lack internet access or real-time data. If the provided sources do not contain enough information to answer, say you could not find the answer in the provided sources.
+
+${web_context}
+
+Question: ${user_prompt}`
             : user_prompt
 
           const completion = await groq_client.create_completion({ user_prompt: final_user_prompt, history })

@@ -1,7 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
 import { create_groq_client_for_tests, GroqApiError, load_groq_system_prompt } from './groq.service'
@@ -78,7 +77,9 @@ test('groq: throws when all keys are cooling down', async () => {
 })
 
 test('groq: loads system prompt from file', async () => {
-  const dir = await mkdtemp(join(tmpdir(), 'yue-groq-'))
+  const base_tmp = join(process.cwd(), '.tmp')
+  await mkdir(base_tmp, { recursive: true })
+  const dir = await mkdtemp(join(base_tmp, 'yue-groq-'))
   const prompt_path = join(dir, 'prompt.txt')
   await writeFile(prompt_path, '  hello prompt  ', 'utf8')
 
@@ -91,5 +92,7 @@ test('groq: loads system prompt from file', async () => {
   } finally {
     if (prev === undefined) delete process.env.GROQ_PROMPT_PATH
     else process.env.GROQ_PROMPT_PATH = prev
+
+    await rm(dir, { recursive: true, force: true })
   }
 })

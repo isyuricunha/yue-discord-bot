@@ -69,6 +69,14 @@ function strip_html_tags(input: string): string {
   return input.replace(/<[^>]*>/g, '')
 }
 
+function extract_ddg_result_snippet(fragment: string): string | null {
+  const window = fragment.slice(0, 2_000)
+  const match = /<(?:a|div)[^>]+class="result__snippet"[^>]*>([\s\S]*?)<\/(?:a|div)>/i.exec(window)
+  if (!match) return null
+  const raw = decode_html_entities(strip_html_tags(String(match[1] ?? '')).trim())
+  return raw.length > 0 ? raw : null
+}
+
 function normalize_ddg_result_url(input: string): string {
   const trimmed = input.trim()
 
@@ -116,7 +124,9 @@ async function ddg_html_search(query: string, deps: ddg_web_search_deps): Promis
     let match: RegExpExecArray | null
     while ((match = re.exec(html)) && hits.length < 5) {
       const href = normalize_ddg_result_url(match[1] ?? '')
-      const text = decode_html_entities(strip_html_tags(String(match[2] ?? '')).trim())
+      const title = decode_html_entities(strip_html_tags(String(match[2] ?? '')).trim())
+      const snippet = extract_ddg_result_snippet(html.slice(re.lastIndex))
+      const text = snippet ? `${title} — ${snippet}` : title
 
       if (!href || !text) continue
       if (seen.has(href)) continue
@@ -137,8 +147,8 @@ export function parse_web_search_query(input: string): string | null {
   if (!trimmed) return null
 
   const patterns: RegExp[] = [
-    /^(?:pesquisa|pesquisar|web|search)\s*[:\-,]\s*/i,
-    /^(?:pesquisa|pesquisar|web|search)\s+/i,
+    /^(?:pesquisa|pesquisar|pesquise|web|search)\s*[:\-,]\s*/i,
+    /^(?:pesquisa|pesquisar|pesquise|web|search)\s+/i,
   ]
 
   for (const pattern of patterns) {
