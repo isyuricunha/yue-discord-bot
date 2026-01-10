@@ -56,6 +56,82 @@ function take_first_hits(topics: ddg_instant_answer_topic[] | undefined, limit: 
   return out
 }
 
+function decode_html_entities(input: string): string {
+  return input
+    .replaceAll('&amp;', '&')
+    .replaceAll('&quot;', '"')
+    .replaceAll('&#39;', "'")
+    .replaceAll('&lt;', '<')
+    .replaceAll('&gt;', '>')
+}
+
+function strip_html_tags(input: string): string {
+  return input.replace(/<[^>]*>/g, '')
+}
+
+function normalize_ddg_result_url(input: string): string {
+  const trimmed = input.trim()
+
+  try {
+    const parsed = new URL(trimmed, 'https://duckduckgo.com')
+    const uddg = parsed.searchParams.get('uddg')
+    if (uddg && uddg.trim().length > 0) {
+      return decodeURIComponent(uddg)
+    }
+  } catch {
+    // ignore
+  }
+
+  return trimmed
+}
+
+async function ddg_html_search(query: string, deps: ddg_web_search_deps): Promise<ddg_web_search_hit[]> {
+  const fetch_fn = deps.fetch_fn ?? fetch
+  const timeout_ms = deps.timeout_ms ?? 10_000
+
+  const url = new URL('https://duckduckgo.com/html/')
+  url.searchParams.set('q', query)
+
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeout_ms)
+
+  try {
+    const res = await fetch_fn(url.toString(), {
+      method: 'GET',
+      headers: {
+        accept: 'text/html',
+        'user-agent': 'Mozilla/5.0 (compatible; yue-discord-bot/1.0; +https://github.com/isyuricunha/yue-discord-bot)',
+      },
+      signal: controller.signal,
+    })
+
+    if (!res.ok) return []
+    const html = await res.text().catch(() => '')
+    if (!html) return []
+
+    const hits: ddg_web_search_hit[] = []
+    const seen = new Set<string>()
+
+    const re = /<a[^>]+class="result__a"[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi
+    let match: RegExpExecArray | null
+    while ((match = re.exec(html)) && hits.length < 5) {
+      const href = normalize_ddg_result_url(match[1] ?? '')
+      const text = decode_html_entities(strip_html_tags(String(match[2] ?? '')).trim())
+
+      if (!href || !text) continue
+      if (seen.has(href)) continue
+      seen.add(href)
+      hits.push({ url: href, text })
+    }
+
+    return hits
+  } catch {
+    return []
+  } finally {
+    clearTimeout(timeout)
+  }
+}
+
 export function parse_web_search_query(input: string): string | null {
   const trimmed = input.trim()
   if (!trimmed) return null
@@ -114,9 +190,16 @@ export async function ddg_web_search(query: string, deps: ddg_web_search_deps = 
     const abstract_url = is_nonempty_string(json.AbstractURL) ? json.AbstractURL.trim() : null
     const hits = take_first_hits(json.RelatedTopics, 5)
 
-    return { query: q, abstract_text, abstract_url, hits }
+    const has_sources = hits.length > 0 || (abstract_text && abstract_url)
+    if (has_sources) {
+      return { query: q, abstract_text, abstract_url, hits }
+    }
+
+    const html_hits = await ddg_html_search(q, deps)
+    return { query: q, abstract_text: null, abstract_url: null, hits: html_hits }
   } catch {
-    return { query: q, abstract_text: null, abstract_url: null, hits: [] }
+    const html_hits = await ddg_html_search(q, deps)
+    return { query: q, abstract_text: null, abstract_url: null, hits: html_hits }
   } finally {
     clearTimeout(timeout)
   }
@@ -138,8 +221,10 @@ export function format_web_search_context(result: ddg_web_search_result): string
   }
   sources.push(...result.hits)
 
-  if (sources.length > 0) {
-    lines.push('')
+  lines.push('')
+  if (sources.length === 0) {
+    lines.push('No sources were found for this query.')
+  } else {
     lines.push('Sources:')
     for (const hit of sources) {
       lines.push(`- ${hit.url} (${hit.text})`)
