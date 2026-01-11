@@ -19,6 +19,13 @@ import {
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
 
+function truncate_modal_title(input: string) {
+  const max_len = 45
+  if (input.length <= max_len) return input
+  if (max_len <= 1) return input.slice(0, max_len)
+  return `${input.slice(0, max_len - 1).trimEnd()}…`
+}
+
 export async function handleGiveawayParticipate(interaction: ButtonInteraction) {
   const giveaway = await prisma.giveaway.findFirst({
     where: { messageId: interaction.message.id },
@@ -87,9 +94,10 @@ export async function handleGiveawayParticipate(interaction: ButtonInteraction) 
     const maxChoices = giveaway.maxChoices || 10
 
     // Criar modal para inserir escolhas
+    const modal_title = truncate_modal_title(`Participe: ${giveaway.title}`)
     const modal = new ModalBuilder()
       .setCustomId(`giveaway_choices_${giveaway.id}`)
-      .setTitle(`Participe: ${giveaway.title.substring(0, 40)}`)
+      .setTitle(modal_title)
 
     const input = new TextInputBuilder()
       .setCustomId('choices')
