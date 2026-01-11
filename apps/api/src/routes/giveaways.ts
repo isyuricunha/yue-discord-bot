@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database';
-import { createGiveawaySchema } from '@yuebot/shared';
+import { createGiveawaySchema, normalize_giveaway_items_list } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
 import { is_guild_admin } from '../internal/bot_internal_api'
 import { can_access_guild } from '../utils/guild_access'
@@ -40,6 +40,32 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     }
 
     try {
+      const normalized_items =
+        data.format === 'list' && Array.isArray(data.availableItems)
+          ? normalize_giveaway_items_list(data.availableItems)
+          : null
+
+      if (data.format === 'list') {
+        if (!normalized_items || normalized_items.length === 0) {
+          return reply.code(400).send({ error: 'availableItems is required for list giveaways' })
+        }
+
+        const min = typeof data.minChoices === 'number' ? data.minChoices : null
+        const max = typeof data.maxChoices === 'number' ? data.maxChoices : null
+
+        if (min !== null && normalized_items.length < min) {
+          return reply
+            .code(400)
+            .send({ error: `availableItems must contain at least ${min} items` })
+        }
+
+        if (max !== null && max > normalized_items.length) {
+          return reply
+            .code(400)
+            .send({ error: 'maxChoices cannot be greater than the number of available items' })
+        }
+      }
+
       const giveaway = await prisma.giveaway.create({
         data: {
           guildId,
@@ -51,7 +77,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
           requiredRoleId: data.requiredRoleId || null,
           maxWinners: data.maxWinners,
           format: data.format || 'reaction',
-          availableItems: data.availableItems ? data.availableItems : Prisma.JsonNull,
+          availableItems: normalized_items ? normalized_items : Prisma.JsonNull,
           minChoices: data.minChoices || null,
           maxChoices: data.maxChoices || null,
           endsAt: data.endsAt,

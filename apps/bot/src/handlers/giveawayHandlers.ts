@@ -9,7 +9,13 @@ import {
   EmbedBuilder
 } from 'discord.js'
 import { prisma } from '@yuebot/database'
-import { COLORS, EMOJIS } from '@yuebot/shared'
+import {
+  COLORS,
+  EMOJIS,
+  match_giveaway_choices,
+  normalize_giveaway_items_list,
+  parse_giveaway_choices_input,
+} from '@yuebot/shared'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
 
@@ -189,18 +195,17 @@ export async function handleGiveawayChoicesModal(interaction: ModalSubmitInterac
     return interaction.editReply('❌ Sorteio não encontrado!')
   }
 
-  const items = giveaway.availableItems as string[]
+  const raw_items = Array.isArray(giveaway.availableItems) ? (giveaway.availableItems as string[]) : []
+  const items = normalize_giveaway_items_list(raw_items)
   const minChoices = giveaway.minChoices || 3
   const maxChoices = giveaway.maxChoices || 10
 
-  // Parse choices
+  if (items.length === 0) {
+    return interaction.editReply('❌ Este sorteio não possui itens disponíveis.')
+  }
+
   const choicesText = interaction.fields.getTextInputValue('choices')
-  const lines = choicesText.split('\n').map(l => l.trim()).filter(l => l.length > 0)
-  
-  // Remover números no início (1., 2., etc)
-  const choices = lines.map(line => {
-    return line.replace(/^\d+[.:)]\s*/, '').trim()
-  }).filter(c => c.length > 0)
+  const choices = parse_giveaway_choices_input(choicesText)
 
   // Validar quantidade
   if (choices.length < minChoices) {
@@ -217,21 +222,10 @@ export async function handleGiveawayChoicesModal(interaction: ModalSubmitInterac
     )
   }
 
-  // Validar se os itens existem (case insensitive e trim)
-  const itemsLower = items.map(i => i.trim().toLowerCase())
-  const invalidChoices: string[] = []
-  const validChoices: string[] = []
-
-  for (const choice of choices) {
-    const choiceLower = choice.trim().toLowerCase()
-    const index = itemsLower.indexOf(choiceLower)
-    if (index === -1) {
-      invalidChoices.push(choice)
-    } else {
-      // Usar o nome exato da lista (trimmed)
-      validChoices.push(items[index].trim())
-    }
-  }
+  const { invalid: invalidChoices, resolved: validChoices } = match_giveaway_choices({
+    availableItems: items,
+    choices,
+  })
 
   if (invalidChoices.length > 0) {
     return interaction.editReply(

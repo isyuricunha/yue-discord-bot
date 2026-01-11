@@ -15,6 +15,7 @@ import {
   StringSelectMenuBuilder
 } from 'discord.js'
 import { prisma } from '@yuebot/database'
+import { parse_giveaway_items_input } from '@yuebot/shared'
 
 export const data = new SlashCommandBuilder()
   .setName('sorteio-wizard')
@@ -253,7 +254,7 @@ export async function handleItems(interaction: any) {
   }
   
   const itemsStr = interaction.fields.getTextInputValue('items')
-  state.items = itemsStr.split(',').map(i => i.trim()).filter(i => i.length > 0)
+  state.items = parse_giveaway_items_input(itemsStr)
   state.minChoices = parseInt(interaction.fields.getTextInputValue('min') || '3')
   state.maxChoices = parseInt(interaction.fields.getTextInputValue('max') || '10')
   
@@ -261,6 +262,13 @@ export async function handleItems(interaction: any) {
     return interaction.reply({ 
       content: `❌ A lista deve ter pelo menos ${state.minChoices} itens!`, 
       ephemeral: true 
+    })
+  }
+
+  if (state.maxChoices > state.items.length) {
+    return interaction.reply({
+      content: `❌ O máximo de escolhas não pode ser maior que a quantidade de itens (${state.items.length}).`,
+      ephemeral: true,
     })
   }
   

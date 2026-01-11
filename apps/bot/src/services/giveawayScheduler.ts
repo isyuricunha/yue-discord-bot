@@ -1,5 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, EmbedBuilder } from 'discord.js'
 import { prisma } from '@yuebot/database'
+import { normalize_giveaway_items_list } from '@yuebot/shared'
 import { logger } from '../utils/logger'
 import { getSendableChannel } from '../utils/discord'
 import { safe_error_details } from '../utils/safe_error'
@@ -53,9 +54,24 @@ export class GiveawayScheduler {
 
         const ends_at_ts = Math.floor(new Date(giveaway.endsAt).getTime() / 1000)
 
+        const items =
+          giveaway.format === 'list' && Array.isArray(giveaway.availableItems)
+            ? normalize_giveaway_items_list(giveaway.availableItems as string[])
+            : []
+
+        const min_choices = typeof giveaway.minChoices === 'number' ? giveaway.minChoices : 3
+        const max_choices = typeof giveaway.maxChoices === 'number' ? giveaway.maxChoices : 10
+
         const embed = new EmbedBuilder()
           .setTitle(`${giveaway.format === 'list' ? '🎁' : '🎉'} ${giveaway.title}`)
-          .setDescription(giveaway.description)
+          .setDescription(
+            giveaway.format === 'list'
+              ? `${giveaway.description}\n\n` +
+                  `📋 **${items.length} itens disponíveis**\n` +
+                  `✅ Escolha entre ${min_choices} e ${max_choices} itens\n\n` +
+                  `Clique no botão abaixo para participar!`
+              : giveaway.description
+          )
           .addFields(
             { name: '🏆 Vencedores', value: String(giveaway.maxWinners), inline: true },
             { name: '⏰ Termina', value: `<t:${ends_at_ts}:R>`, inline: true },
@@ -82,6 +98,32 @@ export class GiveawayScheduler {
                 ],
               })
             : await sendableChannel.send({ embeds: [embed] })
+
+        if (giveaway.format === 'list' && items.length > 0) {
+          const items_list = items.map((item, i) => `${i + 1}. ${item}`).join('\n')
+          const chunks: string[] = []
+
+          let current_chunk = ''
+          for (const line of items_list.split('\n')) {
+            if (current_chunk.length + line.length + 1 > 1900) {
+              chunks.push(current_chunk)
+              current_chunk = line
+            } else {
+              current_chunk += (current_chunk ? '\n' : '') + line
+            }
+          }
+          if (current_chunk) chunks.push(current_chunk)
+
+          for (let i = 0; i < chunks.length; i++) {
+            const list_embed = new EmbedBuilder()
+              .setTitle(i === 0 ? `📋 Lista de Itens Disponíveis` : `📋 Lista (continuação ${i + 1})`)
+              .setDescription(chunks[i])
+              .setColor(0x3b82f6)
+              .setFooter({ text: `Total: ${items.length} itens | Página ${i + 1}/${chunks.length}` })
+
+            await sendableChannel.send({ embeds: [list_embed] })
+          }
+        }
 
         if (giveaway.format === 'reaction') {
           await message.react('🎉').catch(() => null)

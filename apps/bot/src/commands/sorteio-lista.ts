@@ -8,6 +8,7 @@ import {
   ButtonStyle
 } from 'discord.js'
 import { prisma } from '@yuebot/database'
+import { parse_giveaway_items_input } from '@yuebot/shared'
 import { getSendableChannel } from '../utils/discord'
 
 export const data = new SlashCommandBuilder()
@@ -113,14 +114,16 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return interaction.editReply('❌ Canal inválido!')
   }
   
-  // Parse items (limpar espaços, aspas e linhas vazias)
-  const items = itemsStr
-    .split(',')
-    .map(i => i.trim().replace(/^"|"$/g, '')) // Remove aspas no início/fim
-    .filter(i => i.length > 0)
+  const items = parse_giveaway_items_input(itemsStr)
   
   if (items.length < minChoices) {
     return interaction.editReply(`❌ A lista deve ter pelo menos ${minChoices} itens!`)
+  }
+
+  if (maxChoices > items.length) {
+    return interaction.editReply(
+      `❌ O máximo de escolhas não pode ser maior que a quantidade de itens (${items.length}).`
+    )
   }
   
   try {
