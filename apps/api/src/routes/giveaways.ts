@@ -3,6 +3,7 @@ import { prisma, Prisma } from '@yuebot/database';
 import { createGiveawaySchema, normalize_giveaway_items_list } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
 import { is_guild_admin } from '../internal/bot_internal_api'
+import { send_guild_message } from '../internal/bot_internal_api'
 import { can_access_guild } from '../utils/guild_access'
 import { validation_error_details } from '../utils/validation_error'
 import { public_error_message } from '../utils/public_error'
@@ -45,6 +46,13 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
           ? normalize_giveaway_items_list(data.availableItems)
           : null
 
+      const required_role_ids =
+        Array.isArray(data.requiredRoleIds) && data.requiredRoleIds.length > 0
+          ? data.requiredRoleIds
+          : typeof data.requiredRoleId === 'string' && data.requiredRoleId.trim().length > 0
+            ? [data.requiredRoleId]
+            : null
+
       if (data.format === 'list') {
         if (!normalized_items || normalized_items.length === 0) {
           return reply.code(400).send({ error: 'availableItems is required for list giveaways' })
@@ -75,6 +83,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
           messageId: null, // Será preenchido pelo bot
           creatorId: user.userId,
           requiredRoleId: data.requiredRoleId || null,
+          requiredRoleIds: required_role_ids ? required_role_ids : Prisma.JsonNull,
           maxWinners: data.maxWinners,
           format: data.format || 'reaction',
           availableItems: normalized_items ? normalized_items : Prisma.JsonNull,
@@ -183,13 +192,172 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       return reply.code(400).send({ error: 'Giveaway already ended' });
     }
 
+    if (giveaway.cancelled) {
+      return reply.code(400).send({ error: 'Giveaway already cancelled' });
+    }
+
     await prisma.giveaway.update({
       where: { id: giveawayId },
-      data: { cancelled: true, ended: true },
+      data: { cancelled: true, ended: true, suspended: false },
     });
+
+    await send_guild_message(guildId, giveaway.channelId, `🛑 **Sorteio cancelado:** ${giveaway.title}`, request.log)
+      .catch((error) => {
+        request.log.warn({ err: safe_error_details(error) }, 'Failed to notify giveaway cancellation')
+      })
 
     return { success: true };
   });
+
+  // Suspender sorteio
+  fastify.post('/:guildId/giveaways/:giveawayId/suspend', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId, giveawayId } = request.params as { guildId: string; giveawayId: string };
+    const user = request.user;
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' });
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const giveaway = await prisma.giveaway.findUnique({ where: { id: giveawayId } })
+    if (!giveaway || giveaway.guildId !== guildId) {
+      return reply.code(404).send({ error: 'Giveaway not found' })
+    }
+
+    if (giveaway.ended) {
+      return reply.code(400).send({ error: 'Giveaway already ended' })
+    }
+
+    if (giveaway.suspended) {
+      return reply.code(400).send({ error: 'Giveaway already suspended' })
+    }
+
+    await prisma.giveaway.update({
+      where: { id: giveawayId },
+      data: { suspended: true },
+    })
+
+    await send_guild_message(guildId, giveaway.channelId, `⏸️ **Sorteio suspenso:** ${giveaway.title}`, request.log)
+      .catch((error) => {
+        request.log.warn({ err: safe_error_details(error) }, 'Failed to notify giveaway suspension')
+      })
+
+    return { success: true }
+  })
+
+  // Retomar sorteio
+  fastify.post('/:guildId/giveaways/:giveawayId/resume', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId, giveawayId } = request.params as { guildId: string; giveawayId: string };
+    const user = request.user;
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' });
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const giveaway = await prisma.giveaway.findUnique({ where: { id: giveawayId } })
+    if (!giveaway || giveaway.guildId !== guildId) {
+      return reply.code(404).send({ error: 'Giveaway not found' })
+    }
+
+    if (giveaway.ended) {
+      return reply.code(400).send({ error: 'Giveaway already ended' })
+    }
+
+    if (!giveaway.suspended) {
+      return reply.code(400).send({ error: 'Giveaway is not suspended' })
+    }
+
+    await prisma.giveaway.update({
+      where: { id: giveawayId },
+      data: { suspended: false },
+    })
+
+    await send_guild_message(guildId, giveaway.channelId, `▶️ **Sorteio retomado:** ${giveaway.title}`, request.log)
+      .catch((error) => {
+        request.log.warn({ err: safe_error_details(error) }, 'Failed to notify giveaway resume')
+      })
+
+    return { success: true }
+  })
+
+  // Finalizar sorteio manualmente via painel
+  fastify.post('/:guildId/giveaways/:giveawayId/end', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId, giveawayId } = request.params as { guildId: string; giveawayId: string };
+    const user = request.user;
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' });
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const giveaway = await prisma.giveaway.findUnique({ where: { id: giveawayId } })
+    if (!giveaway || giveaway.guildId !== guildId) {
+      return reply.code(404).send({ error: 'Giveaway not found' })
+    }
+
+    if (giveaway.ended) {
+      return reply.code(400).send({ error: 'Giveaway already ended' })
+    }
+
+    // Não marcamos ended=true aqui, porque o bot scheduler só processa sorteios com ended=false.
+    // Ao trazer endsAt para "agora", o scheduler finaliza e apura vencedores normalmente.
+    await prisma.giveaway.update({
+      where: { id: giveawayId },
+      data: { endsAt: new Date(), cancelled: false, suspended: false },
+    })
+
+    // O bot scheduler vai calcular vencedores e anunciar em até 30s.
+    await send_guild_message(
+      guildId,
+      giveaway.channelId,
+      `🏁 **Sorteio marcado para finalizar:** ${giveaway.title}\nO bot irá apurar e anunciar os vencedores em instantes.`,
+      request.log
+    ).catch((error) => {
+      request.log.warn({ err: safe_error_details(error) }, 'Failed to notify giveaway end request')
+    })
+
+    return { success: true }
+  })
 
   // Adicionar participante manualmente
   fastify.post('/:guildId/giveaways/:giveawayId/entries', {

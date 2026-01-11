@@ -63,6 +63,7 @@ export const createGiveawaySchema = z.object({
   channelId: z.string().min(1),
   maxWinners: z.coerce.number().int().min(1).max(100),
   requiredRoleId: z.string().optional(),
+  requiredRoleIds: z.array(z.string().min(1)).max(20).optional(),
   format: z.enum(['reaction', 'list']).default('reaction'),
   availableItems: z.array(z.string()).optional(),
   minChoices: z.coerce.number().int().min(1).optional(),
