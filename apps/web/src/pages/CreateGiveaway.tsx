@@ -41,7 +41,8 @@ export default function CreateGiveawayPage() {
   const [description, setDescription] = useState('')
   const [winners, setWinners] = useState(1)
   const [channelId, setChannelId] = useState('')
-  const [requiredRoleId, setRequiredRoleId] = useState('')
+  const [requiredRoleIds, setRequiredRoleIds] = useState<string[]>([])
+  const [newRequiredRoleId, setNewRequiredRoleId] = useState('')
   const [endsAt, setEndsAt] = useState('')
   
   // List format specific
@@ -74,6 +75,27 @@ export default function CreateGiveawayPage() {
 
   const channels = channelsData?.channels || []
   const roles = rolesData?.roles || []
+
+  const available_roles = roles
+    .filter((r: any): r is Role => r && typeof r.id === 'string' && typeof r.name === 'string')
+    .slice()
+    .sort((a: Role, b: Role) => a.name.localeCompare(b.name))
+
+  const role_by_id = new Map<string, Role>(available_roles.map((r: Role) => [r.id, r]))
+
+  const add_required_role = () => {
+    const id = newRequiredRoleId
+    if (!id) return
+    if (requiredRoleIds.includes(id)) return
+    if (requiredRoleIds.length >= 20) return
+
+    setRequiredRoleIds([...requiredRoleIds, id])
+    setNewRequiredRoleId('')
+  }
+
+  const remove_required_role = (role_id: string) => {
+    setRequiredRoleIds(requiredRoleIds.filter((id) => id !== role_id))
+  }
 
   const addItem = () => {
     const next = normalize_giveaway_items_list([...items, itemInput])
@@ -123,7 +145,7 @@ export default function CreateGiveawayPage() {
         description,
         maxWinners: winners,
         channelId,
-        requiredRoleId: requiredRoleId || undefined,
+        requiredRoleIds: requiredRoleIds.length > 0 ? requiredRoleIds : undefined,
         endsAt: new Date(endsAt).toISOString(),
         format,
         ...(format === 'list' && {
@@ -493,21 +515,61 @@ export default function CreateGiveawayPage() {
                 </div>
 
                 <div>
-                  <div className="text-sm font-medium">Cargo obrigatório (opcional)</div>
-                  <div className="mt-2">
+                  <div className="text-sm font-medium">Cargos obrigatórios (opcional)</div>
+                  <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-start">
                     {is_roles_loading ? (
                       <Skeleton className="h-11 w-full" />
                     ) : (
-                      <Select value={requiredRoleId} onValueChange={(value) => setRequiredRoleId(value)}>
-                        <option value="">Nenhum</option>
-                        {roles.map((role: Role) => (
+                      <Select value={newRequiredRoleId} onValueChange={(value) => setNewRequiredRoleId(value)}>
+                        <option value="">Selecione um cargo</option>
+                        {available_roles.map((role: Role) => (
                           <option key={role.id} value={role.id}>
                             {role.name}
                           </option>
                         ))}
                       </Select>
                     )}
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="md:h-11"
+                      disabled={!newRequiredRoleId || requiredRoleIds.length >= 20}
+                      onClick={add_required_role}
+                    >
+                      <Plus className="h-4 w-4" />
+                      Adicionar
+                    </Button>
                   </div>
+
+                  {requiredRoleIds.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      {requiredRoleIds.map((role_id) => (
+                        <div
+                          key={role_id}
+                          className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/40 px-4 py-3"
+                        >
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold">
+                              {role_by_id.get(role_id)?.name ?? role_id}
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">{role_id}</div>
+                          </div>
+
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="h-9"
+                            onClick={() => remove_required_role(role_id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Remover
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div>

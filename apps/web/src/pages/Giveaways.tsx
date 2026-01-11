@@ -29,6 +29,7 @@ interface Giveaway {
   endsAt: string
   ended: boolean
   cancelled: boolean
+  suspended?: boolean
   createdAt: string
   _count: {
     entries: number
@@ -94,7 +95,7 @@ export default function GiveawaysPage() {
   })
 
   const giveaways = data?.giveaways || []
-  const activeGiveaways = giveaways.filter((g: Giveaway) => !g.ended && !g.cancelled)
+  const activeGiveaways = giveaways.filter((g: Giveaway) => !g.ended && !g.cancelled && !g.suspended)
   const endedGiveaways = giveaways.filter((g: Giveaway) => g.ended || g.cancelled)
 
   return (
