@@ -439,6 +439,33 @@ export async function handleFinish(interaction: any, skipRole: boolean = false) 
       
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button)
       const message = await channel.send({ embeds: [embed], components: [row] })
+
+      // Enviar lista de itens em mensagem separada
+      const itemsList = state.items!.map((item, i) => `${i + 1}. ${item}`).join('\n')
+      const chunks: string[] = []
+
+      // Dividir em chunks de 2000 caracteres (limite do Discord)
+      let currentChunk = ''
+      for (const line of itemsList.split('\n')) {
+        if (currentChunk.length + line.length + 1 > 1900) {
+          chunks.push(currentChunk)
+          currentChunk = line
+        } else {
+          currentChunk += (currentChunk ? '\n' : '') + line
+        }
+      }
+      if (currentChunk) chunks.push(currentChunk)
+
+      // Enviar lista
+      for (let i = 0; i < chunks.length; i++) {
+        const listEmbed = new EmbedBuilder()
+          .setTitle(i === 0 ? `📋 Lista de Itens Disponíveis` : `📋 Lista (continuação ${i + 1})`)
+          .setDescription(chunks[i])
+          .setColor(0x3B82F6)
+          .setFooter({ text: `Total: ${state.items!.length} itens | Página ${i + 1}/${chunks.length}` })
+
+        await channel.send({ embeds: [listEmbed] })
+      }
       
       await prisma.giveaway.create({
         data: {

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { ArrowLeft, Check, Gift, Calendar, Hash, Tag, Plus, Trash2 } from 'lucide-react'
+import { normalize_giveaway_items_list, parse_giveaway_items_input } from '@yuebot/shared'
 
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Textarea } from '../components/ui'
@@ -46,6 +47,7 @@ export default function CreateGiveawayPage() {
   // List format specific
   const [items, setItems] = useState<string[]>([])
   const [itemInput, setItemInput] = useState('')
+  const [bulkItemsInput, setBulkItemsInput] = useState('')
   const [minChoices, setMinChoices] = useState(3)
   const [maxChoices, setMaxChoices] = useState(10)
   
@@ -74,10 +76,24 @@ export default function CreateGiveawayPage() {
   const roles = rolesData?.roles || []
 
   const addItem = () => {
-    if (itemInput.trim() && !items.includes(itemInput.trim())) {
-      setItems([...items, itemInput.trim()])
+    const next = normalize_giveaway_items_list([...items, itemInput])
+    if (next.length !== items.length) {
+      setItems(next)
       setItemInput('')
+      setMinChoices((prev) => Math.min(prev, Math.max(1, next.length)))
+      setMaxChoices((prev) => Math.min(Math.max(prev, minChoices), Math.max(1, next.length)))
     }
+  }
+
+  const addBulkItems = () => {
+    const parsed = parse_giveaway_items_input(bulkItemsInput)
+    if (parsed.length === 0) return
+
+    const next = normalize_giveaway_items_list([...items, ...parsed])
+    setItems(next)
+    setBulkItemsInput('')
+    setMinChoices((prev) => Math.min(prev, Math.max(1, next.length)))
+    setMaxChoices((prev) => Math.min(Math.max(prev, minChoices), Math.max(1, next.length)))
   }
 
   const removeItem = (index: number) => {
@@ -352,6 +368,39 @@ export default function CreateGiveawayPage() {
                     <Button variant="outline" onClick={addItem} className="px-0" aria-label="Adicionar item">
                       <Plus className="h-5 w-5" />
                     </Button>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-medium">Adicionar itens em lote</div>
+                  <div className="mt-2 space-y-2">
+                    <Textarea
+                      value={bulkItemsInput}
+                      onChange={(e) => setBulkItemsInput(e.target.value)}
+                      rows={6}
+                      placeholder={
+                        'Cole sua lista aqui (um por linha OU separado por vírgula).\n\n' +
+                        'Exemplo (linhas):\nItem 1\nItem 2\nItem 3\n\n' +
+                        'Exemplo (vírgulas):\nItem 1, Item 2, Item 3'
+                      }
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button type="button" variant="outline" size="sm" onClick={addBulkItems}>
+                        Adicionar em lote
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setBulkItemsInput('')}
+                        disabled={!bulkItemsInput.trim()}
+                      >
+                        Limpar
+                      </Button>
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      Separadores aceitos: quebra de linha, vírgula e ponto-e-vírgula. Duplicados (ex: "Item" e "item") são removidos.
+                    </div>
                   </div>
                 </div>
 
