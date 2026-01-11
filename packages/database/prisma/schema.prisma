@@ -222,6 +222,7 @@ model Giveaway {
   
   // Configurações
   requiredRoleId String?
+  requiredRoleIds Json?
   emojiId        String? @default("🎉")
   maxWinners     Int
   
@@ -236,6 +237,7 @@ model Giveaway {
   endsAt    DateTime
   ended     Boolean  @default(false)
   cancelled Boolean  @default(false)
+  suspended Boolean  @default(false)
   
   entries GiveawayEntry[]
   winners GiveawayWinner[]
