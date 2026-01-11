@@ -46,6 +46,11 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
 
     if (giveaway.format !== 'reaction') return
 
+    if (giveaway.cancelled || giveaway.suspended) {
+      await reaction.users.remove(user.id).catch(() => null)
+      return
+    }
+
     // Verificar se já está participando
     const existing = await prisma.giveawayEntry.findUnique({
       where: {
@@ -58,11 +63,19 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
 
     if (existing) return
 
-    // Verificar cargo necessário
-    if (giveaway.requiredRoleId) {
+    // Verificar cargo necessário (um ou mais)
+    const required_role_ids =
+      Array.isArray(giveaway.requiredRoleIds) && giveaway.requiredRoleIds.length > 0
+        ? (giveaway.requiredRoleIds as string[])
+        : giveaway.requiredRoleId
+          ? [giveaway.requiredRoleId]
+          : []
+
+    if (required_role_ids.length > 0) {
       try {
         const member = await message.guild.members.fetch(user.id)
-        if (!member.roles.cache.has(giveaway.requiredRoleId)) {
+        const has_any_required_role = required_role_ids.some((id) => member.roles.cache.has(id))
+        if (!has_any_required_role) {
           await reaction.users.remove(user.id)
           return
         }

@@ -32,6 +32,7 @@ export class GiveawayScheduler {
       where: {
         ended: false,
         cancelled: false,
+        suspended: false,
         messageId: null,
         endsAt: { gt: now },
         OR: [{ startsAt: null }, { startsAt: { lte: now } }],
@@ -80,8 +81,19 @@ export class GiveawayScheduler {
           .setColor(0x9333ea)
           .setTimestamp(new Date(giveaway.endsAt))
 
-        if (giveaway.requiredRoleId) {
-          embed.addFields({ name: '🚪 Cargo necessário', value: `<@&${giveaway.requiredRoleId}>`, inline: false })
+        const required_role_ids =
+          Array.isArray(giveaway.requiredRoleIds) && giveaway.requiredRoleIds.length > 0
+            ? (giveaway.requiredRoleIds as string[])
+            : giveaway.requiredRoleId
+              ? [giveaway.requiredRoleId]
+              : []
+
+        if (required_role_ids.length > 0) {
+          embed.addFields({
+            name: '🚪 Cargo necessário',
+            value: required_role_ids.map((id) => `<@&${id}>`).join(' ou '),
+            inline: false,
+          })
         }
 
         const message =
@@ -152,6 +164,7 @@ export class GiveawayScheduler {
         where: {
           ended: false,
           cancelled: false,
+          suspended: false,
           endsAt: { lte: now },
         },
         include: {

@@ -36,13 +36,25 @@ export async function handleGiveawayParticipate(interaction: ButtonInteraction) 
     return interaction.reply({ content: '❌ Este sorteio foi cancelado!', ephemeral: true })
   }
 
+  if (giveaway.suspended) {
+    return interaction.reply({ content: '⏸️ Este sorteio está suspenso no momento.', ephemeral: true })
+  }
+
   // Validar role obrigatória
-  if (giveaway.requiredRoleId && interaction.guild) {
+  const required_role_ids =
+    Array.isArray(giveaway.requiredRoleIds) && giveaway.requiredRoleIds.length > 0
+      ? (giveaway.requiredRoleIds as string[])
+      : giveaway.requiredRoleId
+        ? [giveaway.requiredRoleId]
+        : []
+
+  if (required_role_ids.length > 0 && interaction.guild) {
     const member = await interaction.guild.members.fetch(interaction.user.id)
-    if (!member.roles.cache.has(giveaway.requiredRoleId)) {
-      return interaction.reply({ 
+    const has_any_required_role = required_role_ids.some((id) => member.roles.cache.has(id))
+    if (!has_any_required_role) {
+      return interaction.reply({
         content: '❌ Você não possui o cargo necessário para participar deste sorteio!',
-        ephemeral: true 
+        ephemeral: true,
       })
     }
   }
@@ -108,6 +120,18 @@ export async function handleGiveawayItemsSelect(interaction: StringSelectMenuInt
 
   if (!giveaway) {
     return interaction.editReply('❌ Sorteio não encontrado!')
+  }
+
+  if (giveaway.ended) {
+    return interaction.editReply('❌ Este sorteio já foi finalizado!')
+  }
+
+  if (giveaway.cancelled) {
+    return interaction.editReply('❌ Este sorteio foi cancelado!')
+  }
+
+  if (giveaway.suspended) {
+    return interaction.editReply('⏸️ Este sorteio está suspenso no momento.')
   }
 
   const choices = interaction.values
