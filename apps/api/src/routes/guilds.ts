@@ -11,6 +11,8 @@ import {
   guildSettingsConfigSchema,
   guildWelcomeConfigSchema,
   guildXpConfigSchema,
+  get_suggestion_timeframe_start_date,
+  parse_suggestion_timeframe,
   reactionRolePanelPublishSchema,
   reactionRolePanelUpsertSchema,
   starboardConfigSchema,
@@ -1045,6 +1047,85 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.send({ success: true, ...commands })
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to list bot commands')
+      return reply.code(500).send({ error: 'Internal server error' })
+    }
+  })
+
+  // Listar sugestões mais votadas por período (score = upvotes - downvotes)
+  fastify.get('/:guildId/suggestions/top', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const query = request.query as { timeframe?: string; limit?: string }
+    const timeframe = parse_suggestion_timeframe(query.timeframe)
+    if (!timeframe) {
+      return reply.code(400).send({ error: 'Invalid timeframe' })
+    }
+
+    const limit_raw = query.limit ? Number(query.limit) : 25
+    const limit = Number.isFinite(limit_raw) ? Math.min(Math.max(1, limit_raw), 100) : 25
+
+    const since = get_suggestion_timeframe_start_date(timeframe, new Date())
+
+    try {
+      const items = await prisma.suggestion.findMany({
+        where: {
+          guildId,
+          createdAt: { gte: since },
+        },
+        select: {
+          id: true,
+          userId: true,
+          sourceChannelId: true,
+          sourceMessageId: true,
+          messageId: true,
+          content: true,
+          status: true,
+          upvotes: true,
+          downvotes: true,
+          decidedAt: true,
+          decidedByUserId: true,
+          decisionNote: true,
+          createdAt: true,
+          updatedAt: true,
+        },
+        take: limit,
+        orderBy: [{ upvotes: 'desc' }, { downvotes: 'asc' }, { createdAt: 'desc' }],
+      })
+
+      const sorted = items
+        .slice()
+        .sort((a, b) => {
+          const scoreA = a.upvotes - a.downvotes
+          const scoreB = b.upvotes - b.downvotes
+          if (scoreA !== scoreB) return scoreB - scoreA
+          if (a.upvotes !== b.upvotes) return b.upvotes - a.upvotes
+          if (a.createdAt.getTime() !== b.createdAt.getTime()) return b.createdAt.getTime() - a.createdAt.getTime()
+          return a.id.localeCompare(b.id)
+        })
+        .slice(0, limit)
+
+      return { success: true, timeframe, since, suggestions: sorted }
+    } catch (error: unknown) {
+      request.log.error({ err: safe_error_details(error) }, 'Failed to list top suggestions')
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
