@@ -76,6 +76,19 @@ export const data = new SlashCommandBuilder()
           .setRequired(true)
       )
   )
+  .addSubcommand(subcommand =>
+    subcommand
+      .setName('ativos')
+      .setDescription('Listar sorteios ativos e seus IDs')
+      .addIntegerOption(option =>
+        option
+          .setName('limite')
+          .setDescription('Quantidade de sorteios para listar (padrão: 10)')
+          .setMinValue(1)
+          .setMaxValue(25)
+          .setRequired(false)
+      )
+  )
 
 function parseDuration(duration: string): number {
   const match = duration.match(/^(\d+)([smhdw])$/)
@@ -147,7 +160,67 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     await handleEnd(interaction)
   } else if (subcommand === 'reroll') {
     await handleReroll(interaction)
+  } else if (subcommand === 'ativos') {
+    await handleListActive(interaction)
   }
+}
+
+async function handleListActive(interaction: ChatInputCommandInteraction) {
+  await interaction.deferReply({ ephemeral: true })
+
+  if (!interaction.guildId) {
+    return interaction.editReply('❌ Este comando só pode ser usado em servidores.')
+  }
+
+  const limit = interaction.options.getInteger('limite') ?? 10
+
+  const giveaways = await prisma.giveaway.findMany({
+    where: {
+      guildId: interaction.guildId,
+      ended: false,
+      cancelled: false,
+      suspended: false,
+    },
+    orderBy: [{ endsAt: 'asc' }],
+    take: limit,
+    select: {
+      id: true,
+      title: true,
+      channelId: true,
+      endsAt: true,
+      format: true,
+      maxWinners: true,
+      _count: {
+        select: {
+          entries: { where: { disqualified: false } },
+        },
+      },
+    },
+  })
+
+  if (giveaways.length === 0) {
+    return interaction.editReply('Nenhum sorteio ativo encontrado.')
+  }
+
+  const embed = new EmbedBuilder()
+    .setTitle(`🎉 Sorteios ativos (${giveaways.length})`)
+    .setColor(0x9333ea)
+
+  for (const giveaway of giveaways) {
+    const ends_at_ts = Math.floor(new Date(giveaway.endsAt).getTime() / 1000)
+    embed.addFields({
+      name: giveaway.title,
+      value:
+        `ID: \`${giveaway.id}\`\n` +
+        `Canal: <#${giveaway.channelId}>\n` +
+        `Termina: <t:${ends_at_ts}:R>\n` +
+        `Participantes: ${giveaway._count.entries}\n` +
+        `Formato: ${giveaway.format} • Vencedores: ${giveaway.maxWinners}`,
+      inline: false,
+    })
+  }
+
+  await interaction.editReply({ embeds: [embed] })
 }
 
 async function handleCreate(interaction: ChatInputCommandInteraction) {
