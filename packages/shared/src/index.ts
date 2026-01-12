@@ -8,3 +8,4 @@ export * from './template_placeholders';
 export * from './automod_word_filter'
 export * from './warn_thresholds'
 export * from './giveaway_items'
+export * from './suggestion_timeframes'
