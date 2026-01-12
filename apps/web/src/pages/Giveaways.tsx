@@ -257,6 +257,11 @@ function GiveawayCard({ giveaway, guildId }: { giveaway: Giveaway; guildId: stri
           <div className="min-w-0 flex-1">
             <div className="truncate text-base font-semibold tracking-tight">{giveaway.title}</div>
             <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">{giveaway.description}</div>
+            {isActive && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                ID: <span className="font-mono">{giveaway.id}</span>
+              </div>
+            )}
             {giveaway.cancelled && <div className="mt-2 text-xs font-semibold text-muted-foreground">Cancelado</div>}
           </div>
         </div>

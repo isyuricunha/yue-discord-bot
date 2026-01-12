@@ -4,6 +4,9 @@ import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import { Lightbulb, Save } from 'lucide-react'
 
+import type { suggestion_timeframe } from '@yuebot/shared'
+import { suggestion_timeframe_label } from '@yuebot/shared'
+
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
@@ -53,6 +56,7 @@ export default function SuggestionsPage() {
 
   const [config, set_config] = useState<suggestion_config | null>(null)
   const [status_filter, set_status_filter] = useState<'all' | 'pending' | 'accepted' | 'denied'>('pending')
+  const [top_timeframe, set_top_timeframe] = useState<suggestion_timeframe>('30d')
 
   const set_status_filter_safe = (value: string) => {
     if (value === 'pending' || value === 'accepted' || value === 'denied' || value === 'all') {
@@ -137,6 +141,22 @@ export default function SuggestionsPage() {
     },
     initialPageParam: undefined as string | undefined,
     getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  })
+
+  const top_suggestions_query = useQuery({
+    queryKey: ['suggestions-top', guildId, top_timeframe],
+    queryFn: async () => {
+      const res = await axios.get(`${API_URL}/api/guilds/${guildId}/suggestions/top`, {
+        params: { timeframe: top_timeframe, limit: 25 },
+      })
+
+      return res.data as {
+        success: boolean
+        timeframe: suggestion_timeframe
+        since: string
+        suggestions: api_suggestion[]
+      }
+    },
   })
 
   const all_suggestions = useMemo(() => {
@@ -315,6 +335,71 @@ export default function SuggestionsPage() {
                   </Button>
                 </div>
               )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="text-sm font-semibold">Mais votadas</div>
+              <div className="mt-1 text-xs text-muted-foreground">Sugestões com melhor score (👍 - 👎) no período selecionado.</div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Select
+                value={top_timeframe}
+                onValueChange={(value) => {
+                  if (value === '30d' || value === '60d' || value === '3m' || value === '6m') {
+                    set_top_timeframe(value)
+                  }
+                }}
+              >
+                <option value="30d">Últimos 30 dias</option>
+                <option value="60d">Últimos 60 dias</option>
+                <option value="3m">Últimos 3 meses</option>
+                <option value="6m">Últimos 6 meses</option>
+              </Select>
+            </div>
+          </div>
+
+          {top_suggestions_query.isLoading ? (
+            <Skeleton className="h-28 w-full" />
+          ) : top_suggestions_query.isError ? (
+            <ErrorState
+              title="Erro ao carregar sugestões mais votadas"
+              description="Não foi possível buscar as sugestões mais votadas do período."
+              actionLabel="Tentar novamente"
+              onAction={() => top_suggestions_query.refetch()}
+            />
+          ) : (top_suggestions_query.data?.suggestions ?? []).length === 0 ? (
+            <EmptyState
+              title="Nenhuma sugestão encontrada"
+              description={`Não há sugestões no período: ${suggestion_timeframe_label(top_timeframe)}.`}
+            />
+          ) : (
+            <div className="space-y-2">
+              {(top_suggestions_query.data?.suggestions ?? []).map((s) => {
+                const score = s.upvotes - s.downvotes
+
+                return (
+                  <div key={s.id} className="rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
+                    <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-medium">{s.content}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Score: <span className="font-mono">{score}</span> • Votos:{' '}
+                          <span className="font-mono">👍 {s.upvotes} / 👎 {s.downvotes}</span> • ID:{' '}
+                          <span className="font-mono">{s.id}</span>
+                        </div>
+                      </div>
+                      <div className="text-xs text-muted-foreground">{new Date(s.createdAt).toLocaleString()}</div>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </CardContent>
