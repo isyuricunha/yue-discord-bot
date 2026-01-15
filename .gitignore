@@ -43,3 +43,7 @@ Thumbs.db
 
 # Misc
 .turbo
+
+# Compose
+docker-compose.yaml
+docker-compose.yml
