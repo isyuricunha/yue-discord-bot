@@ -12,6 +12,14 @@ type mistral_sdk_client = {
 	agents: {
 		complete: (request: unknown) => Promise<unknown>;
 	};
+	beta?: {
+		conversations?: {
+			start: (request: unknown) => Promise<unknown>;
+		};
+	};
+	files?: {
+		download: (request: unknown) => Promise<ReadableStream<Uint8Array>>;
+	};
 };
 
 type mistral_completion_response = {
@@ -45,6 +53,11 @@ export type mistral_completion_input = {
 
 export type mistral_completion_result = {
 	content: string;
+	attachments?: Array<{
+		filename: string;
+		content_type: string;
+		data: Buffer;
+	}>;
 };
 
 export class MistralApiError extends Error {
@@ -169,6 +182,68 @@ function extract_text_content(input: unknown): string {
 	}
 
 	return "";
+}
+
+type conversation_output_entry = {
+	type?: string;
+	content?: unknown;
+};
+
+type tool_reference_chunk = {
+	type?: "tool_reference";
+	tool?: string;
+	title?: string;
+	url?: string | null;
+};
+
+type tool_file_chunk = {
+	type?: "tool_file";
+	tool?: string;
+	fileId?: string;
+	fileName?: string | null;
+	fileType?: string | null;
+};
+
+function is_tool_reference_chunk(
+	chunk: unknown
+): chunk is tool_reference_chunk {
+	if (!chunk || typeof chunk !== "object") return false;
+	const record = chunk as Record<string, unknown>;
+	return record.type === "tool_reference";
+}
+
+function is_tool_file_chunk(chunk: unknown): chunk is tool_file_chunk {
+	if (!chunk || typeof chunk !== "object") return false;
+	const record = chunk as Record<string, unknown>;
+	return record.type === "tool_file";
+}
+
+function build_sources_suffix(chunks: unknown): string {
+	if (!Array.isArray(chunks)) return "";
+
+	const sources = chunks
+		.filter(is_tool_reference_chunk)
+		.map((c) => ({ title: c.title ?? null, url: c.url ?? null }))
+		.filter((s) => typeof s.url === "string" && s.url.trim().length > 0);
+
+	const unique_urls = new Set<string>();
+	const lines: string[] = [];
+	for (const s of sources) {
+		const url = String(s.url);
+		if (unique_urls.has(url)) continue;
+		unique_urls.add(url);
+		lines.push(`- ${s.title ? String(s.title) : url} (${url})`);
+	}
+
+	if (lines.length === 0) return "";
+	return `\n\nFontes:\n${lines.join("\n")}`;
+}
+
+async function stream_to_buffer(
+	stream: ReadableStream<Uint8Array>
+): Promise<Buffer> {
+	const array_buffer = await new Response(stream).arrayBuffer();
+	return Buffer.from(array_buffer);
 }
 
 export class MistralClient {
@@ -313,22 +388,94 @@ export class MistralClient {
 					);
 				}
 
-				const res = (
-					agent_id
-						? await client.agents.complete({
-								agentId: agent_id,
-								messages,
-								maxTokens: this.max_tokens(),
-								responseFormat: { type: "text" },
-							})
-						: await client.chat.complete({
-								model: this.model(),
-								messages,
-								maxTokens: this.max_tokens(),
-								temperature: this.temperature(),
-								responseFormat: { type: "text" },
-							})
-				) as mistral_completion_response;
+				if (agent_id) {
+					if (!client.beta?.conversations?.start) {
+						throw new Error(
+							"Mistral SDK missing beta.conversations.start; cannot run agent tools"
+						);
+					}
+					if (!client.files?.download) {
+						throw new Error(
+							"Mistral SDK missing files.download; cannot retrieve tool-generated files"
+						);
+					}
+
+					const entries = messages.map((m) => ({
+						object: "entry",
+						type: "message.input",
+						role: m.role,
+						content: m.content,
+						prefix: false,
+					}));
+
+					const conversation = (await client.beta.conversations.start({
+						agentId: agent_id,
+						inputs: entries,
+						store: false,
+					})) as { outputs?: conversation_output_entry[] };
+
+					const outputs = Array.isArray(conversation.outputs)
+						? conversation.outputs
+						: [];
+
+					const last_output = [...outputs]
+						.reverse()
+						.find((o) => o && o.type === "message.output");
+
+					const raw_content = last_output?.content;
+					const content = extract_text_content(raw_content);
+					const suffix = build_sources_suffix(raw_content);
+					const merged = `${content}${suffix}`;
+					const trimmed = merged.trim();
+					if (!trimmed) {
+						throw new MistralApiError(
+							"Mistral API returned empty response",
+							502,
+							conversation,
+							null
+						);
+					}
+
+					const chunks = Array.isArray(raw_content) ? raw_content : [];
+					const file_chunks = chunks.filter(is_tool_file_chunk);
+					const attachments: mistral_completion_result["attachments"] = [];
+
+					for (const chunk of file_chunks) {
+						const file_id =
+							typeof chunk.fileId === "string" ? chunk.fileId : "";
+						if (!file_id) continue;
+
+						const file_type =
+							typeof chunk.fileType === "string" &&
+							chunk.fileType.trim().length > 0
+								? chunk.fileType.trim()
+								: "bin";
+
+						const filename =
+							typeof chunk.fileName === "string" &&
+							chunk.fileName.trim().length > 0
+								? chunk.fileName.trim()
+								: `mistral_file_${file_id}.${file_type}`;
+
+						const content_type =
+							file_type === "png" ? "image/png" : "application/octet-stream";
+						const stream = await client.files.download({ fileId: file_id });
+						const data = await stream_to_buffer(stream);
+						attachments.push({ filename, content_type, data });
+					}
+
+					return attachments && attachments.length > 0
+						? { content: trimmed, attachments }
+						: { content: trimmed };
+				}
+
+				const res = (await client.chat.complete({
+					model: this.model(),
+					messages,
+					maxTokens: this.max_tokens(),
+					temperature: this.temperature(),
+					responseFormat: { type: "text" },
+				})) as mistral_completion_response;
 
 				const content = extract_text_content(
 					res.choices?.[0]?.message?.content

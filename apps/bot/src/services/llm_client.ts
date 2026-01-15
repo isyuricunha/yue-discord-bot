@@ -30,6 +30,11 @@ export type llm_completion_input = groq_completion_input &
 export type llm_completion_result = {
 	content: string;
 	provider: llm_provider;
+	attachments?: Array<{
+		filename: string;
+		content_type: string;
+		data: Buffer;
+	}>;
 };
 
 function is_retryable_mistral_error(error: unknown): boolean {
@@ -95,7 +100,11 @@ export class LlmClient {
 					logger.info({ provider: "mistral" }, "LLM provider in use");
 				}
 
-				return { content: result.content, provider: "mistral" };
+				return {
+					content: result.content,
+					provider: "mistral",
+					attachments: result.attachments,
+				};
 			} catch (error: unknown) {
 				last_error = error;
 				const can_fallback =

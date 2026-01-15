@@ -82,7 +82,7 @@ test("mistral: falls back to next key on 429", async () => {
 });
 
 test("mistral: uses agent when configured for the chosen key, otherwise chat with system prompt", async () => {
-	const agent_calls: Array<{ key: string; messages: unknown }> = [];
+	const agent_calls: Array<{ key: string; inputs: unknown }> = [];
 	const chat_calls: Array<{ key: string; messages: unknown }> = [];
 
 	const clients = [
@@ -93,9 +93,21 @@ test("mistral: uses agent when configured for the chosen key, otherwise chat wit
 				},
 			},
 			agents: {
-				complete: async (req: any) => {
-					agent_calls.push({ key: "key-1", messages: req.messages });
-					throw create_mistral_429_error({ retry_after: 1 });
+				complete: async () => {
+					throw new Error("should not be called");
+				},
+			},
+			beta: {
+				conversations: {
+					start: async (req: any) => {
+						agent_calls.push({ key: "key-1", inputs: req.inputs });
+						throw create_mistral_429_error({ retry_after: 1 });
+					},
+				},
+			},
+			files: {
+				download: async () => {
+					throw new Error("should not be called");
 				},
 			},
 		},
@@ -110,6 +122,18 @@ test("mistral: uses agent when configured for the chosen key, otherwise chat wit
 			},
 			agents: {
 				complete: async () => {
+					throw new Error("should not be called");
+				},
+			},
+			beta: {
+				conversations: {
+					start: async () => {
+						throw new Error("should not be called");
+					},
+				},
+			},
+			files: {
+				download: async () => {
 					throw new Error("should not be called");
 				},
 			},
@@ -141,6 +165,80 @@ test("mistral: uses agent when configured for the chosen key, otherwise chat wit
 	}>;
 	assert.equal(chat_messages[0]?.role, "system");
 	assert.equal(chat_messages[0]?.content, "SYSTEM_PROMPT");
+});
+
+test("mistral: agent tool outputs include citations and downloaded files", async () => {
+	const png_bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+	const make_stream = (buf: Buffer): ReadableStream<Uint8Array> =>
+		new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(new Uint8Array(buf));
+				controller.close();
+			},
+		});
+
+	const client = create_mistral_client_for_tests({
+		keys: [{ api_key: "key-1", agent_id: "agent-1" }],
+		clients: [
+			{
+				chat: {
+					complete: async () => {
+						throw new Error("should not be called");
+					},
+				},
+				agents: {
+					complete: async () => {
+						throw new Error("should not be called");
+					},
+				},
+				beta: {
+					conversations: {
+						start: async () => {
+							return {
+								outputs: [
+									{
+										type: "message.output",
+										content: [
+											{ type: "text", text: "Aqui está." },
+											{
+												type: "tool_reference",
+												tool: "web_search",
+												title: "Example",
+												url: "https://example.com",
+											},
+											{
+												type: "tool_file",
+												tool: "image_generation",
+												fileId: "file-1",
+												fileName: "image.png",
+												fileType: "png",
+											},
+										],
+									},
+								],
+							};
+						},
+					},
+				},
+				files: {
+					download: async (req: any) => {
+						assert.equal(req.fileId, "file-1");
+						return make_stream(png_bytes);
+					},
+				},
+			},
+		],
+		now_ms: () => 0,
+		system_prompt: async () => "SYSTEM_PROMPT",
+	});
+
+	const result = await client.create_completion({ user_prompt: "gere" });
+	assert.ok(result.content.includes("Aqui está."));
+	assert.ok(result.content.includes("Fontes:"));
+	assert.ok(result.content.includes("https://example.com"));
+	assert.equal(result.attachments?.length ?? 0, 1);
+	assert.equal(result.attachments?.[0]?.filename, "image.png");
+	assert.deepEqual(result.attachments?.[0]?.data, png_bytes);
 });
 
 test("mistral: throws aggregated 429 when all keys are cooling down", async () => {

@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from "discord.js";
+import { SlashCommandBuilder, AttachmentBuilder } from "discord.js";
 import type { ChatInputCommandInteraction } from "discord.js";
 
 import { EMOJIS } from "@yuebot/shared";
@@ -52,10 +52,17 @@ export const askCommand: Command = {
 				user_prompt: question,
 			});
 
+			const files = (completion.attachments ?? []).map(
+				(att) =>
+					new AttachmentBuilder(att.data, {
+						name: att.filename,
+					})
+			);
+
 			const parts = split_discord_message(completion.content);
 			const first = parts[0] ?? "";
 
-			await interaction.editReply({ content: first });
+			await interaction.editReply({ content: first, files });
 			if (parts.length > 1) {
 				for (const extra of parts.slice(1)) {
 					await interaction.followUp({ content: extra });

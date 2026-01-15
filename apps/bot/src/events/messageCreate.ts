@@ -1,4 +1,12 @@
-import type { Message } from "discord.js";
+import {
+	AttachmentBuilder,
+	Client,
+	Events,
+	Message,
+	PermissionFlagsBits,
+	TextChannel,
+	ThreadChannel,
+} from "discord.js";
 import { autoModService } from "../services/automod.service";
 import { autoroleService } from "../services/autorole.service";
 import { suggestionService } from "../services/suggestion.service";
@@ -177,6 +185,10 @@ Question: ${user_prompt}`
 						user_prompt: final_user_prompt,
 						history,
 					});
+
+					const files = (completion.attachments ?? []).map(
+						(att) => new AttachmentBuilder(att.data, { name: att.filename })
+					);
 					const parts = split_discord_message(completion.content);
 					const first = parts[0] ?? "";
 
@@ -191,6 +203,7 @@ Question: ${user_prompt}`
 
 					await message.reply({
 						content: first,
+						files,
 						allowedMentions: { parse: [], repliedUser: false },
 					});
 
