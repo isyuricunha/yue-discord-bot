@@ -20,6 +20,8 @@ import {
 	type mistral_completion_result,
 } from "./mistral.service";
 
+import { logger } from "../utils/logger";
+
 export type llm_provider = "mistral" | "groq";
 
 export type llm_completion_input = groq_completion_input &
@@ -67,6 +69,8 @@ function is_retryable_groq_error(error: unknown): boolean {
 }
 
 export class LlmClient {
+	private did_log_first_success_provider = false;
+
 	constructor(
 		private readonly mistral: MistralClient | null,
 		private readonly groq: GroqClient | null
@@ -85,11 +89,31 @@ export class LlmClient {
 			try {
 				const result: mistral_completion_result =
 					await this.mistral.create_completion(input);
+
+				if (!this.did_log_first_success_provider) {
+					this.did_log_first_success_provider = true;
+					logger.info({ provider: "mistral" }, "LLM provider in use");
+				}
+
 				return { content: result.content, provider: "mistral" };
 			} catch (error: unknown) {
 				last_error = error;
 				const can_fallback =
 					this.groq !== null && is_retryable_mistral_error(error);
+
+				if (can_fallback) {
+					const status =
+						error instanceof MistralApiError
+							? error.status
+							: error instanceof MistralError
+								? error.statusCode
+								: null;
+					logger.warn(
+						{ fallback: { from: "mistral", to: "groq", status } },
+						"LLM fallback triggered"
+					);
+				}
+
 				if (!can_fallback) throw error;
 			}
 		}
@@ -98,6 +122,12 @@ export class LlmClient {
 			try {
 				const result: groq_completion_result =
 					await this.groq.create_completion(input);
+
+				if (!this.did_log_first_success_provider) {
+					this.did_log_first_success_provider = true;
+					logger.info({ provider: "groq" }, "LLM provider in use");
+				}
+
 				return { content: result.content, provider: "groq" };
 			} catch (error: unknown) {
 				last_error = error;
