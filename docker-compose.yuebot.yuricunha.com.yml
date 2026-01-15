@@ -1,0 +1,81 @@
+x-app-urls:
+  base_url: https://yuebot.yuricunha.com
+  api_url: https://yuebot.yuricunha.com/api
+  discord_redirect_uri: https://yuebot.yuricunha.com/auth/callback
+
+services:
+  yuebot:
+    image: isyuricunha/yue-discord-bot:latest
+    container_name: yuebot
+    restart: unless-stopped
+    ports:
+      - "50285:80"
+      - "50286:3000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      NODE_ENV: production
+      LOG_LEVEL: info
+
+      ENABLE_BOT: "true"
+
+      API_HOST: "0.0.0.0"
+      API_PORT: "3000"
+      TRUST_PROXY: "1"
+      API_BODY_LIMIT: "10485760"
+
+      DATABASE_URL: postgresql://postgres.xd:xd@aws-0-us-west-2.pooler.supabase.com:5432/postgres
+
+      DISCORD_TOKEN: xd.xd.xd
+      DISCORD_BOT_TOKEN: xd.xd.xd
+      DISCORD_CLIENT_ID: xd
+      DISCORD_CLIENT_SECRET: xd
+      DISCORD_REDIRECT_URI: https://yuebot.yuricunha.com/api/auth/callback
+
+      JWT_SECRET: xd
+      JWT_EXPIRES_IN: 7d
+
+      INTERNAL_API_SECRET: xd
+      BOT_INTERNAL_HOST: 127.0.0.1
+      BOT_INTERNAL_PORT: "3100"
+      INTERNAL_API_CACHE_TTL_MS: "20000"
+      INTERNAL_API_CACHE_MAX_ENTRIES: "500"
+
+      WEB_URL: https://yuebot.yuricunha.com
+      FRONTEND_URL: https://yuebot.yuricunha.com
+      API_URL: https://yuebot.yuricunha.com/api
+
+      VITE_API_URL: ""
+      VITE_DISCORD_CLIENT_ID: xd
+
+      CORS_ORIGINS: https://yuebot.yuricunha.com
+
+      COOKIE_SAMESITE: lax
+      COOKIE_SECURE: "true"
+      COOKIE_DOMAIN: ""
+
+      REDIS_URL: redis://host.docker.internal:49367
+      REDIS_PASSWORD: xd
+
+      SENTRY_DSN: xd
+
+      BADGE_ADMIN_USER_IDS: xd
+      FAN_ART_REVIEWER_USER_IDS: xd
+      OWNER_USER_IDS: xd
+      GLOBAL_XP_RESET_USER_IDS: xd
+
+      GROQ_API_KEY: xd
+      GROQ_API_KEY_FALLBACK_1: xd
+      GROQ_API_KEY_FALLBACK_2: xd
+      GROQ_PROMPT_PATH: /app/prompts/groq_system_prompt.txt
+      GROQ_MODEL: openai/gpt-oss-120b
+      GROQ_TEMPERATURE: "0.7"
+      GROQ_MAX_TOKENS: "512"
+      GROQ_CONTEXT_TTL_SECONDS: "1800"
+      GROQ_CONTEXT_CONTINUATION_SECONDS: "0"
+      GROQ_CONTEXT_MAX_MESSAGES: "12"
+      GROQ_CONTEXT_MAX_MESSAGE_CHARS: "700"
+      GROQ_CONTEXT_REDIS_PREFIX: yue:groq:context*
+
+    volumes:
+      - ./groq_system_prompt.txt:/app/prompts/groq_system_prompt.txt:ro
