@@ -1,4 +1,5 @@
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 import { Mistral } from "@mistralai/mistralai";
 import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
@@ -194,6 +195,7 @@ type tool_reference_chunk = {
 	tool?: string;
 	title?: string;
 	url?: string | null;
+	description?: string | null;
 };
 
 type tool_file_chunk = {
@@ -202,6 +204,13 @@ type tool_file_chunk = {
 	fileId?: string;
 	fileName?: string | null;
 	fileType?: string | null;
+};
+
+type tool_execution_entry = {
+	type?: "tool.execution";
+	name?: string;
+	arguments?: string;
+	info?: unknown;
 };
 
 function is_tool_reference_chunk(
@@ -218,12 +227,161 @@ function is_tool_file_chunk(chunk: unknown): chunk is tool_file_chunk {
 	return record.type === "tool_file";
 }
 
+function is_tool_execution_entry(
+	entry: unknown
+): entry is tool_execution_entry {
+	if (!entry || typeof entry !== "object") return false;
+	const record = entry as Record<string, unknown>;
+	return record.type === "tool.execution";
+}
+
+function truncate_single_line(input: string, max_len: number): string {
+	const line = input.replace(/\s+/g, " ").trim();
+	if (line.length <= max_len) return line;
+	return `${line.slice(0, Math.max(0, max_len - 1))}…`;
+}
+
+function build_search_results_suffix(
+	outputs: unknown,
+	response_text: string
+): string {
+	if (!Array.isArray(outputs)) return "";
+
+	const executions = outputs.filter(is_tool_execution_entry).filter((e) => {
+		const name = typeof e.name === "string" ? e.name : "";
+		return name === "web_search" || name === "web_search_premium";
+	});
+
+	const results: Array<{ title: string; url: string; snippet: string }> = [];
+	for (const exec of executions) {
+		const info = exec.info;
+		if (!info || typeof info !== "object") continue;
+		const record = info as Record<string, unknown>;
+		const raw_results = record.results;
+		if (!Array.isArray(raw_results)) continue;
+
+		for (const r of raw_results) {
+			if (!r || typeof r !== "object") continue;
+			const rr = r as Record<string, unknown>;
+			const url = typeof rr.url === "string" ? rr.url.trim() : "";
+			if (!url) continue;
+			const title = typeof rr.title === "string" ? rr.title.trim() : url;
+			const snippet =
+				typeof rr.snippet === "string"
+					? rr.snippet
+					: typeof rr.description === "string"
+						? rr.description
+						: typeof rr.content === "string"
+							? rr.content
+							: "";
+			results.push({ title, url, snippet });
+		}
+	}
+
+	if (results.length === 0) return "";
+
+	const unique_urls = new Set<string>();
+	const lines: string[] = [];
+	for (const r of results) {
+		if (unique_urls.has(r.url)) continue;
+		unique_urls.add(r.url);
+		const snippet = r.snippet
+			? `: ${truncate_single_line(r.snippet, 180)}`
+			: "";
+		lines.push(`- ${r.title}${snippet} (${r.url})`);
+		if (lines.length >= 3) break;
+	}
+
+	if (lines.length === 0) return "";
+
+	// Avoid duplicating if the assistant already included the urls.
+	const already_mentions_any = [...unique_urls].some((u) =>
+		response_text.includes(u)
+	);
+	if (already_mentions_any) return "";
+
+	return `\n\nResultados da busca:\n${lines.join("\n")}`;
+}
+
+function detect_file_from_magic(
+	data: Buffer
+): { ext: string; content_type: string } | null {
+	if (data.length >= 4) {
+		const png_prefix = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+		if (data.subarray(0, 4).equals(png_prefix)) {
+			return { ext: "png", content_type: "image/png" };
+		}
+	}
+	if (data.length >= 3) {
+		if (data[0] === 0xff && data[1] === 0xd8 && data[2] === 0xff) {
+			return { ext: "jpg", content_type: "image/jpeg" };
+		}
+	}
+	if (data.length >= 4) {
+		const header = data.subarray(0, 4).toString("ascii");
+		if (header === "GIF8") return { ext: "gif", content_type: "image/gif" };
+		if (header === "%PDF")
+			return { ext: "pdf", content_type: "application/pdf" };
+		if (header === "RIFF" && data.length >= 12) {
+			const tag = data.subarray(8, 12).toString("ascii");
+			if (tag === "WEBP") return { ext: "webp", content_type: "image/webp" };
+		}
+	}
+
+	return null;
+}
+
+function normalize_ext(input: string): string {
+	const trimmed = input.trim().toLowerCase();
+	const no_dot = trimmed.startsWith(".") ? trimmed.slice(1) : trimmed;
+	return no_dot;
+}
+
+function infer_file_meta(input: {
+	file_id: string;
+	file_name: string | null;
+	file_type: string | null;
+	data: Buffer;
+}): { filename: string; content_type: string } {
+	const type = input.file_type ? normalize_ext(input.file_type) : "";
+	const raw_name =
+		typeof input.file_name === "string" ? input.file_name.trim() : "";
+	const name = raw_name.length > 0 ? raw_name : `mistral_file_${input.file_id}`;
+	const current_ext = normalize_ext(path.extname(name));
+
+	const by_type: Record<string, string> = {
+		png: "image/png",
+		jpg: "image/jpeg",
+		jpeg: "image/jpeg",
+		gif: "image/gif",
+		webp: "image/webp",
+		pdf: "application/pdf",
+	};
+
+	const ext_from_type = type && type in by_type ? type : "";
+	const ext_from_name =
+		current_ext && current_ext.length > 0 ? current_ext : "";
+	const magic = detect_file_from_magic(input.data);
+	const ext = ext_from_type || ext_from_name || magic?.ext || "bin";
+	const content_type =
+		(ext in by_type ? by_type[ext] : null) ??
+		magic?.content_type ??
+		"application/octet-stream";
+
+	const final_name = ext_from_name ? name : `${name}.${ext}`;
+	return { filename: final_name, content_type };
+}
+
 function build_sources_suffix(chunks: unknown): string {
 	if (!Array.isArray(chunks)) return "";
 
 	const sources = chunks
 		.filter(is_tool_reference_chunk)
-		.map((c) => ({ title: c.title ?? null, url: c.url ?? null }))
+		.map((c) => ({
+			title: c.title ?? null,
+			url: c.url ?? null,
+			description: c.description ?? null,
+		}))
 		.filter((s) => typeof s.url === "string" && s.url.trim().length > 0);
 
 	const unique_urls = new Set<string>();
@@ -232,7 +390,12 @@ function build_sources_suffix(chunks: unknown): string {
 		const url = String(s.url);
 		if (unique_urls.has(url)) continue;
 		unique_urls.add(url);
-		lines.push(`- ${s.title ? String(s.title) : url} (${url})`);
+		const title = s.title ? String(s.title) : url;
+		const desc =
+			typeof s.description === "string" && s.description.trim().length > 0
+				? `: ${truncate_single_line(s.description, 140)}`
+				: "";
+		lines.push(`- ${title}${desc} (${url})`);
 	}
 
 	if (lines.length === 0) return "";
@@ -425,7 +588,8 @@ export class MistralClient {
 					const raw_content = last_output?.content;
 					const content = extract_text_content(raw_content);
 					const suffix = build_sources_suffix(raw_content);
-					const merged = `${content}${suffix}`;
+					const results_suffix = build_search_results_suffix(outputs, content);
+					const merged = `${content}${results_suffix}${suffix}`;
 					const trimmed = merged.trim();
 					if (!trimmed) {
 						throw new MistralApiError(
@@ -445,23 +609,21 @@ export class MistralClient {
 							typeof chunk.fileId === "string" ? chunk.fileId : "";
 						if (!file_id) continue;
 
-						const file_type =
-							typeof chunk.fileType === "string" &&
-							chunk.fileType.trim().length > 0
-								? chunk.fileType.trim()
-								: "bin";
-
-						const filename =
-							typeof chunk.fileName === "string" &&
-							chunk.fileName.trim().length > 0
-								? chunk.fileName.trim()
-								: `mistral_file_${file_id}.${file_type}`;
-
-						const content_type =
-							file_type === "png" ? "image/png" : "application/octet-stream";
 						const stream = await client.files.download({ fileId: file_id });
 						const data = await stream_to_buffer(stream);
-						attachments.push({ filename, content_type, data });
+						const meta = infer_file_meta({
+							file_id,
+							file_name:
+								typeof chunk.fileName === "string" ? chunk.fileName : null,
+							file_type:
+								typeof chunk.fileType === "string" ? chunk.fileType : null,
+							data,
+						});
+						attachments.push({
+							filename: meta.filename,
+							content_type: meta.content_type,
+							data,
+						});
 					}
 
 					return attachments && attachments.length > 0

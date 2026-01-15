@@ -197,6 +197,20 @@ test("mistral: agent tool outputs include citations and downloaded files", async
 							return {
 								outputs: [
 									{
+										type: "tool.execution",
+										name: "web_search",
+										arguments: '{"query":"usd brl hoje"}',
+										info: {
+											results: [
+												{
+													title: "Cotação do dólar hoje",
+													url: "https://example.com/usd",
+													snippet: "O dólar comercial está em R$ 5,00.",
+												},
+											],
+										},
+									},
+									{
 										type: "message.output",
 										content: [
 											{ type: "text", text: "Aqui está." },
@@ -210,8 +224,8 @@ test("mistral: agent tool outputs include citations and downloaded files", async
 												type: "tool_file",
 												tool: "image_generation",
 												fileId: "file-1",
-												fileName: "image.png",
-												fileType: "png",
+												fileName: null,
+												fileType: null,
 											},
 										],
 									},
@@ -234,10 +248,13 @@ test("mistral: agent tool outputs include citations and downloaded files", async
 
 	const result = await client.create_completion({ user_prompt: "gere" });
 	assert.ok(result.content.includes("Aqui está."));
+	assert.ok(result.content.includes("Resultados da busca:"));
+	assert.ok(result.content.includes("https://example.com/usd"));
 	assert.ok(result.content.includes("Fontes:"));
 	assert.ok(result.content.includes("https://example.com"));
 	assert.equal(result.attachments?.length ?? 0, 1);
-	assert.equal(result.attachments?.[0]?.filename, "image.png");
+	assert.ok(typeof result.attachments?.[0]?.filename === "string");
+	assert.ok(result.attachments?.[0]?.filename.endsWith(".png"));
 	assert.deepEqual(result.attachments?.[0]?.data, png_bytes);
 });
 
