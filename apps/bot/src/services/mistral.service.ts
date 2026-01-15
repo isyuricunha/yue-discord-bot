@@ -3,6 +3,8 @@ import { readFile } from "node:fs/promises";
 import { Mistral } from "@mistralai/mistralai";
 import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
 
+import { logger } from "../utils/logger";
+
 type mistral_sdk_client = {
 	chat: {
 		complete: (request: unknown) => Promise<unknown>;
@@ -287,6 +289,8 @@ export class MistralClient {
 			const client = this.clients[key_index]!;
 			const agent_id = this.keys[key_index]!.agent_id;
 
+			const llm_debug_enabled = process.env.LLM_DEBUG === "1";
+
 			try {
 				const messages: mistral_message[] = agent_id
 					? [...history, { role: "user", content: input.user_prompt }]
@@ -295,6 +299,19 @@ export class MistralClient {
 							...history,
 							{ role: "user", content: input.user_prompt },
 						];
+
+				if (llm_debug_enabled) {
+					logger.debug(
+						{
+							llm: {
+								provider: "mistral",
+								mode: agent_id ? "agent" : "chat",
+								model: agent_id ? null : this.model(),
+							},
+						},
+						"LLM request dispatched"
+					);
+				}
 
 				const res = (
 					agent_id
