@@ -472,17 +472,23 @@ export default function CreateGiveawayPage() {
                   <div>
                     <div className="text-sm font-medium">Itens adicionados ({items.length})</div>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
-                      {items.map((item, index) => (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/50 px-4 py-3"
-                        >
-                          <span className="min-w-0 truncate text-sm text-foreground">{index + 1}. {item}</span>
-                          <Button variant="ghost" size="sm" onClick={() => removeItem(index)} aria-label="Remover item">
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      ))}
+                      {items
+                        .slice() // Create a copy to avoid mutating original array
+                        .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase(), 'pt-BR'))
+                        .map((item, sortedIndex) => {
+                          const originalIndex = items.findIndex(i => i === item)
+                          return (
+                            <div
+                              key={sortedIndex}
+                              className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/50 px-4 py-3"
+                            >
+                              <span className="min-w-0 truncate text-sm text-foreground">{sortedIndex + 1}. {item}</span>
+                              <Button variant="ghost" size="sm" onClick={() => removeItem(originalIndex)} aria-label="Remover item">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          )
+                        })}
                     </div>
                   </div>
                 )}

@@ -79,7 +79,10 @@ export function normalize_giveaway_items_list(items: string[]): string[] {
     normalized_items.push(cleaned)
   }
 
-  return normalized_items
+  // Ordenar itens alfabéticamente (case-insensitive)
+  return normalized_items.sort((a, b) => 
+    a.toLowerCase().localeCompare(b.toLowerCase(), 'pt-BR')
+  )
 }
 
 export function match_giveaway_choices(params: {

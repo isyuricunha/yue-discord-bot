@@ -377,12 +377,15 @@ export default function GiveawayDetailsPage() {
                   {show_items && (
                     <div className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-border/70 bg-surface/60 p-3">
                       <ol className="space-y-1 text-sm text-muted-foreground">
-                        {giveaway.availableItems.map((item, idx) => (
-                          <li key={`${idx}-${item}`} className="flex items-start gap-2">
-                            <span className="text-accent">{idx + 1}.</span>
-                            <span className="text-foreground">{item}</span>
-                          </li>
-                        ))}
+                        {giveaway.availableItems
+                          .slice() // Create a copy to avoid mutating original array
+                          .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase(), 'pt-BR'))
+                          .map((item, idx) => (
+                            <li key={`${idx}-${item}`} className="flex items-start gap-2">
+                              <span className="text-accent">{idx + 1}.</span>
+                              <span className="text-foreground">{item}</span>
+                            </li>
+                          ))}
                       </ol>
                     </div>
                   )}
