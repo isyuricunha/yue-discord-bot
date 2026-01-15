@@ -258,6 +258,62 @@ test("mistral: agent tool outputs include citations and downloaded files", async
 	assert.deepEqual(result.attachments?.[0]?.data, png_bytes);
 });
 
+test("mistral: does not duplicate Fontes section when assistant already includes it", async () => {
+	const client = create_mistral_client_for_tests({
+		keys: [{ api_key: "key-1", agent_id: "agent-1" }],
+		clients: [
+			{
+				chat: {
+					complete: async () => {
+						throw new Error("should not be called");
+					},
+				},
+				agents: {
+					complete: async () => {
+						throw new Error("should not be called");
+					},
+				},
+				beta: {
+					conversations: {
+						start: async () => {
+							return {
+								outputs: [
+									{
+										type: "message.output",
+										content: [
+											{
+												type: "text",
+												text: "Resposta\n\nFontes:\n- https://example.com",
+											},
+											{
+												type: "tool_reference",
+												tool: "web_search",
+												title: "Example",
+												url: "https://example.com",
+											},
+										],
+									},
+								],
+							};
+						},
+					},
+				},
+				files: {
+					download: async () => {
+						throw new Error("should not be called");
+					},
+				},
+			},
+		],
+		now_ms: () => 0,
+		system_prompt: async () => "SYSTEM_PROMPT",
+	});
+
+	const result = await client.create_completion({ user_prompt: "hi" });
+	assert.ok(result.content.includes("Fontes:"));
+	assert.equal(result.content.match(/\bFontes:/g)?.length ?? 0, 1);
+});
+
 test("mistral: throws aggregated 429 when all keys are cooling down", async () => {
 	const now = { value: 0 };
 

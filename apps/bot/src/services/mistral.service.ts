@@ -461,6 +461,12 @@ function build_sources_suffix(chunks: unknown): string {
 	return `\n\nFontes:\n${lines.join("\n")}`;
 }
 
+function assistant_already_has_sources_section(text: string): boolean {
+	const trimmed = text.trim();
+	if (!trimmed) return false;
+	return /(^|\n)\s*(?:fontes|sources)\s*:/i.test(trimmed);
+}
+
 async function stream_to_buffer(
 	stream: ReadableStream<Uint8Array>
 ): Promise<Buffer> {
@@ -656,7 +662,9 @@ export class MistralClient {
 
 					const raw_content = last_output?.content;
 					const content = extract_text_content(raw_content);
-					const suffix = build_sources_suffix(raw_content);
+					const suffix = assistant_already_has_sources_section(content)
+						? ""
+						: build_sources_suffix(raw_content);
 					const results_suffix = build_search_results_suffix(outputs, content);
 					const merged = `${content}${results_suffix}${suffix}`;
 					const trimmed = merged.trim();
