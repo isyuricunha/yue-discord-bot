@@ -198,10 +198,9 @@ export class GiveawayScheduler {
         return
       }
 
-      // Selecionar vencedores
+      // Selecionar vencedores considerando chances por cargo
       const winnerCount = Math.min(giveaway.maxWinners, eligibleEntries.length)
-      const shuffled = eligibleEntries.sort(() => Math.random() - 0.5)
-      const selectedWinners = shuffled.slice(0, winnerCount)
+      const selectedWinners = await this.selectWinnersWithRoleChances(giveaway, eligibleEntries, winnerCount)
 
       // Se for sorteio com lista, distribuir prêmios baseado em preferências
       let winnersData: any[] = []
@@ -286,6 +285,65 @@ export class GiveawayScheduler {
     }
 
     return results
+  }
+
+  private async selectWinnersWithRoleChances(giveaway: any, eligibleEntries: any[], winnerCount: number): Promise<any[]> {
+    // Se não houver configuração de chances por cargo, usar método tradicional
+    if (!giveaway.roleChances || !Array.isArray(giveaway.roleChances) || giveaway.roleChances.length === 0) {
+      const shuffled = eligibleEntries.sort(() => Math.random() - 0.5)
+      return shuffled.slice(0, winnerCount)
+    }
+
+    // Criar pool de entradas considerando multiplicadores de cargo
+    const entryPool: any[] = []
+    
+    for (const entry of eligibleEntries) {
+      // Buscar membro para verificar cargos
+      const guild = await this.client.guilds.fetch(giveaway.guildId).catch(() => null)
+      if (!guild) continue
+      
+      const member = await guild.members.fetch(entry.userId).catch(() => null)
+      if (!member) continue
+      
+      // Calcular multiplicador baseado nos cargos do usuário
+      let multiplier = 1
+      
+      if (Array.isArray(giveaway.roleChances)) {
+        for (const roleChance of giveaway.roleChances) {
+          if (member.roles.cache.has(roleChance.roleId)) {
+            multiplier = Math.max(multiplier, roleChance.multiplier || 1)
+          }
+        }
+      }
+      
+      // Adicionar entrada ao pool múltiplas vezes (baseado no multiplicador)
+      for (let i = 0; i < multiplier; i++) {
+        entryPool.push(entry)
+      }
+    }
+    
+    // Se o pool estiver vazio, voltar ao método tradicional
+    if (entryPool.length === 0) {
+      const shuffled = eligibleEntries.sort(() => Math.random() - 0.5)
+      return shuffled.slice(0, winnerCount)
+    }
+    
+    // Embaralhar o pool e selecionar vencedores
+    const shuffledPool = entryPool.sort(() => Math.random() - 0.5)
+    
+    // Remover duplicatas (um usuário pode ganhar apenas uma vez)
+    const uniqueWinners: any[] = []
+    const winnerUserIds = new Set()
+    
+    for (const entry of shuffledPool) {
+      if (winnerUserIds.size >= winnerCount) break
+      if (!winnerUserIds.has(entry.userId)) {
+        uniqueWinners.push(entry)
+        winnerUserIds.add(entry.userId)
+      }
+    }
+    
+    return uniqueWinners
   }
 
   private async notifyWinners(giveaway: any, winners: any[]) {

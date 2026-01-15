@@ -225,6 +225,7 @@ model Giveaway {
   requiredRoleIds Json?
   emojiId        String? @default("🎉")
   maxWinners     Int
+  roleChances    Json?   // [{roleId: string, multiplier: number}]
   
   // Formato de participação
   format         String @default("reaction") // reaction | list

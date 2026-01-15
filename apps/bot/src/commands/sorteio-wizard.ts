@@ -30,10 +30,12 @@ interface WizardState {
   duration?: string
   channelId?: string
   requiredRoleId?: string
+  requiredRoleIds?: string[]
   format?: 'reaction' | 'list'
   items?: string[]
   minChoices?: number
   maxChoices?: number
+  roleChances?: {roleId: string, multiplier: number}[]
 }
 
 const wizardSessions = new Map<string, WizardState>()
@@ -322,17 +324,18 @@ export async function handleChannelSelection(interaction: any) {
   state.channelId = interaction.values[0]
   state.step = 4
   
-  // Perguntar sobre cargo obrigatório
+  // Perguntar sobre cargos obrigatórios
   const embed = new EmbedBuilder()
-    .setTitle('🧙‍♂️ Cargo Obrigatório (Opcional)')
-    .setDescription('Deseja exigir um cargo específico para participar?')
+    .setTitle('🧙‍♂️ Cargos Obrigatórios (Opcional)')
+    .setDescription('Deseja exigir cargos específicos para participar?')
     .setColor(0x9333EA)
   
   const roleRow = new ActionRowBuilder<RoleSelectMenuBuilder>()
     .addComponents(
       new RoleSelectMenuBuilder()
         .setCustomId(`wizard_role_${userId}`)
-        .setPlaceholder('Selecione um cargo (opcional)')
+        .setPlaceholder('Selecione um ou mais cargos (opcional)')
+        .setMaxValues(25) // Permitir múltiplos cargos
     )
   
   const buttonRow = new ActionRowBuilder<ButtonBuilder>()
@@ -360,7 +363,14 @@ export async function handleFinish(interaction: any, skipRole: boolean = false) 
   }
   
   if (!skipRole && interaction.values) {
-    state.requiredRoleId = interaction.values[0]
+    state.requiredRoleIds = interaction.values
+  }
+  
+  // Se cargos foram selecionados, perguntar sobre chances por cargo
+  if (state.requiredRoleIds && state.requiredRoleIds.length > 0) {
+    state.step = 5
+    await showRoleChancesConfiguration(interaction, state)
+    return
   }
   
   await interaction.deferUpdate()
@@ -476,6 +486,289 @@ export async function handleFinish(interaction: any, skipRole: boolean = false) 
           messageId: message.id,
           creatorId: userId,
           requiredRoleId: state.requiredRoleId,
+          maxWinners: state.winners!,
+          format: 'list',
+          availableItems: state.items,
+          minChoices: state.minChoices,
+          maxChoices: state.maxChoices,
+          endsAt,
+        },
+      })
+    }
+    
+    const successEmbed = new EmbedBuilder()
+      .setTitle('✅ Sorteio Criado com Sucesso!')
+      .setDescription(`O sorteio foi criado em <#${state.channelId}>`)
+      .setColor(0x10B981)
+    
+    await interaction.editReply({ embeds: [successEmbed], components: [] })
+    wizardSessions.delete(userId)
+  } catch (error: any) {
+    await interaction.editReply({ 
+      content: `❌ Erro ao criar sorteio: ${error.message}`, 
+      components: [] 
+    })
+    wizardSessions.delete(userId)
+  }
+}
+
+async function showRoleChancesConfiguration(interaction: any, state: WizardState) {
+  const embed = new EmbedBuilder()
+    .setTitle('🎲 Chances por Cargo (Opcional)')
+    .setDescription(
+      'Configure quantas chances cada cargo tem de ganhar.\n' +
+      'Exemplo: Cargo "Apoiador" com 10x chances = 10 entradas no sorteio.\n' +
+      'Deixe em branco para usar 1x (chance normal).'
+    )
+    .setColor(0x9333EA)
+  
+  // Adicionar campos para cada cargo selecionado
+  const fields = state.requiredRoleIds!.map(roleId => ({
+    name: `<@&${roleId}>`, 
+    value: `Multiplicador: 1x (padrão)`,
+    inline: true
+  }))
+  
+  embed.addFields(fields)
+  
+  const buttonRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId(`wizard_skip_chances_${interaction.user.id}`)
+        .setLabel('⏭️ Pular (usar chances iguais)')
+        .setStyle(ButtonStyle.Secondary),
+      new ButtonBuilder()
+        .setCustomId(`wizard_configure_chances_${interaction.user.id}`)
+        .setLabel('⚙️ Configurar Chances')
+        .setStyle(ButtonStyle.Primary),
+      new ButtonBuilder()
+        .setCustomId(`wizard_cancel_${interaction.user.id}`)
+        .setLabel('❌ Cancelar')
+        .setStyle(ButtonStyle.Danger)
+    )
+  
+  await interaction.update({ embeds: [embed], components: [buttonRow] })
+}
+
+// Handler para configurar chances por cargo
+export async function handleConfigureChances(interaction: any) {
+  const userId = interaction.user.id
+  const state = wizardSessions.get(userId)
+  
+  if (!state || !state.requiredRoleIds) {
+    return interaction.reply({ content: '❌ Sessão expirada.', ephemeral: true })
+  }
+  
+  // Criar modal para configurar chances
+  const modal = new ModalBuilder()
+    .setCustomId(`wizard_chances_${userId}`)
+    .setTitle('Configurar Chances por Cargo')
+  
+  // Adicionar campo para cada cargo
+  const rows: ActionRowBuilder<TextInputBuilder>[] = []
+  
+  for (const roleId of state.requiredRoleIds) {
+    const roleInput = new TextInputBuilder()
+      .setCustomId(`chance_${roleId}`)
+      .setLabel(`<@&${roleId}> Multiplicador`)
+      .setStyle(TextInputStyle.Short)
+      .setPlaceholder('1 (padrão), 2, 5, 10, etc.')
+      .setRequired(false)
+      .setMinLength(1)
+      .setMaxLength(3)
+    
+    rows.push(new ActionRowBuilder<TextInputBuilder>().addComponents(roleInput))
+  }
+  
+  // Adicionar todos os campos ao modal
+  for (const row of rows) {
+    modal.addComponents(row)
+  }
+  
+  await interaction.showModal(modal)
+}
+
+// Handler para salvar configuração de chances
+export async function handleSaveChances(interaction: any) {
+  const userId = interaction.user.id
+  const state = wizardSessions.get(userId)
+  
+  if (!state || !state.requiredRoleIds) {
+    return interaction.reply({ content: '❌ Sessão expirada.', ephemeral: true })
+  }
+  
+  // Processar os valores de chances
+  const roleChances: {roleId: string, multiplier: number}[] = []
+  
+  for (const roleId of state.requiredRoleIds) {
+    const inputValue = interaction.fields.getTextInputValue(`chance_${roleId}`)
+    let multiplier = 1 // Valor padrão
+    
+    if (inputValue) {
+      const parsed = parseInt(inputValue)
+      if (!isNaN(parsed) && parsed > 0) {
+        multiplier = parsed
+      }
+    }
+    
+    roleChances.push({ roleId, multiplier })
+  }
+  
+  state.roleChances = roleChances
+  
+  // Mostrar resumo das chances configuradas
+  const embed = new EmbedBuilder()
+    .setTitle('✅ Chances Configuradas')
+    .setDescription('Configuração de chances por cargo:')
+    .setColor(0x10B981)
+  
+  const fields = roleChances.map(chance => ({
+    name: `<@&${chance.roleId}>`,
+    value: `Multiplicador: ${chance.multiplier}x`,
+    inline: true
+  }))
+  
+  embed.addFields(fields)
+  
+  const buttonRow = new ActionRowBuilder<ButtonBuilder>()
+    .addComponents(
+      new ButtonBuilder()
+        .setCustomId(`wizard_continue_${userId}`)
+        .setLabel('✅ Continuar')
+        .setStyle(ButtonStyle.Success),
+      new ButtonBuilder()
+        .setCustomId(`wizard_cancel_${userId}`)
+        .setLabel('❌ Cancelar')
+        .setStyle(ButtonStyle.Danger)
+    )
+  
+  await interaction.reply({ embeds: [embed], components: [buttonRow], ephemeral: true })
+}
+
+// Handler para continuar após configurar chances
+export async function handleContinueAfterChances(interaction: any) {
+  const userId = interaction.user.id
+  const state = wizardSessions.get(userId)
+  
+  if (!state) {
+    return interaction.reply({ content: '❌ Sessão expirada.', ephemeral: true })
+  }
+  
+  await interaction.deferUpdate()
+  
+  try {
+    const duration = parseDuration(state.duration!)
+    const endsAt = new Date(Date.now() + duration)
+    const channel = await interaction.guild.channels.fetch(state.channelId!)
+    
+    if (!channel || !channel.isTextBased()) {
+      throw new Error('Canal inválido')
+    }
+    
+    // Criar sorteio
+    if (state.format === 'reaction') {
+      const embed = new EmbedBuilder()
+        .setTitle(`🎉 ${state.title}`)
+        .setDescription(state.description!)
+        .addFields(
+          { name: '🏆 Vencedores', value: `${state.winners}`, inline: true },
+          { name: '⏰ Termina', value: `<t:${Math.floor(endsAt.getTime() / 1000)}:R>`, inline: true },
+          { name: '📋 Participantes', value: '0', inline: true }
+        )
+        .setColor(0x9333EA)
+        .setFooter({ text: 'Reaja com 🎉 para participar!' })
+        .setTimestamp(endsAt)
+      
+      if (state.requiredRoleIds && state.requiredRoleIds.length > 0) {
+        embed.addFields({ name: '🎭 Cargos Necessários', value: state.requiredRoleIds.map(id => `<@&${id}>`).join(', '), inline: false })
+      }
+      
+      const message = await channel.send({ embeds: [embed] })
+      await message.react('🎉')
+      
+      await prisma.giveaway.create({
+        data: {
+          guildId: interaction.guildId!,
+          title: state.title!,
+          description: state.description!,
+          channelId: state.channelId!,
+          messageId: message.id,
+          creatorId: userId,
+          requiredRoleIds: state.requiredRoleIds,
+          roleChances: state.roleChances,
+          maxWinners: state.winners!,
+          format: 'reaction',
+          endsAt,
+        },
+      })
+    } else {
+      // Sorteio com lista
+      const embed = new EmbedBuilder()
+        .setTitle(`🎁 ${state.title}`)
+        .setDescription(
+          `${state.description}\n\n` +
+          `📋 **${state.items!.length} itens disponíveis**\n` +
+          `✅ Escolha entre ${state.minChoices} e ${state.maxChoices} itens\n\n` +
+          `Clique no botão abaixo para participar!`
+        )
+        .addFields(
+          { name: '🏆 Vencedores', value: `${state.winners}`, inline: true },
+          { name: '⏰ Termina', value: `<t:${Math.floor(endsAt.getTime() / 1000)}:R>`, inline: true },
+          { name: '📋 Participantes', value: '0', inline: true }
+        )
+        .setColor(0x9333EA)
+        .setFooter({ text: 'Sorteio com lista de preferências' })
+        .setTimestamp(endsAt)
+      
+      if (state.requiredRoleIds && state.requiredRoleIds.length > 0) {
+        embed.addFields({ name: '🚪 Cargos Necessários', value: state.requiredRoleIds.map(id => `<@&${id}>`).join(', '), inline: true })
+      }
+      
+      const button = new ButtonBuilder()
+        .setCustomId('giveaway_participate')
+        .setLabel('✨ Participar do Sorteio')
+        .setStyle(ButtonStyle.Primary)
+      
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button)
+      const message = await channel.send({ embeds: [embed], components: [row] })
+
+      // Enviar lista de itens em mensagem separada
+      const itemsList = state.items!.map((item, i) => `${i + 1}. ${item}`).join('\n')
+      const chunks: string[] = []
+
+      // Dividir em chunks de 2000 caracteres (limite do Discord)
+      let currentChunk = ''
+      for (const line of itemsList.split('\n')) {
+        if (currentChunk.length + line.length + 1 > 1900) {
+          chunks.push(currentChunk)
+          currentChunk = line
+        } else {
+          currentChunk += (currentChunk ? '\n' : '') + line
+        }
+      }
+      if (currentChunk) chunks.push(currentChunk)
+
+      // Enviar lista
+      for (let i = 0; i < chunks.length; i++) {
+        const listEmbed = new EmbedBuilder()
+          .setTitle(i === 0 ? `📋 Lista de Itens Disponíveis` : `📋 Lista (continuação ${i + 1})`)
+          .setDescription(chunks[i])
+          .setColor(0x3B82F6)
+          .setFooter({ text: `Total: ${state.items!.length} itens | Página ${i + 1}/${chunks.length}` })
+
+        await channel.send({ embeds: [listEmbed] })
+      }
+      
+      await prisma.giveaway.create({
+        data: {
+          guildId: interaction.guildId!,
+          title: state.title!,
+          description: state.description!,
+          channelId: state.channelId!,
+          messageId: message.id,
+          creatorId: userId,
+          requiredRoleIds: state.requiredRoleIds,
+          roleChances: state.roleChances,
           maxWinners: state.winners!,
           format: 'list',
           availableItems: state.items,

@@ -277,6 +277,7 @@ async function handleCreate(interaction: ChatInputCommandInteraction) {
         messageId: message.id,
         creatorId: interaction.user.id,
         requiredRoleId: requiredRole?.id,
+        requiredRoleIds: requiredRole ? [requiredRole.id] : [],
         maxWinners: winners,
         endsAt,
       },

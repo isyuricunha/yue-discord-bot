@@ -199,6 +199,15 @@ export async function handleInteractionCreate(interaction: Interaction) {
     } else if (interaction.customId.startsWith('wizard_skip_role_')) {
       const { handleFinish } = await import('../commands/sorteio-wizard');
       await handleFinish(interaction, true);
+    } else if (interaction.customId.startsWith('wizard_skip_chances_')) {
+      const { handleContinueAfterChances } = await import('../commands/sorteio-wizard');
+      await handleContinueAfterChances(interaction);
+    } else if (interaction.customId.startsWith('wizard_configure_chances_')) {
+      const { handleConfigureChances } = await import('../commands/sorteio-wizard');
+      await handleConfigureChances(interaction);
+    } else if (interaction.customId.startsWith('wizard_continue_')) {
+      const { handleContinueAfterChances } = await import('../commands/sorteio-wizard');
+      await handleContinueAfterChances(interaction);
     }
   }
 
@@ -246,6 +255,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
     } else if (interaction.customId.startsWith('wizard_items_')) {
       const { handleItems } = await import('../commands/sorteio-wizard');
       await handleItems(interaction);
+    } else if (interaction.customId.startsWith('wizard_chances_')) {
+      const { handleSaveChances } = await import('../commands/sorteio-wizard');
+      await handleSaveChances(interaction);
     }
   }
 }
