@@ -46,6 +46,7 @@ interface Giveaway {
   suspended?: boolean
   requiredRoleId?: string | null
   requiredRoleIds?: string[] | null
+  roleChances?: {roleId: string, multiplier: number}[] | null
   createdAt: string
   entries: GiveawayEntry[]
   winners: GiveawayWinner[]
@@ -329,6 +330,30 @@ export default function GiveawayDetailsPage() {
                   </div>
                 </div>
               </div>
+
+              {giveaway.roleChances && giveaway.roleChances.length > 0 && (
+                <div className="mt-6 rounded-2xl border border-border/70 bg-surface/40 p-4">
+                  <div className="text-sm font-semibold">Chances por cargo</div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Usuários com estes cargos têm mais chances de ganhar
+                  </div>
+
+                  <div className="mt-4 space-y-3">
+                    {giveaway.roleChances.map((chance) => (
+                      <div key={chance.roleId} className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <div className="text-sm font-medium">
+                            {chance.roleId}
+                          </div>
+                        </div>
+                        <div className="text-sm font-medium">
+                          {chance.multiplier}x chances
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {giveaway.format === 'list' && giveaway.availableItems && (
                 <div className="mt-6 rounded-2xl border border-border/70 bg-surface/40 p-4">

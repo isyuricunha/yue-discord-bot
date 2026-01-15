@@ -33,8 +33,6 @@ export default function CreateGiveawayPage() {
   
   // Multi-step state
   const [step, setStep] = useState(1)
-  const totalSteps = 4
-  
   // Form data
   const [format, setFormat] = useState<GiveawayFormat>('reaction')
   const [title, setTitle] = useState('')
@@ -43,7 +41,11 @@ export default function CreateGiveawayPage() {
   const [channelId, setChannelId] = useState('')
   const [requiredRoleIds, setRequiredRoleIds] = useState<string[]>([])
   const [newRequiredRoleId, setNewRequiredRoleId] = useState('')
+  const [roleChances, setRoleChances] = useState<{roleId: string, multiplier: number}[]>([])
   const [endsAt, setEndsAt] = useState('')
+
+  // Calculate total steps based on whether we have required roles
+  const totalSteps = requiredRoleIds.length > 0 ? 5 : 4
   
   // List format specific
   const [items, setItems] = useState<string[]>([])
@@ -146,6 +148,7 @@ export default function CreateGiveawayPage() {
         maxWinners: winners,
         channelId,
         requiredRoleIds: requiredRoleIds.length > 0 ? requiredRoleIds : undefined,
+        roleChances: roleChances.length > 0 ? roleChances : undefined,
         endsAt: new Date(endsAt).toISOString(),
         format,
         ...(format === 'list' && {
@@ -179,7 +182,15 @@ export default function CreateGiveawayPage() {
         }
         return true
       case 4:
-        return channelId && endsAt
+        if (requiredRoleIds.length > 0) {
+          // If we have required roles, this is the channel/date step
+          return channelId && endsAt
+        } else {
+          // If no required roles, this is the final step
+          return channelId && endsAt
+        }
+      case 5:
+        return true // Role chances step is always valid
       default:
         return false
     }
@@ -582,6 +593,74 @@ export default function CreateGiveawayPage() {
                       min={new Date().toISOString().slice(0, 16)}
                     />
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Step 5: Role Chances Configuration */}
+          {step === 5 && requiredRoleIds.length > 0 && (
+            <div>
+              <div className="flex items-center gap-3 mb-6">
+                <Gift className="w-5 h-5 text-accent" />
+                <h2 className="text-xl font-semibold tracking-tight">Chances por cargo</h2>
+              </div>
+
+              <div className="space-y-6">
+                <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+                  <div className="text-sm font-semibold">Como funciona</div>
+                  <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                    <div>
+                      Configure quantas chances cada cargo tem de ganhar.
+                      <br />
+                      Exemplo: Cargo "Apoiador" com 10x chances = 10 entradas no sorteio.
+                    </div>
+                    <div className="text-xs">
+                      Deixe em branco ou use 1 para chance normal.
+                    </div>
+                  </div>
+                </div>
+
+                {requiredRoleIds.map((role_id) => {
+                  const role = role_by_id.get(role_id)
+                  const existingChance = roleChances.find(c => c.roleId === role_id)
+                  const multiplier = existingChance?.multiplier || 1
+
+                  return (
+                    <div key={role_id} className="flex items-center gap-3">
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">{role?.name || role_id}</div>
+                        <div className="text-xs text-muted-foreground">{role_id}</div>
+                      </div>
+                      <div className="w-24">
+                        <Input
+                          type="number"
+                          value={String(multiplier)}
+                          onChange={(e) => {
+                            const value = parseInt(e.target.value) || 1
+                            setRoleChances(prev => {
+                              const existingIndex = prev.findIndex(c => c.roleId === role_id)
+                              const newChances = [...prev]
+                              if (existingIndex >= 0) {
+                                newChances[existingIndex] = { roleId: role_id, multiplier: Math.max(1, Math.min(100, value)) }
+                              } else {
+                                newChances.push({ roleId: role_id, multiplier: Math.max(1, Math.min(100, value)) })
+                              }
+                              return newChances
+                            })
+                          }}
+                          min={1}
+                          max={100}
+                          className="text-center"
+                        />
+                      </div>
+                      <div className="text-sm font-medium">x chances</div>
+                    </div>
+                  )
+                })}
+
+                <div className="text-xs text-muted-foreground">
+                  Dica: Usuários com múltiplos cargos recebem o multiplicador mais alto.
                 </div>
               </div>
             </div>

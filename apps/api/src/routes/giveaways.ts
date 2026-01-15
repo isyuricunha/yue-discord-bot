@@ -84,6 +84,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
           creatorId: user.userId,
           requiredRoleId: data.requiredRoleId || null,
           requiredRoleIds: required_role_ids ? required_role_ids : Prisma.JsonNull,
+          roleChances: data.roleChances ? data.roleChances : Prisma.JsonNull,
           maxWinners: data.maxWinners,
           format: data.format || 'reaction',
           availableItems: normalized_items ? normalized_items : Prisma.JsonNull,
