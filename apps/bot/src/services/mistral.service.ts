@@ -241,6 +241,32 @@ function truncate_single_line(input: string, max_len: number): string {
 	return `${line.slice(0, Math.max(0, max_len - 1))}…`;
 }
 
+function decode_html_entities(input: string): string {
+	return input
+		.replaceAll("&amp;", "&")
+		.replaceAll("&quot;", '"')
+		.replaceAll("&#39;", "'")
+		.replaceAll("&#x27;", "'")
+		.replaceAll("&lt;", "<")
+		.replaceAll("&gt;", ">")
+		.replaceAll("&nbsp;", " ");
+}
+
+function strip_html_tags(input: string): string {
+	return input.replace(/<[^>]*>/g, "");
+}
+
+function sanitize_source_text(input: string | null): string {
+	if (!input) return "";
+	const decoded = decode_html_entities(input);
+	const stripped = strip_html_tags(decoded);
+	return stripped.replace(/\s+/g, " ").trim();
+}
+
+function normalize_url_for_discord(url: string): string {
+	return url.trim();
+}
+
 function summarize_tool_executions(
 	outputs: unknown
 ): Array<{ name: string; has_info: boolean; info_keys: string[] }> {
@@ -401,9 +427,12 @@ function build_sources_suffix(chunks: unknown): string {
 	const sources = chunks
 		.filter(is_tool_reference_chunk)
 		.map((c) => ({
-			title: c.title ?? null,
-			url: c.url ?? null,
-			description: c.description ?? null,
+			title: sanitize_source_text(c.title ?? null) || null,
+			url:
+				typeof c.url === "string" && c.url.trim().length > 0
+					? normalize_url_for_discord(c.url)
+					: null,
+			description: sanitize_source_text(c.description ?? null) || null,
 		}))
 		.filter((s) => typeof s.url === "string" && s.url.trim().length > 0);
 
@@ -413,12 +442,19 @@ function build_sources_suffix(chunks: unknown): string {
 		const url = String(s.url);
 		if (unique_urls.has(url)) continue;
 		unique_urls.add(url);
-		const title = s.title ? String(s.title) : url;
+
+		const title = s.title ? String(s.title) : "";
 		const desc =
 			typeof s.description === "string" && s.description.trim().length > 0
-				? `: ${truncate_single_line(s.description, 140)}`
+				? truncate_single_line(s.description, 140)
 				: "";
-		lines.push(`- ${title}${desc} (${url})`);
+
+		const header = title || desc ? `- ${title || desc}` : "-";
+		const snippet_line =
+			title && desc ? `  ${desc}` : title || !desc ? "" : `  ${desc}`;
+		lines.push(header);
+		if (snippet_line) lines.push(snippet_line);
+		lines.push(`  <${url}>`);
 	}
 
 	if (lines.length === 0) return "";
