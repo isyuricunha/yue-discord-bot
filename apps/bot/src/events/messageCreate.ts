@@ -45,7 +45,16 @@ function parse_int_env(value: string | undefined, fallback: number): number {
 	return parsed;
 }
 
-function start_typing_indicator(channel: unknown): () => void {
+function has_mistral_agent_configured(): boolean {
+	const candidates = [
+		process.env.MISTRAL_AGENT_ID,
+		process.env.MISTRAL_AGENT_ID_FALLBACK_1,
+		process.env.MISTRAL_AGENT_ID_FALLBACK_2,
+	];
+	return candidates.some((v) => typeof v === "string" && v.trim().length > 0);
+}
+
+function start_typing_indicator(channel: Message["channel"]): () => void {
 	const candidate = channel as { sendTyping?: unknown } | null;
 	if (!candidate || typeof candidate.sendTyping !== "function") {
 		return () => {
@@ -163,23 +172,31 @@ export async function handleMessageCreate(message: Message) {
 
 					const web_query = parse_web_search_query(prompt);
 					const user_prompt = web_query ?? prompt;
+					const prefer_agent_websearch =
+						!!web_query && has_mistral_agent_configured();
 
 					let web_context: string | null = null;
-					if (web_query) {
+					if (web_query && !prefer_agent_websearch) {
 						const search = await ddg_web_search(web_query);
 						const formatted = format_web_search_context(search).trim();
 						web_context = formatted.length > 0 ? formatted : null;
 					}
 
-					const final_user_prompt = web_context
-						? `You are given web search results. Answer the question using the provided results and include source URLs when relevant.
+					const final_user_prompt = prefer_agent_websearch
+						? `Use the web_search tool to answer the question. Provide a direct answer and include source URLs.
+
+If the tool does not return enough information, say you could not find the answer.
+
+Question: ${user_prompt}`
+						: web_context
+							? `You are given web search results. Answer the question using the provided results and include source URLs when relevant.
 
 Do not claim you lack internet access or real-time data. If the provided sources do not contain enough information to answer, say you could not find the answer in the provided sources.
 
 ${web_context}
 
 Question: ${user_prompt}`
-						: user_prompt;
+							: user_prompt;
 
 					const completion = await llm_client.create_completion({
 						user_prompt: final_user_prompt,

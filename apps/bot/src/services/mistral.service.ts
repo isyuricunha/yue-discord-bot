@@ -241,6 +241,29 @@ function truncate_single_line(input: string, max_len: number): string {
 	return `${line.slice(0, Math.max(0, max_len - 1))}…`;
 }
 
+function summarize_tool_executions(
+	outputs: unknown
+): Array<{ name: string; has_info: boolean; info_keys: string[] }> {
+	if (!Array.isArray(outputs)) return [];
+
+	const entries = outputs.filter(is_tool_execution_entry);
+	return entries
+		.map((e) => {
+			const name = typeof e.name === "string" ? e.name : "";
+			const info = e.info;
+			const info_keys =
+				info && typeof info === "object"
+					? Object.keys(info as Record<string, unknown>)
+					: [];
+			return {
+				name: name || "unknown",
+				has_info: info_keys.length > 0,
+				info_keys: info_keys.slice(0, 10),
+			};
+		})
+		.filter((e) => e.name !== "unknown" || e.has_info);
+}
+
 function build_search_results_suffix(
 	outputs: unknown,
 	response_text: string
@@ -580,6 +603,16 @@ export class MistralClient {
 					const outputs = Array.isArray(conversation.outputs)
 						? conversation.outputs
 						: [];
+
+					if (llm_debug_enabled) {
+						const summary = summarize_tool_executions(outputs);
+						if (summary.length > 0) {
+							logger.debug(
+								{ llm: { provider: "mistral", mode: "agent" }, tools: summary },
+								"Mistral agent tool executions"
+							);
+						}
+					}
 
 					const last_output = [...outputs]
 						.reverse()
