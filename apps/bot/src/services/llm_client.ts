@@ -32,7 +32,8 @@ export type llm_completion_result = {
 function is_retryable_mistral_error(error: unknown): boolean {
 	if (error instanceof MistralError) {
 		const status = error.statusCode;
-		return status === 401 || status === 403 || status === 429 || status >= 500;
+		if (status === 401 || status === 403) return false;
+		return status === 429 || status >= 500;
 	}
 
 	if (error instanceof ConnectionError) return true;
