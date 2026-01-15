@@ -15,6 +15,7 @@ import {
 } from "./groq.service";
 import {
 	MistralClient,
+	MistralApiError,
 	type mistral_completion_input,
 	type mistral_completion_result,
 } from "./mistral.service";
@@ -30,6 +31,12 @@ export type llm_completion_result = {
 };
 
 function is_retryable_mistral_error(error: unknown): boolean {
+	if (error instanceof MistralApiError) {
+		const status = error.status;
+		if (status === 401 || status === 403) return false;
+		return status === 429 || status >= 500;
+	}
+
 	if (error instanceof MistralError) {
 		const status = error.statusCode;
 		if (status === 401 || status === 403) return false;

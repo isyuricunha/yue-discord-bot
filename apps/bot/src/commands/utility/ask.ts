@@ -4,6 +4,7 @@ import type { ChatInputCommandInteraction } from "discord.js";
 import { EMOJIS } from "@yuebot/shared";
 
 import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
+import { MistralApiError } from "../../services/mistral.service";
 
 import { get_llm_client } from "../../services/llm_client_singleton";
 import { GroqApiError } from "../../services/groq.service";
@@ -61,6 +62,31 @@ export const askCommand: Command = {
 				}
 			}
 		} catch (error: unknown) {
+			if (error instanceof MistralApiError) {
+				if (error.status === 429) {
+					const retry = error.retry_after_seconds;
+					const msg = retry
+						? `Tente novamente em ~${retry}s.`
+						: "Tente novamente em instantes.";
+					await interaction.editReply({
+						content: `${EMOJIS.ERROR} Rate limit da IA. ${msg}`,
+					});
+					return;
+				}
+
+				if (error.status === 401 || error.status === 403) {
+					await interaction.editReply({
+						content: `${EMOJIS.ERROR} IA não autorizada. Verifique a configuração das keys.`,
+					});
+					return;
+				}
+
+				await interaction.editReply({
+					content: `${EMOJIS.ERROR} Erro ao consultar IA.`,
+				});
+				return;
+			}
+
 			if (error instanceof MistralError) {
 				if (error.statusCode === 429) {
 					await interaction.editReply({

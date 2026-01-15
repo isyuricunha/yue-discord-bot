@@ -4,6 +4,7 @@ import { autoroleService } from "../services/autorole.service";
 import { suggestionService } from "../services/suggestion.service";
 import { xpService } from "../services/xp.service";
 import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
+import { MistralApiError } from "../services/mistral.service";
 
 import { get_llm_client } from "../services/llm_client_singleton";
 import { get_groq_conversation_backend } from "../services/groq_conversation_backend_factory";
@@ -208,7 +209,9 @@ Question: ${user_prompt}`
 					stop_typing();
 				}
 			} catch (error: unknown) {
-				if (error instanceof MistralError) {
+				if (error instanceof MistralApiError) {
+					logger.warn({ status: error.status }, "Mistral invocation failed");
+				} else if (error instanceof MistralError) {
 					logger.warn(
 						{ status: error.statusCode },
 						"Mistral invocation failed"
