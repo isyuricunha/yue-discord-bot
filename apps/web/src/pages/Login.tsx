@@ -23,9 +23,6 @@ export default function LoginPage() {
             <CardHeader className="space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="grid h-11 w-11 place-items-center rounded-2xl bg-surface/80 border border-border/80 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
-                    <div className="h-5 w-5 rounded-full bg-accent shadow-[0_0_30px_rgba(255,106,0,0.35)]" />
-                  </div>
                   <div>
                     <h1 className="text-xl font-semibold tracking-tight">Yue Bot</h1>
                     <p className="text-sm text-muted-foreground">Painel de Gerenciamento</p>
