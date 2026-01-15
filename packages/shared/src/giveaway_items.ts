@@ -46,6 +46,7 @@ export function parse_giveaway_items_input(input: string): string[] {
 export function parse_giveaway_choices_input(input: string): string[] {
   const raw = String(input ?? '').replace(/\r/g, '')
 
+  // First, split by newlines, commas, and semicolons
   const tokens = raw
     .split(/[\n,;]+/g)
     .map((t) => t.trim())
@@ -54,10 +55,22 @@ export function parse_giveaway_choices_input(input: string): string[] {
   const choices: string[] = []
 
   for (const token of tokens) {
-    const without_prefix = token.replace(/^\s*(?:\d+[.:)]\s*|[-*•]\s*)/g, '')
-    const cleaned = clean_giveaway_item_label(without_prefix)
-    if (!cleaned) continue
-    choices.push(cleaned)
+    // Check if this token contains only space-separated numbers
+    const spaceSeparatedNumbers = token.split(/\s+/)
+    const allNumbers = spaceSeparatedNumbers.every(t => /^\d+$/.test(t.trim()))
+    
+    if (allNumbers) {
+      // Add each number individually
+      spaceSeparatedNumbers.forEach(num => {
+        if (num.trim()) choices.push(num.trim())
+      })
+    } else {
+      // Handle as before for mixed content
+      const without_prefix = token.replace(/^\s*(?:\d+[.:)]\s*|[-*•]\s*)/g, '')
+      const cleaned = clean_giveaway_item_label(without_prefix)
+      if (!cleaned) continue
+      choices.push(cleaned)
+    }
   }
 
   return choices
@@ -110,6 +123,7 @@ export function parse_giveaway_items_with_quantities(items: string[]): { name: s
   })
 }
 
+// Enhanced version that supports both item names and numeric indices
 export function match_giveaway_choices(params: {
   availableItems: string[]
   choices: string[]
@@ -117,8 +131,9 @@ export function match_giveaway_choices(params: {
   const available = Array.isArray(params.availableItems) ? params.availableItems : []
   const choices = Array.isArray(params.choices) ? params.choices : []
 
+  // Create mapping for name-based matching
   const normalized_to_item = new Map<string, string>()
-
+  
   for (const item of available) {
     const cleaned = clean_giveaway_item_label(item)
     if (!cleaned) continue
@@ -129,20 +144,42 @@ export function match_giveaway_choices(params: {
     }
   }
 
+  // Create mapping for index-based matching (1-based indexing)
+  const index_to_item = new Map<number, string>()
+  available.forEach((item, index) => {
+    const cleaned = clean_giveaway_item_label(item)
+    if (cleaned) {
+      index_to_item.set(index + 1, cleaned) // 1-based indexing for users
+    }
+  })
+
   const invalid: string[] = []
   const resolved: string[] = []
 
   for (const choice of choices) {
     const cleaned_choice = clean_giveaway_item_label(choice)
-    const normalized_choice = normalize_giveaway_item_label(cleaned_choice)
+    
+    // Try numeric index matching first
+    const numeric_match = cleaned_choice.match(/^(\d+)$/)
+    if (numeric_match) {
+      const index = parseInt(numeric_match[1], 10)
+      const item = index_to_item.get(index)
+      if (item) {
+        resolved.push(item)
+        continue
+      }
+    }
 
+    // Try name-based matching
+    const normalized_choice = normalize_giveaway_item_label(cleaned_choice)
     const match = normalized_to_item.get(normalized_choice)
-    if (!match) {
-      if (cleaned_choice) invalid.push(cleaned_choice)
+    if (match) {
+      resolved.push(match)
       continue
     }
 
-    resolved.push(match)
+    // If no match found, add to invalid
+    if (cleaned_choice) invalid.push(cleaned_choice)
   }
 
   return { invalid, resolved }

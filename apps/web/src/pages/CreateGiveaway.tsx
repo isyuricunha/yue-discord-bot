@@ -396,7 +396,7 @@ export default function CreateGiveawayPage() {
                       value={itemInput}
                       onChange={(e) => setItemInput(e.target.value)}
                       onKeyDown={(e) => e.key === 'Enter' && addItem()}
-                      placeholder="Nome do item"
+                      placeholder="Nome do item (ex: Game Key (x10))"
                     />
                     <Button variant="outline" onClick={addItem} className="px-0" aria-label="Adicionar item">
                       <Plus className="h-5 w-5" />
@@ -413,8 +413,8 @@ export default function CreateGiveawayPage() {
                       rows={6}
                       placeholder={
                         'Cole sua lista aqui (um por linha OU separado por vírgula).\n\n' +
-                        'Exemplo (linhas):\nItem 1\nItem 2\nItem 3\n\n' +
-                        'Exemplo (vírgulas):\nItem 1, Item 2, Item 3'
+                        'Exemplo (linhas):\nItem 1\nItem 2 (x2)\nItem 3\n\n' +
+                        'Exemplo (vírgulas):\nItem 1, Item 2 (x5), Item 3'
                       }
                     />
                     <div className="flex flex-wrap gap-2">
@@ -471,6 +471,9 @@ export default function CreateGiveawayPage() {
                 {items.length > 0 && (
                   <div>
                     <div className="text-sm font-medium">Itens adicionados ({items.length})</div>
+                    <div className="text-xs text-muted-foreground mb-2">
+                      💡 Você pode selecionar itens pelo número ou pelo nome (ex: "1, 3, 7" ou "1 3 7")
+                    </div>
                     <div className="space-y-2 max-h-60 overflow-y-auto">
                       {items
                         .slice() // Create a copy to avoid mutating original array
@@ -490,7 +493,8 @@ export default function CreateGiveawayPage() {
                               className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/50 px-4 py-3"
                             >
                               <div className="flex items-center gap-2 min-w-0">
-                                <span className="truncate text-sm text-foreground">{sortedIndex + 1}. {displayItem}</span>
+                                <span className="text-accent font-mono">{sortedIndex + 1}.</span>
+                                <span className="truncate text-sm text-foreground">{displayItem}</span>
                                 {quantityMatch && (
                                   <span className="text-xs bg-accent/20 px-2 py-0.5 rounded-full">
                                     ×{quantityMatch[1]}

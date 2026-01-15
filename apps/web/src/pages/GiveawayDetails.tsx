@@ -376,6 +376,9 @@ export default function GiveawayDetailsPage() {
 
                   {show_items && (
                     <div className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-border/70 bg-surface/60 p-3">
+                      <div className="text-xs text-muted-foreground mb-2">
+                        💡 Você pode selecionar itens pelo número ou pelo nome (ex: "1, 3, 7" ou "1 3 7")
+                      </div>
                       <ol className="space-y-1 text-sm text-muted-foreground">
                         {giveaway.availableItems
                           .slice() // Create a copy to avoid mutating original array
@@ -388,7 +391,7 @@ export default function GiveawayDetailsPage() {
                             
                             return (
                               <li key={`${idx}-${item}`} className="flex items-start gap-2">
-                                <span className="text-accent">{idx + 1}.</span>
+                                <span className="text-accent font-mono">{idx + 1}.</span>
                                 <div className="flex items-center gap-2">
                                   <span className="text-foreground">{displayItem}</span>
                                   {quantityMatch && (

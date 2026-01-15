@@ -101,11 +101,13 @@ export async function handleGiveawayParticipate(interaction: ButtonInteraction) 
 
     const input = new TextInputBuilder()
       .setCustomId('choices')
-      .setLabel(`Escolha ${minChoices} a ${maxChoices} itens (um por linha)`)
+      .setLabel(`Escolha ${minChoices} a ${maxChoices} itens`)
       .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder('1. Nome do Item 1\n2. Nome do Item 2\n3. Nome do Item 3')
+      .setPlaceholder(
+        `Números: "1, 3, 7" ou nomes: "Item 1, Item 3, Item 7"`
+      )
       .setRequired(true)
-      .setMinLength(10)
+      .setMinLength(1) // Reduced from 10 to allow numeric-only inputs
       .setMaxLength(4000)
 
     const row = new ActionRowBuilder<TextInputBuilder>().addComponents(input)
@@ -242,8 +244,8 @@ export async function handleGiveawayChoicesModal(interaction: ModalSubmitInterac
   // Validar quantidade
   if (choices.length < minChoices) {
     return interaction.editReply(
-      `❌ Você precisa escolher pelo menos ${minChoices} itens!\n` +
-      `Você escolheu apenas ${choices.length}.`
+      `❌ Você precisa escolher pelo menos ${minChoices} itens! Você escolheu apenas ${choices.length}.` +
+      `\n💡 Dica: Use números (ex: "1, 3, 7") para selecionar mais rápido!`
     )
   }
 
