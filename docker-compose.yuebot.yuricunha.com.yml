@@ -64,6 +64,17 @@ services:
       OWNER_USER_IDS: xd
       GLOBAL_XP_RESET_USER_IDS: xd
 
+      MISTRAL_API_KEY: xd
+      MISTRAL_AGENT_ID: ""
+      MISTRAL_API_KEY_FALLBACK_1: ""
+      MISTRAL_AGENT_ID_FALLBACK_1: ""
+      MISTRAL_API_KEY_FALLBACK_2: ""
+      MISTRAL_AGENT_ID_FALLBACK_2: ""
+      MISTRAL_PROMPT_PATH: /app/prompts/groq_system_prompt.txt
+      MISTRAL_MODEL: mistral-small-latest
+      MISTRAL_TEMPERATURE: "0.2"
+      MISTRAL_MAX_TOKENS: "512"
+
       GROQ_API_KEY: xd
       GROQ_API_KEY_FALLBACK_1: xd
       GROQ_API_KEY_FALLBACK_2: xd
@@ -75,7 +86,7 @@ services:
       GROQ_CONTEXT_CONTINUATION_SECONDS: "0"
       GROQ_CONTEXT_MAX_MESSAGES: "12"
       GROQ_CONTEXT_MAX_MESSAGE_CHARS: "700"
-      GROQ_CONTEXT_REDIS_PREFIX: yue:groq:context*
+      GROQ_CONTEXT_REDIS_PREFIX: "yue:groq:context:"
 
     volumes:
       - ./groq_system_prompt.txt:/app/prompts/groq_system_prompt.txt:ro
