@@ -380,12 +380,26 @@ export default function GiveawayDetailsPage() {
                         {giveaway.availableItems
                           .slice() // Create a copy to avoid mutating original array
                           .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase(), 'pt-BR'))
-                          .map((item, idx) => (
-                            <li key={`${idx}-${item}`} className="flex items-start gap-2">
-                              <span className="text-accent">{idx + 1}.</span>
-                              <span className="text-foreground">{item}</span>
-                            </li>
-                          ))}
+                          .map((item, idx) => {
+                            const quantityMatch = item.match(/\s*\(\s*x\s*(\d+)\s*\)\s*$/i)
+                            const displayItem = quantityMatch 
+                              ? item.replace(/\s*\(\s*x\s*\d+\s*\)\s*$/i, '').trim()
+                              : item
+                            
+                            return (
+                              <li key={`${idx}-${item}`} className="flex items-start gap-2">
+                                <span className="text-accent">{idx + 1}.</span>
+                                <div className="flex items-center gap-2">
+                                  <span className="text-foreground">{displayItem}</span>
+                                  {quantityMatch && (
+                                    <span className="text-xs bg-accent/20 px-1.5 py-0.5 rounded-full">
+                                      ×{quantityMatch[1]}
+                                    </span>
+                                  )}
+                                </div>
+                              </li>
+                            )
+                          })}
                       </ol>
                     </div>
                   )}

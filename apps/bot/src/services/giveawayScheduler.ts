@@ -245,33 +245,65 @@ export class GiveawayScheduler {
   }
 
   private assignPrizes(winners: any[], availableItems: string[]): any[] {
-    const assignedPrizes = new Set<string>()
+    // Parse items with quantities
+    const itemsWithQuantities = availableItems.map(item => {
+      const cleaned = item.trim()
+      const quantityMatch = cleaned.match(/\s*\(\s*x\s*(\d+)\s*\)\s*$/i)
+      
+      if (quantityMatch) {
+        const quantity = parseInt(quantityMatch[1], 10)
+        const name = cleaned.slice(0, quantityMatch.index).trim()
+        return { name, original: cleaned, quantity: Math.max(1, quantity), available: quantity }
+      }
+      
+      return { name: cleaned, original: cleaned, quantity: 1, available: 1 }
+    })
+
     const results: any[] = []
+    const userPrizes = new Map<string, Set<string>>() // Track prizes per user to prevent duplicates
 
     for (const winner of winners) {
       const choices = (winner.choices as string[]) || []
       let assignedPrize: string | null = null
       let prizeIndex: number | null = null
+      let prizeOriginal: string | null = null
 
       // Tentar atribuir a primeira escolha disponível
       for (const choice of choices) {
-        if (!assignedPrizes.has(choice)) {
-          assignedPrize = choice
-          prizeIndex = availableItems.indexOf(choice)
-          assignedPrizes.add(choice)
-          break
+        // Find the item that matches this choice
+        for (const item of itemsWithQuantities) {
+          if (item.name.toLowerCase() === choice.toLowerCase() && item.available > 0) {
+            // Check if user already has this prize
+            const userPrizeSet = userPrizes.get(winner.userId) || new Set()
+            if (!userPrizeSet.has(item.name)) {
+              assignedPrize = item.name
+              prizeOriginal = item.original
+              prizeIndex = availableItems.indexOf(item.original)
+              item.available--
+              userPrizeSet.add(item.name)
+              userPrizes.set(winner.userId, userPrizeSet)
+              break
+            }
+          }
         }
+        if (assignedPrize) break
       }
 
       // Se não conseguiu pelas preferências, pegar qualquer item disponível
       if (!assignedPrize) {
-        for (let i = 0; i < availableItems.length; i++) {
-          const item = availableItems[i]
-          if (!assignedPrizes.has(item)) {
-            assignedPrize = item
-            prizeIndex = i
-            assignedPrizes.add(item)
-            break
+        for (const item of itemsWithQuantities) {
+          if (item.available > 0) {
+            // Check if user already has this prize
+            const userPrizeSet = userPrizes.get(winner.userId) || new Set()
+            if (!userPrizeSet.has(item.name)) {
+              assignedPrize = item.name
+              prizeOriginal = item.original
+              prizeIndex = availableItems.indexOf(item.original)
+              item.available--
+              userPrizeSet.add(item.name)
+              userPrizes.set(winner.userId, userPrizeSet)
+              break
+            }
           }
         }
       }

@@ -85,6 +85,31 @@ export function normalize_giveaway_items_list(items: string[]): string[] {
   )
 }
 
+// Parse quantity from item name, e.g., "Item (x5)" -> { name: "Item", quantity: 5 }
+export function parse_giveaway_item_quantity(item: string): { name: string; quantity: number } {
+  const cleaned = clean_giveaway_item_label(item)
+  
+  // Match pattern like (x2), (x10), ( x5 ), etc. at the end
+  // This regex matches optional spaces before 'x', required digits, optional spaces after digits
+  const quantityMatch = cleaned.match(/\s*\(\s*x\s*(\d+)\s*\)\s*$/i)
+  
+  if (quantityMatch) {
+    const quantity = parseInt(quantityMatch[1], 10)
+    const name = cleaned.slice(0, quantityMatch.index).trim()
+    return { name: name, quantity: Math.max(1, quantity) }
+  }
+  
+  return { name: cleaned, quantity: 1 }
+}
+
+// Parse list of items with quantities
+export function parse_giveaway_items_with_quantities(items: string[]): { name: string; quantity: number; original: string }[] {
+  return items.map(original => {
+    const parsed = parse_giveaway_item_quantity(original)
+    return { ...parsed, original }
+  })
+}
+
 export function match_giveaway_choices(params: {
   availableItems: string[]
   choices: string[]

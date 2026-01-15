@@ -477,12 +477,26 @@ export default function CreateGiveawayPage() {
                         .sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase(), 'pt-BR'))
                         .map((item, sortedIndex) => {
                           const originalIndex = items.findIndex(i => i === item)
+                          
+                          // Parse quantity for display
+                          const quantityMatch = item.match(/\s*\(\s*x\s*(\d+)\s*\)\s*$/i)
+                          const displayItem = quantityMatch 
+                            ? item.replace(/\s*\(\s*x\s*\d+\s*\)\s*$/i, '').trim()
+                            : item
+                          
                           return (
                             <div
                               key={sortedIndex}
                               className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/50 px-4 py-3"
                             >
-                              <span className="min-w-0 truncate text-sm text-foreground">{sortedIndex + 1}. {item}</span>
+                              <div className="flex items-center gap-2 min-w-0">
+                                <span className="truncate text-sm text-foreground">{sortedIndex + 1}. {displayItem}</span>
+                                {quantityMatch && (
+                                  <span className="text-xs bg-accent/20 px-2 py-0.5 rounded-full">
+                                    ×{quantityMatch[1]}
+                                  </span>
+                                )}
+                              </div>
                               <Button variant="ghost" size="sm" onClick={() => removeItem(originalIndex)} aria-label="Remover item">
                                 <Trash2 className="h-4 w-4" />
                               </Button>
