@@ -112,7 +112,7 @@ async function sync_guilds_to_database(discord_client: Client) {
 }
 
 // Event: Bot ready
-client.once("ready", async () => {
+client.once("clientReady", async () => {
 	assert_bot_runtime_env();
 	logger.info(`🤖 Bot conectado como ${client.user?.tag}`);
 	logger.info(`📊 Servidores: ${client.guilds.cache.size}`);
