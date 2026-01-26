@@ -4,6 +4,18 @@ import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
 import { is_guild_admin } from '../internal/bot_internal_api'
 
+function escape_csv_cell(input: unknown): string {
+  const raw = input === null || input === undefined ? '' : String(input)
+
+  // Mitigate CSV injection in spreadsheet apps.
+  const injection_prefixes = ['=', '+', '-', '@']
+  const needs_injection_mitigation = raw.length > 0 && injection_prefixes.includes(raw[0]!)
+
+  const safe = needs_injection_mitigation ? `'${raw}` : raw
+  const escaped = safe.replace(/"/g, '""')
+  return `"${escaped}"`
+}
+
 function clamp_take(input: string | undefined, fallback: number, max: number) {
   const parsed = Number.parseInt(String(input ?? ''), 10)
   if (!Number.isFinite(parsed) || parsed <= 0) return fallback
@@ -59,7 +71,16 @@ export async function exportRoutes(fastify: FastifyInstance) {
             ? (entry.choices as string[]).join('; ')
             : 'N/A'
           
-          csv += `${entry.id},"${entry.username}",${entry.userId},"${choices}",${entry.disqualified ? 'Sim' : 'Não'},${entry.createdAt.toISOString()},${winner ? 'Sim' : 'Não'},"${winner?.prize || 'N/A'}"\n`
+          csv += [
+            escape_csv_cell(entry.id),
+            escape_csv_cell(entry.username),
+            escape_csv_cell(entry.userId),
+            escape_csv_cell(choices),
+            escape_csv_cell(entry.disqualified ? 'Sim' : 'Não'),
+            escape_csv_cell(entry.createdAt.toISOString()),
+            escape_csv_cell(winner ? 'Sim' : 'Não'),
+            escape_csv_cell(winner?.prize || 'N/A'),
+          ].join(',') + '\n'
         })
 
         return reply
@@ -155,7 +176,15 @@ export async function exportRoutes(fastify: FastifyInstance) {
         let csv = 'ID,Ação,Usuário ID,Moderador ID,Razão,Duração,Data\n'
         
         modlogs.forEach(log => {
-          csv += `${log.id},"${log.action}",${log.userId},${log.moderatorId},"${log.reason || 'N/A'}","${log.duration || 'N/A'}",${log.createdAt.toISOString()}\n`
+          csv += [
+            escape_csv_cell(log.id),
+            escape_csv_cell(log.action),
+            escape_csv_cell(log.userId),
+            escape_csv_cell(log.moderatorId),
+            escape_csv_cell(log.reason || 'N/A'),
+            escape_csv_cell(log.duration || 'N/A'),
+            escape_csv_cell(log.createdAt.toISOString()),
+          ].join(',') + '\n'
         })
 
         return reply
