@@ -77,7 +77,9 @@ export default function SetupWizardPage() {
   const total_steps = 6
 
   const has_initialized_tickets = useRef(false)
-  const has_initialized_guild_config = useRef(false)
+  const has_initialized_welcome = useRef(false)
+  const has_initialized_modlog = useRef(false)
+  const has_initialized_automod = useRef(false)
   const has_initialized_autorole = useRef(false)
   const has_initialized_xp = useRef(false)
 
@@ -323,8 +325,8 @@ export default function SetupWizardPage() {
   useEffect(() => {
     const cfg = welcome_config_data?.config
     if (!cfg) return
-    if (has_initialized_guild_config.current) return
-    has_initialized_guild_config.current = true
+    if (has_initialized_welcome.current) return
+    has_initialized_welcome.current = true
 
     set_welcome_channel_id(cfg.welcomeChannelId ?? '')
     set_leave_channel_id(cfg.leaveChannelId ?? '')
@@ -335,7 +337,8 @@ export default function SetupWizardPage() {
   useEffect(() => {
     const cfg = modlog_config_data?.config
     if (!cfg) return
-    if (has_initialized_guild_config.current) return
+    if (has_initialized_modlog.current) return
+    has_initialized_modlog.current = true
 
     set_automod_modlog_channel_id(cfg.modLogChannelId ?? '')
   }, [modlog_config_data])
@@ -343,7 +346,8 @@ export default function SetupWizardPage() {
   useEffect(() => {
     const cfg = automod_config_data?.config
     if (!cfg) return
-    if (has_initialized_guild_config.current) return
+    if (has_initialized_automod.current) return
+    has_initialized_automod.current = true
 
     set_automod_link_enabled(Boolean(cfg.linkFilterEnabled))
     set_automod_link_block_all(Boolean(cfg.linkBlockAll))
@@ -528,21 +532,21 @@ export default function SetupWizardPage() {
         is_automod_config_error ||
         is_autorole_error ||
         is_xp_error) && (
-        <ErrorState
-          title="Falha ao carregar dados"
-          description="Não foi possível carregar dados/configurações da guild."
-          onAction={() => {
-            void refetch_channels()
-            void refetch_roles()
-            void refetch_ticket_config()
-            void refetch_welcome_config()
-            void refetch_modlog_config()
-            void refetch_automod_config()
-            void refetch_autorole()
-            void refetch_xp()
-          }}
-        />
-      )}
+          <ErrorState
+            title="Falha ao carregar dados"
+            description="Não foi possível carregar dados/configurações da guild."
+            onAction={() => {
+              void refetch_channels()
+              void refetch_roles()
+              void refetch_ticket_config()
+              void refetch_welcome_config()
+              void refetch_modlog_config()
+              void refetch_automod_config()
+              void refetch_autorole()
+              void refetch_xp()
+            }}
+          />
+        )}
 
       {step === 1 && (
         <Card>
