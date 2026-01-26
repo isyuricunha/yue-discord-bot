@@ -19,7 +19,6 @@
     "@yuebot/database": "workspace:*",
     "@yuebot/shared": "workspace:*",
     "axios": "^1.13.2",
-    "crc-32": "^1.2.2",
     "discord.js": "^14.25.1",
     "luxon": "^3.7.2",
     "pino": "^10.2.0",
