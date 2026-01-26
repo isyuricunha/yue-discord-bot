@@ -86,7 +86,7 @@ Note:
   - Options: `usuario` (required), `razao` (optional)
   - Example: `/kick usuario:@User razao:"rule violation"`
 - `/mute` (pt-BR: `/silenciar`) - Apply a Discord timeout.
-  - Options: `usuario` (required), `duracao` (required; `5m`, `2h`, `1d`), `razao` (optional)
+  - Options: `usuario` (required), `duracao` (required; `5m`, `2h`, `1d`, `1w`), `razao` (optional)
   - Example: `/mute usuario:@User duracao:30m razao:"cool down"`
 - `/unmute` (pt-BR: `/dessilenciar`) - Remove a timeout.
   - Options: `usuario` (required)
@@ -312,7 +312,16 @@ Bot internal API (used by the backend):
   - `GET /internal/guilds/:guildId/channels`
   - `GET /internal/guilds/:guildId/roles`
   - `GET /internal/guilds/:guildId/members`
+  - `GET /internal/guilds/:guildId/info`
+  - `GET /internal/guilds/:guildId/counts`
+  - `GET /internal/guilds/:guildId/permissions/admin/:userId`
   - `POST /internal/guilds/:guildId/channels/:channelId/messages` (JSON body: `{ "content": "..." }`)
+  - `POST /internal/guilds/:guildId/tickets/panel`
+    - JSON body: `{ "moderatorId": "...", "channelId": "..." }`
+  - `POST /internal/guilds/:guildId/reaction-roles/panels/:panelId/publish`
+    - JSON body: `{ "moderatorId": "...", "channelId": "..." }`
+  - `POST /internal/guilds/:guildId/moderation/ban|unban|kick|timeout|untimeout`
+    - JSON body varies by action (reason, duration, deleteMessageDays)
 
 ### API (apps/api)
 
@@ -371,6 +380,12 @@ React + Vite admin panel, including pages for:
 ### Shared package (packages/shared)
 
 The shared package contains utilities and shared schemas used by both API and bot.
+
+Duration format used across the repo:
+
+- Units: `s`, `m`, `h`, `d`, `w`
+- Example values: `30s`, `5m`, `2h`, `1d`, `1w`
+- Discord timeout max duration: 28 days
 
 It also provides the env loader used across the repo:
 
