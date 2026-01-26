@@ -308,6 +308,13 @@ function pick_member(member: GuildMember) {
 
 export function start_internal_api(client: Client, options: internal_api_options) {
   const server = http.createServer(async (req, res) => {
+    const request_id = typeof req.headers['x-request-id'] === 'string' ? req.headers['x-request-id'].trim() : ''
+    if (request_id) {
+      res.setHeader('x-request-id', request_id)
+    }
+
+    const log = request_id ? logger.child({ requestId: request_id }) : logger
+
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
 
@@ -999,7 +1006,7 @@ export function start_internal_api(client: Client, options: internal_api_options
 
       return send_json(res, 200, { roles: result });
     } catch (error) {
-      logger.error({ err: safe_error_details(error) }, 'Internal API error');
+      log.error({ err: safe_error_details(error) }, 'Internal API error');
       return send_json(res, 500, { error: 'Internal server error' } satisfies api_error_body);
     }
   });

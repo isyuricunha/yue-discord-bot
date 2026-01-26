@@ -125,6 +125,11 @@ app.addHook('onRequest', async (request, reply) => {
   }
 })
 
+app.addHook('onSend', async (request, reply, payload) => {
+  reply.header('x-request-id', request.id)
+  return payload
+})
+
 app.setNotFoundHandler(async (_request, reply) => {
   return reply.code(404).send({ error: 'Not found' });
 });

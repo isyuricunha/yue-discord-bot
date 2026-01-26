@@ -171,6 +171,28 @@ function now_ms() {
   return Date.now();
 }
 
+function get_request_id(log: FastifyBaseLogger): string | null {
+  const bindings = (log as unknown as { bindings?: () => Record<string, unknown> }).bindings
+  if (typeof bindings !== 'function') return null
+
+  const data = bindings()
+  const req_id = data?.reqId
+  return typeof req_id === 'string' && req_id.trim().length > 0 ? req_id : null
+}
+
+function build_internal_headers(
+  log: FastifyBaseLogger,
+  extra: Record<string, string> = {}
+): Record<string, string> {
+  const request_id = get_request_id(log)
+
+  return {
+    authorization: `Bearer ${CONFIG.internalApi.secret}`,
+    ...(request_id ? { 'x-request-id': request_id } : {}),
+    ...extra,
+  }
+}
+
 async function fetch_with_timeout_ms(url: string, log: FastifyBaseLogger, timeout_ms: number) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeout_ms);
@@ -179,7 +201,7 @@ async function fetch_with_timeout_ms(url: string, log: FastifyBaseLogger, timeou
     const res = await fetch(url, {
       method: 'GET',
       headers: {
-        authorization: `Bearer ${CONFIG.internalApi.secret}`,
+        ...build_internal_headers(log),
       },
       signal: controller.signal,
     });
@@ -214,8 +236,7 @@ async function fetch_json_with_timeout_ms(
     const res = await fetch(url, {
       ...init,
       headers: {
-        authorization: `Bearer ${CONFIG.internalApi.secret}`,
-        'content-type': 'application/json',
+        ...build_internal_headers(log, { 'content-type': 'application/json' }),
         ...(init.headers ?? {}),
       },
       signal: controller.signal,
@@ -280,7 +301,7 @@ async function fetch_with_timeout(url: string, log: FastifyBaseLogger) {
     const res = await fetch(url, {
       method: 'GET',
       headers: {
-        authorization: `Bearer ${CONFIG.internalApi.secret}`,
+        ...build_internal_headers(log),
       },
       signal: controller.signal,
     });
