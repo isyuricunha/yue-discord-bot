@@ -54,6 +54,29 @@ type admin_check_response = {
   isAdmin: boolean
 }
 
+type bot_permissions_response = {
+  permissions: {
+    viewAuditLog: boolean
+    manageGuild: boolean
+    manageRoles: boolean
+    manageChannels: boolean
+    manageMessages: boolean
+    banMembers: boolean
+    kickMembers: boolean
+    moderateMembers: boolean
+    sendMessages: boolean
+    embedLinks: boolean
+  }
+}
+
+type bot_channel_permissions_response = {
+  permissions: {
+    viewChannel: boolean
+    sendMessages: boolean
+    embedLinks: boolean
+  }
+}
+
 type guild_counts_response = {
   approximateMemberCount: number
 }
@@ -161,6 +184,18 @@ function extract_admin_check_params(pathname: string) {
   const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/permissions\/admin\/([^/]+)$/)
   if (!match) return null
   return { guildId: match[1], userId: match[2] }
+}
+
+function extract_bot_permissions_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/permissions\/bot$/)
+  if (!match) return null
+  return { guildId: match[1] }
+}
+
+function extract_bot_channel_permissions_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/channels\/([^/]+)\/permissions\/bot$/)
+  if (!match) return null
+  return { guildId: match[1], channelId: match[2] }
 }
 
 function extract_guild_counts_params(pathname: string) {
@@ -301,6 +336,65 @@ export function start_internal_api(client: Client, options: internal_api_options
       }
 
       if (req.method === 'GET') {
+        const bot_permissions = extract_bot_permissions_params(url.pathname)
+        if (bot_permissions) {
+          const guild = await client.guilds.fetch(bot_permissions.guildId).catch(() => null)
+          if (!guild) {
+            return send_json(res, 404, { error: 'Guild not found' } satisfies api_error_body)
+          }
+
+          const me = await guild.members.fetchMe().catch(() => null)
+          if (!me) {
+            return send_json(res, 404, { error: 'Bot not found' } satisfies api_error_body)
+          }
+
+          return send_json(res, 200, {
+            permissions: {
+              viewAuditLog: me.permissions.has(PermissionFlagsBits.ViewAuditLog),
+              manageGuild: me.permissions.has(PermissionFlagsBits.ManageGuild),
+              manageRoles: me.permissions.has(PermissionFlagsBits.ManageRoles),
+              manageChannels: me.permissions.has(PermissionFlagsBits.ManageChannels),
+              manageMessages: me.permissions.has(PermissionFlagsBits.ManageMessages),
+              banMembers: me.permissions.has(PermissionFlagsBits.BanMembers),
+              kickMembers: me.permissions.has(PermissionFlagsBits.KickMembers),
+              moderateMembers: me.permissions.has(PermissionFlagsBits.ModerateMembers),
+              sendMessages: me.permissions.has(PermissionFlagsBits.SendMessages),
+              embedLinks: me.permissions.has(PermissionFlagsBits.EmbedLinks),
+            },
+          } satisfies bot_permissions_response)
+        }
+
+        const bot_channel_permissions = extract_bot_channel_permissions_params(url.pathname)
+        if (bot_channel_permissions) {
+          const guild = await client.guilds.fetch(bot_channel_permissions.guildId).catch(() => null)
+          if (!guild) {
+            return send_json(res, 404, { error: 'Guild not found' } satisfies api_error_body)
+          }
+
+          const channel = await guild.channels.fetch(bot_channel_permissions.channelId).catch(() => null)
+          if (!channel || !channel.isTextBased() || channel.isDMBased()) {
+            return send_json(res, 404, { error: 'Channel not found' } satisfies api_error_body)
+          }
+
+          const me = await guild.members.fetchMe().catch(() => null)
+          if (!me) {
+            return send_json(res, 404, { error: 'Bot not found' } satisfies api_error_body)
+          }
+
+          const perms =
+            'permissionsFor' in channel && typeof channel.permissionsFor === 'function'
+              ? channel.permissionsFor(me)
+              : null
+
+          return send_json(res, 200, {
+            permissions: {
+              viewChannel: Boolean(perms?.has(PermissionFlagsBits.ViewChannel)),
+              sendMessages: Boolean(perms?.has(PermissionFlagsBits.SendMessages)),
+              embedLinks: Boolean(perms?.has(PermissionFlagsBits.EmbedLinks)),
+            },
+          } satisfies bot_channel_permissions_response)
+        }
+
         const admin_check = extract_admin_check_params(url.pathname)
         if (admin_check) {
           const guild = await client.guilds.fetch(admin_check.guildId).catch(() => null)

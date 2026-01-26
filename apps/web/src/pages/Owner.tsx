@@ -31,6 +31,31 @@ type bot_app_description_response = {
   appDescription: string | null
 }
 
+type diagnostics_issue = {
+  kind: string
+  message: string
+  meta?: Record<string, unknown>
+}
+
+type diagnostics_guild_result = {
+  guildId: string
+  guildName: string
+  issues: diagnostics_issue[]
+}
+
+type owner_diagnostics_response = {
+  success: boolean
+  timestamp: string
+  api: {
+    status: 'ok'
+  }
+  internalBotApi: {
+    status: 'ok' | 'down'
+    error?: string
+  }
+  guilds: diagnostics_guild_result[]
+}
+
 export default function OwnerPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -61,6 +86,14 @@ export default function OwnerPage() {
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds`)
       return response.data.guilds as guild[]
+    },
+  })
+
+  const { data: diagnostics_data, isLoading: isDiagnosticsLoading, refetch: refetchDiagnostics } = useQuery({
+    queryKey: ['owner', 'diagnostics'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/owner/diagnostics`)
+      return response.data as owner_diagnostics_response
     },
   })
 
@@ -286,6 +319,72 @@ export default function OwnerPage() {
           Acesso global aos servidores onde o bot está instalado.
         </div>
       </div>
+
+      <Card className="border-accent/20">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-base font-semibold">Diagnostics</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                Saúde do internal bot API e inconsistências comuns de configuração.
+              </div>
+            </div>
+            <Button type="button" variant="outline" onClick={() => refetchDiagnostics()} isLoading={isDiagnosticsLoading}>
+              <RefreshCw className="h-4 w-4" />
+              Atualizar
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
+              <div className="text-xs text-muted-foreground">Internal bot API</div>
+              <div className="mt-1 text-sm font-semibold">
+                {diagnostics_data?.internalBotApi?.status === 'down' ? 'Indisponível' : 'OK'}
+              </div>
+              {diagnostics_data?.internalBotApi?.status === 'down' && diagnostics_data.internalBotApi.error ? (
+                <div className="mt-1 text-xs text-muted-foreground">{diagnostics_data.internalBotApi.error}</div>
+              ) : null}
+            </div>
+
+            <div className="rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
+              <div className="text-xs text-muted-foreground">Issues</div>
+              <div className="mt-1 text-sm font-semibold">
+                {(() => {
+                  const total = diagnostics_data?.guilds?.reduce((acc, g) => acc + (g.issues?.length ?? 0), 0) ?? 0
+                  return total
+                })()}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">Somatório de inconsistências encontradas.</div>
+            </div>
+          </div>
+
+          {diagnostics_data?.guilds?.length ? (
+            <div className="space-y-3">
+              {diagnostics_data.guilds
+                .filter((g) => (g.issues?.length ?? 0) > 0)
+                .slice(0, 20)
+                .map((g) => (
+                  <div key={g.guildId} className="rounded-2xl border border-border/80 bg-surface/30 px-4 py-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="text-sm font-semibold">{g.guildName}</div>
+                      <div className="text-xs text-muted-foreground">{g.issues.length} issue(s)</div>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {g.issues.slice(0, 6).map((issue, idx) => (
+                        <div key={idx} className="text-xs text-muted-foreground">
+                          {issue.message}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              {diagnostics_data.guilds.filter((g) => (g.issues?.length ?? 0) > 0).length > 20 ? (
+                <div className="text-xs text-muted-foreground">Mostrando apenas as 20 primeiras guilds com issues.</div>
+              ) : null}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
 
       <Card className="border-accent/20">
         <CardContent className="space-y-4 p-6">

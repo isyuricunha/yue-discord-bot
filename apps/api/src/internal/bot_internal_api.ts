@@ -113,6 +113,29 @@ type admin_check_response = {
   isAdmin: boolean
 }
 
+type bot_permissions_response = {
+  permissions: {
+    viewAuditLog: boolean
+    manageGuild: boolean
+    manageRoles: boolean
+    manageChannels: boolean
+    manageMessages: boolean
+    banMembers: boolean
+    kickMembers: boolean
+    moderateMembers: boolean
+    sendMessages: boolean
+    embedLinks: boolean
+  }
+}
+
+type bot_channel_permissions_response = {
+  permissions: {
+    viewChannel: boolean
+    sendMessages: boolean
+    embedLinks: boolean
+  }
+}
+
 type moderate_member_body = {
   moderatorId: string
   userId: string
@@ -171,6 +194,11 @@ async function fetch_with_timeout_ms(url: string, log: FastifyBaseLogger, timeou
   } finally {
     clearTimeout(timeout);
   }
+}
+
+export async function get_internal_health(log: FastifyBaseLogger) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/health`
+  return (await fetch_with_timeout_ms(url, log, 3_000)) as { status: string }
 }
 
 async function fetch_json_with_timeout_ms(
@@ -316,6 +344,16 @@ export async function get_guild_info(guild_id: string, log: FastifyBaseLogger) {
     const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/info`
     return (await fetch_with_timeout_ms(url, log, 8_000)) as guild_info_response
   })
+}
+
+export async function get_bot_permissions(guild_id: string, log: FastifyBaseLogger) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/permissions/bot`
+  return (await fetch_with_timeout_ms(url, log, 8_000)) as bot_permissions_response
+}
+
+export async function get_bot_channel_permissions(guild_id: string, channel_id: string, log: FastifyBaseLogger) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/channels/${channel_id}/permissions/bot`
+  return (await fetch_with_timeout_ms(url, log, 8_000)) as bot_channel_permissions_response
 }
 
 export async function get_guild_counts(guild_id: string, log: FastifyBaseLogger) {

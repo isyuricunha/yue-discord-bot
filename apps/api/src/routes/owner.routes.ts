@@ -3,7 +3,12 @@ import { prisma } from '@yuebot/database'
 
 import {
   InternalBotApiError,
+  get_bot_channel_permissions,
+  get_bot_permissions,
+  get_guild_channels,
   get_guild_info,
+  get_guild_roles,
+  get_internal_health,
   send_guild_message,
   set_bot_app_description,
   set_bot_presence,
@@ -29,6 +34,57 @@ type bot_presence_settings = {
 type bot_app_description_settings = {
   appDescription: string | null
 }
+
+type diagnostics_issue = {
+  kind: 'missing_channel' | 'missing_role' | 'missing_bot_permission' | 'missing_channel_permission'
+  message: string
+  meta?: Record<string, unknown>
+}
+
+type diagnostics_guild_result = {
+  guildId: string
+  guildName: string
+  issues: diagnostics_issue[]
+}
+
+type diagnostics_response = {
+  success: true
+  timestamp: string
+  api: {
+    status: 'ok'
+  }
+  internalBotApi: {
+    status: 'ok' | 'down'
+    error?: string
+  }
+  guilds: diagnostics_guild_result[]
+}
+
+type diagnostics_installed_guild = {
+  id: string
+  name: string
+  config: {
+    announcementChannelId: string | null
+    giveawayChannelId: string | null
+    modLogChannelId: string | null
+    welcomeChannelId: string | null
+    leaveChannelId: string | null
+    muteRoleId: string | null
+  } | null
+}
+
+type announcement_preview_guild = {
+  id: string
+  name: string
+  ownerId: string
+  addedAt: Date
+  config: {
+    announcementChannelId: string | null
+    modLogChannelId: string | null
+  } | null
+}
+
+type internal_guild_info = Awaited<ReturnType<typeof get_guild_info>>['guild']
 
 function parse_presence_status(value: unknown): bot_presence_settings['presenceStatus'] {
   const raw = typeof value === 'string' ? value.trim().toLowerCase() : ''
@@ -205,6 +261,166 @@ function matches_query(input: { id: string; name: string; ownerId: string }, que
 }
 
 export async function ownerRoutes(fastify: FastifyInstance) {
+  fastify.get('/owner/diagnostics', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const user = request.user
+    if (!is_owner(user.userId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const timestamp = new Date().toISOString()
+
+    let internal_status: diagnostics_response['internalBotApi'] = { status: 'ok' }
+
+    try {
+      await get_internal_health(request.log)
+    } catch (error: unknown) {
+      if (error instanceof InternalBotApiError) {
+        internal_status = { status: 'down', error: internal_bot_api_error_message(error) }
+      } else {
+        internal_status = { status: 'down', error: 'Internal bot API unavailable' }
+      }
+    }
+
+    const installed = (await prisma.guild.findMany({
+      select: {
+        id: true,
+        name: true,
+        config: {
+          select: {
+            announcementChannelId: true,
+            giveawayChannelId: true,
+            modLogChannelId: true,
+            welcomeChannelId: true,
+            leaveChannelId: true,
+            muteRoleId: true,
+          },
+        },
+      },
+      orderBy: { name: 'asc' },
+    })) as diagnostics_installed_guild[]
+
+    if (internal_status.status === 'down') {
+      const payload: diagnostics_response = {
+        success: true,
+        timestamp,
+        api: { status: 'ok' },
+        internalBotApi: internal_status,
+        guilds: installed.map((g) => ({ guildId: g.id, guildName: g.name, issues: [] })),
+      }
+
+      return reply.send(payload)
+    }
+
+    const results = await map_with_concurrency<diagnostics_installed_guild, diagnostics_guild_result>(
+      installed,
+      6,
+      async (g): Promise<diagnostics_guild_result> => {
+        const issues: diagnostics_issue[] = []
+
+        const cfg = g.config ?? null
+        const channel_ids = [
+          cfg?.modLogChannelId ?? null,
+          cfg?.announcementChannelId ?? null,
+          cfg?.giveawayChannelId ?? null,
+          cfg?.welcomeChannelId ?? null,
+          cfg?.leaveChannelId ?? null,
+        ].filter((v): v is string => typeof v === 'string' && v.length > 0)
+
+        const role_ids = [cfg?.muteRoleId ?? null].filter((v): v is string => typeof v === 'string' && v.length > 0)
+
+        const [channels, roles, perms] = await Promise.all([
+          get_guild_channels(g.id, request.log).catch(() => null),
+          get_guild_roles(g.id, request.log).catch(() => null),
+          get_bot_permissions(g.id, request.log).catch(() => null),
+        ])
+
+        const channel_set = new Set((channels?.channels ?? []).map((c) => c.id))
+        const role_set = new Set((roles?.roles ?? []).map((r) => r.id))
+
+        for (const id of channel_ids) {
+          if (!channel_set.has(id)) {
+            issues.push({
+              kind: 'missing_channel',
+              message: `Configured channel not found: ${id}`,
+              meta: { channelId: id },
+            })
+          }
+        }
+
+        for (const id of role_ids) {
+          if (!role_set.has(id)) {
+            issues.push({
+              kind: 'missing_role',
+              message: `Configured role not found: ${id}`,
+              meta: { roleId: id },
+            })
+          }
+        }
+
+        if (perms) {
+          if (!perms.permissions.viewAuditLog) {
+            issues.push({ kind: 'missing_bot_permission', message: 'Bot is missing ViewAuditLog permission' })
+          }
+          if (!perms.permissions.sendMessages) {
+            issues.push({ kind: 'missing_bot_permission', message: 'Bot is missing SendMessages permission' })
+          }
+          if (!perms.permissions.embedLinks) {
+            issues.push({ kind: 'missing_bot_permission', message: 'Bot is missing EmbedLinks permission' })
+          }
+        }
+
+        const important_channels = [cfg?.modLogChannelId ?? null, cfg?.announcementChannelId ?? null].filter(
+          (v): v is string => typeof v === 'string' && v.length > 0
+        )
+
+        for (const channel_id of important_channels) {
+          const channel_perms = await get_bot_channel_permissions(g.id, channel_id, request.log).catch(() => null)
+          if (!channel_perms) continue
+
+          if (!channel_perms.permissions.viewChannel) {
+            issues.push({
+              kind: 'missing_channel_permission',
+              message: `Bot cannot view channel ${channel_id}`,
+              meta: { channelId: channel_id },
+            })
+          }
+          if (!channel_perms.permissions.sendMessages) {
+            issues.push({
+              kind: 'missing_channel_permission',
+              message: `Bot cannot send messages in channel ${channel_id}`,
+              meta: { channelId: channel_id },
+            })
+          }
+          if (!channel_perms.permissions.embedLinks) {
+            issues.push({
+              kind: 'missing_channel_permission',
+              message: `Bot cannot embed links in channel ${channel_id}`,
+              meta: { channelId: channel_id },
+            })
+          }
+        }
+
+        return {
+          guildId: g.id,
+          guildName: g.name,
+          issues,
+        }
+      }
+    )
+
+    const payload: diagnostics_response = {
+      success: true,
+      timestamp,
+      api: { status: 'ok' },
+      internalBotApi: internal_status,
+      guilds: results,
+    }
+
+    return reply.send(payload)
+  })
+
   fastify.get('/owner/bot/app-description', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
@@ -469,7 +685,7 @@ export async function ownerRoutes(fastify: FastifyInstance) {
     const from_date = parse_date_input(input.addedFrom)
     const to_date = parse_date_input(input.addedTo)
 
-    const guilds = await prisma.guild.findMany({
+    const guilds = (await prisma.guild.findMany({
       include: {
         config: {
           select: {
@@ -479,25 +695,31 @@ export async function ownerRoutes(fastify: FastifyInstance) {
         },
       },
       orderBy: { name: 'asc' },
-    })
+    })) as announcement_preview_guild[]
 
     const targets: announcement_preview_target[] = []
     const skipped: announcement_preview_skipped[] = []
 
-    const filtered_guilds = guilds.filter((g) => {
+    const filtered_guilds = guilds.filter((g: announcement_preview_guild) => {
       if (!in_range(g.addedAt, from_date, to_date)) return false
       if (!matches_query({ id: g.id, name: g.name, ownerId: g.ownerId }, input.query)) return false
       return true
     })
 
-    const info_required = filtered_guilds
-      .filter((g) => !(g.config?.announcementChannelId ?? null))
-      .map((g) => g.id)
+    const info_required: string[] = filtered_guilds
+      .filter((g: announcement_preview_guild) => !(g.config?.announcementChannelId ?? null))
+      .map((g: announcement_preview_guild) => g.id)
 
-    const info_rows = await map_with_concurrency(info_required, 8, async (guild_id) => {
-      const info = await get_guild_info(guild_id, request.log).then((r) => r.guild).catch(() => null)
-      return { guildId: guild_id, info }
-    })
+    const info_rows = await map_with_concurrency<string, { guildId: string; info: internal_guild_info | null }>(
+      info_required,
+      8,
+      async (guild_id) => {
+        const info = await get_guild_info(guild_id, request.log)
+          .then((r) => r.guild)
+          .catch(() => null)
+        return { guildId: guild_id, info }
+      }
+    )
 
     const info_by_guild_id = new Map(info_rows.map((r) => [r.guildId, r.info]))
 
