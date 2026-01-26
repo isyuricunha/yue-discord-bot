@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
-import { memberModerationActionSchema } from '@yuebot/shared'
+import { memberModerationActionSchema, memberNotesUpdateSchema } from '@yuebot/shared'
 
 import { InternalBotApiError, get_guild_members, is_guild_admin, moderate_guild_member } from '../internal/bot_internal_api'
 import { safe_error_details } from '../utils/safe_error'
@@ -116,8 +116,15 @@ export async function membersRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     const { guildId, userId } = request.params as { guildId: string; userId: string }
-    const { notes } = request.body as { notes: string }
     const user = request.user
+
+    const parsed = memberNotesUpdateSchema.safeParse(request.body)
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    const { notes } = parsed.data
 
     if (!can_access_guild(user, guildId)) {
       return reply.code(403).send({ error: 'Forbidden' })
