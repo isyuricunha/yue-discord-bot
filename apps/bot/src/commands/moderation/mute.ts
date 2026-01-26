@@ -2,29 +2,12 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { prisma } from '@yuebot/database';
 import { logger } from '../../utils/logger';
-import { COLORS, EMOJIS } from '@yuebot/shared';
+import { COLORS, discord_timeout_max_ms, EMOJIS, parseDurationMs } from '@yuebot/shared';
 import { moderationLogService } from '../../services/moderationLog.service';
 import type { Command } from '../index';
 
-// Converter duração para milissegundos
-function parseDuration(duration: string): number | null {
-  const match = duration.match(/^(\d+)([smhd])$/);
-  if (!match) return null;
-
-  const value = parseInt(match[1]);
-  const unit = match[2];
-
-  switch (unit) {
-    case 's': return value * 1000;
-    case 'm': return value * 60 * 1000;
-    case 'h': return value * 60 * 60 * 1000;
-    case 'd': return value * 24 * 60 * 60 * 1000;
-    default: return null;
-  }
-}
-
 function formatDuration(duration: string): string {
-  const match = duration.match(/^(\d+)([smhd])$/);
+  const match = duration.match(/^(\d+)([smhdw])$/);
   if (!match) return duration;
 
   const value = match[1];
@@ -35,6 +18,7 @@ function formatDuration(duration: string): string {
     'm': 'minuto(s)',
     'h': 'hora(s)',
     'd': 'dia(s)',
+    'w': 'semana(s)',
   };
 
   return `${value} ${units[unit]}`;
@@ -96,19 +80,10 @@ export const muteCommand: Command = {
     }
 
     // Validar duração
-    const durationMs = parseDuration(duration);
+    const durationMs = parseDurationMs(duration, { maxMs: discord_timeout_max_ms, clampToMax: false });
     if (!durationMs) {
       await interaction.reply({
-        content: `${EMOJIS.ERROR} Duração inválida! Use o formato: 5m, 2h, 1d (m=minutos, h=horas, d=dias)`,
-        ephemeral: true,
-      });
-      return;
-    }
-
-    // Máximo 28 dias (limite do Discord)
-    if (durationMs > 28 * 24 * 60 * 60 * 1000) {
-      await interaction.reply({
-        content: `${EMOJIS.ERROR} A duração máxima é de 28 dias!`,
+        content: `${EMOJIS.ERROR} Duração inválida! Use o formato: 5m, 2h, 1d, 1w (m=minutos, h=horas, d=dias, w=semanas)`,
         ephemeral: true,
       });
       return;

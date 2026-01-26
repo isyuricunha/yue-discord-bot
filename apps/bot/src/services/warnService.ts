@@ -1,36 +1,12 @@
 import type { Client, GuildMember } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
-import { find_triggered_warn_threshold, warnThresholdsSchema } from '@yuebot/shared'
+import { discord_timeout_max_ms, find_triggered_warn_threshold, parseDurationMs, warnThresholdsSchema } from '@yuebot/shared'
 import { moderationLogService } from './moderationLog.service'
 import { safe_error_details } from '../utils/safe_error'
 
 export class WarnService {
   constructor(private client: Client) {}
-
-  private parse_duration(duration: string): number | null {
-    const match = duration.match(/^(\d+)([smhd])$/)
-    if (!match) return null
-
-    const value = Number.parseInt(match[1], 10)
-    if (Number.isNaN(value)) return null
-
-    const unit = match[2]
-
-    const multipliers: Record<string, number> = {
-      s: 1000,
-      m: 60_000,
-      h: 3_600_000,
-      d: 86_400_000,
-    }
-
-    const ms = value * (multipliers[unit] ?? 0)
-    if (!ms) return null
-
-    // Limite do Discord para timeouts: 28 dias
-    const max = 28 * 24 * 60 * 60 * 1000
-    return Math.min(ms, max)
-  }
 
   async checkAndApplyThresholds(guildId: string, userId: string, currentWarns: number) {
     try {
@@ -123,7 +99,7 @@ export class WarnService {
 
   private async applyMute(member: GuildMember, duration: string): Promise<boolean> {
     try {
-      const duration_ms = this.parse_duration(duration) ?? 3_600_000
+      const duration_ms = parseDurationMs(duration, { maxMs: discord_timeout_max_ms, clampToMax: true }) ?? 3_600_000
       await member.timeout(duration_ms, '[AutoMod] Threshold de warns atingido')
       logger.info(`Timeout aplicado para ${member.id} por ${duration}`)
       return true

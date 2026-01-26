@@ -8,8 +8,8 @@ import {
   ButtonStyle
 } from 'discord.js'
 import { prisma } from '@yuebot/database'
-import { parse_giveaway_items_input } from '@yuebot/shared'
 import { getSendableChannel } from '../utils/discord'
+import { parseDurationMs, parse_giveaway_items_input } from '@yuebot/shared'
 
 export const data = new SlashCommandBuilder()
   .setName('sorteio-lista')
@@ -75,21 +75,9 @@ export const data = new SlashCommandBuilder()
   )
 
 function parseDuration(duration: string): number {
-  const match = duration.match(/^(\d+)([smhdw])$/)
-  if (!match) throw new Error('Formato inválido. Use: 1s, 5m, 1h, 3d, 1w')
-  
-  const value = parseInt(match[1])
-  const unit = match[2]
-  
-  const multipliers = {
-    s: 1000,
-    m: 60 * 1000,
-    h: 60 * 60 * 1000,
-    d: 24 * 60 * 60 * 1000,
-    w: 7 * 24 * 60 * 60 * 1000,
-  }
-  
-  return value * multipliers[unit as keyof typeof multipliers]
+  const ms = parseDurationMs(duration)
+  if (!ms) throw new Error('Formato inválido. Use: 1s, 5m, 1h, 3d, 1w')
+  return ms
 }
 
 export async function execute(interaction: ChatInputCommandInteraction) {

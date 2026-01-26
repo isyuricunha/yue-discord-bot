@@ -2,6 +2,7 @@ import http from 'node:http';
 import { PermissionFlagsBits } from 'discord.js';
 import type { Client, GuildBasedChannel, GuildMember, Role, User, RESTPostAPIApplicationCommandsJSONBody } from 'discord.js';
 import { prisma } from '@yuebot/database';
+import { discord_timeout_max_ms, parseDurationMs } from '@yuebot/shared'
 import { CONFIG } from '../config';
 import { moderationLogService } from '../services/moderationLog.service';
 import { ticketService } from '../services/ticket.service';
@@ -166,28 +167,6 @@ function extract_guild_counts_params(pathname: string) {
   const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/counts$/)
   if (!match) return null
   return { guildId: match[1] }
-}
-
-function parse_duration_ms(duration: string): number | null {
-  const match = duration.match(/^(\d+)([smhd])$/)
-  if (!match) return null
-
-  const value = Number.parseInt(match[1]!, 10)
-  if (!Number.isFinite(value) || value <= 0) return null
-
-  const unit = match[2]
-  const multipliers: Record<string, number> = {
-    s: 1000,
-    m: 60_000,
-    h: 3_600_000,
-    d: 86_400_000,
-  }
-
-  const ms = value * (multipliers[unit!] ?? 0)
-  if (!ms) return null
-
-  const max = 28 * 24 * 60 * 60 * 1000
-  return Math.min(ms, max)
 }
 
 function required_permission_for_action(action: moderation_action) {
@@ -774,7 +753,9 @@ export function start_internal_api(client: Client, options: internal_api_options
             }
 
             const duration = typeof body.duration === 'string' ? body.duration : ''
-            const ms = duration ? parse_duration_ms(duration) : null
+            const ms = duration
+              ? parseDurationMs(duration, { maxMs: discord_timeout_max_ms, clampToMax: false })
+              : null
             if (!ms) {
               return send_json(res, 400, { error: 'Invalid duration' } satisfies api_error_body)
             }

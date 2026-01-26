@@ -3,7 +3,7 @@ import { prisma } from '@yuebot/database';
 import type { GuildConfig } from '@yuebot/database';
 import type { Prisma } from '@yuebot/database';
 import { logger } from '../utils/logger';
-import { EMOJIS, find_first_banned_word_match } from '@yuebot/shared';
+import { discord_timeout_max_ms, EMOJIS, find_first_banned_word_match, parseDurationMs } from '@yuebot/shared';
 import { isShortUrl, expandUrl } from '../utils/urlExpander';
 import { getSendableChannel } from '../utils/discord';
 import { moderationLogService } from './moderationLog.service';
@@ -20,29 +20,6 @@ interface AutoModResult {
 export class AutoModService {
   private configCache: Map<string, { config: GuildConfig | null; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
-
-  private parse_duration(duration: string): number | null {
-    const match = duration.match(/^(\d+)([smhd])$/);
-    if (!match) return null;
-
-    const value = Number.parseInt(match[1], 10);
-    if (Number.isNaN(value)) return null;
-
-    const unit = match[2];
-
-    const multipliers: Record<string, number> = {
-      s: 1000,
-      m: 60_000,
-      h: 3_600_000,
-      d: 86_400_000,
-    };
-
-    const ms = value * (multipliers[unit] ?? 0);
-    if (!ms) return null;
-
-    const max = 28 * 24 * 60 * 60 * 1000;
-    return Math.min(ms, max);
-  }
 
   async checkMessage(message: Message): Promise<boolean> {
     if (!message.guild || message.author.bot) return false;
@@ -401,7 +378,7 @@ export class AutoModService {
   }
 
   private async applyMute(member: GuildMember, duration: string, reason: string, metadata: Prisma.InputJsonValue): Promise<void> {
-    const durationMs = this.parse_duration(duration) ?? 5 * 60 * 1000;
+    const durationMs = parseDurationMs(duration, { maxMs: discord_timeout_max_ms, clampToMax: true }) ?? 5 * 60 * 1000;
     await member.timeout(durationMs, `[AutoMod] ${reason}`);
 
     await prisma.modLog.create({

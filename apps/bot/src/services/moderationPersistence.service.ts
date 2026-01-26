@@ -1,32 +1,10 @@
 import type { Client, GuildMember } from 'discord.js'
 import { prisma } from '@yuebot/database'
+import { discord_timeout_max_ms, parseDurationMs } from '@yuebot/shared'
 
 import { moderationLogService } from './moderationLog.service'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
-
-function parse_duration_ms(duration: string): number | null {
-  const match = duration.match(/^(\d+)([smhd])$/)
-  if (!match) return null
-
-  const value = Number.parseInt(match[1]!, 10)
-  if (!Number.isFinite(value) || value <= 0) return null
-
-  const unit = match[2]
-
-  const multipliers: Record<string, number> = {
-    s: 1000,
-    m: 60_000,
-    h: 3_600_000,
-    d: 86_400_000,
-  }
-
-  const ms = value * (multipliers[unit!] ?? 0)
-  if (!ms) return null
-
-  const max = 28 * 24 * 60 * 60 * 1000
-  return Math.min(ms, max)
-}
 
 async function upsert_member_row(member: GuildMember) {
   await prisma.guildMember.upsert({
@@ -78,7 +56,7 @@ export class ModerationPersistenceService {
       if (last.action === 'unmute') return
       if (!last.duration) return
 
-      const duration_ms = parse_duration_ms(last.duration)
+      const duration_ms = parseDurationMs(last.duration, { maxMs: discord_timeout_max_ms, clampToMax: true })
       if (!duration_ms) return
 
       const expires_at = last.createdAt.getTime() + duration_ms
