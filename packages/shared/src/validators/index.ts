@@ -44,6 +44,19 @@ export const memberModerationActionSchema = z.discriminatedUnion('action', [
   }),
 ]);
 
+export const memberNotesUpdateSchema = z.object({
+  notes: z.preprocess(
+    (value) => {
+      if (value === null) return null
+      if (typeof value !== 'string') return value
+
+      const trimmed = value.trim()
+      return trimmed.length === 0 ? null : trimmed
+    },
+    z.union([z.string().max(2000), z.null()])
+  ),
+})
+
 export const warnSchema = z.object({
   userId: z.string().min(1),
   reason: z.string().min(1),
@@ -391,6 +404,7 @@ export type BanInput = z.infer<typeof banSchema>;
 export type KickInput = z.infer<typeof kickSchema>;
 export type MuteInput = z.infer<typeof muteSchema>;
 export type WarnInput = z.infer<typeof warnSchema>;
+export type MemberNotesUpdateInput = z.infer<typeof memberNotesUpdateSchema>;
 export type WarnThreshold = z.infer<typeof warnThresholdSchema>;
 export type CreateGiveawayInput = z.infer<typeof createGiveawaySchema>;
 export type GiveawayEntryInput = z.infer<typeof giveawayEntrySchema>;
