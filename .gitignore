@@ -46,6 +46,7 @@ Thumbs.db
 
 # Misc
 .turbo
+knip-report.txt
 
 # Compose
 docker-compose.yaml

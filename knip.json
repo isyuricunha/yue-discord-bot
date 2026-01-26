@@ -1,0 +1,9 @@
+{
+  "ignoreFiles": [
+    "apps/web/public/env.js",
+    "knip-report.txt"
+  ],
+  "ignoreDependencies": [
+    "pino-pretty"
+  ]
+}
