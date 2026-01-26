@@ -180,8 +180,6 @@ export const warnCommand: Command = {
       logger.info(
         `Warn: ${targetUser.tag} (${targetUser.id}) advertido por ${interaction.user.tag}. Total: ${totalWarnings}`
       );
-
-      // TODO: Implementar ações automáticas baseadas em thresholds de warns
     } catch (error) {
       logger.error({ error }, 'Erro ao advertir usuário');
       await interaction.reply({
