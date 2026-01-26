@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database'
 import { coinflipActionSchema, coinflipCreateBetSchema } from '@yuebot/shared'
+import { randomInt } from 'node:crypto'
 
 import { validation_error_details } from '../utils/validation_error'
 
@@ -37,8 +38,7 @@ function normalize_amount(input: bigint): bigint {
 }
 
 function pick_result_side(): coin_side {
-  const r = Math.random() < 0.5 ? 'heads' : 'tails'
-  return r as coin_side
+  return randomInt(0, 2) === 0 ? 'heads' : 'tails'
 }
 
 function serialize_game(game: {
