@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { duration_regex } from '../duration';
 
 // Moderation validators
 export const banSchema = z.object({
@@ -14,7 +15,7 @@ export const kickSchema = z.object({
 
 export const muteSchema = z.object({
   userId: z.string().min(1),
-  duration: z.string().regex(/^\d+[smhd]$/), // 1s, 5m, 2h, 3d
+  duration: z.string().regex(duration_regex), // 1s, 5m, 2h, 3d, 1w
   reason: z.string().optional(),
 });
 
@@ -34,7 +35,7 @@ export const memberModerationActionSchema = z.discriminatedUnion('action', [
   }),
   z.object({
     action: z.literal('timeout'),
-    duration: z.string().regex(/^\d+[smhd]$/),
+    duration: z.string().regex(duration_regex),
     reason: z.string().optional(),
   }),
   z.object({
@@ -51,7 +52,7 @@ export const warnSchema = z.object({
 export const warnThresholdSchema = z.object({
   warns: z.number().int().min(1),
   action: z.enum(['mute', 'kick', 'ban']),
-  duration: z.string().regex(/^\d+[smhd]$/).optional(),
+  duration: z.string().regex(duration_regex).optional(),
 });
 
 export const warnThresholdsSchema = z.array(warnThresholdSchema);
