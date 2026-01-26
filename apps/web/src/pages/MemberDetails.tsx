@@ -6,6 +6,7 @@ import { ArrowLeft, User, FileText, Save, Shield, Ban, Timer, Gavel, Undo2 } fro
 
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton, Textarea } from '../components/ui'
+import { validate_timeout_duration } from '../lib/duration'
 import { get_modlog_action_label } from '../lib/modlog'
 import { toast_error, toast_success } from '../store/toast'
 
@@ -41,6 +42,8 @@ export default function MemberDetailsPage() {
   const [action_reason, setActionReason] = useState('')
   const [timeout_duration, setTimeoutDuration] = useState('5m')
   const [confirm_text, setConfirmText] = useState('')
+
+  const timeout_validation = validate_timeout_duration(timeout_duration)
 
   const {
     data: member,
@@ -255,8 +258,15 @@ export default function MemberDetailsPage() {
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                   <div className="space-y-2">
                     <div className="text-xs text-muted-foreground">Duração do timeout</div>
-                    <Input value={timeout_duration} onChange={(e) => setTimeoutDuration(e.target.value)} placeholder="5m" />
-                    <div className="text-xs text-muted-foreground">Formato: 30s, 5m, 2h, 1d (máx 28d).</div>
+                    <Input
+                      value={timeout_duration}
+                      onChange={(e) => setTimeoutDuration(e.target.value)}
+                      placeholder="5m"
+                      className={timeout_validation.error ? 'border-red-500/60 focus-visible:ring-red-500/30 focus-visible:border-red-500/60' : undefined}
+                    />
+                    <div className={timeout_validation.error ? 'text-xs text-red-500' : 'text-xs text-muted-foreground'}>
+                      {timeout_validation.error ?? 'Formato: 30s, 5m, 2h, 1d (máx 28d).'}
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -274,11 +284,11 @@ export default function MemberDetailsPage() {
                     onClick={() =>
                       moderateMutation.mutate({
                         action: 'timeout',
-                        duration: timeout_duration,
+                        duration: timeout_validation.normalized,
                         ...(action_reason.trim() ? { reason: action_reason.trim() } : {}),
                       })
                     }
-                    disabled={moderateMutation.isPending}
+                    disabled={moderateMutation.isPending || Boolean(timeout_validation.error)}
                   >
                     <Timer className="h-4 w-4" />
                     Timeout
