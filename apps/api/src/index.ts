@@ -9,6 +9,7 @@ import { prisma } from '@yuebot/database';
 import authRoutes from './routes/auth';
 import guildRoutes from './routes/guilds';
 import giveawayRoutes from './routes/giveaways';
+import giveawayEntryEditRoutes from './routes/giveawayEntryEdit'
 import xpRoutes from './routes/xp.routes';
 import { statsRoutes } from './routes/stats.routes';
 import { exportRoutes } from './routes/export.routes';
@@ -177,6 +178,9 @@ app.register(xpRoutes, { prefix: '/api/xp' });
 
 // Giveaway routes
 app.register(giveawayRoutes, { prefix: '/api/guilds' });
+
+// Public giveaway entry edit routes (token-based)
+app.register(giveawayEntryEditRoutes, { prefix: '/api' })
 
 // Stats routes
 app.register(statsRoutes, { prefix: '/api' });
