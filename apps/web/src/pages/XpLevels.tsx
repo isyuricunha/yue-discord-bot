@@ -874,13 +874,13 @@ export default function XpLevelsPage() {
                   <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
                     <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
                       <div className="text-xs font-semibold text-foreground">Texto simples</div>
-                      <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
+                      <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
                         {'🎉 {@user} → nível {level} ({xp} XP)! Você está em #{experience.ranking}.'}
                       </pre>
                     </div>
                     <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
                       <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
-                      <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
+                      <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
 {JSON.stringify(
   {
     content: '{@user}',
