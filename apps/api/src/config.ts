@@ -29,7 +29,7 @@ export const CONFIG = {
     bodyLimit: parse_int_env(process.env.API_BODY_LIMIT, 1024 * 1024),
   },
   internalApi: {
-    host: process.env.BOT_INTERNAL_HOST || '127.0.0.1',
+    host: process.env.BOT_INTERNAL_API_HOST || process.env.BOT_INTERNAL_HOST || '127.0.0.1',
     port: parse_int_env(process.env.BOT_INTERNAL_PORT, 3100),
     secret: process.env.INTERNAL_API_SECRET!,
   },

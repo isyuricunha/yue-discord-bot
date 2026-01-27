@@ -44,7 +44,7 @@ export const CONFIG = {
     clientId: process.env.DISCORD_CLIENT_ID || '',
   },
   internalApi: {
-    host: process.env.BOT_INTERNAL_HOST || '127.0.0.1',
+    host: process.env.BOT_INTERNAL_BIND_HOST || process.env.BOT_INTERNAL_HOST || '127.0.0.1',
     port: parse_int_env(process.env.BOT_INTERNAL_PORT, 3100),
     secret: process.env.INTERNAL_API_SECRET || '',
   },
