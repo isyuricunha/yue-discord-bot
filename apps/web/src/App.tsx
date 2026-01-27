@@ -24,6 +24,7 @@ import MemberDetailsPage from './pages/MemberDetails'
 import GiveawaysPage from './pages/Giveaways'
 import GiveawayDetailsPage from './pages/GiveawayDetails'
 import CreateGiveawayPage from './pages/CreateGiveaway'
+import GiveawayEntryEditPage from './pages/GiveawayEntryEdit'
 import SettingsPage from './pages/Settings'
 import ModerationPage from './pages/Moderation'
 import WelcomePage from './pages/Welcome'
@@ -85,6 +86,7 @@ function App() {
 
           <Route path="/termos" element={<TermsPage />} />
           <Route path="/privacidade" element={<PrivacyPage />} />
+          <Route path="/giveaways/entry/:token" element={<GiveawayEntryEditPage />} />
         </Route>
 
         <Route
