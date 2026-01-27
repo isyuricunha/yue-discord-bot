@@ -48,7 +48,10 @@ export async function exportRoutes(fastify: FastifyInstance) {
 
     try {
       const giveaway = await prisma.giveaway.findFirst({
-        where: { id: giveawayId, guildId },
+        where: {
+          guildId,
+          OR: [{ id: giveawayId }, { publicId: giveawayId }],
+        },
         include: {
           entries: {
             orderBy: { createdAt: 'asc' },

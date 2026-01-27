@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database';
-import { createGiveawaySchema, normalize_giveaway_items_list } from '@yuebot/shared';
+import { createGiveawaySchema, generate_public_id, normalize_giveaway_items_list } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
 import { is_guild_admin } from '../internal/bot_internal_api'
 import { send_guild_message } from '../internal/bot_internal_api'
@@ -9,6 +9,57 @@ import { validation_error_details } from '../utils/validation_error'
 import { public_error_message } from '../utils/public_error'
 
 export default async function giveawayRoutes(fastify: FastifyInstance) {
+  async function find_giveaway_by_identifier(input: { guildId: string; identifier: string; include?: Prisma.GiveawayInclude }) {
+    const identifier = input.identifier
+
+    const by_id = await prisma.giveaway.findUnique({
+      where: { id: identifier },
+      include: input.include,
+    })
+
+    if (by_id && by_id.guildId === input.guildId) return by_id
+
+    return await prisma.giveaway.findFirst({
+      where: { guildId: input.guildId, publicId: identifier },
+      include: input.include,
+    })
+  }
+
+  function is_public_id_conflict(error: unknown): boolean {
+    const err = error as { code?: unknown; meta?: unknown }
+    if (err?.code !== 'P2002') return false
+    const meta = err.meta as { target?: unknown } | undefined
+    const target = meta?.target
+    if (Array.isArray(target)) return target.includes('publicId')
+    if (typeof target === 'string') return target.includes('publicId')
+    return false
+  }
+
+  async function create_giveaway_with_public_id(input: { data: Prisma.GiveawayCreateArgs['data'] }) {
+    const attempts = 8
+    let last_error: unknown = null
+
+    for (let i = 0; i < attempts; i += 1) {
+      const publicId = generate_public_id(10)
+      try {
+        return await prisma.giveaway.create({
+          data: {
+            ...input.data,
+            publicId,
+          },
+        })
+      } catch (error: unknown) {
+        if (is_public_id_conflict(error)) {
+          last_error = error
+          continue
+        }
+        throw error
+      }
+    }
+
+    throw last_error ?? new Error('Failed to generate unique publicId')
+  }
+
   // Criar sorteio via Web
   fastify.post('/:guildId/giveaways', {
     preHandler: [fastify.authenticate],
@@ -74,7 +125,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
         }
       }
 
-      const giveaway = await prisma.giveaway.create({
+      const giveaway = await create_giveaway_with_public_id({
         data: {
           guildId,
           title: data.title,
@@ -93,7 +144,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
           endsAt: data.endsAt,
           startsAt: data.startsAt ?? null,
         },
-      });
+      })
 
       return { success: true, giveaway };
     } catch (error: unknown) {
@@ -140,8 +191,9 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' });
     }
 
-    const giveaway = await prisma.giveaway.findUnique({
-      where: { id: giveawayId },
+    const giveaway = await find_giveaway_by_identifier({
+      guildId,
+      identifier: giveawayId,
       include: {
         entries: {
           where: { disqualified: false },
@@ -149,9 +201,9 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
         },
         winners: true,
       },
-    });
+    })
 
-    if (!giveaway || giveaway.guildId !== guildId) {
+    if (!giveaway) {
       return reply.code(404).send({ error: 'Giveaway not found' });
     }
 
@@ -181,11 +233,8 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       return reply.code(404).send({ error: 'Guild not found' })
     }
 
-    const giveaway = await prisma.giveaway.findUnique({
-      where: { id: giveawayId },
-    });
-
-    if (!giveaway || giveaway.guildId !== guildId) {
+    const giveaway = await find_giveaway_by_identifier({ guildId, identifier: giveawayId })
+    if (!giveaway) {
       return reply.code(404).send({ error: 'Giveaway not found' });
     }
 
@@ -198,7 +247,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     }
 
     await prisma.giveaway.update({
-      where: { id: giveawayId },
+      where: { id: giveaway.id },
       data: { cancelled: true, ended: true, suspended: false },
     });
 
@@ -233,8 +282,8 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       return reply.code(404).send({ error: 'Guild not found' })
     }
 
-    const giveaway = await prisma.giveaway.findUnique({ where: { id: giveawayId } })
-    if (!giveaway || giveaway.guildId !== guildId) {
+    const giveaway = await find_giveaway_by_identifier({ guildId, identifier: giveawayId })
+    if (!giveaway) {
       return reply.code(404).send({ error: 'Giveaway not found' })
     }
 
@@ -247,7 +296,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     }
 
     await prisma.giveaway.update({
-      where: { id: giveawayId },
+      where: { id: giveaway.id },
       data: { suspended: true },
     })
 
@@ -282,8 +331,8 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       return reply.code(404).send({ error: 'Guild not found' })
     }
 
-    const giveaway = await prisma.giveaway.findUnique({ where: { id: giveawayId } })
-    if (!giveaway || giveaway.guildId !== guildId) {
+    const giveaway = await find_giveaway_by_identifier({ guildId, identifier: giveawayId })
+    if (!giveaway) {
       return reply.code(404).send({ error: 'Giveaway not found' })
     }
 
@@ -296,7 +345,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     }
 
     await prisma.giveaway.update({
-      where: { id: giveawayId },
+      where: { id: giveaway.id },
       data: { suspended: false },
     })
 
@@ -331,8 +380,8 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       return reply.code(404).send({ error: 'Guild not found' })
     }
 
-    const giveaway = await prisma.giveaway.findUnique({ where: { id: giveawayId } })
-    if (!giveaway || giveaway.guildId !== guildId) {
+    const giveaway = await find_giveaway_by_identifier({ guildId, identifier: giveawayId })
+    if (!giveaway) {
       return reply.code(404).send({ error: 'Giveaway not found' })
     }
 
@@ -343,7 +392,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     // Não marcamos ended=true aqui, porque o bot scheduler só processa sorteios com ended=false.
     // Ao trazer endsAt para "agora", o scheduler finaliza e apura vencedores normalmente.
     await prisma.giveaway.update({
-      where: { id: giveawayId },
+      where: { id: giveaway.id },
       data: { endsAt: new Date(), cancelled: false, suspended: false },
     })
 
@@ -385,11 +434,9 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      const giveaway = await prisma.giveaway.findUnique({
-        where: { id: giveawayId },
-      })
+      const giveaway = await find_giveaway_by_identifier({ guildId, identifier: giveawayId })
 
-      if (!giveaway || giveaway.guildId !== guildId) {
+      if (!giveaway) {
         return reply.code(404).send({ error: 'Giveaway not found' })
       }
 
@@ -400,7 +447,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       // Create entry
       const entry = await prisma.giveawayEntry.create({
         data: {
-          giveawayId,
+          giveawayId: giveaway.id,
           userId,
           username,
           choices: choices || Prisma.JsonNull,
@@ -439,11 +486,9 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
     }
 
     try {
-      const giveaway = await prisma.giveaway.findUnique({
-        where: { id: giveawayId },
-      })
+      const giveaway = await find_giveaway_by_identifier({ guildId, identifier: giveawayId })
 
-      if (!giveaway || giveaway.guildId !== guildId) {
+      if (!giveaway) {
         return reply.code(404).send({ error: 'Giveaway not found' })
       }
 
@@ -454,7 +499,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       const entry = await prisma.giveawayEntry.update({
         where: {
           giveawayId_userId: {
-            giveawayId,
+            giveawayId: giveaway.id,
             userId,
           },
         },
@@ -497,14 +542,14 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       return reply.code(404).send({ error: 'Guild not found' })
     }
 
-    const giveaway = await prisma.giveaway.findUnique({ where: { id: giveawayId } })
-    if (!giveaway || giveaway.guildId !== guildId) {
+    const giveaway = await find_giveaway_by_identifier({ guildId, identifier: giveawayId })
+    if (!giveaway) {
       return reply.code(404).send({ error: 'Giveaway not found' })
     }
 
     await prisma.giveawayEntry.updateMany({
       where: {
-        giveawayId,
+        giveawayId: giveaway.id,
         userId,
       },
       data: { disqualified: true },
