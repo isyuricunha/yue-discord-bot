@@ -31,6 +31,7 @@ interface GiveawayWinner {
 
 interface Giveaway {
   id: string
+  publicId?: string | null
   title: string
   description: string
   channelId: string
@@ -73,6 +74,7 @@ export default function GiveawayDetailsPage() {
   })
 
   const giveaway = data?.giveaway
+  const resolved_id = giveaway?.publicId ?? giveawayId
 
   const status_label = useMemo(() => {
     if (!giveaway) return ''
@@ -98,7 +100,7 @@ export default function GiveawayDetailsPage() {
 
   const cancel_mutation = useMutation({
     mutationFn: async () => {
-      await axios.post(`${API_URL}/api/guilds/${guildId}/giveaways/${giveawayId}/cancel`)
+      await axios.post(`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/cancel`)
     },
     onSuccess: async () => {
       toast_success('Sorteio cancelado.')
@@ -112,7 +114,7 @@ export default function GiveawayDetailsPage() {
 
   const suspend_mutation = useMutation({
     mutationFn: async () => {
-      await axios.post(`${API_URL}/api/guilds/${guildId}/giveaways/${giveawayId}/suspend`)
+      await axios.post(`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/suspend`)
     },
     onSuccess: async () => {
       toast_success('Sorteio suspenso.')
@@ -126,7 +128,7 @@ export default function GiveawayDetailsPage() {
 
   const resume_mutation = useMutation({
     mutationFn: async () => {
-      await axios.post(`${API_URL}/api/guilds/${guildId}/giveaways/${giveawayId}/resume`)
+      await axios.post(`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/resume`)
     },
     onSuccess: async () => {
       toast_success('Sorteio retomado.')
@@ -140,7 +142,7 @@ export default function GiveawayDetailsPage() {
 
   const end_mutation = useMutation({
     mutationFn: async () => {
-      await axios.post(`${API_URL}/api/guilds/${guildId}/giveaways/${giveawayId}/end`)
+      await axios.post(`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/end`)
     },
     onSuccess: async () => {
       toast_success('Sorteio marcado para finalizar. O bot vai anunciar em instantes.')
@@ -170,7 +172,7 @@ export default function GiveawayDetailsPage() {
         {giveaway && (
           <div className="flex items-center gap-2">
             <a
-              href={`${API_URL}/api/guilds/${guildId}/giveaways/${giveawayId}/export?format=json`}
+              href={`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/export?format=json`}
               className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
               download
             >
@@ -178,7 +180,7 @@ export default function GiveawayDetailsPage() {
               JSON
             </a>
             <a
-              href={`${API_URL}/api/guilds/${guildId}/giveaways/${giveawayId}/export?format=csv`}
+              href={`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/export?format=csv`}
               className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
               download
             >

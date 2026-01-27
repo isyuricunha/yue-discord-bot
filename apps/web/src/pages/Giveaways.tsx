@@ -21,6 +21,7 @@ function channel_label(channel: api_channel) {
 
 interface Giveaway {
   id: string
+  publicId?: string | null
   title: string
   description: string
   channelId: string
@@ -236,6 +237,7 @@ function GiveawayCard({ giveaway, guildId }: { giveaway: Giveaway; guildId: stri
   const navigate = useNavigate()
   const endsAt = new Date(giveaway.endsAt)
   const isActive = !giveaway.ended && !giveaway.cancelled
+  const show_id = giveaway.publicId ?? giveaway.id
 
   return (
     <Card
@@ -246,7 +248,7 @@ function GiveawayCard({ giveaway, guildId }: { giveaway: Giveaway; guildId: stri
             ? 'cursor-pointer opacity-70'
             : 'cursor-pointer transition-colors hover:border-border/60'
       }
-      onClick={() => navigate(`/guild/${guildId}/giveaways/${giveaway.id}`)}
+      onClick={() => navigate(`/guild/${guildId}/giveaways/${show_id}`)}
     >
       <CardContent className="p-6">
         <div className="flex items-start gap-3">
@@ -259,7 +261,7 @@ function GiveawayCard({ giveaway, guildId }: { giveaway: Giveaway; guildId: stri
             <div className="mt-1 line-clamp-2 text-sm text-muted-foreground">{giveaway.description}</div>
             {isActive && (
               <div className="mt-2 text-xs text-muted-foreground">
-                ID: <span className="font-mono">{giveaway.id}</span>
+                ID: <span className="font-mono">{show_id}</span>
               </div>
             )}
             {giveaway.cancelled && <div className="mt-2 text-xs font-semibold text-muted-foreground">Cancelado</div>}
