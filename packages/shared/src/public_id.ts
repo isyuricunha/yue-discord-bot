@@ -2,14 +2,13 @@ const alphabet = '123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz'
 
 function get_random_bytes(size: number): Uint8Array {
   const crypto_obj = (globalThis as unknown as { crypto?: { getRandomValues?: unknown } }).crypto
-  const get_random_values = crypto_obj?.getRandomValues
-
-  if (typeof get_random_values !== 'function') {
+ 
+  if (!crypto_obj || typeof crypto_obj.getRandomValues !== 'function') {
     throw new Error('Web Crypto is not available in this runtime')
   }
 
   const buf = new Uint8Array(size)
-  ;(get_random_values as (array: Uint8Array) => Uint8Array)(buf)
+  ;(crypto_obj as { getRandomValues: (array: Uint8Array) => Uint8Array }).getRandomValues(buf)
   return buf
 }
 
