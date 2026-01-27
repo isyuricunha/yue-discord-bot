@@ -14,6 +14,11 @@ The repository also includes a production Docker image that runs **nginx + API +
 - An internal PostgreSQL (self-contained compose)
 - An external PostgreSQL (example connection string)
 
+In addition to the standard image tags (for example `latest` and `<version>`), CI also publishes **SlimToolkit-minified** variants:
+
+- **`latest-slim`** and **`<version>-slim`** (multi-arch manifests)
+- **`<version>-slim-amd64`** and **`<version>-slim-arm64`** (arch-specific tags)
+
 ## Project overview
 
 YueBot is designed to be operated with a web admin panel instead of relying only on chat commands. In practice, the bot and the panel share a single PostgreSQL database and a shared Prisma client.
