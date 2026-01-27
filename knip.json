@@ -4,6 +4,39 @@
     "knip-report.txt"
   ],
   "ignoreDependencies": [
-    "pino-pretty"
-  ]
+    "pino-pretty",
+    "semantic-release",
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/github",
+    "@semantic-release/release-notes-generator",
+    "conventional-changelog-conventionalcommits"
+  ],
+  "workspaces": {
+    "apps/api": {
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "apps/bot": {
+      "entry": ["src/bin/**/*.ts", "src/**/*.test.ts"],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "apps/web": {
+      "entry": ["src/main.tsx"],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/shared": {
+      "entry": ["src/**/*.test.ts"],
+      "project": ["src/**/*.{ts,tsx}"]
+    },
+    "packages/database": {
+      "entry": [
+        "scripts/**/*.{js,cjs,mjs,ts}",
+        "prisma/**/*.ts"
+      ],
+      "project": [
+        "src/**/*.{ts,tsx}",
+        "scripts/**/*.{js,cjs,mjs,ts}",
+        "prisma/**/*.ts"
+      ]
+    }
+  }
 }
