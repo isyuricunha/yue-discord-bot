@@ -398,24 +398,29 @@ function infer_file_meta(input: {
 	const name = raw_name.length > 0 ? raw_name : `mistral_file_${input.file_id}`;
 	const current_ext = normalize_ext(path.extname(name));
 
-	const by_type: Record<string, string> = {
+	const by_type = {
 		png: "image/png",
 		jpg: "image/jpeg",
 		jpeg: "image/jpeg",
 		gif: "image/gif",
 		webp: "image/webp",
 		pdf: "application/pdf",
-	};
+	} as const;
 
-	const ext_from_type = type && type in by_type ? type : "";
+	const ext_from_type = type && Object.prototype.hasOwnProperty.call(by_type, type)
+		? type
+		: "";
 	const ext_from_name =
 		current_ext && current_ext.length > 0 ? current_ext : "";
 	const magic = detect_file_from_magic(input.data);
 	const ext = ext_from_type || ext_from_name || magic?.ext || "bin";
-	const content_type =
-		(ext in by_type ? by_type[ext] : null) ??
-		magic?.content_type ??
-		"application/octet-stream";
+	const content_type_from_ext = Object.prototype.hasOwnProperty.call(
+		by_type,
+		ext
+	)
+		? by_type[ext as keyof typeof by_type]
+		: null;
+	const content_type = content_type_from_ext ?? magic?.content_type ?? "application/octet-stream";
 
 	const final_name = ext_from_name ? name : `${name}.${ext}`;
 	return { filename: final_name, content_type };
