@@ -70,7 +70,7 @@ function clamp_text(text: string, max: number) {
   return `${normalized.slice(0, max - 1)}…`
 }
 
-export class AuthenticatedMessageService {
+class AuthenticatedMessageService {
   async render_signed_message_image(input: { message: Message; requestedBy: User }): Promise<AttachmentBuilder> {
     const author = input.message.author
 

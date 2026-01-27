@@ -88,7 +88,7 @@ function build_starboard_embed(source: Message, stars: number) {
   return embed
 }
 
-export class StarboardService {
+class StarboardService {
   private cache: Map<string, { config: starboard_config; timestamp: number }> = new Map()
   private readonly CACHE_TTL = 5 * 60 * 1000
 

@@ -33,7 +33,7 @@ function normalize_config(config: {
   }
 }
 
-export class WelcomeService {
+class WelcomeService {
   private cache: Map<string, { config: welcome_config; timestamp: number }> = new Map()
   private readonly CACHE_TTL = 5 * 60 * 1000
 

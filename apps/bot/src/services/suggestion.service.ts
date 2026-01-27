@@ -170,7 +170,7 @@ function parse_modal_custom_id(custom_id: string): { decision: decide_kind; sugg
   return { decision, suggestionId }
 }
 
-export class SuggestionService {
+class SuggestionService {
   async get_config(guild_id: string): Promise<suggestion_config> {
     const row = await prisma.suggestionConfig.findUnique({
       where: { guildId: guild_id },

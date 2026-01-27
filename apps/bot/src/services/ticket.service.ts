@@ -76,7 +76,7 @@ function can_set_channel_name(channel: unknown): channel is { setName: (name: st
   return Boolean(channel && typeof (channel as { setName?: unknown }).setName === 'function')
 }
 
-export class TicketService {
+class TicketService {
   async get_config(guild_id: string): Promise<ticket_config> {
     const row = await prisma.ticketConfig.findUnique({
       where: { guildId: guild_id },

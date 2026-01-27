@@ -29,7 +29,7 @@ async function upsert_member_row(member: GuildMember) {
   })
 }
 
-export class ModerationPersistenceService {
+class ModerationPersistenceService {
   constructor(private client: Client) {}
 
   async handle_member_add(member: GuildMember): Promise<void> {

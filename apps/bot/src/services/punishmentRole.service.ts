@@ -26,7 +26,7 @@ function can_manage_role(bot_member: GuildMember, role: Role) {
   return bot_member.roles.highest.position > role.position
 }
 
-export class PunishmentRoleService {
+class PunishmentRoleService {
   private config_cache = new Map<string, cache_entry<guild_punishment_config>>()
   private readonly cache_ttl_ms = 60_000
 

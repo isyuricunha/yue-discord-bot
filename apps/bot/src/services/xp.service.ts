@@ -61,7 +61,7 @@ function compute_next_level_info(input: { xp: number; level: number }) {
   };
 }
 
-export class XpService {
+class XpService {
   private config_cache: Map<string, { config: GuildXpConfig | null; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000;
 

@@ -142,7 +142,7 @@ function default_system_prompt(): string {
 	);
 }
 
-export async function load_mistral_system_prompt(): Promise<string> {
+async function load_mistral_system_prompt(): Promise<string> {
 	const env_path = process.env.MISTRAL_PROMPT_PATH;
 	const path =
 		typeof env_path === "string" && env_path.trim().length > 0

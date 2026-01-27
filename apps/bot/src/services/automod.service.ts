@@ -17,7 +17,7 @@ interface AutoModResult {
   details?: Prisma.InputJsonValue;
 }
 
-export class AutoModService {
+class AutoModService {
   private configCache: Map<string, { config: GuildConfig | null; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 

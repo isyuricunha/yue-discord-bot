@@ -17,7 +17,7 @@ function normalize_config(config: { modLogChannelId: string | null; modLogMessag
   }
 }
 
-export class ModerationLogService {
+class ModerationLogService {
   private cache: Map<string, { config: modlog_config; timestamp: number }> = new Map()
   private readonly CACHE_TTL = 5 * 60 * 1000
 

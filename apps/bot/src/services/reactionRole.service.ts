@@ -162,7 +162,7 @@ function build_components(input: {
   return rows.slice(0, 5)
 }
 
-export class ReactionRoleService {
+class ReactionRoleService {
   async get_panel(panel_id: string): Promise<reaction_role_panel | null> {
     const row = await prisma.reactionRolePanel.findUnique({
       where: { id: panel_id },
