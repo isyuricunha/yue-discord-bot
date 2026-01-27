@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { Coins, Dice5, Swords } from 'lucide-react'
 
+import { verify_coinflip_result } from '@yuebot/shared'
+
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, CardHeader, EmptyState, ErrorState, Input, Select, Skeleton } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
@@ -28,6 +30,8 @@ type game_row = {
   challengerSide: 'heads' | 'tails'
   winnerId: string | null
   resultSide: 'heads' | 'tails' | null
+  serverSeedHash?: string | null
+  serverSeed?: string | null
   createdAt: string
   resolvedAt: string | null
   challenger?: game_user | null
@@ -42,6 +46,7 @@ export default function CoinflipPage() {
   const [is_creating, set_is_creating] = useState(false)
 
   const [is_resolving, set_is_resolving] = useState<string | null>(null)
+  const [is_verifying, set_is_verifying] = useState<string | null>(null)
 
   const {
     data: stats,
@@ -113,6 +118,34 @@ export default function CoinflipPage() {
       toast_error(msg)
     } finally {
       set_is_resolving(null)
+    }
+  }
+
+  const verify_fairness = async (game: game_row) => {
+    if (game.status !== 'completed') return
+    if (!game.serverSeed || !game.serverSeedHash || !game.resultSide) {
+      toast_error('Dados insuficientes para verificar')
+      return
+    }
+
+    set_is_verifying(game.id)
+    try {
+      const res = await verify_coinflip_result({
+        serverSeed: game.serverSeed,
+        serverSeedHash: game.serverSeedHash,
+        gameId: game.id,
+        resultSide: game.resultSide,
+      })
+
+      if (res.ok) {
+        toast_success('Verificação OK (provably fair)')
+      } else {
+        toast_error(`Verificação falhou: ${res.reason}`)
+      }
+    } catch {
+      toast_error('Erro ao verificar')
+    } finally {
+      set_is_verifying(null)
     }
   }
 
@@ -238,6 +271,7 @@ export default function CoinflipPage() {
             <div className="space-y-2">
               {games_data.games.map((g) => {
                 const is_pending = g.status === 'pending'
+                const can_verify = g.status === 'completed' && !!g.serverSeed && !!g.serverSeedHash && !!g.resultSide
                 return (
                   <div key={g.id} className="rounded-xl border border-border/70 bg-surface/40 px-3 py-3">
                     <div className="flex items-start justify-between gap-4">
@@ -251,6 +285,16 @@ export default function CoinflipPage() {
                         {g.winnerId && (
                           <div className="mt-1 text-xs text-muted-foreground">
                             winner {g.winnerId} • result {g.resultSide}
+                          </div>
+                        )}
+                        {!!g.serverSeedHash && (
+                          <div className="mt-1 text-xs text-muted-foreground break-all">
+                            commit (server seed hash) {g.serverSeedHash}
+                          </div>
+                        )}
+                        {g.status === 'completed' && !!g.serverSeed && (
+                          <div className="mt-1 text-xs text-muted-foreground break-all">
+                            reveal (server seed) {g.serverSeed}
                           </div>
                         )}
                       </div>
@@ -275,6 +319,20 @@ export default function CoinflipPage() {
                               Recusar
                             </Button>
                           </div>
+                        </div>
+                      )}
+
+                      {!is_pending && (
+                        <div className="shrink-0">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={!can_verify}
+                            isLoading={is_verifying === g.id}
+                            onClick={() => void verify_fairness(g)}
+                          >
+                            Verificar
+                          </Button>
                         </div>
                       )}
                     </div>
