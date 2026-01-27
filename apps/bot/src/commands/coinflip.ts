@@ -180,7 +180,7 @@ export const coinflipCommand: Command = {
         return
       }
 
-      const { gameId } = await coinflipService.create_bet({
+      const { gameId, serverSeedHash } = await coinflipService.create_bet({
         guildId: interaction.guildId,
         channelId: interaction.channelId,
         messageId: null,
@@ -209,6 +209,7 @@ export const coinflipCommand: Command = {
           `<@${interaction.user.id}> desafiou <@${opponent.id}> para uma aposta.\n\n` +
             `Quantia: **${format_bigint(amount)}** luazinhas (cada jogador)\n` +
             `Escolha do desafiante: **${side_label(side)}**\n\n` +
+            `Commit (server seed hash): \`${serverSeedHash}\`\n\n` +
             `Oponente: clique em **Aceitar** ou **Recusar**.`
         )
 

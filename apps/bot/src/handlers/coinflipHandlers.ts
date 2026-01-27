@@ -67,6 +67,8 @@ export async function handleCoinflipButton(interaction: ButtonInteraction): Prom
     .addFields([
       { name: 'Saldo do vencedor', value: format_bigint(res.winnerBalance), inline: true },
       { name: 'Saldo do perdedor', value: format_bigint(res.loserBalance), inline: true },
+      { name: 'Commit (server seed hash)', value: res.serverSeedHash ? `\`${res.serverSeedHash}\`` : 'N/A', inline: false },
+      { name: 'Reveal (server seed)', value: res.serverSeed ? `\`${res.serverSeed}\`` : 'N/A', inline: false },
     ])
 
   await interaction.editReply({ embeds: [embed] })

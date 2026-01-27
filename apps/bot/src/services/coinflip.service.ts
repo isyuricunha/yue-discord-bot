@@ -1,6 +1,11 @@
 import crypto from 'node:crypto'
 
 import { prisma, Prisma } from '@yuebot/database'
+import {
+  compute_coinflip_result_side,
+  compute_server_seed_hash,
+  generate_server_seed_hex,
+} from '@yuebot/shared'
 
 import { luazinhaEconomyService } from './luazinhaEconomy.service'
 
@@ -36,7 +41,7 @@ async function with_serializable_retry<T>(fn: (tx: tx_client) => Promise<T>, max
   }
 }
 
-export type create_bet_result = { gameId: string }
+export type create_bet_result = { gameId: string; serverSeedHash: string }
 
 export type accept_bet_result =
   | {
@@ -47,6 +52,8 @@ export type accept_bet_result =
       betAmount: bigint
       winnerBalance: bigint
       loserBalance: bigint
+      serverSeed: string | null
+      serverSeedHash: string | null
     }
   | { success: false; error: 'not_found' | 'already_resolved' | 'not_opponent' | 'insufficient_funds' }
 
@@ -64,6 +71,9 @@ export class CoinflipService {
     betAmount: bigint
     challengerSide: coin_side
   }): Promise<create_bet_result> {
+    const serverSeed = generate_server_seed_hex()
+    const serverSeedHash = await compute_server_seed_hash(serverSeed)
+
     const game = await prisma.coinflipGame.create({
       data: {
         guildId: input.guildId,
@@ -73,11 +83,13 @@ export class CoinflipService {
         opponentId: input.opponentId,
         betAmount: input.betAmount,
         challengerSide: input.challengerSide,
+        serverSeed,
+        serverSeedHash,
       },
-      select: { id: true },
+      select: { id: true, serverSeedHash: true },
     })
 
-    return { gameId: game.id }
+    return { gameId: game.id, serverSeedHash: game.serverSeedHash ?? serverSeedHash }
   }
 
   async decline_bet(input: { gameId: string; userId: string }): Promise<decline_bet_result> {
@@ -116,7 +128,11 @@ export class CoinflipService {
         return { success: false as const, error: 'insufficient_funds' }
       }
 
-      const resultSide = random_side()
+      const has_fairness_commit = typeof game.serverSeed === 'string' && typeof game.serverSeedHash === 'string'
+
+      const resultSide = has_fairness_commit
+        ? await compute_coinflip_result_side({ serverSeed: game.serverSeed!, gameId: game.id })
+        : random_side()
 
       const challenger_wins = resultSide === game.challengerSide
       const winner_id = challenger_wins ? game.challengerId : game.opponentId
@@ -159,14 +175,16 @@ export class CoinflipService {
         ],
       })
 
-      await tx.coinflipGame.update({
+      const updated_game = await tx.coinflipGame.update({
         where: { id: game.id },
         data: {
           status: 'completed',
           winnerId: winner_id,
           resultSide,
           resolvedAt: new Date(),
+          ...(game.serverSeed && !game.serverSeedHash ? { serverSeedHash: await compute_server_seed_hash(game.serverSeed) } : {}),
         },
+        select: { serverSeed: true, serverSeedHash: true },
       })
 
       return {
@@ -177,6 +195,8 @@ export class CoinflipService {
         betAmount: bet,
         winnerBalance: winner_wallet?.balance ?? 0n,
         loserBalance: loser_wallet?.balance ?? 0n,
+        serverSeed: updated_game.serverSeed ?? null,
+        serverSeedHash: updated_game.serverSeedHash ?? null,
       }
     })
   }
