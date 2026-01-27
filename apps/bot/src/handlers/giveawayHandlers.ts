@@ -8,6 +8,7 @@ import {
   ActionRowBuilder,
   EmbedBuilder
 } from 'discord.js'
+import { randomBytes } from 'node:crypto'
 import { prisma } from '@yuebot/database'
 import {
   COLORS,
@@ -24,6 +25,58 @@ function truncate_modal_title(input: string) {
   if (input.length <= max_len) return input
   if (max_len <= 1) return input.slice(0, max_len)
   return `${input.slice(0, max_len - 1).trimEnd()}…`
+}
+
+function get_web_url(): string {
+  const raw = process.env.WEB_URL || 'http://localhost:5173'
+  return raw.replace(/\/+$/, '')
+}
+
+async function upsert_giveaway_entry_edit_token(params: {
+  giveawayId: string
+  userId: string
+}): Promise<{ token: string; expiresAt: Date } | null> {
+  const token = randomBytes(32).toString('hex')
+  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+
+  try {
+    const record = await prisma.giveawayEntryEditToken.upsert({
+      where: {
+        giveawayId_userId: {
+          giveawayId: params.giveawayId,
+          userId: params.userId,
+        },
+      },
+      create: {
+        giveawayId: params.giveawayId,
+        userId: params.userId,
+        token,
+        expiresAt,
+      },
+      update: {
+        token,
+        expiresAt,
+      },
+      select: {
+        token: true,
+        expiresAt: true,
+      },
+    })
+
+    return record
+  } catch (error) {
+    logger.warn({ err: safe_error_details(error) }, 'Failed to upsert giveaway entry edit token')
+    return null
+  }
+}
+
+function format_relative_timestamp(date: Date): string {
+  const ts = Math.floor(date.getTime() / 1000)
+  return `<t:${ts}:R>`
+}
+
+function build_giveaway_entry_edit_link(token: string): string {
+  return `${get_web_url()}/giveaways/entry/${token}`
 }
 
 export async function handleGiveawayParticipate(interaction: ButtonInteraction) {
@@ -78,14 +131,42 @@ export async function handleGiveawayParticipate(interaction: ButtonInteraction) 
 
   if (existing) {
     const choices = existing.choices as string[] | null
+
+    const can_edit = giveaway.format === 'list'
+    const edit_token = can_edit
+      ? await upsert_giveaway_entry_edit_token({ giveawayId: giveaway.id, userId: interaction.user.id })
+      : null
+
+    const edit_link = edit_token ? build_giveaway_entry_edit_link(edit_token.token) : null
+    const edit_suffix = edit_link
+      ? `\n\n🔗 Editar/reordenar escolhas: ${edit_link}\n(Expira ${format_relative_timestamp(edit_token.expiresAt)})`
+      : ''
+
+    if (edit_link) {
+      try {
+        await interaction.user.send(
+          `🔗 Editar/reordenar escolhas do sorteio "${giveaway.title}": ${edit_link}\n` +
+            `Expira ${format_relative_timestamp(edit_token!.expiresAt)}`
+        )
+      } catch {
+        logger.debug(`Não foi possível enviar DM com link de edição para ${interaction.user.tag}`)
+      }
+    }
+
     if (choices && choices.length > 0) {
       return interaction.reply({
-        content: `✅ Você já está participando!\n\n` +
-          `**Suas escolhas:**\n${choices.map((c, i) => `${i + 1}. ${c}`).join('\n')}`,
-        ephemeral: true
+        content:
+          `✅ Você já está participando!\n\n` +
+          `**Suas escolhas:**\n${choices.map((c, i) => `${i + 1}. ${c}`).join('\n')}` +
+          edit_suffix,
+        ephemeral: true,
       })
     }
-    return interaction.reply({ content: '✅ Você já está participando deste sorteio!', ephemeral: true })
+
+    return interaction.reply({
+      content: '✅ Você já está participando deste sorteio!' + edit_suffix,
+      ephemeral: true,
+    })
   }
 
   // Se for sorteio com lista
@@ -166,6 +247,16 @@ export async function handleGiveawayItemsSelect(interaction: StringSelectMenuInt
     },
   })
 
+  const can_edit = giveaway.format === 'list'
+  const edit_token = can_edit
+    ? await upsert_giveaway_entry_edit_token({ giveawayId: giveaway.id, userId: interaction.user.id })
+    : null
+
+  const edit_link = edit_token ? build_giveaway_entry_edit_link(edit_token.token) : null
+  const edit_suffix = edit_link
+    ? `\n\n🔗 Editar/reordenar escolhas: ${edit_link}\n(Expira ${format_relative_timestamp(edit_token.expiresAt)})`
+    : ''
+
   // Atualizar contagem
   const count = await prisma.giveawayEntry.count({
     where: { giveawayId: giveaway.id, disqualified: false },
@@ -193,7 +284,8 @@ export async function handleGiveawayItemsSelect(interaction: StringSelectMenuInt
 
   await interaction.editReply(
     `✅ Participação registrada!\n\n` +
-    `**Suas escolhas:**\n${choices.map((c, i) => `${i + 1}. ${c}`).join('\n')}`
+    `**Suas escolhas:**\n${choices.map((c, i) => `${i + 1}. ${c}`).join('\n')}` +
+    edit_suffix
   )
 
   // Enviar DM de confirmação
@@ -205,6 +297,9 @@ export async function handleGiveawayItemsSelect(interaction: StringSelectMenuInt
       .addFields([
         { name: '🎁 Prêmio', value: giveaway.description.substring(0, 200), inline: false },
         { name: '📋 Suas Escolhas', value: choices.map((c, i) => `${i + 1}. ${c}`).join('\n'), inline: false },
+        ...(edit_link
+          ? [{ name: '🔗 Editar/Reordenar', value: `${edit_link}\nExpira ${format_relative_timestamp(edit_token!.expiresAt)}`, inline: false }]
+          : []),
         { name: '⏰ Término', value: `<t:${Math.floor(new Date(giveaway.endsAt).getTime() / 1000)}:R>`, inline: true },
       ])
       .setFooter({ text: 'Boa sorte! 🍀' })
@@ -291,6 +386,16 @@ export async function handleGiveawayChoicesModal(interaction: ModalSubmitInterac
     },
   })
 
+  const can_edit = giveaway.format === 'list'
+  const edit_token = can_edit
+    ? await upsert_giveaway_entry_edit_token({ giveawayId: giveaway.id, userId: interaction.user.id })
+    : null
+
+  const edit_link = edit_token ? build_giveaway_entry_edit_link(edit_token.token) : null
+  const edit_suffix = edit_link
+    ? `\n\n🔗 Editar/reordenar escolhas: ${edit_link}\n(Expira ${format_relative_timestamp(edit_token.expiresAt)})`
+    : ''
+
   // Atualizar contagem
   const count = await prisma.giveawayEntry.count({
     where: { giveawayId: giveaway.id, disqualified: false },
@@ -321,7 +426,8 @@ export async function handleGiveawayChoicesModal(interaction: ModalSubmitInterac
   await interaction.editReply(
     `✅ Participação registrada com sucesso!\n\n` +
     `**Suas ${validChoices.length} escolhas (em ordem de preferência):**\n` +
-    validChoices.map((c, i) => `${i + 1}. ${c}`).join('\n')
+    validChoices.map((c, i) => `${i + 1}. ${c}`).join('\n') +
+    edit_suffix
   )
 
   // Enviar DM de confirmação
@@ -333,6 +439,9 @@ export async function handleGiveawayChoicesModal(interaction: ModalSubmitInterac
       .addFields([
         { name: '🎁 Prêmio', value: giveaway.description.substring(0, 200), inline: false },
         { name: '📋 Suas Escolhas', value: validChoices.map((c, i) => `${i + 1}. ${c}`).join('\n').substring(0, 1000), inline: false },
+        ...(edit_link
+          ? [{ name: '🔗 Editar/Reordenar', value: `${edit_link}\nExpira ${format_relative_timestamp(edit_token!.expiresAt)}`, inline: false }]
+          : []),
         { name: '⏰ Término', value: `<t:${Math.floor(new Date(giveaway.endsAt).getTime() / 1000)}:R>`, inline: true },
       ])
       .setFooter({ text: 'Boa sorte! 🍀' })
