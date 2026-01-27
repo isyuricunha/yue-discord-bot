@@ -146,8 +146,14 @@ export async function execute(interaction: ChatInputCommandInteraction) {
       .setStyle(ButtonStyle.Primary)
     
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button)
-    
-    const message = await channel.send({ embeds: [embed], components: [row] })
+
+    const role_ping = requiredRole ? `<@&${requiredRole.id}>` : ''
+    const message = await channel.send({
+      content: role_ping || undefined,
+      embeds: [embed],
+      components: [row],
+      allowedMentions: requiredRole ? { roles: [requiredRole.id] } : undefined,
+    })
     
     // Enviar lista de itens em mensagem separada
     const itemsList = items.map((item, i) => `${i + 1}. ${item}`).join('\n')

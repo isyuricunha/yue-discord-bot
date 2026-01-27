@@ -97,9 +97,13 @@ export class GiveawayScheduler {
           })
         }
 
+        const role_ping =
+          required_role_ids.length > 0 ? required_role_ids.map((id) => `<@&${id}>`).join(' ') : ''
+
         const message =
           giveaway.format === 'list'
             ? await sendableChannel.send({
+                content: role_ping || undefined,
                 embeds: [embed],
                 components: [
                   new ActionRowBuilder<ButtonBuilder>().addComponents(
@@ -109,8 +113,13 @@ export class GiveawayScheduler {
                       .setStyle(ButtonStyle.Primary)
                   ),
                 ],
+                allowedMentions: { roles: required_role_ids },
               })
-            : await sendableChannel.send({ embeds: [embed] })
+            : await sendableChannel.send({
+                content: role_ping || undefined,
+                embeds: [embed],
+                allowedMentions: { roles: required_role_ids },
+              })
 
         if (giveaway.format === 'list' && items.length > 0) {
           const items_list = items.map((item, i) => `${i + 1}. ${item}`).join('\n')

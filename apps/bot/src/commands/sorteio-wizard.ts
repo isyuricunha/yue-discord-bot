@@ -389,8 +389,15 @@ export async function handleFinish(interaction: any, skipRole: boolean = false) 
       if (state.requiredRoleId) {
         embed.addFields({ name: '🎭 Cargo Necessário', value: `<@&${state.requiredRoleId}>`, inline: false })
       }
-      
-      const message = await channel.send({ embeds: [embed] })
+
+      const required_role_ids = state.requiredRoleId ? [state.requiredRoleId] : []
+      const role_ping = required_role_ids.length > 0 ? required_role_ids.map((id) => `<@&${id}>`).join(' ') : ''
+
+      const message = await channel.send({
+        content: role_ping || undefined,
+        embeds: [embed],
+        allowedMentions: required_role_ids.length > 0 ? { roles: required_role_ids } : undefined,
+      })
       await message.react('🎉')
       
       await prisma.giveaway.create({
@@ -436,7 +443,16 @@ export async function handleFinish(interaction: any, skipRole: boolean = false) 
         .setStyle(ButtonStyle.Primary)
       
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button)
-      const message = await channel.send({ embeds: [embed], components: [row] })
+
+      const required_role_ids = state.requiredRoleId ? [state.requiredRoleId] : []
+      const role_ping = required_role_ids.length > 0 ? required_role_ids.map((id) => `<@&${id}>`).join(' ') : ''
+
+      const message = await channel.send({
+        content: role_ping || undefined,
+        embeds: [embed],
+        components: [row],
+        allowedMentions: required_role_ids.length > 0 ? { roles: required_role_ids } : undefined,
+      })
 
       // Enviar lista de itens em mensagem separada
       const itemsList = state.items!.map((item, i) => `${i + 1}. ${item}`).join('\n')
@@ -670,8 +686,15 @@ export async function handleContinueAfterChances(interaction: any) {
       if (state.requiredRoleIds && state.requiredRoleIds.length > 0) {
         embed.addFields({ name: '🎭 Cargos Necessários', value: state.requiredRoleIds.map(id => `<@&${id}>`).join(', '), inline: false })
       }
-      
-      const message = await channel.send({ embeds: [embed] })
+
+      const required_role_ids = Array.isArray(state.requiredRoleIds) ? state.requiredRoleIds : []
+      const role_ping = required_role_ids.length > 0 ? required_role_ids.map((id) => `<@&${id}>`).join(' ') : ''
+
+      const message = await channel.send({
+        content: role_ping || undefined,
+        embeds: [embed],
+        allowedMentions: required_role_ids.length > 0 ? { roles: required_role_ids } : undefined,
+      })
       await message.react('🎉')
       
       await prisma.giveaway.create({
@@ -718,7 +741,16 @@ export async function handleContinueAfterChances(interaction: any) {
         .setStyle(ButtonStyle.Primary)
       
       const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button)
-      const message = await channel.send({ embeds: [embed], components: [row] })
+
+      const required_role_ids = Array.isArray(state.requiredRoleIds) ? state.requiredRoleIds : []
+      const role_ping = required_role_ids.length > 0 ? required_role_ids.map((id) => `<@&${id}>`).join(' ') : ''
+
+      const message = await channel.send({
+        content: role_ping || undefined,
+        embeds: [embed],
+        components: [row],
+        allowedMentions: required_role_ids.length > 0 ? { roles: required_role_ids } : undefined,
+      })
 
       // Enviar lista de itens em mensagem separada
       const itemsList = state.items!.map((item, i) => `${i + 1}. ${item}`).join('\n')

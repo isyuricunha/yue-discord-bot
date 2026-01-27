@@ -252,8 +252,13 @@ async function handleCreate(interaction: ChatInputCommandInteraction) {
     if (requiredRole) {
       embed.addFields({ name: '🎭 Cargo Necessário', value: requiredRole.toString(), inline: false })
     }
-    
-    const message = await channel.send({ embeds: [embed] })
+
+    const role_ping = requiredRole ? `<@&${requiredRole.id}>` : ''
+    const message = await channel.send({
+      content: role_ping || undefined,
+      embeds: [embed],
+      allowedMentions: requiredRole ? { roles: [requiredRole.id] } : undefined,
+    })
     await message.react('🎉')
     
     // Salvar no banco
