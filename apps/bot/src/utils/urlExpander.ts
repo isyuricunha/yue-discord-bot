@@ -95,14 +95,14 @@ export async function expandUrl(shortUrl: string, maxRedirects = 5): Promise<str
   }
 }
 
-export function extractUrls(text: string): string[] {
+function extractUrls(text: string): string[] {
   // Regex para detectar URLs
   const urlRegex = /(https?:\/\/[^\s]+)/gi
   const matches = text.match(urlRegex)
   return matches || []
 }
 
-export async function expandShortUrls(text: string): Promise<{ original: string; expanded: string }[]> {
+async function expandShortUrls(text: string): Promise<{ original: string; expanded: string }[]> {
   const urls = extractUrls(text)
   const results: { original: string; expanded: string }[] = []
 

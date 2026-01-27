@@ -1,12 +1,12 @@
 import { prisma, Prisma } from '@yuebot/database'
 
-export type balance_result = { balance: bigint }
+type balance_result = { balance: bigint }
 
-export type transfer_result =
+type transfer_result =
   | { success: true; fromBalance: bigint; toBalance: bigint }
   | { success: false; error: 'invalid_amount' | 'insufficient_funds' | 'same_user' }
 
-export type admin_adjust_result =
+type admin_adjust_result =
   | { success: true; balance: bigint }
   | { success: false; error: 'invalid_amount' | 'insufficient_funds' }
 
@@ -44,7 +44,7 @@ async function with_serializable_retry<T>(fn: (tx: tx_client) => Promise<T>, max
   }
 }
 
-export class LuazinhaEconomyService {
+class LuazinhaEconomyService {
   async get_balance(user_id: string): Promise<balance_result> {
     const wallet = await prisma.wallet.findUnique({ where: { userId: user_id }, select: { balance: true } })
     return { balance: wallet?.balance ?? 0n }

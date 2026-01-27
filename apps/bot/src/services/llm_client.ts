@@ -22,7 +22,7 @@ import {
 
 import { logger } from "../utils/logger";
 
-export type llm_provider = "mistral" | "groq";
+type llm_provider = "mistral" | "groq";
 
 export type llm_completion_input = groq_completion_input &
 	mistral_completion_input;
@@ -150,7 +150,7 @@ export class LlmClient {
 	}
 }
 
-export function create_llm_client_for_tests(input: {
+function create_llm_client_for_tests(input: {
 	mistral: Pick<MistralClient, "create_completion"> | null;
 	groq: Pick<GroqClient, "create_completion"> | null;
 }): LlmClient {

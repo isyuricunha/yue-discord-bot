@@ -3,7 +3,7 @@ import { prisma, Prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
 
-export type audit_action =
+type audit_action =
   | 'message_delete'
   | 'message_update'
   | 'member_nick_update'
@@ -12,7 +12,7 @@ export type audit_action =
   | 'channel_update'
   | 'channel_delete'
 
-export class AuditLogService {
+class AuditLogService {
   async log(input: {
     guildId: string
     action: audit_action

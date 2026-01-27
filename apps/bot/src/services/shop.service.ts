@@ -1,6 +1,6 @@
 import { prisma, Prisma } from '@yuebot/database'
 
-export type shop_purchase_result =
+type shop_purchase_result =
   | {
       success: true
       purchaseId: string
@@ -53,7 +53,7 @@ function clamp_quantity(input: number): number {
   return Math.min(Math.max(input, 0), 50)
 }
 
-export class ShopService {
+class ShopService {
   async list_items(input: { guildId: string | null; include_disabled?: boolean }): Promise<
     Array<{
       id: string

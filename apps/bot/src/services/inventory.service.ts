@@ -1,6 +1,6 @@
 import { prisma, Prisma } from '@yuebot/database'
 
-export type inventory_list_row = {
+type inventory_list_row = {
   id: string
   guildId: string | null
   shopItemId: string | null
@@ -16,7 +16,7 @@ export type inventory_list_row = {
   createdAt: Date
 }
 
-export type inventory_use_result =
+type inventory_use_result =
   | { success: true; item: inventory_list_row }
   | {
       success: false
@@ -69,7 +69,7 @@ function normalize_multiplier(input: unknown): number | null {
   return Math.min(input, 10)
 }
 
-export class InventoryService {
+class InventoryService {
   async list(input: { userId: string; guildId: string | null }): Promise<inventory_list_row[]> {
     return await prisma.inventoryItem.findMany({
       where: {

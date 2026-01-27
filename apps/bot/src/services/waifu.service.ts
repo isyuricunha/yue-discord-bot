@@ -3,15 +3,15 @@ import { prisma, Prisma } from '@yuebot/database'
 import { aniListService } from './anilist.service'
 import { inventoryService } from './inventory.service'
 
-export type waifu_source = 'ANILIST'
+type waifu_source = 'ANILIST'
 
-export type waifu_roll_kind = 'waifu' | 'husbando' | 'casar'
+type waifu_roll_kind = 'waifu' | 'husbando' | 'casar'
 
 type desired_gender = 'female' | 'male' | 'any'
 
 type tx_client = Prisma.TransactionClient
 
-export type roll_result = {
+type roll_result = {
   rollId: string
   character: {
     id: string
@@ -26,7 +26,7 @@ export type roll_result = {
   expiresAt: Date
 }
 
-export type claim_result =
+type claim_result =
   | {
       success: true
       characterName: string
@@ -49,7 +49,7 @@ export type claim_result =
       nextClaimAt?: Date
     }
 
-export type reroll_result =
+type reroll_result =
   | {
       success: true
       kind: waifu_roll_kind
@@ -66,7 +66,7 @@ export type reroll_result =
       rollResetAt?: Date
     }
 
-export type roll_action_result =
+type roll_action_result =
   | {
       success: true
       roll: roll_result
@@ -80,11 +80,11 @@ export type roll_action_result =
       rollResetAt: Date
     }
 
-export type wishlist_add_result =
+type wishlist_add_result =
   | { success: true; characterId: string; characterName: string }
   | { success: false; error: 'invalid_query' | 'not_found' | 'ambiguous' | 'already_exists'; message: string }
 
-export type wishlist_remove_result =
+type wishlist_remove_result =
   | { success: true; characterId: string; characterName: string }
   | { success: false; error: 'invalid_query' | 'not_found' | 'ambiguous'; message: string }
 
@@ -131,7 +131,7 @@ function calculate_character_value(input: { favourites: number | null | undefine
   return Math.max(30, Math.min(600, raw))
 }
 
-export class WaifuService {
+class WaifuService {
   private async consume_roll_use(input: {
     tx: tx_client
     guildId: string

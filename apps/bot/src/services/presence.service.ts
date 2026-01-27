@@ -73,7 +73,7 @@ export function normalize_presence_body(body: unknown): bot_presence_settings | 
   }
 }
 
-export async function get_presence_settings(): Promise<bot_presence_settings> {
+async function get_presence_settings(): Promise<bot_presence_settings> {
   const row = await prisma.botSettings.findUnique({
     where: { id: BOT_SETTINGS_ID },
     select: {
@@ -94,7 +94,7 @@ export async function get_presence_settings(): Promise<bot_presence_settings> {
   }
 }
 
-export async function save_presence_settings(settings: bot_presence_settings): Promise<bot_presence_settings> {
+async function save_presence_settings(settings: bot_presence_settings): Promise<bot_presence_settings> {
   const updated = await prisma.botSettings.upsert({
     where: { id: BOT_SETTINGS_ID },
     update: {

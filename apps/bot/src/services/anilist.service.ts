@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 
 import axios from 'axios'
 
-export type anilist_character = {
+type anilist_character = {
   id: number
   name: {
     full: string | null
@@ -58,7 +58,7 @@ export type anilist_manga = {
   format: string | null
 }
 
-export type anilist_next_airing_episode = {
+type anilist_next_airing_episode = {
   airingAt: number
   episode: number
 }
@@ -99,7 +99,7 @@ async function anilist_graphql<T>(query: string, variables: Record<string, unkno
   return response.data.data
 }
 
-export class AniListService {
+class AniListService {
   async search_anime_by_title(input: { title: string; perPage?: number }): Promise<anilist_anime[]> {
     const query = `
       query ($search: String, $page: Int, $perPage: Int) {

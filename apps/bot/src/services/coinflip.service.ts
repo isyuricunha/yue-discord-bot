@@ -41,9 +41,9 @@ async function with_serializable_retry<T>(fn: (tx: tx_client) => Promise<T>, max
   }
 }
 
-export type create_bet_result = { gameId: string; serverSeedHash: string }
+type create_bet_result = { gameId: string; serverSeedHash: string }
 
-export type accept_bet_result =
+type accept_bet_result =
   | {
       success: true
       resultSide: coin_side
@@ -57,11 +57,11 @@ export type accept_bet_result =
     }
   | { success: false; error: 'not_found' | 'already_resolved' | 'not_opponent' | 'insufficient_funds' }
 
-export type decline_bet_result =
+type decline_bet_result =
   | { success: true }
   | { success: false; error: 'not_found' | 'already_resolved' | 'not_opponent' }
 
-export class CoinflipService {
+class CoinflipService {
   async create_bet(input: {
     guildId: string | null
     channelId: string | null

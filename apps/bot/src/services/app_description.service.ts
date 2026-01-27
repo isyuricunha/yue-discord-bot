@@ -26,7 +26,7 @@ export function normalize_app_description_body(body: unknown): bot_app_descripti
   return { appDescription }
 }
 
-export async function get_app_description_settings(): Promise<bot_app_description_settings> {
+async function get_app_description_settings(): Promise<bot_app_description_settings> {
   const row = await prisma.botSettings.findUnique({
     where: { id: BOT_SETTINGS_ID },
     select: { appDescription: true },

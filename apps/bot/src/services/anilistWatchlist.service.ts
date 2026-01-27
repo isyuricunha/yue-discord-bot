@@ -2,7 +2,7 @@ import { prisma } from '@yuebot/database'
 
 import { aniListService, type anilist_anime, type anilist_manga } from './anilist.service'
 
-export type anilist_media_type = 'anime' | 'manga'
+type anilist_media_type = 'anime' | 'manga'
 
 type base_media = {
   id: number
@@ -24,7 +24,7 @@ function extract_media(input: anilist_anime | anilist_manga): base_media {
   }
 }
 
-export type watchlist_list_result = {
+type watchlist_list_result = {
   total: number
   items: Array<{
     id: string
@@ -41,7 +41,7 @@ export type watchlist_list_result = {
   pageSize: number
 }
 
-export class AniListWatchlistService {
+class AniListWatchlistService {
   async ensure_user(userId: string, input: { username?: string | null; avatar?: string | null }): Promise<void> {
     await prisma.user.upsert({
       where: { id: userId },
