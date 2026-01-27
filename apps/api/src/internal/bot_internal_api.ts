@@ -172,10 +172,10 @@ function now_ms() {
 }
 
 function get_request_id(log: FastifyBaseLogger): string | null {
-  const bindings = (log as unknown as { bindings?: () => Record<string, unknown> }).bindings
-  if (typeof bindings !== 'function') return null
+  const maybe_log = log as unknown as { bindings?: () => Record<string, unknown> }
+  if (typeof maybe_log.bindings !== 'function') return null
 
-  const data = bindings()
+  const data = maybe_log.bindings.call(log)
   const req_id = data?.reqId
   return typeof req_id === 'string' && req_id.trim().length > 0 ? req_id : null
 }
@@ -227,7 +227,11 @@ async function fetch_json_with_timeout_ms(
   url: string,
   log: FastifyBaseLogger,
   timeout_ms: number,
-  init: RequestInit
+  init: {
+    method?: string
+    headers?: Record<string, string>
+    body?: string
+  }
 ) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeout_ms);
