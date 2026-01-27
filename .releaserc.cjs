@@ -10,6 +10,7 @@ module.exports = {
           { type: "feat", release: "minor" },
           { type: "fix", release: "patch" },
           { type: "perf", release: "patch" },
+          { type: "security", release: "patch" },
           { type: "revert", release: "patch" },
           { type: "chore", scope: "deps", release: "patch" },
           { type: "chore", scope: "dependencies", release: "patch" }
@@ -28,6 +29,7 @@ module.exports = {
             { type: "feat", section: "Features" },
             { type: "fix", section: "Bug Fixes" },
             { type: "perf", section: "Performance Improvements" },
+            { type: "security", section: "Security Fixes" },
             { type: "deps", section: "Dependencies" },
             { type: "docs", section: "Documentation" },
             { type: "refactor", section: "Refactoring" },
