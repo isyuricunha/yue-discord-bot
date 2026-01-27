@@ -7,7 +7,7 @@ import { safe_error_details } from '../utils/safe_error'
 import { getSendableChannel } from '../utils/discord'
 import { aniListService } from './anilist.service'
 import { anilistWatchlistService } from './anilistWatchlist.service'
-import { compute_watchlist_schedule_outcome } from './anilistWatchlistScheduler.logic'
+import { compute_watchlist_scheduler_outcome } from './anilistWatchlistScheduler.logic'
 
 function to_unix_seconds(date: Date) {
   return Math.floor(date.getTime() / 1000)
@@ -78,21 +78,44 @@ export class AniListWatchlistScheduler {
     try {
       const next = await aniListService.get_anime_next_airing_episode({ animeId: item.mediaId })
 
-      const outcome = compute_watchlist_schedule_outcome({
+      const outcome = compute_watchlist_scheduler_outcome({
         nowMs: now.getTime(),
         nowSec: now_sec,
+        cachedNextAiringAt: item.nextAiringAt,
+        cachedNextAiringEpisode: item.nextAiringEpisode,
         next,
         lastNotifiedAiringAt: item.lastNotifiedAiringAt,
       })
 
       if (outcome.shouldNotify) {
+        if (!outcome.notifyAiringAt || !outcome.notifyEpisode) {
+          logger.error(
+            {
+              anilistWatchlistItemId: item.id,
+              userId: item.userId,
+              mediaId: item.mediaId,
+              outcome,
+            },
+            'Invalid AniList watchlist outcome: shouldNotify=true but notify fields are missing'
+          )
+
+          await anilistWatchlistService.update_airing_cache({
+            id: item.id,
+            nextAiringAt: outcome.nextAiringAt,
+            nextAiringEpisode: outcome.nextAiringEpisode,
+            nextCheckAt: new Date(outcome.nextCheckAtMs),
+          })
+
+          return
+        }
+
         await this.notify_episode({
           userId: item.userId,
           title: item.title,
           siteUrl: item.siteUrl,
           imageUrl: item.imageUrl,
-          airingAt: outcome.nextAiringAt,
-          episode: outcome.nextAiringEpisode,
+          airingAt: outcome.notifyAiringAt,
+          episode: outcome.notifyEpisode,
         })
 
         const next_check_at = new Date(outcome.nextCheckAtMs)
@@ -106,7 +129,7 @@ export class AniListWatchlistScheduler {
 
         await anilistWatchlistService.mark_notified({
           id: item.id,
-          airingAt: outcome.nextAiringAt,
+          airingAt: outcome.notifyAiringAt,
           nextCheckAt: next_check_at,
         })
 

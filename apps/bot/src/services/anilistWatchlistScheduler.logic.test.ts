@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
-import { compute_watchlist_schedule_outcome } from './anilistWatchlistScheduler.logic'
+import { compute_watchlist_schedule_outcome, compute_watchlist_scheduler_outcome } from './anilistWatchlistScheduler.logic'
 
 test('compute_watchlist_schedule_outcome: no next airing -> recheck later', () => {
   const res = compute_watchlist_schedule_outcome({
@@ -60,5 +60,43 @@ test('compute_watchlist_schedule_outcome: future airing -> wait until airing tim
   assert.equal(res.shouldNotify, false)
   assert.equal(res.nextAiringAt, 10_000)
   assert.equal(res.nextAiringEpisode, 9)
+  assert.equal(res.nextCheckAtMs, 10_000 * 1000)
+})
+
+test('compute_watchlist_scheduler_outcome: cached aired but AniList already advanced -> notify cached', () => {
+  const res = compute_watchlist_scheduler_outcome({
+    nowMs: 2_000_000,
+    nowSec: 2_000,
+    cachedNextAiringAt: 1_500,
+    cachedNextAiringEpisode: 7,
+    next: { airingAt: 10_000, episode: 8 },
+    lastNotifiedAiringAt: null,
+  })
+
+  assert.equal(res.kind, 'notify_cached')
+  assert.equal(res.shouldNotify, true)
+  assert.equal(res.notifyAiringAt, 1_500)
+  assert.equal(res.notifyEpisode, 7)
+  assert.equal(res.nextAiringAt, 10_000)
+  assert.equal(res.nextAiringEpisode, 8)
+  assert.equal(res.nextCheckAtMs, 10_000 * 1000)
+})
+
+test('compute_watchlist_scheduler_outcome: cached aired but already notified -> do not notify', () => {
+  const res = compute_watchlist_scheduler_outcome({
+    nowMs: 2_000_000,
+    nowSec: 2_000,
+    cachedNextAiringAt: 1_500,
+    cachedNextAiringEpisode: 7,
+    next: { airingAt: 10_000, episode: 8 },
+    lastNotifiedAiringAt: 1_500,
+  })
+
+  assert.equal(res.kind, 'wait')
+  assert.equal(res.shouldNotify, false)
+  assert.equal(res.notifyAiringAt, null)
+  assert.equal(res.notifyEpisode, null)
+  assert.equal(res.nextAiringAt, 10_000)
+  assert.equal(res.nextAiringEpisode, 8)
   assert.equal(res.nextCheckAtMs, 10_000 * 1000)
 })
