@@ -6,7 +6,7 @@ type button_variant = 'solid' | 'outline' | 'ghost'
 
 type button_size = 'sm' | 'md' | 'lg'
 
-export type button_props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
+type button_props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: button_variant
   size?: button_size
   isLoading?: boolean

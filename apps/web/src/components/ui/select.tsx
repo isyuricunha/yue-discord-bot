@@ -32,7 +32,7 @@ function extract_options(children: React.ReactNode) {
   return options
 }
 
-export type select_props = {
+type select_props = {
   value?: string
   defaultValue?: string
   onValueChange?: (value: string) => void

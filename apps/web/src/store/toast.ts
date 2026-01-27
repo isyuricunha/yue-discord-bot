@@ -80,12 +80,3 @@ export function toast_error(message: string, title = 'Erro') {
     duration_ms: 5500,
   })
 }
-
-export function toast_info(message: string, title?: string) {
-  return useToastStore.getState().push({
-    title,
-    message,
-    variant: 'default',
-    duration_ms: 3500,
-  })
-}

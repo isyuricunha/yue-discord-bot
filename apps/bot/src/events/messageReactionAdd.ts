@@ -1,10 +1,7 @@
-import { Events, MessageReaction, User, PartialMessageReaction, PartialUser } from 'discord.js'
+import { MessageReaction, User, PartialMessageReaction, PartialUser } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
-
-export const name = Events.MessageReactionAdd
-export const once = false
 
 export async function execute(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
   // Ignorar bots
