@@ -8,6 +8,7 @@ export * from './template_placeholders';
 export * from './automod_word_filter'
 export * from './warn_thresholds'
 export * from './giveaway_items'
+export * from './public_id'
 export * from './suggestion_timeframes'
 export * from './duration'
 export * from './coinflip_fairness'
