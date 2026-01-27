@@ -43,6 +43,31 @@ module.exports = {
           transform: (commit, context) => {
             const nextCommit = { ...commit };
 
+            if (typeof nextCommit.hash === "string" && nextCommit.hash.length > 0) {
+              nextCommit.shortHash = nextCommit.shortHash ?? nextCommit.hash.slice(0, 7);
+
+              const repoUrl =
+                context.repositoryUrl ??
+                context.repoUrl ??
+                context.repository ??
+                context.repo;
+
+              if (typeof repoUrl === "string" && repoUrl.length > 0) {
+                let normalizedRepoUrl = repoUrl.replace(/\.git$/, "");
+
+                const sshMatch = normalizedRepoUrl.match(/^git@github\.com:(.+)$/);
+                if (sshMatch?.[1]) {
+                  normalizedRepoUrl = `https://github.com/${sshMatch[1]}`;
+                }
+
+                if (!normalizedRepoUrl.startsWith("http://") && !normalizedRepoUrl.startsWith("https://")) {
+                  normalizedRepoUrl = `https://${normalizedRepoUrl.replace(/^git:\/\//, "")}`;
+                }
+
+                nextCommit.commitUrl = `${normalizedRepoUrl}/commit/${nextCommit.hash}`;
+              }
+            }
+
             if (nextCommit.type === "chore" && ["deps", "dependencies"].includes(nextCommit.scope)) {
               nextCommit.type = "deps";
               nextCommit.scope = null;
