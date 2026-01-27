@@ -100,7 +100,14 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
   }
 
   private async get_client() {
-    if (this.client) return this.client
+    if (this.client) {
+      const is_open = (this.client as any).isOpen
+      if (is_open === false) {
+        this.client = null
+      } else {
+        return this.client
+      }
+    }
 
     const connect_timeout_ms = Math.max(100, parse_int_env(process.env.REDIS_CONNECT_TIMEOUT_MS, 800))
     const command_timeout_ms = Math.max(100, parse_int_env(process.env.REDIS_COMMAND_TIMEOUT_MS, 800))
@@ -115,6 +122,11 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
       disableOfflineQueue: true,
     })
     client.on('error', () => {})
+    client.on('end', () => {
+      if (this.client === client) {
+        this.client = null
+      }
+    })
 
     try {
       await with_timeout(client.connect(), connect_timeout_ms, 'Redis connect')
@@ -148,6 +160,28 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
     return client
   }
 
+  private is_client_closed_error(error: unknown): boolean {
+    const message = (error as { message?: unknown } | null | undefined)?.message
+    return typeof message === 'string' && message.toLowerCase().includes('client is closed')
+  }
+
+  private async run_redis_command<T>(label: string, command: (client: ReturnType<typeof createClient>) => Promise<T>): Promise<T> {
+    const run = async (): Promise<T> => {
+      const client = await this.get_client()
+      const command_timeout_ms = Number((client as any).__command_timeout_ms) || 0
+      return await with_timeout(command(client), command_timeout_ms, label)
+    }
+
+    try {
+      return await run()
+    } catch (error: unknown) {
+      if (!this.is_client_closed_error(error)) throw error
+
+      this.client = null
+      return await run()
+    }
+  }
+
   private normalize_message(message: conversation_message): conversation_message {
     const trimmed = message.content.trim()
     const content = trimmed.length > this.max_message_chars ? `${trimmed.slice(0, this.max_message_chars)}…` : trimmed
@@ -159,9 +193,7 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
   }
 
   async get_history(key: string): Promise<conversation_message[]> {
-    const client = await this.get_client()
-    const command_timeout_ms = Number((client as any).__command_timeout_ms) || 0
-    const raw = await with_timeout(client.get(this.build_key(key)), command_timeout_ms, 'Redis GET')
+    const raw = await this.run_redis_command('Redis GET', (client) => client.get(this.build_key(key)))
     if (!raw) return []
 
     try {
@@ -180,9 +212,7 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
   }
 
   async get_last_activity_ms(key: string): Promise<number | null> {
-    const client = await this.get_client()
-    const command_timeout_ms = Number((client as any).__command_timeout_ms) || 0
-    const raw = await with_timeout(client.get(this.build_key(key)), command_timeout_ms, 'Redis GET')
+    const raw = await this.run_redis_command('Redis GET', (client) => client.get(this.build_key(key)))
     if (!raw) return null
 
     try {
@@ -195,7 +225,6 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
   }
 
   async append(key: string, message: conversation_message): Promise<void> {
-    const client = await this.get_client()
     const redis_key = this.build_key(key)
 
     const current = await this.get_history(key)
@@ -206,13 +235,10 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
       last_activity_ms: now_ms(),
     }
 
-    const command_timeout_ms = Number((client as any).__command_timeout_ms) || 0
-    await with_timeout(client.set(redis_key, JSON.stringify(payload), { EX: this.ttl_seconds }), command_timeout_ms, 'Redis SET')
+    await this.run_redis_command('Redis SET', (client) => client.set(redis_key, JSON.stringify(payload), { EX: this.ttl_seconds }))
   }
 
   async clear(key: string): Promise<void> {
-    const client = await this.get_client()
-    const command_timeout_ms = Number((client as any).__command_timeout_ms) || 0
-    await with_timeout(client.del(this.build_key(key)), command_timeout_ms, 'Redis DEL')
+    await this.run_redis_command('Redis DEL', (client) => client.del(this.build_key(key)))
   }
 }
