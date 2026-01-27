@@ -36,8 +36,30 @@ async function upsert_giveaway_entry_edit_token(params: {
   giveawayId: string
   userId: string
 }): Promise<{ token: string; expiresAt: Date } | null> {
+  const now = new Date()
+
+  const existing = await prisma.giveawayEntryEditToken
+    .findUnique({
+      where: {
+        giveawayId_userId: {
+          giveawayId: params.giveawayId,
+          userId: params.userId,
+        },
+      },
+      select: {
+        token: true,
+        expiresAt: true,
+        usedAt: true,
+      },
+    })
+    .catch(() => null)
+
+  if (existing && !existing.usedAt && existing.expiresAt.getTime() > now.getTime()) {
+    return { token: existing.token, expiresAt: existing.expiresAt }
+  }
+
   const token = randomBytes(32).toString('hex')
-  const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000)
+  const expiresAt = new Date(now.getTime() + 10 * 60 * 1000)
 
   try {
     const record = await prisma.giveawayEntryEditToken.upsert({
@@ -56,6 +78,7 @@ async function upsert_giveaway_entry_edit_token(params: {
       update: {
         token,
         expiresAt,
+        usedAt: null,
       },
       select: {
         token: true,

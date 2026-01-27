@@ -225,12 +225,14 @@ model GiveawayEntryEditToken {
   userId     String
   token      String   @unique
   expiresAt  DateTime
+  usedAt     DateTime?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
   giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
 
   @@unique([giveawayId, userId])
   @@index([expiresAt])
+  @@index([usedAt])
   @@index([giveawayId])
   @@map("giveaway_entry_edit_tokens")
 }

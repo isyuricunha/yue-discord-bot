@@ -145,7 +145,17 @@ export default function GiveawayEntryEditPage() {
       {isError ? (
         <ErrorState
           title="Erro ao carregar"
-          description={(error as any)?.response?.data?.error || 'Não foi possível abrir o link.'}
+          description={(() => {
+            const status = (error as any)?.response?.status
+            const api_error = (error as any)?.response?.data?.error
+            if (status === 410 && api_error === 'Token expired') {
+              return 'Este link expirou. Volte ao Discord e gere um novo link.'
+            }
+            if (status === 410 && api_error === 'Token already used') {
+              return 'Este link já foi usado. Para editar novamente, gere um novo link no Discord.'
+            }
+            return api_error || 'Não foi possível abrir o link.'
+          })()}
           onAction={() => void refetch()}
         />
       ) : isLoading ? (
