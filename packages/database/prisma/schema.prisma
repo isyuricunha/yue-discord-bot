@@ -180,6 +180,7 @@ model Giveaway {
   roleChances     Json?
   entries         GiveawayEntry[]
   winners         GiveawayWinner[]
+  entryEditTokens GiveawayEntryEditToken[]
   guild           Guild            @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@index([guildId, ended])
@@ -216,6 +217,22 @@ model GiveawayWinner {
 
   @@index([giveawayId])
   @@map("giveaway_winners")
+}
+
+model GiveawayEntryEditToken {
+  id         String   @id @default(cuid())
+  giveawayId String
+  userId     String
+  token      String   @unique
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+
+  @@unique([giveawayId, userId])
+  @@index([expiresAt])
+  @@index([giveawayId])
+  @@map("giveaway_entry_edit_tokens")
 }
 
 model ScheduledEvent {
