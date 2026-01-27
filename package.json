@@ -33,12 +33,16 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.2",
+    "@semantic-release/commit-analyzer": "^13.0.1",
+    "@semantic-release/github": "^11.0.0",
+    "@semantic-release/release-notes-generator": "^14.1.0",
     "@typescript-eslint/eslint-plugin": "^8.53.0",
     "@typescript-eslint/parser": "^8.53.0",
     "eslint": "^9.39.2",
     "globals": "^17.0.0",
     "knip": "^5.82.1",
     "prettier": "^3.8.0",
+    "semantic-release": "^24.2.0",
     "typescript": "^5.9.3"
   },
   "engines": {
