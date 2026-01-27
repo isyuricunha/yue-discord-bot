@@ -394,7 +394,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       }
 
       if (giveaway.ended) {
-        return reply.code(400).send({ error: 'Giveaway has already ended' })
+        return reply.code(400).send({ error: 'O sorteio já acabou.' })
       }
 
       // Create entry
@@ -448,7 +448,7 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       }
 
       if (giveaway.ended) {
-        return reply.code(400).send({ error: 'Giveaway has already ended' })
+        return reply.code(400).send({ error: 'O sorteio já acabou.' })
       }
 
       const entry = await prisma.giveawayEntry.update({

@@ -52,7 +52,7 @@ export default async function giveawayEntryEditRoutes(fastify: FastifyInstance) 
 
     if (!giveaway) return reply.code(404).send({ error: 'Giveaway not found' })
 
-    if (giveaway.ended) return reply.code(400).send({ error: 'Giveaway has already ended' })
+    if (giveaway.ended) return reply.code(400).send({ error: 'O sorteio já acabou.' })
     if (giveaway.cancelled) return reply.code(400).send({ error: 'Giveaway has been cancelled' })
     if (giveaway.suspended) return reply.code(400).send({ error: 'Giveaway is suspended' })
     if (giveaway.format !== 'list') return reply.code(400).send({ error: 'Giveaway is not a list giveaway' })
@@ -120,7 +120,7 @@ export default async function giveawayEntryEditRoutes(fastify: FastifyInstance) 
 
     if (!giveaway) return reply.code(404).send({ error: 'Giveaway not found' })
 
-    if (giveaway.ended) return reply.code(400).send({ error: 'Giveaway has already ended' })
+    if (giveaway.ended) return reply.code(400).send({ error: 'O sorteio já acabou.' })
     if (giveaway.cancelled) return reply.code(400).send({ error: 'Giveaway has been cancelled' })
     if (giveaway.suspended) return reply.code(400).send({ error: 'Giveaway is suspended' })
     if (giveaway.format !== 'list') return reply.code(400).send({ error: 'Giveaway is not a list giveaway' })
