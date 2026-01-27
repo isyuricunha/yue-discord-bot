@@ -156,6 +156,7 @@ model AuditLog {
 
 model Giveaway {
   id              String           @id @default(cuid())
+  publicId        String?          @unique
   guildId         String
   title           String
   description     String
@@ -183,6 +184,7 @@ model Giveaway {
   entryEditTokens GiveawayEntryEditToken[]
   guild           Guild            @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
+  @@index([publicId])
   @@index([guildId, ended])
   @@map("giveaways")
 }
