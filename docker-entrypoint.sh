@@ -51,7 +51,17 @@ echo "✅ PostgreSQL is ready!"
 
 # Run migrations
 echo "🔄 Running database migrations..."
-pnpm --filter @yuebot/database exec prisma migrate deploy
+attempt=0
+max_attempts=10
+until pnpm --filter @yuebot/database exec prisma migrate deploy; do
+  attempt=$((attempt + 1))
+  if [ "$attempt" -ge "$max_attempts" ]; then
+    echo "ERROR: Database migrations failed after ${max_attempts} attempts"
+    exit 1
+  fi
+  echo "WARN: Migration failed (attempt ${attempt}/${max_attempts}) - retrying in 3s"
+  sleep 3
+done
 
 # Inject runtime environment variables into frontend
 echo "🔧 Injecting frontend environment variables..."
