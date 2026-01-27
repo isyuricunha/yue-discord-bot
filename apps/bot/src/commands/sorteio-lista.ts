@@ -9,7 +9,7 @@ import {
 } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { getSendableChannel } from '../utils/discord'
-import { parseDurationMs, parse_giveaway_items_input } from '@yuebot/shared'
+import { generate_public_id, parseDurationMs, parse_giveaway_items_input } from '@yuebot/shared'
 
 export const data = new SlashCommandBuilder()
   .setName('sorteio-lista')
@@ -185,6 +185,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     // Salvar no banco
     const giveaway = await prisma.giveaway.create({
       data: {
+        publicId: generate_public_id(10),
         guildId: interaction.guildId!,
         title,
         description,
@@ -203,7 +204,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     
     await interaction.editReply(
       `✅ Sorteio com lista criado com sucesso!\n` +
-      `ID: \`${giveaway.id}\`\n` +
+      `ID: \`${giveaway.publicId ?? giveaway.id}\`\n` +
       `${items.length} itens disponíveis\n` +
       `Lista enviada no canal!`
     )

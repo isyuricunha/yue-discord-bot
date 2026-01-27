@@ -6,7 +6,7 @@ import {
 } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { getSendableChannel } from '../utils/discord'
-import { parseDurationMs } from '@yuebot/shared'
+import { generate_public_id, parseDurationMs } from '@yuebot/shared'
 
 export const data = new SlashCommandBuilder()
   .setName('sorteio')
@@ -97,6 +97,15 @@ function parseDuration(duration: string): number {
   return ms
 }
 
+async function find_giveaway_by_identifier(input: { guildId: string; identifier: string }) {
+  const by_id = await prisma.giveaway.findUnique({ where: { id: input.identifier } })
+  if (by_id && by_id.guildId === input.guildId) return by_id
+
+  return await prisma.giveaway.findFirst({
+    where: { guildId: input.guildId, publicId: input.identifier },
+  })
+}
+
 function assignPrizes(winners: any[], availableItems: string[]): any[] {
   const assignedPrizes = new Set<string>()
   const results: any[] = []
@@ -174,6 +183,7 @@ async function handleListActive(interaction: ChatInputCommandInteraction) {
     take: limit,
     select: {
       id: true,
+      publicId: true,
       title: true,
       channelId: true,
       endsAt: true,
@@ -197,10 +207,11 @@ async function handleListActive(interaction: ChatInputCommandInteraction) {
 
   for (const giveaway of giveaways) {
     const ends_at_ts = Math.floor(new Date(giveaway.endsAt).getTime() / 1000)
+    const show_id = giveaway.publicId ?? giveaway.id
     embed.addFields({
       name: giveaway.title,
       value:
-        `ID: \`${giveaway.id}\`\n` +
+        `ID: \`${show_id}\`\n` +
         `Canal: <#${giveaway.channelId}>\n` +
         `Termina: <t:${ends_at_ts}:R>\n` +
         `Participantes: ${giveaway._count.entries}\n` +
@@ -264,6 +275,7 @@ async function handleCreate(interaction: ChatInputCommandInteraction) {
     // Salvar no banco
     const giveaway = await prisma.giveaway.create({
       data: {
+        publicId: generate_public_id(10),
         guildId: interaction.guildId!,
         title,
         description,
@@ -277,7 +289,7 @@ async function handleCreate(interaction: ChatInputCommandInteraction) {
       },
     })
     
-    await interaction.editReply(`✅ Sorteio criado com sucesso!\nID: \`${giveaway.id}\``)
+    await interaction.editReply(`✅ Sorteio criado com sucesso!\nID: \`${giveaway.publicId ?? giveaway.id}\``)
   } catch (error: any) {
     await interaction.editReply(`❌ Erro: ${error.message}`)
   }
@@ -286,42 +298,55 @@ async function handleCreate(interaction: ChatInputCommandInteraction) {
 async function handleEnd(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ ephemeral: true })
   
-  const id = interaction.options.getString('id', true)
+  const identifier = interaction.options.getString('id', true)
+  const guildId = interaction.guildId
+
+  if (!guildId) {
+    return interaction.editReply('❌ Este comando só pode ser usado em servidores.')
+  }
   
   try {
-    const giveaway = await prisma.giveaway.findUnique({
-      where: { id },
-      include: { entries: true },
-    })
-    
-    if (!giveaway) {
+    const giveaway = await find_giveaway_by_identifier({ guildId, identifier })
+
+    const giveaway_with_entries = giveaway
+      ? await prisma.giveaway.findUnique({
+          where: { id: giveaway.id },
+          include: { entries: true },
+        })
+      : null
+
+    const resolved_giveaway = giveaway_with_entries
+
+    if (!resolved_giveaway) {
       return interaction.editReply('❌ Sorteio não encontrado!')
     }
-    
-    if (giveaway.ended) {
+
+    const giveawayId = resolved_giveaway.id
+
+    if (resolved_giveaway.ended) {
       return interaction.editReply('❌ Este sorteio já foi finalizado!')
     }
-    
+
     // Selecionar vencedores
-    const eligibleEntries = giveaway.entries.filter(e => !e.disqualified)
-    
+    const eligibleEntries = resolved_giveaway.entries.filter(e => !e.disqualified)
+
     if (eligibleEntries.length === 0) {
       await prisma.giveaway.update({
-        where: { id },
+        where: { id: giveawayId },
         data: { ended: true },
       })
       return interaction.editReply('❌ Nenhum participante elegível!')
     }
-    
+
     // Sortear vencedores
-    const winnerCount = Math.min(giveaway.maxWinners, eligibleEntries.length)
+    const winnerCount = Math.min(resolved_giveaway.maxWinners, eligibleEntries.length)
     const shuffled = eligibleEntries.sort(() => Math.random() - 0.5)
     const selectedWinners = shuffled.slice(0, winnerCount)
 
     // Distribuir prêmios se for lista
     let winnersData: any[] = []
-    if (giveaway.format === 'list' && giveaway.availableItems) {
-      winnersData = assignPrizes(selectedWinners, giveaway.availableItems as string[])
+    if (resolved_giveaway.format === 'list' && resolved_giveaway.availableItems) {
+      winnersData = assignPrizes(selectedWinners, resolved_giveaway.availableItems as string[])
     } else {
       winnersData = selectedWinners.map(w => ({
         userId: w.userId,
@@ -336,7 +361,7 @@ async function handleEnd(interaction: ChatInputCommandInteraction) {
       ...winnersData.map(w => 
         prisma.giveawayWinner.create({
           data: {
-            giveawayId: giveaway.id,
+            giveawayId,
             userId: w.userId,
             username: w.username,
             prize: w.prize,
@@ -345,24 +370,24 @@ async function handleEnd(interaction: ChatInputCommandInteraction) {
         })
       ),
       prisma.giveaway.update({
-        where: { id: giveaway.id },
+        where: { id: giveawayId },
         data: { ended: true },
       }),
     ])
 
     // Anunciar
     let winnerMentions = ''
-    if (giveaway.format === 'list' && winnersData[0]?.prize) {
+    if (resolved_giveaway.format === 'list' && winnersData[0]?.prize) {
       winnerMentions = winnersData.map(w => `<@${w.userId}>: **${w.prize}**`).join('\n')
     } else {
       winnerMentions = winnersData.map(w => `<@${w.userId}>`).join(', ')
     }
 
-    const rawChannel = await interaction.client.channels.fetch(giveaway.channelId)
+    const rawChannel = await interaction.client.channels.fetch(resolved_giveaway.channelId)
     const channel = getSendableChannel(rawChannel)
     if (channel) {
       const embed = new EmbedBuilder()
-        .setTitle(`🎊 Sorteio Finalizado: ${giveaway.title}`)
+        .setTitle(`🎊 Sorteio Finalizado: ${resolved_giveaway.title}`)
         .setDescription(`**Vencedores:**\n${winnerMentions}`)
         .setColor(0x10B981)
         .setTimestamp()
@@ -379,54 +404,67 @@ async function handleEnd(interaction: ChatInputCommandInteraction) {
 async function handleReroll(interaction: ChatInputCommandInteraction) {
   await interaction.deferReply({ ephemeral: true })
   
-  const id = interaction.options.getString('id', true)
+  const identifier = interaction.options.getString('id', true)
+  const guildId = interaction.guildId
+
+  if (!guildId) {
+    return interaction.editReply('❌ Este comando só pode ser usado em servidores.')
+  }
   
   try {
-    const giveaway = await prisma.giveaway.findUnique({
-      where: { id },
-      include: { entries: true, winners: true },
-    })
-    
-    if (!giveaway) {
+    const giveaway = await find_giveaway_by_identifier({ guildId, identifier })
+
+    const giveaway_with_relations = giveaway
+      ? await prisma.giveaway.findUnique({
+          where: { id: giveaway.id },
+          include: { entries: true, winners: true },
+        })
+      : null
+
+    const resolved_giveaway = giveaway_with_relations
+
+    if (!resolved_giveaway) {
       return interaction.editReply('❌ Sorteio não encontrado!')
     }
-    
-    if (!giveaway.ended) {
+
+    const giveawayId = resolved_giveaway.id
+
+    if (!resolved_giveaway.ended) {
       return interaction.editReply('❌ Este sorteio ainda não foi finalizado!')
     }
-    
+
     // Remover vencedores antigos
     await prisma.giveawayWinner.deleteMany({
-      where: { giveawayId: id },
+      where: { giveawayId },
     })
-    
+
     // Selecionar novos vencedores
-    const eligibleEntries = giveaway.entries.filter(e => !e.disqualified)
-    const winnerCount = Math.min(giveaway.maxWinners, eligibleEntries.length)
+    const eligibleEntries = resolved_giveaway.entries.filter(e => !e.disqualified)
+    const winnerCount = Math.min(resolved_giveaway.maxWinners, eligibleEntries.length)
     const shuffled = eligibleEntries.sort(() => Math.random() - 0.5)
     const winners = shuffled.slice(0, winnerCount)
-    
+
     // Salvar novos vencedores
     await prisma.$transaction(
       winners.map(w => 
         prisma.giveawayWinner.create({
           data: {
-            giveawayId: id,
+            giveawayId,
             userId: w.userId,
             username: w.username,
           },
         })
       )
     )
-    
+
     // Anunciar
-    const rawChannel = await interaction.client.channels.fetch(giveaway.channelId)
+    const rawChannel = await interaction.client.channels.fetch(resolved_giveaway.channelId)
     const channel = getSendableChannel(rawChannel)
     if (channel) {
       const winnerMentions = winners.map(w => `<@${w.userId}>`).join(', ')
       
       const embed = new EmbedBuilder()
-        .setTitle(`🔄 Novos Vencedores: ${giveaway.title}`)
+        .setTitle(`🔄 Novos Vencedores: ${resolved_giveaway.title}`)
         .setDescription(`**Vencedores:**\n${winnerMentions}`)
         .setColor(0x3B82F6)
         .setTimestamp()

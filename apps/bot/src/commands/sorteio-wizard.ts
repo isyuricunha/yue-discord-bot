@@ -15,7 +15,7 @@ import {
   StringSelectMenuBuilder
 } from 'discord.js'
 import { prisma } from '@yuebot/database'
-import { parseDurationMs, parse_giveaway_items_input } from '@yuebot/shared'
+import { generate_public_id, parseDurationMs, parse_giveaway_items_input } from '@yuebot/shared'
 
 export const data = new SlashCommandBuilder()
   .setName('sorteio-wizard')
@@ -402,6 +402,7 @@ export async function handleFinish(interaction: any, skipRole: boolean = false) 
       
       await prisma.giveaway.create({
         data: {
+          publicId: generate_public_id(10),
           guildId: interaction.guildId!,
           title: state.title!,
           description: state.description!,
@@ -483,6 +484,7 @@ export async function handleFinish(interaction: any, skipRole: boolean = false) 
       
       await prisma.giveaway.create({
         data: {
+          publicId: generate_public_id(10),
           guildId: interaction.guildId!,
           title: state.title!,
           description: state.description!,
@@ -699,6 +701,7 @@ export async function handleContinueAfterChances(interaction: any) {
       
       await prisma.giveaway.create({
         data: {
+          publicId: generate_public_id(10),
           guildId: interaction.guildId!,
           title: state.title!,
           description: state.description!,
@@ -781,6 +784,7 @@ export async function handleContinueAfterChances(interaction: any) {
       
       await prisma.giveaway.create({
         data: {
+          publicId: generate_public_id(10),
           guildId: interaction.guildId!,
           title: state.title!,
           description: state.description!,
