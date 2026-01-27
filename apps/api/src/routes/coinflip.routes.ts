@@ -1,6 +1,12 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database'
-import { coinflipActionSchema, coinflipCreateBetSchema } from '@yuebot/shared'
+import {
+  coinflipActionSchema,
+  coinflipCreateBetSchema,
+  compute_coinflip_result_side,
+  compute_server_seed_hash,
+  generate_server_seed_hex,
+} from '@yuebot/shared'
 import { randomInt } from 'node:crypto'
 
 import { validation_error_details } from '../utils/validation_error'
@@ -55,13 +61,31 @@ function serialize_game(game: {
   resultSide: string | null
   createdAt: Date
   resolvedAt: Date | null
+  serverSeedHash?: string | null
+  serverSeed?: string | null
   challenger?: { id: string; username: string | null; avatar: string | null } | null
   opponent?: { id: string; username: string | null; avatar: string | null } | null
   winner?: { id: string; username: string | null; avatar: string | null } | null
 }) {
   return {
-    ...game,
+    id: game.id,
+    status: game.status,
+    guildId: game.guildId,
+    channelId: game.channelId,
+    messageId: game.messageId,
+    challengerId: game.challengerId,
+    opponentId: game.opponentId,
     betAmount: game.betAmount.toString(),
+    challengerSide: game.challengerSide,
+    winnerId: game.winnerId,
+    resultSide: game.resultSide,
+    createdAt: game.createdAt,
+    resolvedAt: game.resolvedAt,
+    serverSeedHash: game.serverSeedHash ?? null,
+    ...(game.status === 'completed' ? { serverSeed: game.serverSeed ?? null } : {}),
+    challenger: game.challenger ?? null,
+    opponent: game.opponent ?? null,
+    winner: game.winner ?? null,
   }
 }
 
@@ -160,6 +184,9 @@ export async function coinflipRoutes(fastify: FastifyInstance) {
       return reply.code(400).send({ error: 'Invalid body' })
     }
 
+    const serverSeed = generate_server_seed_hex()
+    const serverSeedHash = await compute_server_seed_hash(serverSeed)
+
     const game = await prisma.coinflipGame.create({
       data: {
         status: 'pending',
@@ -170,6 +197,8 @@ export async function coinflipRoutes(fastify: FastifyInstance) {
         opponentId: input.opponentId,
         betAmount: amount,
         challengerSide: input.challengerSide,
+        serverSeed,
+        serverSeedHash,
       },
       include: {
         challenger: { select: { id: true, username: true, avatar: true } },
@@ -246,7 +275,10 @@ export async function coinflipRoutes(fastify: FastifyInstance) {
         return { ok: false as const, error: 'insufficient_funds' }
       }
 
-      const resultSide = pick_result_side()
+      const has_fairness_commit = typeof game.serverSeed === 'string' && typeof game.serverSeedHash === 'string'
+      const resultSide = has_fairness_commit
+        ? await compute_coinflip_result_side({ serverSeed: game.serverSeed!, gameId: game.id })
+        : pick_result_side()
       const challenger_wins = resultSide === (game.challengerSide as coin_side)
       const winner_id = challenger_wins ? game.challengerId : game.opponentId
       const loser_id = challenger_wins ? game.opponentId : game.challengerId
@@ -291,6 +323,7 @@ export async function coinflipRoutes(fastify: FastifyInstance) {
           winnerId: winner_id,
           resultSide,
           resolvedAt: new Date(),
+          ...(game.serverSeed && !game.serverSeedHash ? { serverSeedHash: await compute_server_seed_hash(game.serverSeed) } : {}),
         },
         include: {
           challenger: { select: { id: true, username: true, avatar: true } },
