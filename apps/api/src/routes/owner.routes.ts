@@ -361,13 +361,13 @@ export async function ownerRoutes(fastify: FastifyInstance) {
 
         if (perms) {
           if (!perms.permissions.viewAuditLog) {
-            issues.push({ kind: 'missing_bot_permission', message: 'Bot is missing ViewAuditLog permission' })
+            issues.push({ kind: 'missing_bot_permission', message: 'Bot está faltando a permissão ViewAuditLog' })
           }
           if (!perms.permissions.sendMessages) {
-            issues.push({ kind: 'missing_bot_permission', message: 'Bot is missing SendMessages permission' })
+            issues.push({ kind: 'missing_bot_permission', message: 'Bot está faltando a permissão SendMessages' })
           }
           if (!perms.permissions.embedLinks) {
-            issues.push({ kind: 'missing_bot_permission', message: 'Bot is missing EmbedLinks permission' })
+            issues.push({ kind: 'missing_bot_permission', message: 'Bot está faltando a permissão EmbedLinks' })
           }
         }
 
