@@ -73,7 +73,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
   const base_items: nav_item[] = [
     {
       to: '/',
-      label: 'Dashboard',
+      label: 'Painel',
       icon: <LayoutDashboard className="h-4 w-4" />,
     },
     {
