@@ -118,7 +118,7 @@ export const coinflipCommand: Command = {
 
       const embed = new EmbedBuilder()
         .setColor(COLORS.INFO)
-        .setTitle(`${EMOJIS.INFO} Coinflip`)
+        .setTitle(`${EMOJIS.INFO} Cara ou Coroa`)
         .setDescription(`Resultado: **${side_label(side)}**`)
 
       await interaction.reply({ embeds: [embed] })
@@ -128,7 +128,7 @@ export const coinflipCommand: Command = {
     if (sub === 'info') {
       const embed = new EmbedBuilder()
         .setColor(COLORS.INFO)
-        .setTitle(`${EMOJIS.INFO} Coinflip: sobre aleatoriedade`)
+        .setTitle(`${EMOJIS.INFO} Cara ou Coroa: sobre aleatoriedade`)
         .setDescription(
           'Não existe “macete” confiável para garantir vitória.\n\n' +
             '- O resultado é gerado com aleatoriedade do servidor (não depende de tempo de clique, servidor, ou “esquentar” a moeda).\n' +
@@ -204,7 +204,7 @@ export const coinflipCommand: Command = {
 
       const embed = new EmbedBuilder()
         .setColor(COLORS.INFO)
-        .setTitle(`${EMOJIS.INFO} Coinflip bet`)
+        .setTitle(`${EMOJIS.INFO} Cara ou Coroa bet`)
         .setDescription(
           `<@${interaction.user.id}> desafiou <@${opponent.id}> para uma aposta.\n\n` +
             `Quantia: **${format_bigint(amount)}** luazinhas (cada jogador)\n` +

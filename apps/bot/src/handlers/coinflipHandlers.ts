@@ -58,7 +58,7 @@ export async function handleCoinflipButton(interaction: ButtonInteraction): Prom
 
   const embed = new EmbedBuilder()
     .setColor(COLORS.SUCCESS)
-    .setTitle(`${EMOJIS.SUCCESS} Coinflip resolvido`)
+    .setTitle(`${EMOJIS.SUCCESS} Cara ou Coroa resolvido`)
     .setDescription(
       `Resultado: **${res.resultSide === 'heads' ? 'Cara' : 'Coroa'}**\n` +
         `Vencedor: <@${res.winnerId}>\n` +

@@ -166,7 +166,7 @@ export default function CoinflipPage() {
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <div className="text-2xl font-semibold tracking-tight">Coinflip</div>
+          <div className="text-2xl font-semibold tracking-tight">Cara ou Coroa</div>
           <div className="mt-1 text-sm text-muted-foreground">Crie apostas e aceite/recuse pelo painel</div>
         </div>
 
