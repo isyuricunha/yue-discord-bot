@@ -193,7 +193,7 @@ export default function CoinflipPage() {
             <div className="text-xs text-muted-foreground">Aposta pendente até o oponente aceitar</div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Input placeholder="Opponent user id" value={opponent_id} onChange={(e) => set_opponent_id(e.target.value)} />
+            <Input placeholder="ID do usuário no Discord" value={opponent_id} onChange={(e) => set_opponent_id(e.target.value)} />
             <Input placeholder="Quantia (cada jogador)" value={bet_amount} onChange={(e) => set_bet_amount(e.target.value)} />
 
             <Select
