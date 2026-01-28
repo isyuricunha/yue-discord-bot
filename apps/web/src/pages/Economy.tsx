@@ -168,7 +168,7 @@ export default function EconomyPage() {
             <div className="text-xs text-muted-foreground">Envia luazinhas para outro usuário (por ID)</div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Input placeholder="Discord user id" value={transfer_to} onChange={(e) => set_transfer_to(e.target.value)} />
+            <Input placeholder="ID do usuário no Discord" value={transfer_to} onChange={(e) => set_transfer_to(e.target.value)} />
             <Input placeholder="Quantia" value={transfer_amount} onChange={(e) => set_transfer_amount(e.target.value)} />
             <Input placeholder="Motivo (opcional)" value={transfer_reason} onChange={(e) => set_transfer_reason(e.target.value)} />
             <Button className="w-full" isLoading={is_transfer_loading} onClick={() => void do_transfer()} disabled={!transfer_to.trim() || !transfer_amount.trim()}>
