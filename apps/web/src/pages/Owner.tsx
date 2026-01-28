@@ -279,11 +279,11 @@ export default function OwnerPage() {
     const searched = !q
       ? base
       : base.filter((g) => {
-          const id_match = g.id.toLowerCase().includes(q)
-          const name_match = g.name.toLowerCase().includes(q)
-          const owner_match = (g.ownerId ?? '').toLowerCase().includes(q)
-          return id_match || name_match || owner_match
-        })
+        const id_match = g.id.toLowerCase().includes(q)
+        const name_match = g.name.toLowerCase().includes(q)
+        const owner_match = (g.ownerId ?? '').toLowerCase().includes(q)
+        return id_match || name_match || owner_match
+      })
 
     const range_filtered = searched.filter((g) => in_range(g.addedAt))
 
@@ -324,7 +324,7 @@ export default function OwnerPage() {
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="text-base font-semibold">Diagnostics</div>
+              <div className="text-base font-semibold">Diagnósticos</div>
               <div className="mt-1 text-sm text-muted-foreground">
                 Saúde do internal bot API e inconsistências comuns de configuração.
               </div>
