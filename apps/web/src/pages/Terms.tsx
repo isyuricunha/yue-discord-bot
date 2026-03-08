@@ -19,7 +19,7 @@ export default function TermsPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            A Yue é um bot para Discord, com um painel web para configuração de recursos (por exemplo: boas-vindas, logs, XP,
+            A Yue é um bot para Discord, com um painel web para configuração de recursos (por exemplo: recepção de membros, logs, XP,
             automoderação, sorteios e autorole).
           </div>
           <div>
@@ -34,13 +34,13 @@ export default function TermsPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            - Você deve estar em conformidade com os Termos do Discord e as regras do servidor em que usa a Yue.
+            • Você deve estar em conformidade com os Termos do Discord e as regras do servidor em que usa a Yue.
           </div>
           <div>
-            - Você é responsável pelas configurações feitas no painel e pelo conteúdo de mensagens/templates definidos por você.
+            • Você é responsável pelas configurações feitas no painel e pelo conteúdo de mensagens/templates definidos por você.
           </div>
           <div>
-            - Você deve ter permissão para gerenciar o servidor ao configurar recursos no painel.
+            • Você deve ter permissão para gerenciar o servidor ao configurar recursos no painel.
           </div>
         </CardContent>
       </Card>
@@ -55,13 +55,13 @@ export default function TermsPage() {
             Você concorda em não:
           </div>
           <div>
-            - Tentar explorar falhas, burlar limitações, automatizar abuso, ou interferir na operação do serviço.
+            • Tentar explorar falhas, burlar limitações, automatizar abuso, ou interferir na operação do serviço.
           </div>
           <div>
-            - Usar a Yue para assédio, spam, phishing, divulgação de dados pessoais, ou qualquer violação de políticas do Discord.
+            • Usar a Yue para assédio, spam, phishing, divulgação de dados pessoais, ou qualquer violação de políticas do Discord.
           </div>
           <div>
-            - Inserir conteúdo malicioso em templates (por exemplo: links fraudulentos) ou usar recursos para enganar membros.
+            • Inserir conteúdo malicioso em templates (por exemplo: links fraudulentos) ou usar recursos para enganar membros.
           </div>
         </CardContent>
       </Card>
@@ -103,7 +103,7 @@ export default function TermsPage() {
             Estes Termos não constituem aconselhamento jurídico. Se você tiver dúvidas, procure orientação profissional.
           </div>
           <div>
-            Última atualização: 2025-12-30
+            Última atualização: 30/12/2025
           </div>
         </CardContent>
       </Card>

@@ -57,22 +57,22 @@ export default function PrivacyPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            - Dados de servidores (guild): ID, nome, ícone, configurações (canais, templates, automoderação, XP, autorole).
+            • Dados de servidores (guild): ID, nome, ícone, configurações (canais, templates, automoderação, XP, autorole).
           </div>
           <div>
-            - Dados operacionais de membros no contexto de uma guild: ID, nome, avatar, data de entrada, contagem de warns.
+            • Dados operacionais de membros no contexto de uma guild: ID, nome, avatar, data de entrada, contagem de warns.
           </div>
           <div>
-            - Logs de moderação: ação, moderador, alvo, motivo/duração e metadados.
+            • Logs de moderação: ação, moderador, alvo, motivo/duração e metadados.
           </div>
           <div>
-            - Sorteios: configurações, participantes (ID, nome, avatar), vencedores e status.
+            • Sorteios: configurações, participantes (ID, nome, avatar), vencedores e status.
           </div>
           <div>
-            - XP: XP/nível por guild e (quando aplicável) XP global.
+            • XP: XP/nível por guild e (quando aplicável) XP global.
           </div>
           <div>
-            - Recursos sociais do projeto: perfil (bio), badges, fan arts (url da imagem e metadados), carteira e transações virtuais
+            • Recursos sociais do projeto: perfil (bio), badges, fan arts (url da imagem e metadados), carteira e transações virtuais
             (quando habilitadas).
           </div>
           <div className="text-xs text-muted-foreground">
@@ -90,13 +90,13 @@ export default function PrivacyPage() {
             Usamos os dados para:
           </div>
           <div>
-            - Autenticar usuários e autorizar acesso ao painel.
+            • Autenticar usuários e autorizar acesso ao painel.
           </div>
           <div>
-            - Aplicar configurações e automatizações (boas-vindas, logs, XP, automoderação, autorole).
+            • Aplicar configurações e automatizações (recepção de membros, logs, XP, automoderação, autorole).
           </div>
           <div>
-            - Garantir segurança, auditoria e prevenção de abuso (por exemplo: logs de moderação e registros de eventos).
+            • Garantir segurança, auditoria e prevenção de abuso (por exemplo: logs de moderação e registros de eventos).
           </div>
         </CardContent>
       </Card>
@@ -156,7 +156,7 @@ export default function PrivacyPage() {
             Podemos atualizar esta política para refletir mudanças no serviço.
           </div>
           <div>
-            Última atualização: 2025-12-30
+            Última atualização: 30/12/2025
           </div>
         </CardContent>
       </Card>
