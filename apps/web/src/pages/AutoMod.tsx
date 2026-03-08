@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { Save, Plus, Trash2, Shield, AlertTriangle, Link as LinkIcon } from 'lucide-react'
+import { Save, Plus, Trash2, Shield, AlertTriangle, Link as LinkIcon, BrainCircuit } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
@@ -39,6 +39,16 @@ interface BannedWord {
   action: string
 }
 
+/** Categories surfaced in the OpenAI omni-moderation-latest model. */
+const AI_MOD_CATEGORIES: { key: string; label: string; description: string }[] = [
+  { key: 'harassment', label: 'Assédio', description: 'Conteúdo que assedia, ameaça ou hostiliza indivíduos.' },
+  { key: 'hate', label: 'Ódio', description: 'Discurso de ódio baseado em identidade, raça, religião, etc.' },
+  { key: 'illicit', label: 'Ilícito', description: 'Conteúdo sobre atividades ilegais (drogas, armas, etc.).' },
+  { key: 'self-harm', label: 'Autolesão', description: 'Conteúdo sobre automutilação ou suicídio.' },
+  { key: 'sexual', label: 'Sexual', description: 'Conteúdo sexual explícito ou inadequado.' },
+  { key: 'violence', label: 'Violência', description: 'Conteúdo que promove ou descreve violência.' },
+]
+
 interface GuildConfig {
   id: string
   guildId: string
@@ -53,6 +63,9 @@ interface GuildConfig {
   bannedDomains: string[]
   allowedDomains: string[]
   linkAction: string
+  aiModerationEnabled: boolean
+  aiModerationAction: string
+  aiModerationCategoryThresholds: Record<string, number>
 }
 
 export default function AutoModPage() {
@@ -66,6 +79,8 @@ export default function AutoModPage() {
 
   const caps_action = String(config.capsAction ?? 'warn')
   const link_action = String(config.linkAction ?? 'delete')
+  const ai_action = String(config.aiModerationAction ?? 'delete')
+  const ai_thresholds = (config.aiModerationCategoryThresholds ?? {}) as Record<string, number>
 
   const {
     isLoading,
@@ -87,6 +102,9 @@ export default function AutoModPage() {
         bannedDomains: [],
         allowedDomains: [],
         linkAction: 'delete',
+        aiModerationEnabled: false,
+        aiModerationAction: 'delete',
+        aiModerationCategoryThresholds: {},
       }
       setConfig(initialConfig)
       return response.data
@@ -134,6 +152,11 @@ export default function AutoModPage() {
     const bannedDomains = [...(config.bannedDomains || [])]
     bannedDomains.splice(index, 1)
     setConfig({ ...config, bannedDomains })
+  }
+
+  const setAiThreshold = (category: string, value: number) => {
+    const updated = { ...ai_thresholds, [category]: value }
+    setConfig({ ...config, aiModerationCategoryThresholds: updated })
   }
 
   return (
@@ -409,6 +432,90 @@ export default function AutoModPage() {
                   )}
 
                   {isLoading && <Skeleton className="h-12 w-full" />}
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* ── OpenAI AI Moderation ── */}
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <BrainCircuit className="h-5 w-5 text-accent" />
+              <div>
+                <div className="text-sm font-semibold">Moderação por IA (OpenAI)</div>
+                <div className="text-xs text-muted-foreground">
+                  Analisa texto e imagens com <code className="rounded bg-surface px-1 text-[11px]">omni-moderation-latest</code>.
+                  Requer <code className="rounded bg-surface px-1 text-[11px]">OPENAI_API_KEY</code> configurada no servidor.
+                </div>
+              </div>
+            </div>
+
+            <Switch
+              checked={Boolean(config.aiModerationEnabled)}
+              onCheckedChange={(checked) => setConfig({ ...config, aiModerationEnabled: checked })}
+              label="Habilitar moderação por IA"
+              disabled={isLoading}
+            />
+          </div>
+
+          {Boolean(config.aiModerationEnabled) && (
+            <div className="space-y-5">
+              {/* Action */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <div className="text-sm font-medium">Ação ao detectar conteúdo impróprio</div>
+                  <div className="mt-2">
+                    <Select
+                      value={ai_action}
+                      onValueChange={(value) => setConfig({ ...config, aiModerationAction: value })}
+                    >
+                      <option value="delete">Deletar</option>
+                      <option value="warn">Avisar</option>
+                      <option value="mute">Silenciar</option>
+                      <option value="kick">Expulsar</option>
+                      <option value="ban">Banir</option>
+                    </Select>
+                    <div className="mt-2 text-xs text-muted-foreground">{describe_action(ai_action as automod_action)}</div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Per-category thresholds */}
+              <div>
+                <div className="mb-3 text-sm font-medium">Threshold por categoria (0.00 – 1.00)</div>
+                <div className="mb-3 text-xs text-muted-foreground">
+                  Score acima do threshold aciona o AutoMod. Padrão: <strong>0.80</strong> quando não configurado.
+                  Valores mais baixos são mais restritivos.
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {AI_MOD_CATEGORIES.map(({ key, label, description }) => {
+                    const currentValue = ai_thresholds[key] ?? 0.8
+                    return (
+                      <div key={key} className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 space-y-2">
+                        <div>
+                          <div className="text-sm font-medium">{label}</div>
+                          <div className="text-xs text-muted-foreground">{description}</div>
+                        </div>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          value={String(currentValue)}
+                          onChange={(e) => {
+                            const parsed = Number.parseFloat(e.target.value)
+                            if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 1) {
+                              setAiThreshold(key, parsed)
+                            }
+                          }}
+                        />
+                      </div>
+                    )
+                  })}
                 </div>
               </div>
             </div>
