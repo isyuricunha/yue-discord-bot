@@ -51,6 +51,7 @@ services:
       NODE_ENV: production
       REDIS_URL: "${REDIS_URL:-redis://:${REDIS_PASSWORD:-redispassword}@redis:6379}"
       LAVALINK_NODES: "${LAVALINK_NODES-}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY-}"
 
     volumes:
       - ./groq_system_prompt.txt:/app/prompts/groq_system_prompt.txt:ro
