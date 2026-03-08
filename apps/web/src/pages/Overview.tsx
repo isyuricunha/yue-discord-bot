@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { ArrowLeft, Users, Shield, Trophy, AlertCircle, Settings, FileText } from 'lucide-react'
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Skeleton } from '../components/ui'
@@ -30,6 +31,12 @@ interface GuildStats {
     createdAt: string
   }[]
   actionsByType?: Record<string, number>
+  chartData?: {
+    date: string
+    newMembers: number
+    moderationActions: number
+    economy: number
+  }[]
 }
 
 export default function OverviewPage() {
@@ -209,6 +216,68 @@ export default function OverviewPage() {
                 <AlertCircle className="h-4 w-4 text-muted-foreground" />
               </div>
               <div className="mt-2 text-2xl font-semibold">{stats?.bannedWords || '0'}</div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Estatísticas Cronológicas */}
+      {!is_loading && stats?.chartData && stats.chartData.length > 0 && (
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-sm font-medium mb-4">Ingresso de Membros (7 dias)</div>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorMembers" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+                    <XAxis dataKey="date" stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#0b0b0b', borderColor: '#1f1f1f', borderRadius: '8px' }}
+                      itemStyle={{ color: '#f5f5f5' }}
+                    />
+                    <Area type="monotone" dataKey="newMembers" name="Novos Membros" stroke="#3b82f6" fillOpacity={1} fill="url(#colorMembers)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardContent className="p-6">
+              <div className="text-sm font-medium mb-4">Economia & Moderação (7 dias)</div>
+              <div className="h-64 w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                    <defs>
+                      <linearGradient id="colorEcon" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ff6a00" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#ff6a00" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorMod" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+                    <XAxis dataKey="date" stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
+                    <Tooltip 
+                      contentStyle={{ backgroundColor: '#0b0b0b', borderColor: '#1f1f1f', borderRadius: '8px' }}
+                      itemStyle={{ color: '#f5f5f5' }}
+                    />
+                    <Area type="monotone" dataKey="economy" name="Transações Globais" stroke="#ff6a00" fillOpacity={1} fill="url(#colorEcon)" />
+                    <Area type="monotone" dataKey="moderationActions" name="Ações de Mod." stroke="#ef4444" fillOpacity={1} fill="url(#colorMod)" />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </CardContent>
           </Card>
         </div>

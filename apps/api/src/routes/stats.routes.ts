@@ -119,6 +119,52 @@ export async function statsRoutes(fastify: FastifyInstance) {
         actionsByType[item.action] = item._count.action
       })
 
+      // Generate 7-days chart data
+      const dateLabels = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date()
+        d.setDate(d.getDate() - (6 - i))
+        return d.toISOString().split('T')[0]
+      })
+
+      const chartDataMap = new Map<string, { date: string, newMembers: number, moderationActions: number, economy: number }>()
+      dateLabels.forEach(date => {
+        // Will format date as "DD/MM" for UI
+        const [, mm, dd] = date.split('-')
+        chartDataMap.set(date, { date: `${dd}/${mm}`, newMembers: 0, moderationActions: 0, economy: 0 })
+      })
+
+      // 1. Bin moderation actions
+      const recentModLogs = await prisma.modLog.findMany({
+        where: { guildId, createdAt: { gte: sevenDaysAgo } },
+        select: { createdAt: true }
+      })
+      recentModLogs.forEach(log => {
+        const dStr = log.createdAt.toISOString().split('T')[0]
+        if (chartDataMap.has(dStr)) chartDataMap.get(dStr)!.moderationActions++
+      })
+
+      // 2. Bin new members
+      const recentMembers = await prisma.guildMember.findMany({
+        where: { guildId, joinedAt: { gte: sevenDaysAgo } },
+        select: { joinedAt: true }
+      })
+      recentMembers.forEach(member => {
+        const dStr = member.joinedAt.toISOString().split('T')[0]
+        if (chartDataMap.has(dStr)) chartDataMap.get(dStr)!.newMembers++
+      })
+
+      // 3. Bin economy transactions
+      const recentEconomy = await prisma.luazinhaTransaction.findMany({
+        where: { guildId, createdAt: { gte: sevenDaysAgo } },
+        select: { createdAt: true }
+      })
+      recentEconomy.forEach(tx => {
+        const dStr = tx.createdAt.toISOString().split('T')[0]
+        if (chartDataMap.has(dStr)) chartDataMap.get(dStr)!.economy++
+      })
+
+      const chartData = Array.from(chartDataMap.values())
+
       // Fetch total members from Bot internal API (bot token stays confined to the bot process)
       let totalMembers = 0
       try {
@@ -138,6 +184,7 @@ export async function statsRoutes(fastify: FastifyInstance) {
         bannedWords,
         recentActions,
         actionsByType,
+        chartData,
       })
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to build guild stats')
