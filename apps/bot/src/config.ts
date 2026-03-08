@@ -58,6 +58,9 @@ export const CONFIG = {
     badgeAdminUserIds: parse_csv_env(process.env.BADGE_ADMIN_USER_IDS),
     fanArtReviewerUserIds: parse_csv_env(process.env.FAN_ART_REVIEWER_USER_IDS),
   },
+  redis: {
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
+  },
 } as const;
 
 export function assert_deploy_commands_env(): void {

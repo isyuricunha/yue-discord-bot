@@ -5,27 +5,63 @@ import { assign_giveaway_prizes } from './giveawayPrizeAssignment.logic'
 import { logger } from '../utils/logger'
 import { getSendableChannel } from '../utils/discord'
 import { safe_error_details } from '../utils/safe_error'
+import { Queue, Worker, Job } from 'bullmq'
+import { redisConnection } from './queue.connection'
 
 export class GiveawayScheduler {
   private client: Client
-  private interval: NodeJS.Timeout | null = null
+  private queue: Queue
+  private worker: Worker
+  private intervalCheck: NodeJS.Timeout | null = null
 
   constructor(client: Client) {
     this.client = client
+    
+    // Instanciar a fila no Redis
+    this.queue = new Queue('giveaway-queue', { connection: redisConnection as any })
+
+    // Declarar o Worker que resolverá a etapa final do Sorteio
+    this.worker = new Worker(
+      'giveaway-queue',
+      async (job: Job) => {
+        if (job.name === 'end-giveaway') {
+          const { giveawayId } = job.data
+          // Buscar Giveaway atualizado do banco de dados na hora de finalizar
+          const giveaway = await prisma.giveaway.findUnique({
+            where: { id: giveawayId },
+            include: {
+              entries: { where: { disqualified: false } },
+            },
+          })
+
+          if (giveaway && !giveaway.ended && !giveaway.cancelled) {
+            await this.endGiveaway(giveaway)
+          }
+        }
+      },
+      { connection: redisConnection as any }
+    )
+
+    this.worker.on('failed', (job, err) => {
+      logger.error({ err, jobId: job?.id }, '❌ Erro no Worker do Giveaway')
+    })
   }
 
   start() {
-    // Verificar a cada 30 segundos
-    this.interval = setInterval(() => this.checkGiveaways(), 30000)
-    logger.info('🎉 Scheduler de sorteios iniciado')
+    // Manter um interval rápido apenas para a detecção inicial/publicação de sorteios 
+    // e para redirecionar o final para o BullMQ se não tiver no cache dele.
+    this.intervalCheck = setInterval(() => this.checkAndScheduleGiveaways(), 15000)
+    logger.info('🎉 Scheduler de sorteios (BullMQ) iniciado')
   }
 
-  stop() {
-    if (this.interval) {
-      clearInterval(this.interval)
-      this.interval = null
-      logger.info('🎉 Scheduler de sorteios parado')
+  async stop() {
+    if (this.intervalCheck) {
+      clearInterval(this.intervalCheck)
+      this.intervalCheck = null
     }
+    await this.worker.close()
+    await this.queue.close()
+    logger.info('🎉 Scheduler de sorteios (BullMQ) parado')
   }
 
   private async publishPendingGiveaways(now: Date) {
@@ -163,32 +199,55 @@ export class GiveawayScheduler {
     }
   }
 
-  private async checkGiveaways() {
+  private async checkAndScheduleGiveaways() {
     try {
       const now = new Date()
 
       await this.publishPendingGiveaways(now)
       
-      // Buscar sorteios que devem ser finalizados
-      const expiredGiveaways = await prisma.giveaway.findMany({
+      // Buscar sorteios que devem ser finalizados / Agendados hoje
+      const liveGiveaways = await prisma.giveaway.findMany({
         where: {
           ended: false,
           cancelled: false,
           suspended: false,
-          endsAt: { lte: now },
-        },
-        include: {
-          entries: {
-            where: { disqualified: false },
-          },
         },
       })
 
-      for (const giveaway of expiredGiveaways) {
-        await this.endGiveaway(giveaway)
+      for (const giveaway of liveGiveaways) {
+        // Obter job atual agendado com ID identificável (giveaway.id) para não agendar 2x
+        const jobId = `end-giveaway-${giveaway.id}`
+        const delayed = new Date(giveaway.endsAt).getTime() - now.getTime()
+
+        // Se sorteio já passou do horário estrito e job perdeu (por falha do bot), finaliza imediato
+        if (delayed <= 0) {
+          const giveawayContext = await prisma.giveaway.findUnique({
+             where: { id: giveaway.id },
+             include: { entries: { where: { disqualified: false } } }
+          })
+          if(giveawayContext && !giveawayContext.ended) {
+            await this.endGiveaway(giveawayContext)
+          }
+          continue
+        }
+
+        // Agendar/Renovar Job apenas se já não houver job programado na fila do BullMQ
+        const job = await this.queue.getJob(jobId)
+        if (!job) {
+          await this.queue.add(
+            'end-giveaway', 
+            { giveawayId: giveaway.id },
+            { 
+              jobId,
+              delay: delayed > 0 ? delayed : 0, 
+              removeOnComplete: true 
+            }
+          )
+          logger.info(`Agendando Job BullMQ para finalização do sorteio: ${giveaway.id} em ${delayed}ms`)
+        }
       }
     } catch (error) {
-      logger.error({ err: safe_error_details(error) }, 'Erro ao verificar sorteios')
+      logger.error({ err: safe_error_details(error) }, 'Erro ao agendar sorteios com BullMQ')
     }
   }
 

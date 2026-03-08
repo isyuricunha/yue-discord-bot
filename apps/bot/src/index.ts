@@ -16,8 +16,9 @@ import { apply_startup_presence } from "./services/presence.service";
 import { apply_startup_app_description } from "./services/app_description.service";
 import type { Command, ContextMenuCommand } from "./commands";
 import { start_internal_api } from "./internal/api";
-
 let internal_server: ReturnType<typeof start_internal_api> | null = null;
+let giveawayScheduler: GiveawayScheduler | null = null;
+let aniListWatchlistScheduler: AniListWatchlistScheduler | null = null;
 
 // Extend Client to include commands collection
 declare module "discord.js" {
@@ -156,9 +157,12 @@ client.once("clientReady", async () => {
 		`✅ ${client.contextMenuCommands.size} context menu comando(s) carregado(s)`
 	);
 
-	// Iniciar scheduler de sorteios
-	const giveawayScheduler = new GiveawayScheduler(client);
+	// Módulos com BullMQ Worker/Queue
+	giveawayScheduler = new GiveawayScheduler(client);
 	giveawayScheduler.start();
+
+	aniListWatchlistScheduler = new AniListWatchlistScheduler(client);
+  void aniListWatchlistScheduler.start();
 
 	// Iniciar serviço de expiração de warns
 	const warnExpirationService = new WarnExpirationService(client);
@@ -175,9 +179,6 @@ client.once("clientReady", async () => {
 	// Iniciar scheduler de expiração de inventário (roles/nick-color/xp boost)
 	const inventoryExpirationScheduler = new InventoryExpirationScheduler(client);
 	inventoryExpirationScheduler.start();
-
-	const aniListWatchlistScheduler = new AniListWatchlistScheduler(client);
-	aniListWatchlistScheduler.start();
 });
 
 // Event: Guild create (bot joins server)
@@ -324,6 +325,8 @@ process.on("uncaughtException", (error) => {
 process.on("SIGINT", async () => {
 	logger.info("🛑 Desligando bot...");
 	internal_server?.close();
+  await giveawayScheduler?.stop();
+  await aniListWatchlistScheduler?.stop();
 	client.destroy();
 	await prisma.$disconnect();
 	process.exit(0);
@@ -332,6 +335,8 @@ process.on("SIGINT", async () => {
 process.on("SIGTERM", async () => {
 	logger.info("🛑 Desligando bot...");
 	internal_server?.close();
+  await giveawayScheduler?.stop();
+  await aniListWatchlistScheduler?.stop();
 	client.destroy();
 	await prisma.$disconnect();
 	process.exit(0);

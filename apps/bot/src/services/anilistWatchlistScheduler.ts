@@ -8,33 +8,57 @@ import { getSendableChannel } from '../utils/discord'
 import { aniListService } from './anilist.service'
 import { anilistWatchlistService } from './anilistWatchlist.service'
 import { compute_watchlist_scheduler_outcome } from './anilistWatchlistScheduler.logic'
+import { Queue, Worker, Job } from 'bullmq'
+import { redisConnection } from './queue.connection'
 
 function to_unix_seconds(date: Date) {
   return Math.floor(date.getTime() / 1000)
 }
 
 export class AniListWatchlistScheduler {
-  private interval: NodeJS.Timeout | null = null
+  private queue: Queue
+  private worker: Worker
 
-  constructor(private client: Client) {}
+  constructor(private client: Client) {
+    this.queue = new Queue('anilist-queue', { connection: redisConnection as any })
 
-  start() {
-    if (this.interval) return
+    this.worker = new Worker(
+      'anilist-queue',
+      async (job: Job) => {
+        if (job.name === 'tick') {
+           await this.tick()
+        }
+      },
+      { connection: redisConnection as any }
+    )
 
-    this.interval = setInterval(() => {
-      void this.tick()
-    }, 60_000)
-
-    void this.tick()
-
-    logger.info('📺 AniList watchlist scheduler started')
+    this.worker.on('failed', (job, err) => {
+      logger.error({ err, jobId: job?.id }, '❌ Erro no Worker do AniList Watchlist')
+    })
   }
 
-  stop() {
-    if (!this.interval) return
-    clearInterval(this.interval)
-    this.interval = null
-    logger.info('📺 AniList watchlist scheduler stopped')
+  async start() {
+    // Adicionar rotina contínua / cron
+    // Limpar jobs repetidos anteriores para evitar concorrência
+    await this.queue.add(
+      'tick',
+      {},
+      { 
+        jobId: 'anilist-tick',
+        repeat: {
+          every: 60_000 
+        } 
+      }
+    )
+
+    logger.info('📺 AniList watchlist scheduler (BullMQ) started')
+  }
+
+  async stop() {
+    await this.queue.removeRepeatableByKey('tick')
+    await this.worker.close()
+    await this.queue.close()
+    logger.info('📺 AniList watchlist scheduler (BullMQ) stopped')
   }
 
   private async tick() {
