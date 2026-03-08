@@ -80,8 +80,11 @@ model GuildConfig {
   leaveMessage                String?
   welcomeMessage              String?
   modLogMessage               String?
-  announcementChannelId       String?
-  guild                       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  announcementChannelId              String?
+  aiModerationEnabled                Boolean  @default(false)
+  aiModerationAction                 String   @default("delete")
+  aiModerationCategoryThresholds     Json     @default("{}")
+  guild                              Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@map("guild_configs")
 }
