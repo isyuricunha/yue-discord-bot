@@ -52,31 +52,49 @@ export default function PrivacyPage() {
 
       <Card>
         <CardHeader>
-          <div className="text-base font-semibold">Quais dados podem ser armazenados</div>
-          <div className="mt-1 text-sm text-muted-foreground">Exemplos alinhados ao banco de dados do projeto.</div>
+          <div className="text-base font-semibold">O que coletamos, como coletamos e quando coletamos</div>
+          <div className="mt-1 text-sm text-muted-foreground">Transparência total sobre seu fluxo de dados.</div>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            • Dados de servidores (guild): ID, nome, ícone, configurações (canais, templates, automoderação, XP, autorole).
+            A Yue coleta dados de forma passiva (quando mensagens são enviadas em servidores com sistemas ativos) ou de forma ativa (quando você interage com nossos comandos de barra, de contexto ou usa o painel web).
+          </div>
+          <div className="pt-2 font-medium text-foreground">1. Dados de Usuário e Autenticação</div>
+          <div>
+            • ID, nome de usuário e avatar do Discord para exibir seu perfil personalizável (bio, insígnias).
           </div>
           <div>
-            • Dados operacionais de membros no contexto de uma guild: ID, nome, avatar, data de entrada, contagem de warns.
+            • Sessões ativas de login e configuração de notificações (por exemplo: alertas na mensagem direta).
+          </div>
+          
+          <div className="pt-2 font-medium text-foreground">2. Dados de Servidores</div>
+          <div>
+            • ID, nome, ícone e configurações gerais (canais de recepção, logs de moderação, sistemas de tickets, painéis de reação e starboard).
           </div>
           <div>
-            • Logs de moderação: ação, moderador, alvo, motivo/duração e metadados.
+            • Listagem de quais servidores você administra quando realiza o login no painel.
+          </div>
+
+          <div className="pt-2 font-medium text-foreground">3. Dados de Interação e Moderação</div>
+          <div>
+            • Registros de aviso, expulsão ou punições (logs de moderação) com motivo e validade.
           </div>
           <div>
-            • Sorteios: configurações, participantes (ID, nome, avatar), vencedores e status.
+            • Tickets abertos (motivos de contato via suporte em um servidor), sugestões aprovadas ou rejeitadas e ações de auditoria.
+          </div>
+
+          <div className="pt-2 font-medium text-foreground">4. Dados de Economia e Entretenimento</div>
+          <div>
+            • Saldo da sua carteira virtual, histórico de transações, itens da loja e inventário (itens comprados/expirados).
           </div>
           <div>
-            • XP: XP/nível por guild e (quando aplicável) XP global.
+            • Resultados do jogo Cara ou Coroa e histórico de vitórias/derrotas nas suas interações com a economia.
           </div>
           <div>
-            • Recursos sociais do projeto: perfil (bio), badges, fan arts (url da imagem e metadados), carteira e transações virtuais
-            (quando habilitadas).
+            • Dados do sistema Waifu (personagens reivindicados, histórico de rolagens, lista de desejos e valor acumulado do personagem).
           </div>
-          <div className="text-xs text-muted-foreground">
-            Observação: a disponibilidade desses recursos depende de quais módulos você usa/ativa.
+          <div>
+            • Progresso e histórico de animes (integração com AniList) e artes de fãs submetidas (imagens e metadados).
           </div>
         </CardContent>
       </Card>
@@ -93,7 +111,10 @@ export default function PrivacyPage() {
             • Autenticar usuários e autorizar acesso ao painel.
           </div>
           <div>
-            • Aplicar configurações e automatizações (recepção de membros, logs, XP, automoderação, autorole).
+            • Aplicar configurações e automatizações (recepção de membros, proteção, autorole e gerenciamento de experiência).
+          </div>
+          <div>
+            • Garantir persistência dos seus itens, inventário, histórico nas interações de economia e personagens reivindicados no gacha.
           </div>
           <div>
             • Garantir segurança, auditoria e prevenção de abuso (por exemplo: logs de moderação e registros de eventos).

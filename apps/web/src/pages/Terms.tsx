@@ -19,8 +19,8 @@ export default function TermsPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            A Yue é um bot para Discord, com um painel web para configuração de recursos (por exemplo: recepção de membros, logs, XP,
-            automoderação, sorteios e autorole).
+            A Yue é um bot multifuncional para Discord equipado com painel web para configurar módulos como recepção de membros, registro de auditoria, níveis de experiência (XP),
+            loja virtual, economia (carteiras e inventário), sistemas gacha de entretenimento e ferramentas de moderação contínua.
           </div>
           <div>
             Estes Termos se aplicam ao uso do bot e do painel, incluindo quaisquer integrações com a plataforma Discord.
@@ -37,10 +37,10 @@ export default function TermsPage() {
             • Você deve estar em conformidade com os Termos do Discord e as regras do servidor em que usa a Yue.
           </div>
           <div>
-            • Você é responsável pelas configurações feitas no painel e pelo conteúdo de mensagens/templates definidos por você.
+            • Você é o único responsável pelas configurações de canais efetuadas no painel, pelo conteúdo de mensagens configuradas, itens de loja criados e artes de fãs submetidas usando o bot.
           </div>
           <div>
-            • Você deve ter permissão para gerenciar o servidor ao configurar recursos no painel.
+            • Você deve ter permissões administrativas ativas para gerenciar comandos, economia e punições diretamente no painel.
           </div>
         </CardContent>
       </Card>
@@ -55,13 +55,13 @@ export default function TermsPage() {
             Você concorda em não:
           </div>
           <div>
-            • Tentar explorar falhas, burlar limitações, automatizar abuso, ou interferir na operação do serviço.
+            • Tentar explorar falhas, burlar limites virtuais e de solicitações (farming ou automação) em módulos de entretenimento como jogos de Cara ou Coroa, comércio virtual ou resgate no gacha de Waifus.
           </div>
           <div>
-            • Usar a Yue para assédio, spam, phishing, divulgação de dados pessoais, ou qualquer violação de políticas do Discord.
+            • Usar a Yue para assédio, mensagens indesejadas, coleta de dados pessoais ou qualquer violação enquadrada nas políticas do Discord.
           </div>
           <div>
-            • Inserir conteúdo malicioso em templates (por exemplo: links fraudulentos) ou usar recursos para enganar membros.
+            • Inserir link fraudulento ou submeter envios maliciosos (como conteúdo adulto nas artes de fãs) abusando das ferramentas sociais e interativas propostas.
           </div>
         </CardContent>
       </Card>
