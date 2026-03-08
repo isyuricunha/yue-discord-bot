@@ -72,7 +72,7 @@ export class MusicService {
       player.destroy();
     });
 
-    // @ts-ignore
+    // @ts-expect-error – kazagumo playerError event type is not typed correctly
     this.kazagumo.on('playerError', (player, type, error) => {
       logger.error({ guild_id: player.guildId, err: error, type }, 'Erro ocorreu no Player de Música.');
     });
