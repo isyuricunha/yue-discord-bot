@@ -44,6 +44,9 @@ services:
       POSTGRES_DB: yuebot
       DATABASE_URL: "${DATABASE_URL:-postgresql://yuebot:${POSTGRES_PASSWORD}@db:5432/yuebot}"
 
+      REDIS_URL: "${REDIS_URL-}"
+      REDIS_PASSWORD: "${REDIS_PASSWORD-}"
+
       DISCORD_TOKEN: "${DISCORD_TOKEN-}"
       DISCORD_BOT_TOKEN: "${DISCORD_BOT_TOKEN-}"
       DISCORD_CLIENT_ID: "${DISCORD_CLIENT_ID?DISCORD_CLIENT_ID is required}"

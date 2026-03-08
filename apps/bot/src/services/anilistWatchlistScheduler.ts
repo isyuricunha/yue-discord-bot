@@ -9,7 +9,7 @@ import { aniListService } from './anilist.service'
 import { anilistWatchlistService } from './anilistWatchlist.service'
 import { compute_watchlist_scheduler_outcome } from './anilistWatchlistScheduler.logic'
 import { Queue, Worker, Job } from 'bullmq'
-import { redisConnection } from './queue.connection'
+import { get_redis_connection } from './queue.connection'
 
 function to_unix_seconds(date: Date) {
   return Math.floor(date.getTime() / 1000)
@@ -20,7 +20,8 @@ export class AniListWatchlistScheduler {
   private worker: Worker
 
   constructor(private client: Client) {
-    this.queue = new Queue('anilist-queue', { connection: redisConnection as any })
+    const redis_connection = get_redis_connection()
+    this.queue = new Queue('anilist-queue', { connection: redis_connection as any })
 
     this.worker = new Worker(
       'anilist-queue',
@@ -29,7 +30,7 @@ export class AniListWatchlistScheduler {
            await this.tick()
         }
       },
-      { connection: redisConnection as any }
+      { connection: redis_connection as any }
     )
 
     this.worker.on('failed', (job, err) => {

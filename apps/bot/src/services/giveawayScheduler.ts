@@ -6,7 +6,7 @@ import { logger } from '../utils/logger'
 import { getSendableChannel } from '../utils/discord'
 import { safe_error_details } from '../utils/safe_error'
 import { Queue, Worker, Job } from 'bullmq'
-import { redisConnection } from './queue.connection'
+import { get_redis_connection } from './queue.connection'
 
 export class GiveawayScheduler {
   private client: Client
@@ -18,7 +18,8 @@ export class GiveawayScheduler {
     this.client = client
     
     // Instanciar a fila no Redis
-    this.queue = new Queue('giveaway-queue', { connection: redisConnection as any })
+    const redis_connection = get_redis_connection()
+    this.queue = new Queue('giveaway-queue', { connection: redis_connection as any })
 
     // Declarar o Worker que resolverá a etapa final do Sorteio
     this.worker = new Worker(
@@ -39,7 +40,7 @@ export class GiveawayScheduler {
           }
         }
       },
-      { connection: redisConnection as any }
+      { connection: redis_connection as any }
     )
 
     this.worker.on('failed', (job, err) => {
