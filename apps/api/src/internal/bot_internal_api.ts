@@ -549,7 +549,7 @@ export async function set_bot_app_description(input: set_app_description_body, l
 
 export async function sync_automod_native_rules(guild_id: string, log: FastifyBaseLogger) {
   const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/automod/sync`
-  return await fetch_with_timeout_ms(url, log, 15_000)
+  return await fetch_json_with_timeout_ms(url, log, 15_000, { method: 'POST', body: '{}' })
 }
 
 export async function get_guild_music_status(guild_id: string, log: FastifyBaseLogger) {
