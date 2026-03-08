@@ -7,13 +7,14 @@ import { discord_timeout_max_ms, EMOJIS, find_first_banned_word_match, parseDura
 import { isShortUrl, expandUrl } from '../utils/urlExpander';
 import { getSendableChannel } from '../utils/discord';
 import { moderationLogService } from './moderationLog.service';
-import { WarnService } from './warnService'
+import { WarnService } from './warnService';
+import { openAiModerationService } from './openaiModeration.service';
 
 interface AutoModResult {
   violated: boolean;
   reason?: string;
   action?: string;
-  rule?: 'word' | 'caps' | 'link';
+  rule?: 'word' | 'caps' | 'link' | 'ai';
   details?: Prisma.InputJsonValue;
 }
 
@@ -44,6 +45,15 @@ class AutoModService {
       const capsCheck = this.checkCaps(message.content, config);
       if (capsCheck.violated) {
         await this.handleViolation(message, member, capsCheck);
+        return true;
+      }
+    }
+
+    // Verificar AI Moderation (OpenAI)
+    if (config.aiModerationEnabled && process.env.OPENAI_API_KEY) {
+      const aiCheck = await this.checkAiModeration(message, config);
+      if (aiCheck.violated) {
+        await this.handleViolation(message, member, aiCheck);
         return true;
       }
     }
@@ -100,6 +110,41 @@ class AutoModService {
     );
 
     return roleWhitelisted;
+  }
+
+  private async checkAiModeration(message: Message, config: GuildConfig): Promise<AutoModResult> {
+    // Collect text content
+    const text = message.content;
+
+    // Collect image attachment URLs (only images so we don't waste quota on other file types)
+    const imageUrls = message.attachments
+      .filter((att) => !!att.contentType?.startsWith('image/'))
+      .map((att) => att.url);
+
+    // If there's nothing to check, skip
+    if (!text.trim() && imageUrls.length === 0) {
+      return { violated: false };
+    }
+
+    const thresholds = (config.aiModerationCategoryThresholds ?? {}) as Record<string, number>;
+    const result = await openAiModerationService.checkContent(text, imageUrls, thresholds);
+
+    if (!result.flagged) {
+      return { violated: false };
+    }
+
+    const categoryList = result.triggeredCategories.join(', ');
+
+    return {
+      violated: true,
+      reason: `Conteúdo detectado pela IA como impróprio (${categoryList})`,
+      action: config.aiModerationAction ?? 'delete',
+      rule: 'ai',
+      details: {
+        triggeredCategories: result.triggeredCategories,
+        scores: result.scores,
+      } satisfies Prisma.InputJsonObject,
+    };
   }
 
 
