@@ -41,6 +41,7 @@ import EconomyPage from './pages/Economy'
 import CoinflipPage from './pages/Coinflip'
 import OwnerPage from './pages/Owner'
 import MusicPage from './pages/Music'
+import CustomCommandsPage from './pages/CustomCommands'
 import { AppShell, PublicShell, RequireAuth, RequireOwner } from './components/layout'
 
 function App() {
@@ -102,6 +103,8 @@ function App() {
           <Route path="/guild/:guildId/overview" element={<OverviewPage />} />
           <Route path="/guild/:guildId/automod" element={<AutoModPage />} />
           <Route path="/guild/:guildId/modlogs" element={<ModLogsPage />} />
+          <Route path="/guild/:guildId/music" element={<MusicPage />} />
+          <Route path="/guild/:guildId/custom-commands" element={<CustomCommandsPage />} />
           <Route path="/guild/:guildId/audit" element={<AuditLogsPage />} />
           <Route path="/guild/:guildId/commands" element={<CommandsPage />} />
           <Route path="/guild/:guildId/members" element={<MembersPage />} />

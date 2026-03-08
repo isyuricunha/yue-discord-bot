@@ -10,6 +10,7 @@ import {
 import { autoModService } from "../services/automod.service";
 import { autoroleService } from "../services/autorole.service";
 import { suggestionService } from "../services/suggestion.service";
+import { customCommandService } from "../services/customCommand.service";
 import { xpService } from "../services/xp.service";
 import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
 import { MistralApiError } from "../services/mistral.service";
@@ -101,6 +102,16 @@ export async function handleMessageCreate(message: Message) {
 		logger.error(
 			{ err: safe_error_details(error) },
 			"Suggestion service failed on messageCreate"
+		);
+	}
+
+	try {
+		const handled_by_custom_command = await customCommandService.handle_message(message);
+		if (handled_by_custom_command) return;
+	} catch (error) {
+		logger.error(
+			{ err: safe_error_details(error) },
+			"Custom Command service failed on messageCreate"
 		);
 	}
 

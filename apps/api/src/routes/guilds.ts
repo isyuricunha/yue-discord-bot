@@ -22,6 +22,7 @@ import {
   xpResetSchema,
 } from '@yuebot/shared';
 import { musicRoutes } from './music.routes';
+import { customCommandsRoutes } from './customCommands.routes';
 import {
   get_guild_channels,
   get_guild_roles,
@@ -1673,6 +1674,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
 
   // Register music routes
   fastify.register(musicRoutes);
+  fastify.register(customCommandsRoutes);
 
   // Listar painéis de Reaction Roles
   fastify.get('/:guildId/reaction-roles/panels', {
@@ -2284,6 +2286,8 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         where: { guildId },
         update: {
           ...(data.enabled !== undefined ? { enabled: data.enabled } : {}),
+          ...(data.voiceXpEnabled !== undefined ? { voiceXpEnabled: data.voiceXpEnabled } : {}),
+          ...(data.voiceXpRate !== undefined ? { voiceXpRate: data.voiceXpRate } : {}),
           ...(data.minMessageLength !== undefined ? { minMessageLength: data.minMessageLength } : {}),
           ...(data.minUniqueLength !== undefined ? { minUniqueLength: data.minUniqueLength } : {}),
           ...(data.typingCps !== undefined ? { typingCps: data.typingCps } : {}),
@@ -2300,6 +2304,8 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         create: {
           guildId,
           enabled: data.enabled ?? true,
+          voiceXpEnabled: data.voiceXpEnabled ?? false,
+          voiceXpRate: data.voiceXpRate ?? 10,
           minMessageLength: data.minMessageLength ?? 5,
           minUniqueLength: data.minUniqueLength ?? 12,
           typingCps: data.typingCps ?? 7,

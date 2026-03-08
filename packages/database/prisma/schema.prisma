@@ -41,6 +41,7 @@ model Guild {
   waifuRolls                  WaifuRoll[]
   waifuUserStates             WaifuUserState[]
   waifuWishlists              WaifuWishlist[]
+  customCommands              CustomCommand[]
 
   @@map("guilds")
 }
@@ -98,6 +99,21 @@ model GuildCommandOverride {
   @@unique([guildId, commandType, commandName])
   @@index([guildId])
   @@map("guild_command_overrides")
+}
+
+model CustomCommand {
+  id          String   @id @default(cuid())
+  guildId     String
+  name        String
+  description String?
+  response    String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, name])
+  @@index([guildId])
+  @@map("custom_commands")
 }
 
 model GuildMember {
@@ -307,6 +323,8 @@ model GuildXpConfig {
   rewardMode        String   @default("stack")
   levelUpChannelId  String?
   levelUpMessage    String?
+  voiceXpEnabled    Boolean  @default(false)
+  voiceXpRate       Int      @default(10)
   updatedAt         DateTime @updatedAt
   guild             Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
@@ -319,8 +337,10 @@ model GuildXpMember {
   guildId         String
   xp              Int       @default(0)
   level           Int       @default(0)
+  prestige        Int       @default(0)
   lastMessageHash String?
   lastMessageAt   DateTime?
+  lastVoiceXpAt   DateTime?
   updatedAt       DateTime  @updatedAt
   guild           Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
 

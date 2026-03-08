@@ -246,6 +246,8 @@ export const xpRoleRewardsSchema = z.array(xpRoleRewardSchema);
 
 export const guildXpConfigSchema = z.object({
   enabled: z.boolean().optional(),
+  voiceXpEnabled: z.boolean().optional(),
+  voiceXpRate: z.number().int().min(1).optional(),
 
   minMessageLength: z.number().int().min(0).optional(),
   minUniqueLength: z.number().int().min(0).optional(),

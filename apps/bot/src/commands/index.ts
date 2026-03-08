@@ -62,6 +62,7 @@ export async function loadCommands(client: Client): Promise<void> {
   // Import XP commands
   const { rankCommand } = await import('./xp/rank');
   const { leaderboardCommand } = await import('./xp/leaderboard');
+  const { prestigeCommand } = await import('./xp/prestige');
 
   // Import profile commands
   const { profileCommand } = await import('./profile/profile');
@@ -134,6 +135,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(giveawayWizardCommand.data.name, { data: giveawayWizardCommand.data, execute: giveawayWizardCommand.execute });
   commands.set(rankCommand.data.name, rankCommand);
   commands.set(leaderboardCommand.data.name, leaderboardCommand);
+  commands.set(prestigeCommand.data.name, prestigeCommand);
   commands.set(profileCommand.data.name, profileCommand);
   commands.set(badgesCommand.data.name, badgesCommand);
   commands.set(fanartCommand.data.name, { data: fanartCommand.data, execute: fanartCommand.execute });

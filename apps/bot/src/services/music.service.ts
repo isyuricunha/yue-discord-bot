@@ -14,7 +14,7 @@ export class MusicService {
         rawNodes = JSON.parse(process.env.LAVALINK_NODES);
       }
     } catch (error) {
-      logger.error('Failed to parse LAVALINK_NODES env variable. Ensure it is valid JSON.', error);
+      logger.error({ err: error }, 'Failed to parse LAVALINK_NODES env variable. Ensure it is valid JSON.');
     }
 
     const nodes = rawNodes.map((node) => ({
@@ -72,6 +72,7 @@ export class MusicService {
       player.destroy();
     });
 
+    // @ts-ignore
     this.kazagumo.on('playerError', (player, type, error) => {
       logger.error({ guild_id: player.guildId, err: error, type }, 'Erro ocorreu no Player de Música.');
     });

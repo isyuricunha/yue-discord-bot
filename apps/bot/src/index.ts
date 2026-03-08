@@ -258,6 +258,11 @@ client.on("guildMemberRemove", async (member) => {
 // Event: Guild member update (Sync punishment role)
 import { handleGuildMemberUpdate } from "./events/guildMemberUpdate";
 import { handleAutoModerationActionExecution } from "./events/autoModerationActionExecution";
+import { handleVoiceStateUpdate } from "./events/voiceStateUpdate";
+
+client.on(Events.VoiceStateUpdate, async (oldState, newState) => {
+	await handleVoiceStateUpdate(oldState, newState);
+});
 
 client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
 	await handleGuildMemberUpdate(oldMember, newMember);

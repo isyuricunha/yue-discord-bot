@@ -36,6 +36,8 @@ type xp_reward = {
 
 type xp_config = {
   enabled: boolean
+  voiceXpEnabled: boolean
+  voiceXpRate: number
 
   minMessageLength: number
   minUniqueLength: number
@@ -255,6 +257,8 @@ export default function XpLevelsPage() {
 
     setConfig({
       enabled: initial_config.enabled ?? true,
+      voiceXpEnabled: (initial_config as any).voiceXpEnabled ?? false,
+      voiceXpRate: (initial_config as any).voiceXpRate ?? 10,
 
       minMessageLength: initial_config.minMessageLength ?? 5,
       minUniqueLength: initial_config.minUniqueLength ?? 12,
@@ -755,19 +759,48 @@ export default function XpLevelsPage() {
 
       <Card>
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 border-b border-border/50 pb-4 mb-4">
             <div>
-              <div className="text-sm font-semibold">Ativar XP</div>
-              <div className="text-xs text-muted-foreground">Recompense usuários ativos com experiência ao conversar.</div>
+              <div className="text-sm font-semibold">Ativar XP (Chat)</div>
+              <div className="text-xs text-muted-foreground">Recompense usuários ativos com experiência ao conversar através de texto.</div>
             </div>
 
             <Switch
               checked={Boolean(config?.enabled)}
               onCheckedChange={(checked) => config && setConfig({ ...config, enabled: checked })}
-              label="XP habilitado"
+              label="XP em Texto habilitado"
               disabled={is_xp_loading}
             />
           </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-sm font-semibold text-accent">Ativar Voice XP (Voz)</div>
+              <div className="text-xs text-muted-foreground">Recompense usuários baseados no tempo em que estiverem conectados em canais de voz não-mutados.</div>
+            </div>
+
+            <Switch
+              checked={Boolean(config?.voiceXpEnabled)}
+              onCheckedChange={(checked) => config && setConfig({ ...config, voiceXpEnabled: checked })}
+              label="Voice XP habilitado"
+              disabled={is_xp_loading}
+            />
+          </div>
+
+          {config?.voiceXpEnabled && (
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 bg-surface/30 p-4 rounded-xl border border-border/70">
+              <div>
+                <div className="text-sm font-medium">Pontos a cada 10 minutos (Voice Rate)</div>
+                <div className="mt-2 text-xs text-muted-foreground mb-3">
+                  Base de XP recompensada em parcelas de 10 minutos num chat de voz.
+                </div>
+                <Input
+                  value={String(config.voiceXpRate)}
+                  onChange={(e) => setConfig({ ...config, voiceXpRate: Number.parseInt(e.target.value || '10', 10) || 10 })}
+                />
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 
