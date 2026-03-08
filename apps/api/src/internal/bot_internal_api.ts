@@ -520,3 +520,8 @@ export async function set_bot_app_description(input: set_app_description_body, l
     body: JSON.stringify(input),
   })) as set_app_description_response
 }
+
+export async function sync_automod_native_rules(guild_id: string, log: FastifyBaseLogger) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/automod/sync`
+  return await fetch_with_timeout_ms(url, log, 15_000)
+}

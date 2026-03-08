@@ -56,5 +56,8 @@
       "prisma"
     ]
   },
-  "packageManager": "pnpm@10.11.0"
+  "packageManager": "pnpm@10.11.0",
+  "dependencies": {
+    "@types/node": "^25.3.5"
+  }
 }

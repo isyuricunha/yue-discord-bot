@@ -13,6 +13,7 @@ import {
   normalize_app_description_body,
   save_app_description_settings,
 } from '../services/app_description.service'
+import { DiscordAutoModSyncService } from '../services/discordAutoModSync.service'
 import { logger } from '../utils/logger';
 import { safe_error_details } from '../utils/safe_error';
 
@@ -200,6 +201,12 @@ function extract_bot_channel_permissions_params(pathname: string) {
 
 function extract_guild_counts_params(pathname: string) {
   const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/counts$/)
+  if (!match) return null
+  return { guildId: match[1] }
+}
+
+function extract_automod_sync_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/automod\/sync$/)
   if (!match) return null
   return { guildId: match[1] }
 }
@@ -484,6 +491,14 @@ export function start_internal_api(client: Client, options: internal_api_options
           })
 
           return send_json(res, 200, { success: true, profile } satisfies profile_sync_response)
+        }
+
+        const automod_sync_params = extract_automod_sync_params(url.pathname);
+        if (automod_sync_params) {
+          const syncService = new DiscordAutoModSyncService(client);
+          await syncService.syncGuild(automod_sync_params.guildId);
+
+          return send_json(res, 200, { success: true });
         }
 
         const ticket_panel_params = extract_ticket_panel_publish_params(url.pathname)

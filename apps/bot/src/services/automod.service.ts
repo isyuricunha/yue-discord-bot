@@ -35,29 +35,15 @@ class AutoModService {
       return false;
     }
 
-    // Verificar filtro de palavras
-    if (config.wordFilterEnabled) {
-      const wordCheck = this.checkBannedWords(message.content, config);
-      if (wordCheck.violated) {
-        await this.handleViolation(message, member, wordCheck);
-        return true;
-      }
-    }
-
+    // O Discord AutoMod nativo lida com Palavras Bloqueadas e Links.
+    // O bot fica responsável exclusivamente por checar a regra de CAPS, 
+    // já que o Discord nativo não possui regra de % de Maiúsculas.
+    
     // Verificar CAPS
     if (config.capsEnabled) {
       const capsCheck = this.checkCaps(message.content, config);
       if (capsCheck.violated) {
         await this.handleViolation(message, member, capsCheck);
-        return true;
-      }
-    }
-
-    // Verificar links
-    if (config.linkFilterEnabled) {
-      const linkCheck = await this.checkLinks(message.content, config);
-      if (linkCheck.violated) {
-        await this.handleViolation(message, member, linkCheck);
         return true;
       }
     }
@@ -116,25 +102,6 @@ class AutoModService {
     return roleWhitelisted;
   }
 
-  private checkBannedWords(content: string, config: GuildConfig): AutoModResult {
-    const bannedWords = config.bannedWords as Array<{ word: string; action: string }>;
-
-    const match = find_first_banned_word_match(content, bannedWords)
-    if (match) {
-      return {
-        violated: true,
-        reason: `Palavra proibida detectada: "${match.entry.word}"`,
-        action: match.entry.action,
-        rule: 'word',
-        details: {
-          word: match.entry.word,
-          matchKind: match.match_kind,
-        } satisfies Prisma.InputJsonObject,
-      }
-    }
-
-    return { violated: false };
-  }
 
   private checkCaps(content: string, config: GuildConfig): AutoModResult {
     // Remover URLs e menções da contagem
@@ -174,90 +141,6 @@ class AutoModService {
     return { violated: false };
   }
 
-  private async checkLinks(content: string, config: GuildConfig): Promise<AutoModResult> {
-    const urlRegex = /(https?:\/\/[^\s]+)/gi;
-    const urls = content.match(urlRegex);
-
-    if (!urls || urls.length === 0) {
-      return { violated: false };
-    }
-
-    // Se bloquear todos os links
-    if (config.linkBlockAll) {
-      const allowedDomains = config.allowedDomains as string[];
-      
-      // Verificar se algum link está na whitelist
-      for (const url of urls) {
-        try {
-          const domain = new URL(url).hostname;
-          if (!allowedDomains.some(allowed => domain.includes(allowed))) {
-            return {
-              violated: true,
-              reason: 'Link não permitido',
-              action: config.linkAction,
-              rule: 'link',
-              details: {
-                url,
-                domain,
-                mode: 'blockAll',
-              } satisfies Prisma.InputJsonObject,
-            };
-          }
-        } catch (error) {
-          // URL inválida, bloquear
-          return {
-            violated: true,
-            reason: 'Link malformado',
-            action: config.linkAction,
-            rule: 'link',
-            details: {
-              url,
-              mode: 'blockAll',
-            } satisfies Prisma.InputJsonObject,
-          };
-        }
-      }
-    } else {
-      // Verificar domínios banidos
-      const bannedDomains = config.bannedDomains as string[];
-      
-      for (const url of urls) {
-        try {
-          let urlToCheck = url;
-          
-          // Se for link encurtado, expandir
-          if (isShortUrl(url)) {
-            try {
-              urlToCheck = await expandUrl(url);
-              logger.info(`Link encurtado expandido: ${url} -> ${urlToCheck}`);
-            } catch (error) {
-              logger.warn(`Erro ao expandir link: ${url}`);
-            }
-          }
-          
-          const domain = new URL(urlToCheck).hostname;
-          if (bannedDomains.some(banned => domain.includes(banned))) {
-            return {
-              violated: true,
-              reason: `Domínio bloqueado: ${domain}`,
-              action: config.linkAction,
-              rule: 'link',
-              details: {
-                url,
-                expandedUrl: urlToCheck,
-                domain,
-                mode: 'bannedDomains',
-              } satisfies Prisma.InputJsonObject,
-            };
-          }
-        } catch (error) {
-          // Ignorar URLs inválidas
-        }
-      }
-    }
-
-    return { violated: false };
-  }
 
   private async handleViolation(
     message: Message,

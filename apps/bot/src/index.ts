@@ -1,4 +1,4 @@
-import { Client, GatewayIntentBits, Collection, Partials } from "discord.js";
+import { Client, GatewayIntentBits, Collection, Partials, Events } from "discord.js";
 import { assert_bot_runtime_env, CONFIG } from "./config";
 import { logger } from "./utils/logger";
 import { prisma } from "@yuebot/database";
@@ -252,10 +252,15 @@ client.on("guildMemberRemove", async (member) => {
 });
 
 // Event: Guild member update (Sync punishment role)
-client.on("guildMemberUpdate", async (old_member, new_member) => {
-	const { handleGuildMemberUpdate } =
-		await import("./events/guildMemberUpdate");
-	await handleGuildMemberUpdate(old_member, new_member);
+import { handleGuildMemberUpdate } from "./events/guildMemberUpdate";
+import { handleAutoModerationActionExecution } from "./events/autoModerationActionExecution";
+
+client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
+	await handleGuildMemberUpdate(oldMember, newMember);
+});
+
+client.on(Events.AutoModerationActionExecution, async (execution) => {
+    await handleAutoModerationActionExecution(execution);
 });
 
 // Event: Guild member update (Audit)

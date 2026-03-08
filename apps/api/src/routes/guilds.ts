@@ -29,6 +29,7 @@ import {
   publish_reaction_role_panel,
   publish_ticket_panel,
   send_guild_message,
+  sync_automod_native_rules,
 } from '../internal/bot_internal_api';
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
@@ -624,6 +625,11 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         warnExpiration: true,
       },
     })
+
+    // Notify the bot over HTTP so it fetches Discord's API and applies natively
+    sync_automod_native_rules(guildId, request.log).catch((err) => {
+      request.log.error({ err, guildId }, 'Failed to trigger automod native sync from bot');
+    });
 
     return reply.send({ success: true, config: updated })
   })
