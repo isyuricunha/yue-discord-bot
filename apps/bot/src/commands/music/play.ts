@@ -1,4 +1,4 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { GuildMember, SlashCommandBuilder } from 'discord.js';
 import type { Command } from '../index';
 import { EMOJIS } from '@yuebot/shared';
 import { musicService } from '../../services/music.service';
@@ -15,15 +15,22 @@ const playCommand: Command = {
     ),
 
   async execute(interaction) {
-    if (!interaction.guildId || !interaction.member || !('voice' in interaction.member)) {
+    if (!interaction.guildId || !interaction.guild) {
       return;
     }
 
-    const { voice } = interaction.member as any;
-    if (!voice.channelId) {
+    // Fetch the member from cache to ensure voice state is available.
+    // interaction.member can be APIInteractionGuildMember (no voice state),
+    // so we always resolve from the guild member cache.
+    const member = interaction.guild.members.cache.get(interaction.user.id)
+      ?? (interaction.member instanceof GuildMember ? interaction.member : null);
+
+    const voiceChannelId = member?.voice?.channelId ?? null;
+
+    if (!voiceChannelId) {
       await interaction.reply({
         content: `${EMOJIS.ERROR} Você precisa estar em um canal de voz para usar este comando.`,
-        ephemeral: true,
+        flags: ['Ephemeral'],
       });
       return;
     }
@@ -31,7 +38,7 @@ const playCommand: Command = {
     if (!musicService) {
       await interaction.reply({
         content: `${EMOJIS.ERROR} O sistema de música não está habilitado.`,
-        ephemeral: true,
+        flags: ['Ephemeral'],
       });
       return;
     }
@@ -45,15 +52,15 @@ const playCommand: Command = {
       player = await musicService.kazagumo.createPlayer({
         guildId: interaction.guildId,
         textId: interaction.channelId,
-        voiceId: voice.channelId,
+        voiceId: voiceChannelId,
         volume: 70,
       });
     } else {
       // Check if user is in the same channel as the bot
-      if (player.voiceId !== voice.channelId) {
+      if (player.voiceId !== voiceChannelId) {
         await interaction.followUp({
           content: `${EMOJIS.ERROR} Tente entrar no mesmo canal de voz que eu (\`<#${player.voiceId}>\`) para pedir uma música.`,
-          ephemeral: true,
+          flags: ['Ephemeral'],
         });
         return;
       }
@@ -71,7 +78,7 @@ const playCommand: Command = {
         player.queue.add(track);
       }
       if (!player.playing && !player.paused) await player.play();
-      
+
       await interaction.followUp(
         `${EMOJIS.SUCCESS} A playlist **${result.playlistName}** com \`${result.tracks.length}\` faixas foi adicionada à fila.`
       );
@@ -79,7 +86,7 @@ const playCommand: Command = {
       const track = result.tracks[0];
       player.queue.add(track);
       if (!player.playing && !player.paused) await player.play();
-      
+
       await interaction.followUp(
         `${EMOJIS.SUCCESS} A faixa **${track.title}** foi adicionada à fila.`
       );

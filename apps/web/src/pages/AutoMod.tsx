@@ -446,10 +446,9 @@ export default function AutoModPage() {
             <div className="flex items-center gap-3">
               <BrainCircuit className="h-5 w-5 text-accent" />
               <div>
-                <div className="text-sm font-semibold">Moderação por IA (OpenAI)</div>
+                <div className="text-sm font-semibold">Moderação por IA</div>
                 <div className="text-xs text-muted-foreground">
-                  Analisa texto e imagens com <code className="rounded bg-surface px-1 text-[11px]">omni-moderation-latest</code>.
-                  Requer <code className="rounded bg-surface px-1 text-[11px]">OPENAI_API_KEY</code> configurada no servidor.
+                  Analisa texto e imagens automaticamente e remove conteúdo impróprio.
                 </div>
               </div>
             </div>
