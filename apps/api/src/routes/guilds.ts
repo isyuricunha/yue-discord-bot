@@ -21,6 +21,7 @@ import {
   ticketPanelPublishSchema,
   xpResetSchema,
 } from '@yuebot/shared';
+import { musicRoutes } from './music.routes';
 import {
   get_guild_channels,
   get_guild_roles,
@@ -1669,6 +1670,9 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
+
+  // Register music routes
+  fastify.register(musicRoutes);
 
   // Listar painéis de Reaction Roles
   fastify.get('/:guildId/reaction-roles/panels', {

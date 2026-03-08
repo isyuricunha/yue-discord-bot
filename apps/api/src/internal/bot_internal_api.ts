@@ -107,6 +107,32 @@ type set_app_description_response = {
   appDescription: string | null
 }
 
+export type music_action_body = {
+  action: 'pause' | 'resume' | 'skip' | 'stop' | 'volume'
+  volume?: number
+}
+
+export type music_status_response = {
+  hasSession: boolean
+  playing: boolean
+  paused: boolean
+  volume: number
+  current: {
+    title: string
+    uri: string
+    author: string
+    thumbnail: string | null
+    duration: number
+    position: number
+  } | null
+  queue: Array<{
+    title: string
+    uri: string
+    author: string
+    duration: number
+  }>
+}
+
 type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
 
 type admin_check_response = {
@@ -524,4 +550,17 @@ export async function set_bot_app_description(input: set_app_description_body, l
 export async function sync_automod_native_rules(guild_id: string, log: FastifyBaseLogger) {
   const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/automod/sync`
   return await fetch_with_timeout_ms(url, log, 15_000)
+}
+
+export async function get_guild_music_status(guild_id: string, log: FastifyBaseLogger) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/music`
+  return (await fetch_with_timeout_ms(url, log, 5_000)) as music_status_response
+}
+
+export async function execute_music_action(guild_id: string, body: music_action_body, log: FastifyBaseLogger) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/music/action`
+  return await fetch_json_with_timeout_ms(url, log, 10_000, {
+    method: 'POST',
+    body: JSON.stringify(body),
+  })
 }

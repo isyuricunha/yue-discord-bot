@@ -14,6 +14,7 @@ import {
   save_app_description_settings,
 } from '../services/app_description.service'
 import { DiscordAutoModSyncService } from '../services/discordAutoModSync.service'
+import { musicService } from '../services/music.service'
 import { logger } from '../utils/logger';
 import { safe_error_details } from '../utils/safe_error';
 
@@ -115,6 +116,32 @@ type app_description_update_response = {
   appDescription: string | null
 }
 
+type music_action_body = {
+  action: 'pause' | 'resume' | 'skip' | 'stop' | 'volume'
+  volume?: number
+}
+
+type music_status_response = {
+  hasSession: boolean
+  playing: boolean
+  paused: boolean
+  volume: number
+  current: {
+    title: string
+    uri: string
+    author: string
+    thumbnail: string | null
+    duration: number
+    position: number
+  } | null
+  queue: Array<{
+    title: string
+    uri: string
+    author: string
+    duration: number
+  }>
+}
+
 async function ensure_member_row(input: {
   guildId: string
   userId: string
@@ -207,6 +234,18 @@ function extract_guild_counts_params(pathname: string) {
 
 function extract_automod_sync_params(pathname: string) {
   const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/automod\/sync$/)
+  if (!match) return null
+  return { guildId: match[1] }
+}
+
+function extract_music_status_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/music$/)
+  if (!match) return null
+  return { guildId: match[1] }
+}
+
+function extract_music_action_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/music\/action$/)
   if (!match) return null
   return { guildId: match[1] }
 }
@@ -430,6 +469,43 @@ export function start_internal_api(client: Client, options: internal_api_options
 
           const count = typeof guild.approximateMemberCount === 'number' ? guild.approximateMemberCount : 0
           return send_json(res, 200, { approximateMemberCount: count } satisfies guild_counts_response)
+        }
+
+        const music_status = extract_music_status_params(url.pathname)
+        if (music_status) {
+          const player = musicService?.kazagumo?.players.get(music_status.guildId)
+          if (!player) {
+            return send_json(res, 200, {
+              hasSession: false,
+              playing: false,
+              paused: false,
+              volume: 70,
+              current: null,
+              queue: [],
+            } satisfies music_status_response)
+          }
+
+          const current = player.queue.current
+          return send_json(res, 200, {
+            hasSession: true,
+            playing: player.playing,
+            paused: player.paused,
+            volume: player.volume,
+            current: current ? {
+              title: current.title,
+              uri: current.uri ?? '',
+              author: current.author ?? '',
+              thumbnail: current.thumbnail ?? null,
+              duration: current.length ?? 0,
+              position: player.position,
+            } : null,
+            queue: player.queue.slice(0, 50).map((t) => ({
+              title: t.title,
+              uri: t.uri ?? '',
+              author: t.author ?? '',
+              duration: t.length ?? 0,
+            })),
+          } satisfies music_status_response)
         }
       }
 
@@ -963,6 +1039,41 @@ export function start_internal_api(client: Client, options: internal_api_options
             reason: effective_reason,
             duration: '',
           })
+
+          return send_json(res, 200, { success: true })
+        }
+
+        const music_action = extract_music_action_params(url.pathname)
+        if (music_action) {
+          const body = await read_json_body(req).catch(() => null) as music_action_body | null
+          if (!body || !['pause', 'resume', 'skip', 'stop', 'volume'].includes(body.action)) {
+            return send_json(res, 400, { error: 'Invalid music action' } satisfies api_error_body)
+          }
+
+          const player = musicService?.kazagumo?.players.get(music_action.guildId)
+          if (!player) {
+            return send_json(res, 404, { error: 'No active music player' } satisfies api_error_body)
+          }
+
+          switch (body.action) {
+            case 'pause':
+              player.pause(true)
+              break
+            case 'resume':
+              player.pause(false)
+              break
+            case 'skip':
+              player.skip()
+              break
+            case 'stop':
+              player.destroy()
+              break
+            case 'volume':
+              if (typeof body.volume === 'number' && body.volume >= 1 && body.volume <= 150) {
+                player.setVolume(body.volume)
+              }
+              break
+          }
 
           return send_json(res, 200, { success: true })
         }

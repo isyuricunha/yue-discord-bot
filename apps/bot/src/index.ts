@@ -14,6 +14,7 @@ import { get_llm_client } from "./services/llm_client_singleton";
 import { get_groq_conversation_backend } from "./services/groq_conversation_backend_factory";
 import { apply_startup_presence } from "./services/presence.service";
 import { apply_startup_app_description } from "./services/app_description.service";
+import { initMusicService } from "./services/music.service";
 import type { Command, ContextMenuCommand } from "./commands";
 import { start_internal_api } from "./internal/api";
 let internal_server: ReturnType<typeof start_internal_api> | null = null;
@@ -179,6 +180,9 @@ client.once("clientReady", async () => {
 	// Iniciar scheduler de expiração de inventário (roles/nick-color/xp boost)
 	const inventoryExpirationScheduler = new InventoryExpirationScheduler(client);
 	inventoryExpirationScheduler.start();
+
+	// Iniciar Kazagumo Music Service
+	initMusicService(client);
 });
 
 // Event: Guild create (bot joins server)

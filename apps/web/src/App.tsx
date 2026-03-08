@@ -40,6 +40,7 @@ import FanArtsPage from './pages/FanArts'
 import EconomyPage from './pages/Economy'
 import CoinflipPage from './pages/Coinflip'
 import OwnerPage from './pages/Owner'
+import MusicPage from './pages/Music'
 import { AppShell, PublicShell, RequireAuth, RequireOwner } from './components/layout'
 
 function App() {
@@ -111,6 +112,7 @@ function App() {
           <Route path="/guild/:guildId/xp" element={<XpLevelsPage />} />
           <Route path="/guild/:guildId/autorole" element={<AutorolePage />} />
           <Route path="/guild/:guildId/tickets" element={<TicketsPage />} />
+          <Route path="/guild/:guildId/music" element={<MusicPage />} />
           <Route path="/guild/:guildId/suggestions" element={<SuggestionsPage />} />
           <Route path="/guild/:guildId/reaction-roles" element={<ReactionRolesPage />} />
           <Route path="/guild/:guildId/starboard" element={<StarboardPage />} />

@@ -98,7 +98,14 @@ export async function loadCommands(client: Client): Promise<void> {
   const { haremCommand } = await import('./waifu/harem')
   const { marryCommand } = await import('./waifu/marry')
   const { divorceCommand } = await import('./waifu/divorce')
-  
+
+  // Music commands
+  const playCommand = (await import('./music/play')).default;
+  const skipCommand = (await import('./music/skip')).default;
+  const stopCommand = (await import('./music/stop')).default;
+  const volumeCommand = (await import('./music/volume')).default;
+  const queueCommand = (await import('./music/queue')).default;
+
   // Register commands
   commands.set(banCommand.data.name, banCommand);
   commands.set(kickCommand.data.name, kickCommand);
@@ -149,6 +156,13 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(haremCommand.data.name, haremCommand)
   commands.set(marryCommand.data.name, marryCommand)
   commands.set(divorceCommand.data.name, divorceCommand)
+
+  // Register music commands
+  commands.set(playCommand.data.name, playCommand)
+  commands.set(skipCommand.data.name, skipCommand)
+  commands.set(stopCommand.data.name, stopCommand)
+  commands.set(volumeCommand.data.name, volumeCommand)
+  commands.set(queueCommand.data.name, queueCommand)
   
   client.commands = commands;
 }
