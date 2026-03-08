@@ -164,6 +164,10 @@ export const autoModConfigSchema = z.object({
   prefix: z.string().min(1).optional(),
   locale: z.string().min(1).optional(),
   timezone: z.string().min(1).optional(),
+
+  aiModerationEnabled: z.boolean().optional(),
+  aiModerationAction: z.enum(['delete', 'warn', 'mute', 'kick', 'ban']).optional(),
+  aiModerationCategoryThresholds: z.record(z.string(), z.number().min(0).max(1)).optional(),
 });
 
 export const guildWelcomeConfigSchema = z.object({
@@ -225,6 +229,10 @@ export const guildAutomodConfigSchema = z.object({
 
   warnThresholds: warnThresholdsSchema.optional(),
   warnExpiration: z.number().int().min(1).optional(),
+
+  aiModerationEnabled: z.boolean().optional(),
+  aiModerationAction: z.enum(['delete', 'warn', 'mute', 'kick', 'ban']).optional(),
+  aiModerationCategoryThresholds: z.record(z.string(), z.number().min(0).max(1)).optional(),
 })
 
 export const guildCommandOverrideSchema = z.object({
@@ -415,6 +423,7 @@ export type EconomyAdminAdjustInput = z.infer<typeof economyAdminAdjustSchema>;
 export type CoinflipCreateBetInput = z.infer<typeof coinflipCreateBetSchema>;
 export type CoinflipActionInput = z.infer<typeof coinflipActionSchema>;
 export type AutoModConfigInput = z.infer<typeof autoModConfigSchema>;
+export type GuildAutomodConfigInput = z.infer<typeof guildAutomodConfigSchema>;
 export type GuildXpConfigInput = z.infer<typeof guildXpConfigSchema>;
 export type GuildAutoroleConfigInput = z.infer<typeof guildAutoroleConfigSchema>;
 export type TicketConfigInput = z.infer<typeof ticketConfigSchema>;
