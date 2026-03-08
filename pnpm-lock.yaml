@@ -118,6 +118,9 @@ importers:
       ioredis:
         specifier: 5.4.1
         version: 5.4.1
+      kazagumo:
+        specifier: ^3.4.3
+        version: 3.4.3
       luxon:
         specifier: ^3.7.2
         version: 3.7.2
@@ -139,6 +142,9 @@ importers:
       redis:
         specifier: ^5.10.0
         version: 5.10.0
+      shoukaku:
+        specifier: ^4.3.0
+        version: 4.3.0
     devDependencies:
       '@types/node':
         specifier: ^25.0.9
@@ -2635,6 +2641,10 @@ packages:
   jsonfile@6.2.0:
     resolution: {integrity: sha512-FGuPw30AdOIUTRMC2OMRtQV+jkVj2cfPqSeWXv1NEAJ1qZ5zb1X6z1mFhbfOB/iy3ssJCD+3KuZ8r8C3uVFlAg==}
 
+  kazagumo@3.4.3:
+    resolution: {integrity: sha512-0Y0MJgfjHQICdnPQTNyHKnDTBBcyMCvUDw/GJ2X8svn//gkrPlod31fnf8nUuSuCmU2cFv7ymVcQXaqgJWcddw==}
+    engines: {node: '>=16.5.0'}
+
   keyv@4.5.4:
     resolution: {integrity: sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw==}
 
@@ -3569,6 +3579,10 @@ packages:
   shebang-regex@3.0.0:
     resolution: {integrity: sha512-7++dFhtcx3353uBaq8DDR4NuxBetBzC7ZQOhmTQInHEd6bSrXdiEyzCvG07Z44UYdLShWUyXt5M/yhz8ekcb1A==}
     engines: {node: '>=8'}
+
+  shoukaku@4.3.0:
+    resolution: {integrity: sha512-jMEqVKvquGEqysnOL7a1hmnOAEJO47kTLoS7cGJLbIya3olSlFkMq7jbrrENijnx8fujXvMgUmQqwEdQk/Rkug==}
+    engines: {node: '>=18.0.0', npm: '>=7.0.0'}
 
   siginfo@2.0.0:
     resolution: {integrity: sha512-ybx0WO1/8bSBLEWXZvEd7gMW3Sn3JFlW3TvX1nREbDLRNQNaeNN8WK0meBwPdAaOI7TtRRRJn/Es1zhrrCHu7g==}
@@ -6478,6 +6492,13 @@ snapshots:
     optionalDependencies:
       graceful-fs: 4.2.11
 
+  kazagumo@3.4.3:
+    dependencies:
+      shoukaku: 4.3.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
+
   keyv@4.5.4:
     dependencies:
       json-buffer: 3.0.1
@@ -7358,6 +7379,13 @@ snapshots:
       shebang-regex: 3.0.0
 
   shebang-regex@3.0.0: {}
+
+  shoukaku@4.3.0:
+    dependencies:
+      ws: 8.19.0
+    transitivePeerDependencies:
+      - bufferutil
+      - utf-8-validate
 
   siginfo@2.0.0: {}
 
