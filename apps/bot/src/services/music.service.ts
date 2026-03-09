@@ -26,6 +26,11 @@ export class MusicService {
 
     if (nodes.length === 0) {
       logger.warn('No Lavalink nodes configured. Music system will not be functional.');
+    } else {
+      logger.info(
+        { nodes: nodes.map((n) => ({ name: n.name, url: n.url, secure: n.secure })) },
+        `🎵 Initializing Kazagumo with ${nodes.length} node(s)...`
+      );
     }
 
     this.kazagumo = new Kazagumo(
