@@ -59,6 +59,14 @@ export class MusicService {
       logger.warn({ node: name, code, reason }, `Lavalink Node [${name}] closed connection.`);
     });
 
+    this.kazagumo.shoukaku.on('disconnect', (name, count) => {
+      logger.warn({ node: name, reconnectCount: count }, `Lavalink Node [${name}] disconnected.`);
+    });
+
+    this.kazagumo.shoukaku.on('reconnecting', (name, left, timeout) => {
+      logger.warn({ node: name, attemptsLeft: left, timeout }, `Lavalink Node [${name}] reconnecting...`);
+    });
+
     this.kazagumo.on('playerStart', (player, track) => {
       logger.info({ guild_id: player.guildId, track: track.title }, 'Começou a tocar uma música.');
     });
