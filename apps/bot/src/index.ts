@@ -181,9 +181,6 @@ client.once("clientReady", async () => {
 	// Iniciar scheduler de expiração de inventário (roles/nick-color/xp boost)
 	const inventoryExpirationScheduler = new InventoryExpirationScheduler(client);
 	inventoryExpirationScheduler.start();
-
-	// Iniciar Kazagumo Music Service
-	initMusicService(client);
 });
 
 // Event: Guild create (bot joins server)
@@ -359,6 +356,10 @@ process.on("SIGTERM", async () => {
 
 // Login
 logger.info("🔑 Tentando login no Discord...");
+
+// Initialize Kazagumo Music Service *before* login so Shoukaku catches the 'ready' event
+initMusicService(client);
+
 client.login(CONFIG.discord.token).catch((error) => {
 	logger.error("❌ Falha ao fazer login no Discord");
 	logger.error({ error }, "Erro ao fazer login no Discord");
