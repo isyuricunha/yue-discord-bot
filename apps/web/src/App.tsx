@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuthStore } from './store/auth'
 import LoginPage from './pages/Login'
@@ -42,6 +42,12 @@ import OwnerPage from './pages/Owner'
 import MusicPage from './pages/Music'
 import CustomCommandsPage from './pages/CustomCommands'
 import { AppShell, PublicShell, RequireAuth, RequireOwner } from './components/layout'
+
+function GuildAutoModRedirect() {
+  const { guildId } = useParams()
+  if (!guildId) return <Navigate to="/" replace />
+  return <Navigate to={`/guild/${guildId}/moderation`} replace />
+}
 
 function App() {
   const { user, isLoading, setToken, initialize } = useAuthStore()
@@ -101,7 +107,7 @@ function App() {
           <Route path="/moderation" element={<Navigate to="/" replace />} />
           <Route path="/guild/:guildId" element={<GuildPage />} />
           <Route path="/guild/:guildId/overview" element={<OverviewPage />} />
-          <Route path="/guild/:guildId/automod" element={<Navigate to="../moderation" replace />} />
+          <Route path="/guild/:guildId/automod" element={<GuildAutoModRedirect />} />
           <Route path="/guild/:guildId/modlogs" element={<ModLogsPage />} />
           <Route path="/guild/:guildId/music" element={<MusicPage />} />
           <Route path="/guild/:guildId/custom-commands" element={<CustomCommandsPage />} />
