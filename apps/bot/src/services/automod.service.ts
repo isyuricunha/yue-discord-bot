@@ -18,6 +18,66 @@ interface AutoModResult {
   details?: Prisma.InputJsonValue;
 }
 
+type ai_moderation_level = 'permissivo' | 'brando' | 'medio' | 'rigoroso' | 'maximo'
+
+const openai_categories = [
+  'harassment',
+  'harassment/threatening',
+  'hate',
+  'hate/threatening',
+  'illicit',
+  'illicit/violent',
+  'self-harm',
+  'self-harm/intent',
+  'self-harm/instructions',
+  'sexual',
+  'sexual/minors',
+  'violence',
+  'violence/graphic',
+] as const
+
+function ai_threshold_for_level(level: ai_moderation_level): number {
+  switch (level) {
+    case 'permissivo':
+      return 0.95
+    case 'brando':
+      return 0.85
+    case 'medio':
+      return 0.75
+    case 'rigoroso':
+      return 0.65
+    case 'maximo':
+      return 0.55
+  }
+}
+
+function ai_thresholds_for_level(level: ai_moderation_level): Record<string, number> {
+  const threshold = ai_threshold_for_level(level)
+  const out: Record<string, number> = {}
+  for (const c of openai_categories) out[c] = threshold
+  return out
+}
+
+function translate_openai_category(category: string): string {
+  const map: Record<string, string> = {
+    harassment: 'assédio',
+    'harassment/threatening': 'assédio (ameaças)',
+    hate: 'ódio',
+    'hate/threatening': 'ódio (ameaças)',
+    illicit: 'ilícito',
+    'illicit/violent': 'ilícito (violento)',
+    'self-harm': 'autolesão',
+    'self-harm/intent': 'autolesão (intenção)',
+    'self-harm/instructions': 'autolesão (instruções)',
+    sexual: 'sexual',
+    'sexual/minors': 'sexual (menores)',
+    violence: 'violência',
+    'violence/graphic': 'violência (gráfica)',
+  }
+
+  return map[category] ?? category
+}
+
 class AutoModService {
   private configCache: Map<string, { config: GuildConfig | null; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
@@ -126,14 +186,15 @@ class AutoModService {
       return { violated: false };
     }
 
-    const thresholds = (config.aiModerationCategoryThresholds ?? {}) as Record<string, number>;
+    const level = (config.aiModerationLevel ?? 'medio') as ai_moderation_level
+    const thresholds = ai_thresholds_for_level(level)
     const result = await openAiModerationService.checkContent(text, imageUrls, thresholds);
 
     if (!result.flagged) {
       return { violated: false };
     }
 
-    const categoryList = result.triggeredCategories.join(', ');
+    const categoryList = result.triggeredCategories.map((c) => translate_openai_category(c)).join(', ');
 
     return {
       violated: true,

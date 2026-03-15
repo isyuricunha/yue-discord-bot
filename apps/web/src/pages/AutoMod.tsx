@@ -39,15 +39,23 @@ interface BannedWord {
   action: string
 }
 
-/** Categories surfaced in the OpenAI omni-moderation-latest model. */
-const AI_MOD_CATEGORIES: { key: string; label: string; description: string }[] = [
-  { key: 'harassment', label: 'Assédio', description: 'Conteúdo que assedia, ameaça ou hostiliza indivíduos.' },
-  { key: 'hate', label: 'Ódio', description: 'Discurso de ódio baseado em identidade, raça, religião, etc.' },
-  { key: 'illicit', label: 'Ilícito', description: 'Conteúdo sobre atividades ilegais (drogas, armas, etc.).' },
-  { key: 'self-harm', label: 'Autolesão', description: 'Conteúdo sobre automutilação ou suicídio.' },
-  { key: 'sexual', label: 'Sexual', description: 'Conteúdo sexual explícito ou inadequado.' },
-  { key: 'violence', label: 'Violência', description: 'Conteúdo que promove ou descreve violência.' },
-]
+type ai_moderation_level = 'permissivo' | 'brando' | 'medio' | 'rigoroso' | 'maximo'
+
+const ai_level_label: Record<ai_moderation_level, string> = {
+  permissivo: 'Permissivo',
+  brando: 'Brando',
+  medio: 'Médio',
+  rigoroso: 'Rigoroso',
+  maximo: 'Máximo',
+}
+
+const ai_level_description: Record<ai_moderation_level, string> = {
+  permissivo: 'Quase tudo passa. Só conteúdo bem explícito será punido.',
+  brando: 'Mais permissivo que o padrão, mas ainda barra casos evidentes.',
+  medio: 'Equilíbrio (recomendado).',
+  rigoroso: 'Mais restritivo. Penaliza com mais frequência.',
+  maximo: 'Quase nada passa. Use apenas se você quiser tolerância mínima.',
+}
 
 interface GuildConfig {
   id: string
@@ -65,7 +73,7 @@ interface GuildConfig {
   linkAction: string
   aiModerationEnabled: boolean
   aiModerationAction: string
-  aiModerationCategoryThresholds: Record<string, number>
+  aiModerationLevel: ai_moderation_level
 }
 
 export default function AutoModPage() {
@@ -80,7 +88,7 @@ export default function AutoModPage() {
   const caps_action = String(config.capsAction ?? 'warn')
   const link_action = String(config.linkAction ?? 'delete')
   const ai_action = String(config.aiModerationAction ?? 'delete')
-  const ai_thresholds = (config.aiModerationCategoryThresholds ?? {}) as Record<string, number>
+  const ai_level = (config.aiModerationLevel ?? 'medio') as ai_moderation_level
 
   const {
     isLoading,
@@ -104,7 +112,7 @@ export default function AutoModPage() {
         linkAction: 'delete',
         aiModerationEnabled: false,
         aiModerationAction: 'delete',
-        aiModerationCategoryThresholds: {},
+        aiModerationLevel: 'medio',
       }
       setConfig(initialConfig)
       return response.data
@@ -152,11 +160,6 @@ export default function AutoModPage() {
     const bannedDomains = [...(config.bannedDomains || [])]
     bannedDomains.splice(index, 1)
     setConfig({ ...config, bannedDomains })
-  }
-
-  const setAiThreshold = (category: string, value: number) => {
-    const updated = { ...ai_thresholds, [category]: value }
-    setConfig({ ...config, aiModerationCategoryThresholds: updated })
   }
 
   return (
@@ -485,36 +488,25 @@ export default function AutoModPage() {
 
               {/* Per-category thresholds */}
               <div>
-                <div className="mb-3 text-sm font-medium">Threshold por categoria (0.00 – 1.00)</div>
+                <div className="mb-3 text-sm font-medium">Nível de detecção</div>
                 <div className="mb-3 text-xs text-muted-foreground">
-                  Score acima do threshold aciona o AutoMod. Padrão: <strong>0.80</strong> quando não configurado.
-                  Valores mais baixos são mais restritivos.
+                  Quanto mais alto o nível, mais restritivo (mais conteúdo será punido).
                 </div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {AI_MOD_CATEGORIES.map(({ key, label, description }) => {
-                    const currentValue = ai_thresholds[key] ?? 0.8
-                    return (
-                      <div key={key} className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 space-y-2">
-                        <div>
-                          <div className="text-sm font-medium">{label}</div>
-                          <div className="text-xs text-muted-foreground">{description}</div>
-                        </div>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={1}
-                          step={0.05}
-                          value={String(currentValue)}
-                          onChange={(e) => {
-                            const parsed = Number.parseFloat(e.target.value)
-                            if (!Number.isNaN(parsed) && parsed >= 0 && parsed <= 1) {
-                              setAiThreshold(key, parsed)
-                            }
-                          }}
-                        />
-                      </div>
-                    )
-                  })}
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <Select
+                      value={ai_level}
+                      onValueChange={(value) => setConfig({ ...config, aiModerationLevel: value as ai_moderation_level })}
+                    >
+                      <option value="permissivo">{ai_level_label.permissivo}</option>
+                      <option value="brando">{ai_level_label.brando}</option>
+                      <option value="medio">{ai_level_label.medio}</option>
+                      <option value="rigoroso">{ai_level_label.rigoroso}</option>
+                      <option value="maximo">{ai_level_label.maximo}</option>
+                    </Select>
+                    <div className="mt-2 text-xs text-muted-foreground">{ai_level_description[ai_level]}</div>
+                  </div>
                 </div>
               </div>
             </div>
