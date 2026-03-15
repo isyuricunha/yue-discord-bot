@@ -54,6 +54,7 @@ model GuildConfig {
   giveawayChannelId           String?
   welcomeChannelId            String?
   muteRoleId                  String?
+  muteRoleIds                 Json     @default("[]")
   bannedWords                 Json     @default("[]")
   wordFilterEnabled           Boolean  @default(false)
   wordFilterWhitelistChannels Json     @default("[]")
