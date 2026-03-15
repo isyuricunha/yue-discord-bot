@@ -87,6 +87,7 @@ model GuildConfig {
   aiModerationEnabled                Boolean  @default(false)
   aiModerationAction                 String   @default("delete")
   aiModerationLevel                  String   @default("medio")
+  aiModerationThresholds             Json     @default("{}")
   guild                              Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@map("guild_configs")
