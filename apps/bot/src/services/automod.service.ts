@@ -12,6 +12,7 @@ import { WarnService } from './warnService';
 import { openAiModerationService } from './openaiModeration.service';
 import { extract_ai_moderation_image_urls } from './automod.ai_images'
 import { build_ai_moderation_thresholds } from './automod.ai_thresholds'
+import { can_apply_automod_action, required_channel_permissions_for_automod_action } from './automod.permissions'
 
 interface AutoModResult {
   violated: boolean;
@@ -322,19 +323,27 @@ class AutoModService {
         return
       }
 
-      if (!bot_permissions.has(PermissionFlagsBits.ManageMessages)) {
+      const action = (result.action || 'delete') as 'delete' | 'warn' | 'mute' | 'kick' | 'ban'
+      const permissions_check = can_apply_automod_action(action, bot_permissions)
+      if (!permissions_check.ok) {
+        const missing = permissions_check.missing
+        const required = required_channel_permissions_for_automod_action(action)
+
         logger.warn(
-          { guild_id: guild.id, channel_id: message.channel.id },
-          'AutoMod: missing ManageMessages permission, cannot delete message',
+          {
+            guild_id: guild.id,
+            channel_id: message.channel.id,
+            action,
+            required_permissions_count: required.length,
+            missing_permissions_count: missing.length,
+          },
+          'AutoMod: missing permissions, cannot apply action',
         )
         return
       }
 
       // Deletar mensagem
       await message.delete();
-
-      // Aplicar ação
-      const action = result.action || 'delete';
 
       const metadata: Prisma.InputJsonValue = {
         source: 'automod',
@@ -355,33 +364,12 @@ class AutoModService {
           await this.applyWarn(member, reason, metadata);
           break;
         case 'mute':
-          if (!bot_permissions.has(PermissionFlagsBits.ModerateMembers)) {
-            logger.warn(
-              { guild_id: guild.id, channel_id: message.channel.id },
-              'AutoMod: missing ModerateMembers permission, cannot timeout member',
-            )
-            break
-          }
           await this.applyMute(member, '5m', reason, metadata);
           break;
         case 'kick':
-          if (!bot_permissions.has(PermissionFlagsBits.KickMembers)) {
-            logger.warn(
-              { guild_id: guild.id, channel_id: message.channel.id },
-              'AutoMod: missing KickMembers permission, cannot kick member',
-            )
-            break
-          }
           await this.applyKick(member, reason, metadata);
           break;
         case 'ban':
-          if (!bot_permissions.has(PermissionFlagsBits.BanMembers)) {
-            logger.warn(
-              { guild_id: guild.id, channel_id: message.channel.id },
-              'AutoMod: missing BanMembers permission, cannot ban member',
-            )
-            break
-          }
           await this.applyBan(member, reason, metadata);
           break;
         case 'delete':
