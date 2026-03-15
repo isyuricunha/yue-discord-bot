@@ -359,6 +359,19 @@ class AutoModService {
         deleted: true,
       };
 
+      if (action === 'delete') {
+        await prisma.modLog.create({
+          data: {
+            guildId: member.guild.id,
+            userId: member.id,
+            moderatorId: member.client.user!.id,
+            action: 'automod',
+            reason: `[AutoMod] ${reason}`,
+            metadata,
+          },
+        })
+      }
+
       switch (action) {
         case 'warn':
           await this.applyWarn(member, reason, metadata);
