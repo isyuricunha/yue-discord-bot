@@ -234,6 +234,7 @@ export const guildAutomodConfigSchema = z.object({
   aiModerationEnabled: z.boolean().optional(),
   aiModerationAction: z.enum(['delete', 'warn', 'mute', 'kick', 'ban']).optional(),
   aiModerationLevel: z.enum(['permissivo', 'brando', 'medio', 'rigoroso', 'maximo']).optional(),
+  aiModerationThresholds: z.record(z.string(), z.number().min(0).max(1)).optional(),
 })
 
 export const guildCommandOverrideSchema = z.object({

@@ -2,10 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { Plus, Save, X } from 'lucide-react'
+import { BrainCircuit, Plus, Save, X } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, ErrorState, Select, Skeleton } from '../components/ui'
+import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -21,6 +21,11 @@ type api_role = {
 type guild_config = {
   muteRoleId?: string | null
   muteRoleIds?: string[]
+
+  aiModerationEnabled?: boolean
+  aiModerationAction?: string
+  aiModerationLevel?: string
+  aiModerationThresholds?: Record<string, number>
 }
 
 type automod_config_response = {
@@ -28,8 +33,48 @@ type automod_config_response = {
   config: {
     muteRoleId: string | null
     muteRoleIds?: string[]
+
+    aiModerationEnabled?: boolean
+    aiModerationAction?: string
+    aiModerationLevel?: string
+    aiModerationThresholds?: Record<string, number>
   }
 }
+
+type automod_action = 'delete' | 'warn' | 'mute' | 'kick' | 'ban'
+type ai_moderation_level = 'permissivo' | 'brando' | 'medio' | 'rigoroso' | 'maximo'
+
+const action_label: Record<automod_action, string> = {
+  delete: 'Deletar',
+  warn: 'Avisar',
+  mute: 'Silenciar',
+  kick: 'Expulsar',
+  ban: 'Banir',
+}
+
+const ai_level_label: Record<ai_moderation_level, string> = {
+  permissivo: 'Permissivo',
+  brando: 'Brando',
+  medio: 'Médio',
+  rigoroso: 'Rigoroso',
+  maximo: 'Máximo',
+}
+
+const openai_categories = [
+  'harassment',
+  'harassment/threatening',
+  'hate',
+  'hate/threatening',
+  'illicit',
+  'illicit/violent',
+  'self-harm',
+  'self-harm/intent',
+  'self-harm/instructions',
+  'sexual',
+  'sexual/minors',
+  'violence',
+  'violence/graphic',
+] as const
 
 export default function ModerationPage() {
   const { guildId } = useParams()
@@ -68,6 +113,10 @@ export default function ModerationPage() {
 
   const [mute_role_ids, set_mute_role_ids] = useState<string[]>([])
   const [mute_role_picker, set_mute_role_picker] = useState('')
+  const [ai_enabled, set_ai_enabled] = useState(false)
+  const [ai_action, set_ai_action] = useState<automod_action>('delete')
+  const [ai_level, set_ai_level] = useState<ai_moderation_level>('medio')
+  const [ai_thresholds, set_ai_thresholds] = useState<Record<string, number>>({})
   const has_initialized = useRef(false)
 
   useEffect(() => {
@@ -83,6 +132,11 @@ export default function ModerationPage() {
 
     const legacy = config.muteRoleId ?? ''
     set_mute_role_ids(legacy ? [legacy] : [])
+
+    set_ai_enabled(Boolean(config.aiModerationEnabled))
+    set_ai_action((config.aiModerationAction as automod_action) ?? 'delete')
+    set_ai_level((config.aiModerationLevel as ai_moderation_level) ?? 'medio')
+    set_ai_thresholds(config.aiModerationThresholds ?? {})
   }, [config])
 
   const mute_roles = useMemo(() => {
@@ -107,6 +161,10 @@ export default function ModerationPage() {
     mutationFn: async () => {
       await axios.put(`${API_URL}/api/guilds/${guildId}/automod-config`, {
         muteRoleIds: mute_role_ids,
+        aiModerationEnabled: ai_enabled,
+        aiModerationAction: ai_action,
+        aiModerationLevel: ai_level,
+        aiModerationThresholds: ai_thresholds,
       })
     },
     onSuccess: () => {
@@ -206,6 +264,113 @@ export default function ModerationPage() {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-6 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <BrainCircuit className="h-5 w-5 text-accent" />
+              <div>
+                <div className="text-sm font-semibold">Moderação por IA</div>
+                <div className="text-xs text-muted-foreground">Analisa texto e imagens automaticamente</div>
+              </div>
+            </div>
+            <Switch
+              checked={ai_enabled}
+              onCheckedChange={(checked) => set_ai_enabled(checked)}
+              label="Habilitar"
+              disabled={is_config_loading || is_config_error}
+            />
+          </div>
+
+          {ai_enabled && (
+            <div className="space-y-6">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <div className="text-sm font-medium">Ação</div>
+                  <div className="mt-2">
+                    <Select value={ai_action} onValueChange={(value) => set_ai_action(value as automod_action)}>
+                      <option value="delete">Deletar</option>
+                      <option value="warn">Avisar</option>
+                      <option value="mute">Silenciar</option>
+                      <option value="kick">Expulsar</option>
+                      <option value="ban">Banir</option>
+                    </Select>
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">{action_label[ai_action]}</div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-medium">Nível</div>
+                  <div className="mt-2">
+                    <Select value={ai_level} onValueChange={(value) => set_ai_level(value as ai_moderation_level)}>
+                      <option value="permissivo">{ai_level_label.permissivo}</option>
+                      <option value="brando">{ai_level_label.brando}</option>
+                      <option value="medio">{ai_level_label.medio}</option>
+                      <option value="rigoroso">{ai_level_label.rigoroso}</option>
+                      <option value="maximo">{ai_level_label.maximo}</option>
+                    </Select>
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <div className="text-sm font-medium">Overrides por categoria (0.00–1.00)</div>
+                <div className="mt-2 text-xs text-muted-foreground">
+                  Deixe em branco para usar o valor padrão do nível. Valores são "score" do OpenAI: quanto menor, mais rígido.
+                </div>
+
+                <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {openai_categories.map((category) => {
+                    const value = ai_thresholds[category]
+                    return (
+                      <div key={category} className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+                        <div className="text-xs font-medium text-muted-foreground">{category}</div>
+                        <div className="mt-2 flex items-center gap-2">
+                          <Input
+                            type="number"
+                            min={0}
+                            max={1}
+                            step={0.01}
+                            value={value === undefined ? '' : String(value)}
+                            onChange={(e) => {
+                              const raw = e.target.value
+                              set_ai_thresholds((prev) => {
+                                const next = { ...prev }
+                                if (!raw.trim()) {
+                                  delete next[category]
+                                  return next
+                                }
+                                const parsed = Number.parseFloat(raw)
+                                if (Number.isNaN(parsed)) return next
+                                next[category] = parsed
+                                return next
+                              })
+                            }}
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() =>
+                              set_ai_thresholds((prev) => {
+                                const next = { ...prev }
+                                delete next[category]
+                                return next
+                              })
+                            }
+                          >
+                            <span>Limpar</span>
+                          </Button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

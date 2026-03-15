@@ -11,6 +11,7 @@ import { moderationLogService } from './moderationLog.service';
 import { WarnService } from './warnService';
 import { openAiModerationService } from './openaiModeration.service';
 import { extract_ai_moderation_image_urls } from './automod.ai_images'
+import { build_ai_moderation_thresholds } from './automod.ai_thresholds'
 
 interface AutoModResult {
   violated: boolean;
@@ -21,22 +22,6 @@ interface AutoModResult {
 }
 
 type ai_moderation_level = 'permissivo' | 'brando' | 'medio' | 'rigoroso' | 'maximo'
-
-const openai_categories = [
-  'harassment',
-  'harassment/threatening',
-  'hate',
-  'hate/threatening',
-  'illicit',
-  'illicit/violent',
-  'self-harm',
-  'self-harm/intent',
-  'self-harm/instructions',
-  'sexual',
-  'sexual/minors',
-  'violence',
-  'violence/graphic',
-] as const
 
 function ai_threshold_for_level(level: ai_moderation_level): number {
   switch (level) {
@@ -51,13 +36,6 @@ function ai_threshold_for_level(level: ai_moderation_level): number {
     case 'maximo':
       return 0.55
   }
-}
-
-function ai_thresholds_for_level(level: ai_moderation_level): Record<string, number> {
-  const threshold = ai_threshold_for_level(level)
-  const out: Record<string, number> = {}
-  for (const c of openai_categories) out[c] = threshold
-  return out
 }
 
 function translate_openai_category(category: string): string {
@@ -232,7 +210,7 @@ class AutoModService {
 
     const level = (config.aiModerationLevel ?? 'medio') as ai_moderation_level
     const threshold = ai_threshold_for_level(level)
-    const thresholds = ai_thresholds_for_level(level)
+    const { thresholds, applied_overrides } = build_ai_moderation_thresholds(level, (config as any).aiModerationThresholds)
     const result = await openAiModerationService.checkContent(text, image_urls, thresholds);
 
     if (!result.flagged) {
@@ -257,6 +235,7 @@ class AutoModService {
       details: {
         aiModerationLevel: level,
         threshold,
+        thresholdOverrides: applied_overrides,
         triggeredCategories: result.triggeredCategories,
         scores: result.scores,
       } satisfies Prisma.InputJsonObject,

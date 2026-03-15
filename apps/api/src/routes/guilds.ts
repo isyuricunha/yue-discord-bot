@@ -511,6 +511,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
           aiModerationEnabled: true,
           aiModerationAction: true,
           aiModerationLevel: true,
+          aiModerationThresholds: true,
         },
       })) ??
       (await prisma.guildConfig.create({ data: { guildId } }))
@@ -593,6 +594,9 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         ...(input.aiModerationEnabled !== undefined ? { aiModerationEnabled: input.aiModerationEnabled } : {}),
         ...(input.aiModerationAction !== undefined ? { aiModerationAction: input.aiModerationAction } : {}),
         ...(input.aiModerationLevel !== undefined ? { aiModerationLevel: input.aiModerationLevel } : {}),
+        ...(input.aiModerationThresholds !== undefined
+          ? { aiModerationThresholds: input.aiModerationThresholds }
+          : {}),
       },
       create: {
         guildId,
@@ -625,6 +629,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         aiModerationEnabled: input.aiModerationEnabled ?? false,
         aiModerationAction: input.aiModerationAction ?? 'delete',
         aiModerationLevel: input.aiModerationLevel ?? 'medio',
+        aiModerationThresholds: input.aiModerationThresholds ?? {},
       },
       select: {
         muteRoleId: true,
@@ -656,6 +661,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         aiModerationEnabled: true,
         aiModerationAction: true,
         aiModerationLevel: true,
+        aiModerationThresholds: true,
       },
     })
 
