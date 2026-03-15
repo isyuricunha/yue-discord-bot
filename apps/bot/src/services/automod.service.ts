@@ -9,6 +9,7 @@ import { getSendableChannel } from '../utils/discord';
 import { moderationLogService } from './moderationLog.service';
 import { WarnService } from './warnService';
 import { openAiModerationService } from './openaiModeration.service';
+import { extract_ai_moderation_image_urls } from './automod.ai_images'
 
 interface AutoModResult {
   violated: boolean;
@@ -176,20 +177,27 @@ class AutoModService {
     // Collect text content
     const text = message.content;
 
-    // Collect image attachment URLs (only images so we don't waste quota on other file types)
-    const imageUrls = message.attachments
-      .filter((att) => !!att.contentType?.startsWith('image/'))
-      .map((att) => att.url);
+    const image_urls = extract_ai_moderation_image_urls({
+      attachments: Array.from(message.attachments.values()).map((att) => ({
+        url: att.url ?? null,
+        contentType: att.contentType ?? null,
+        name: att.name ?? null,
+      })),
+      embeds: message.embeds.map((embed) => ({
+        imageUrl: embed.image?.url ?? null,
+        thumbnailUrl: embed.thumbnail?.url ?? null,
+      })),
+    })
 
     // If there's nothing to check, skip
-    if (!text.trim() && imageUrls.length === 0) {
+    if (!text.trim() && image_urls.length === 0) {
       return { violated: false };
     }
 
     const level = (config.aiModerationLevel ?? 'medio') as ai_moderation_level
     const threshold = ai_threshold_for_level(level)
     const thresholds = ai_thresholds_for_level(level)
-    const result = await openAiModerationService.checkContent(text, imageUrls, thresholds);
+    const result = await openAiModerationService.checkContent(text, image_urls, thresholds);
 
     if (!result.flagged) {
       return { violated: false };
