@@ -46,6 +46,10 @@ class ReportLogService {
     this.cache.delete(guild_id)
   }
 
+  async get_public_config(guild_id: string): Promise<report_config> {
+    return this.get_config(guild_id)
+  }
+
   async notify(input: {
     guild: Guild
     reportedUser: User

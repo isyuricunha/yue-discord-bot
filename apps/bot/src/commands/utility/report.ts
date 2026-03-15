@@ -5,6 +5,9 @@ import { EMOJIS } from '@yuebot/shared'
 
 import type { Command } from '../index'
 import { reportLogService } from '../../services/reportLog.service'
+import { RateLimiter } from '../../utils/rate_limiter'
+
+const report_rate_limiter = new RateLimiter({ windowMs: 30_000, max: 1 })
 
 export const reportCommand: Command = {
   data: new SlashCommandBuilder()
@@ -28,8 +31,38 @@ export const reportCommand: Command = {
     const reported = interaction.options.getUser('usuario', true)
     const reason = interaction.options.getString('motivo', true).trim()
 
-    if (reason.length === 0) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Motivo inválido.`, ephemeral: true })
+    if (reported.id === interaction.user.id) {
+      await interaction.reply({ content: `${EMOJIS.ERROR} Você não pode se denunciar.`, ephemeral: true })
+      return
+    }
+
+    if (reported.bot) {
+      await interaction.reply({ content: `${EMOJIS.ERROR} Você não pode denunciar bots.`, ephemeral: true })
+      return
+    }
+
+    if (reason.length < 10) {
+      await interaction.reply({ content: `${EMOJIS.ERROR} Forneça um motivo mais detalhado (mínimo 10 caracteres).`, ephemeral: true })
+      return
+    }
+
+    const rate_key = `${interaction.guildId}:${interaction.user.id}`
+    const rate = report_rate_limiter.tryConsume(rate_key)
+    if (!rate.allowed) {
+      const seconds = Math.max(1, Math.ceil((rate.resetAt - Date.now()) / 1000))
+      await interaction.reply({
+        content: `${EMOJIS.ERROR} Você está fazendo denúncias rápido demais. Tente novamente em ~${seconds}s.`,
+        ephemeral: true,
+      })
+      return
+    }
+
+    const config = await reportLogService.get_public_config(interaction.guildId)
+    if (!config.reportChannelId) {
+      await interaction.reply({
+        content: `${EMOJIS.ERROR} Denúncias não estão configuradas neste servidor. Peça para um admin configurar em /config channels report.`,
+        ephemeral: true,
+      })
       return
     }
 
