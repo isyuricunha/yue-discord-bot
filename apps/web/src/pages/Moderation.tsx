@@ -119,6 +119,35 @@ export default function ModerationPage() {
   const [ai_thresholds, set_ai_thresholds] = useState<Record<string, number>>({})
   const has_initialized = useRef(false)
 
+  const has_changes = useMemo(() => {
+    if (!config) return false
+
+    const initial_ids = (config.muteRoleIds ?? []).filter(Boolean)
+    const initial_mute_role_ids = initial_ids.length > 0 ? initial_ids : config.muteRoleId ? [config.muteRoleId] : []
+    const same_roles = JSON.stringify(initial_mute_role_ids.slice().sort()) === JSON.stringify(mute_role_ids.slice().sort())
+
+    const initial_ai_enabled = Boolean(config.aiModerationEnabled)
+    const initial_ai_action = (config.aiModerationAction as automod_action) ?? 'delete'
+    const initial_ai_level = (config.aiModerationLevel as ai_moderation_level) ?? 'medio'
+    const initial_thresholds = config.aiModerationThresholds ?? {}
+    const same_thresholds = JSON.stringify(initial_thresholds) === JSON.stringify(ai_thresholds)
+
+    return !(
+      same_roles &&
+      initial_ai_enabled === ai_enabled &&
+      initial_ai_action === ai_action &&
+      initial_ai_level === ai_level &&
+      same_thresholds
+    )
+  }, [
+    config,
+    mute_role_ids,
+    ai_enabled,
+    ai_action,
+    ai_level,
+    ai_thresholds,
+  ])
+
   useEffect(() => {
     if (!config) return
     if (has_initialized.current) return
@@ -183,15 +212,18 @@ export default function ModerationPage() {
           <div className="mt-1 text-sm text-muted-foreground">Configurações de punição e automação</div>
         </div>
 
-        <Button
-          onClick={() => saveMutation.mutate()}
-          isLoading={saveMutation.isPending}
-          disabled={is_config_loading || is_config_error || is_roles_loading}
-          className="shrink-0"
-        >
-          <Save className="h-4 w-4" />
-          <span>Salvar</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {has_changes && <Badge>Alterações pendentes</Badge>}
+          <Button
+            onClick={() => saveMutation.mutate()}
+            isLoading={saveMutation.isPending}
+            disabled={is_config_loading || is_config_error || is_roles_loading || !has_changes}
+            className="shrink-0"
+          >
+            <Save className="h-4 w-4" />
+            <span>Salvar</span>
+          </Button>
+        </div>
       </div>
 
       {is_config_error && (
