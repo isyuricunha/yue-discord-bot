@@ -189,8 +189,27 @@ class AutoModService {
       })),
     })
 
+    logger.debug(
+      {
+        guild_id: message.guild?.id ?? null,
+        channel_id: message.channel?.id ?? null,
+        message_id: message.id,
+        text_length: text.length,
+        image_url_count: image_urls.length,
+      },
+      '[automod.ai] collected content for moderation',
+    )
+
     // If there's nothing to check, skip
     if (!text.trim() && image_urls.length === 0) {
+      logger.debug(
+        {
+          guild_id: message.guild?.id ?? null,
+          channel_id: message.channel?.id ?? null,
+          message_id: message.id,
+        },
+        '[automod.ai] skipped moderation (no text or images)',
+      )
       return { violated: false };
     }
 
