@@ -250,6 +250,12 @@ function extract_music_action_params(pathname: string) {
   return { guildId: match[1] }
 }
 
+function extract_guild_leave_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/leave$/)
+  if (!match) return null
+  return { guildId: match[1] }
+}
+
 function required_permission_for_action(action: moderation_action) {
   switch (action) {
     case 'ban':
@@ -567,6 +573,17 @@ export function start_internal_api(client: Client, options: internal_api_options
           })
 
           return send_json(res, 200, { success: true, profile } satisfies profile_sync_response)
+        }
+
+        const leave_params = extract_guild_leave_params(url.pathname)
+        if (leave_params) {
+          const guild = await client.guilds.fetch(leave_params.guildId).catch(() => null)
+          if (!guild) {
+            return send_json(res, 404, { error: 'Guild not found' } satisfies api_error_body)
+          }
+
+          await guild.leave()
+          return send_json(res, 200, { success: true })
         }
 
         const automod_sync_params = extract_automod_sync_params(url.pathname);

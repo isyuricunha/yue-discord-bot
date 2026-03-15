@@ -484,6 +484,19 @@ export async function moderate_guild_member(
   })) as moderate_member_response
 }
 
+type leave_guild_response = {
+  success: true
+}
+
+export async function leave_guild(guild_id: string, log: FastifyBaseLogger) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/leave`
+
+  return (await fetch_json_with_timeout_ms(url, log, 20_000, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })) as leave_guild_response
+}
+
 export async function publish_ticket_panel(
   input: { guildId: string; channelId: string; moderatorId: string },
   log: FastifyBaseLogger

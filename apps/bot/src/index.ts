@@ -188,6 +188,21 @@ client.on("guildCreate", async (guild) => {
 	logger.info(`➕ Bot adicionado ao servidor: ${guild.name} (${guild.id})`);
 
 	try {
+		const settings = await prisma.botSettings.findUnique({
+			where: { id: 'global' },
+			select: { blockedGuildIds: true },
+		});
+
+		const blocked = Array.isArray(settings?.blockedGuildIds)
+			? (settings?.blockedGuildIds as unknown[]).filter((v): v is string => typeof v === 'string')
+			: [];
+
+		if (blocked.includes(guild.id)) {
+			logger.warn(`🚫 Guild bloqueada (owner): saindo de ${guild.name} (${guild.id})`);
+			await guild.leave().catch(() => null);
+			return;
+		}
+
 		// Create guild entry in database
 		await prisma.guild.upsert({
 			where: { id: guild.id },

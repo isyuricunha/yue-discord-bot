@@ -797,6 +797,7 @@ model BotSettings {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   appDescription  String?
+  blockedGuildIds Json     @default("[]")
 
   @@map("bot_settings")
 }

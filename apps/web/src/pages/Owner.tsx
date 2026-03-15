@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Crown, ExternalLink, RefreshCw, Search, Send, Settings, Shield, Users } from 'lucide-react'
+import { Ban, Crown, ExternalLink, LogOut, RefreshCw, Search, Send, Settings, Shield, Users } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
@@ -56,6 +56,11 @@ type owner_diagnostics_response = {
   guilds: diagnostics_guild_result[]
 }
 
+type blocked_guilds_response = {
+  success: boolean
+  blockedGuildIds: string[]
+}
+
 export default function OwnerPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -86,6 +91,44 @@ export default function OwnerPage() {
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds`)
       return response.data.guilds as guild[]
+    },
+  })
+
+  const { data: blocked_data } = useQuery({
+    queryKey: ['owner', 'guilds', 'blocked'],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/owner/guilds/blocked`)
+      return response.data as blocked_guilds_response
+    },
+  })
+
+  const blocked_set = useMemo(() => new Set((blocked_data?.blockedGuildIds ?? []).filter(Boolean)), [blocked_data])
+
+  const toggleBlockedMutation = useMutation({
+    mutationFn: async (input: { guildId: string; blocked: boolean }) => {
+      const response = await axios.put(`${API_URL}/api/owner/guilds/${input.guildId}/blocked`, { blocked: input.blocked })
+      return response.data as blocked_guilds_response
+    },
+    onSuccess: (data) => {
+      queryClient.setQueryData(['owner', 'guilds', 'blocked'], data)
+      toast_success('Lista de bloqueio atualizada.', 'Owner')
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao atualizar bloqueio', 'Owner')
+    },
+  })
+
+  const leaveGuildMutation = useMutation({
+    mutationFn: async (guild_id: string) => {
+      const response = await axios.post(`${API_URL}/api/owner/guilds/${guild_id}/leave`)
+      return response.data as { success: boolean }
+    },
+    onSuccess: () => {
+      toast_success('Bot saiu do servidor.', 'Owner')
+      queryClient.invalidateQueries({ queryKey: ['owner', 'guilds'] })
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao sair do servidor', 'Owner')
     },
   })
 
@@ -728,6 +771,37 @@ export default function OwnerPage() {
                   >
                     <RefreshCw className="h-4 w-4" />
                     Sync
+                  </Button>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={blocked_set.has(g.id) ? 'outline' : 'outline'}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      const currently_blocked = blocked_set.has(g.id)
+                      toggleBlockedMutation.mutate({ guildId: g.id, blocked: !currently_blocked })
+                    }}
+                    isLoading={toggleBlockedMutation.isPending}
+                  >
+                    <Ban className="h-4 w-4" />
+                    {blocked_set.has(g.id) ? 'Desbloquear' : 'Bloquear'}
+                  </Button>
+
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      leaveGuildMutation.mutate(g.id)
+                    }}
+                    isLoading={leaveGuildMutation.isPending}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sair
                   </Button>
                   <Button
                     type="button"

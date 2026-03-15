@@ -9,6 +9,7 @@ import {
   get_guild_info,
   get_guild_roles,
   get_internal_health,
+  leave_guild,
   send_guild_message,
   set_bot_app_description,
   set_bot_presence,
@@ -164,6 +165,29 @@ function is_object(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object'
 }
 
+function normalize_string_array(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+}
+
+async function get_blocked_guild_ids(): Promise<string[]> {
+  const row = await prisma.botSettings.findUnique({
+    where: { id: 'global' },
+    select: { blockedGuildIds: true },
+  })
+  return normalize_string_array(row?.blockedGuildIds)
+}
+
+async function set_blocked_guild_ids(ids: string[]): Promise<string[]> {
+  const saved = await prisma.botSettings.upsert({
+    where: { id: 'global' },
+    update: { blockedGuildIds: ids },
+    create: { id: 'global', blockedGuildIds: ids },
+    select: { blockedGuildIds: true },
+  })
+  return normalize_string_array(saved.blockedGuildIds)
+}
+
 function internal_bot_api_error_message(error: InternalBotApiError) {
   const body = error.body
   if (body && typeof body === 'object' && 'error' in body && typeof (body as Record<string, unknown>).error === 'string') {
@@ -261,6 +285,100 @@ function matches_query(input: { id: string; name: string; ownerId: string }, que
 }
 
 export async function ownerRoutes(fastify: FastifyInstance) {
+  fastify.get('/owner/guilds/blocked', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const user = request.user
+    if (!is_owner(user.userId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const blockedGuildIds = await get_blocked_guild_ids()
+    return reply.send({ success: true, blockedGuildIds })
+  })
+
+  fastify.put('/owner/guilds/:guildId/blocked', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const user = request.user
+    if (!is_owner(user.userId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const { guildId } = request.params as { guildId?: string }
+    if (typeof guildId !== 'string' || !guildId.trim()) {
+      return reply.code(400).send({ error: 'Invalid guildId' })
+    }
+
+    const body = request.body as { blocked?: unknown }
+    const blocked = typeof body?.blocked === 'boolean' ? body.blocked : null
+    if (blocked === null) {
+      return reply.code(400).send({ error: 'Invalid body' })
+    }
+
+    const existing = await get_blocked_guild_ids()
+    const set = new Set(existing)
+    if (blocked) set.add(guildId)
+    else set.delete(guildId)
+
+    const saved = await set_blocked_guild_ids(Array.from(set))
+
+    await prisma.ownerActionLog.create({
+      data: {
+        actorUserId: user.userId,
+        type: blocked ? 'block_guild' : 'unblock_guild',
+        status: 'executed',
+        request: { guildId, blocked },
+        result: { blockedGuildIds: saved },
+        executedAt: new Date(),
+      },
+    })
+
+    return reply.send({ success: true, blockedGuildIds: saved })
+  })
+
+  fastify.post('/owner/guilds/:guildId/leave', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const user = request.user
+    if (!is_owner(user.userId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const { guildId } = request.params as { guildId?: string }
+    if (typeof guildId !== 'string' || !guildId.trim()) {
+      return reply.code(400).send({ error: 'Invalid guildId' })
+    }
+
+    try {
+      await leave_guild(guildId, request.log)
+
+      await prisma.ownerActionLog.create({
+        data: {
+          actorUserId: user.userId,
+          type: 'leave_guild',
+          status: 'executed',
+          request: { guildId },
+          result: { success: true },
+          executedAt: new Date(),
+        },
+      })
+
+      return reply.send({ success: true })
+    } catch (error: unknown) {
+      if (error instanceof InternalBotApiError) {
+        if (error.status >= 400 && error.status < 500) {
+          return reply.code(error.status).send({ error: internal_bot_api_error_message(error) })
+        }
+        request.log.error({ err: safe_error_details(error), status: error.status }, 'Failed to leave guild via internal bot API')
+        return reply.code(502).send({ error: 'Bad gateway' })
+      }
+
+      request.log.error({ err: safe_error_details(error) }, 'Failed to leave guild')
+      return reply.code(500).send({ error: 'Internal server error' })
+    }
+  })
+
   fastify.get('/owner/diagnostics', {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
