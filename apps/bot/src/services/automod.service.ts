@@ -187,6 +187,7 @@ class AutoModService {
     }
 
     const level = (config.aiModerationLevel ?? 'medio') as ai_moderation_level
+    const threshold = ai_threshold_for_level(level)
     const thresholds = ai_thresholds_for_level(level)
     const result = await openAiModerationService.checkContent(text, imageUrls, thresholds);
 
@@ -202,6 +203,8 @@ class AutoModService {
       action: config.aiModerationAction ?? 'delete',
       rule: 'ai',
       details: {
+        aiModerationLevel: level,
+        threshold,
         triggeredCategories: result.triggeredCategories,
         scores: result.scores,
       } satisfies Prisma.InputJsonObject,

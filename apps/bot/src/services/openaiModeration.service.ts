@@ -21,7 +21,7 @@ export type OpenAiModerationCategory =
   | 'violence/graphic';
 
 /** Default threshold per category when not configured by the guild. */
-const DEFAULT_THRESHOLD = 0.8;
+const DEFAULT_THRESHOLD = 0.75;
 
 /** Input item for the moderation request — text or image. */
 type ModerationInputItem =
@@ -57,7 +57,7 @@ class OpenAiModerationService {
    *
    * @param text - The message text to moderate (may be empty for image-only messages).
    * @param imageUrls - CDN URLs of image attachments to moderate.
-   * @param categoryThresholds - Per-category threshold map (0.0–1.0). Defaults to 0.8.
+   * @param categoryThresholds - Per-category threshold map (0.0–1.0). Defaults to 0.75.
    * @returns `{ flagged, triggeredCategories, scores }` or non-flagged result on any error.
    */
   async checkContent(
