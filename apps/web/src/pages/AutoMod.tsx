@@ -1,11 +1,11 @@
-import { useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
 import { Save, Plus, Trash2, Shield, AlertTriangle, Link as LinkIcon, BrainCircuit } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
+import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -84,6 +84,7 @@ export default function AutoModPage() {
   const [newWordAction, setNewWordAction] = useState('warn')
   const [newDomain, setNewDomain] = useState('')
   const [config, setConfig] = useState<Partial<GuildConfig>>({})
+  const initial_config_ref = useRef<Partial<GuildConfig> | null>(null)
 
   const caps_action = String(config.capsAction ?? 'warn')
   const link_action = String(config.linkAction ?? 'delete')
@@ -114,16 +115,29 @@ export default function AutoModPage() {
         aiModerationAction: 'delete',
         aiModerationLevel: 'medio',
       }
+
+      if (!initial_config_ref.current) {
+        initial_config_ref.current = initialConfig
+      }
       setConfig(initialConfig)
       return response.data
     },
   })
 
+  const has_changes = useMemo(() => {
+    const initial = initial_config_ref.current
+    if (!initial) return false
+
+    return JSON.stringify(initial) !== JSON.stringify(config)
+  }, [config])
+
   const mutation = useMutation({
     mutationFn: async (data: Partial<GuildConfig>) => {
       await axios.put(`${API_URL}/api/guilds/${guildId}/automod-config`, data)
     },
-    onSuccess: () => {
+    onSuccess: (_data, variables) => {
+      initial_config_ref.current = variables
+      setConfig(variables)
       queryClient.invalidateQueries({ queryKey: ['automod-config', guildId] })
       toast_success('Configurações salvas com sucesso!')
     },
@@ -135,6 +149,8 @@ export default function AutoModPage() {
   const handleSave = () => {
     mutation.mutate(config)
   }
+
+  const is_disabled = isLoading || isError || mutation.isPending
 
   const addWord = () => {
     if (!newWord.trim()) return
@@ -175,10 +191,18 @@ export default function AutoModPage() {
           </div>
         </div>
 
-        <Button onClick={handleSave} isLoading={mutation.isPending} className="shrink-0">
-          <Save className="h-4 w-4" />
-          <span>Salvar</span>
-        </Button>
+        <div className="flex items-center gap-2">
+          {has_changes && <Badge>Alterações pendentes</Badge>}
+          <Button
+            onClick={handleSave}
+            isLoading={mutation.isPending}
+            disabled={is_disabled || !has_changes}
+            className="shrink-0"
+          >
+            <Save className="h-4 w-4" />
+            <span>Salvar</span>
+          </Button>
+        </div>
       </div>
 
       {isError && (
