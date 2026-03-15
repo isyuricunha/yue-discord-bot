@@ -28,6 +28,11 @@ type api_error_body = {
   error: string;
 };
 
+function is_internal_api_authorized(req: http.IncomingMessage, options: internal_api_options): boolean {
+  const auth = req.headers.authorization;
+  return auth === `Bearer ${options.secret}`;
+}
+
 type send_message_body = {
   content: string;
 };
@@ -370,8 +375,7 @@ export function start_internal_api(client: Client, options: internal_api_options
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
 
-      const auth = req.headers.authorization;
-      if (auth !== `Bearer ${options.secret}`) {
+      if (!is_internal_api_authorized(req, options)) {
         return send_json(res, 401, { error: 'Unauthorized' } satisfies api_error_body);
       }
 
