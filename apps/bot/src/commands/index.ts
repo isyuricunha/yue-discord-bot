@@ -51,6 +51,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const { sayCommand } = await import('./utility/say');
   const { ticketCommand } = await import('./utility/ticket');
   const { configCommand } = await import('./utility/config');
+  const { reportCommand } = await import('./utility/report')
   const { reactionrolesCommand } = await import('./utility/reactionroles')
   const { eventoCommand } = await import('./utility/evento')
   const { petCommand } = await import('./utility/pet')
@@ -130,6 +131,7 @@ export async function loadCommands(client: Client): Promise<void> {
   }
   commands.set(ticketCommand.data.name, ticketCommand);
   commands.set(configCommand.data.name, configCommand);
+  commands.set(reportCommand.data.name, reportCommand)
   commands.set(reactionrolesCommand.data.name, reactionrolesCommand)
   commands.set(eventoCommand.data.name, eventoCommand)
   commands.set(petCommand.data.name, petCommand)
@@ -178,9 +180,11 @@ export async function loadContextMenuCommands(client: Client): Promise<void> {
 
   const { saveMessageHereCommand } = await import('./authenticated/save_message_here');
   const { saveMessageDmCommand } = await import('./authenticated/save_message_dm');
+  const { reportMessageCommand } = await import('./utility/report_message')
 
   commands.set(saveMessageHereCommand.data.name, saveMessageHereCommand);
   commands.set(saveMessageDmCommand.data.name, saveMessageDmCommand);
+  commands.set(reportMessageCommand.data.name, reportMessageCommand)
 
   client.contextMenuCommands = commands;
 }

@@ -50,6 +50,7 @@ model GuildConfig {
   id                          String   @id @default(cuid())
   guildId                     String   @unique
   modLogChannelId             String?
+  reportChannelId             String?
   giveawayChannelId           String?
   welcomeChannelId            String?
   muteRoleId                  String?
@@ -80,6 +81,7 @@ model GuildConfig {
   leaveMessage                String?
   welcomeMessage              String?
   modLogMessage               String?
+  reportMessage               String?
   announcementChannelId              String?
   aiModerationEnabled                Boolean  @default(false)
   aiModerationAction                 String   @default("delete")

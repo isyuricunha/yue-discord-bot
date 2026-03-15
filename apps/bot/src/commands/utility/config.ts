@@ -13,6 +13,7 @@ import type { Command } from '../index'
 import { autoModService } from '../../services/automod.service'
 import { welcomeService } from '../../services/welcome.service'
 import { moderationLogService } from '../../services/moderationLog.service'
+import { reportLogService } from '../../services/reportLog.service'
 import { xpService } from '../../services/xp.service'
 
 function get_optional_text_channel_id(interaction: ChatInputCommandInteraction, name: string): string | null {
@@ -29,6 +30,7 @@ function clear_guild_config_caches(guild_id: string) {
   autoModService.clearCache(guild_id)
   welcomeService.clear_cache(guild_id)
   moderationLogService.clear_cache(guild_id)
+  reportLogService.clear_cache(guild_id)
 }
 
 function normalize_string_array(value: unknown): string[] {
@@ -69,6 +71,18 @@ export const configCommand: Command = {
       group
         .setName('channels')
         .setDescription('Configurar canais do bot')
+        .addSubcommand((sub) =>
+          sub
+            .setName('report')
+            .setDescription('Definir/limpar canal de denúncias')
+            .addChannelOption((opt) =>
+              opt
+                .setName('canal')
+                .setDescription('Canal de denúncias (omitido = limpar)')
+                .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+                .setRequired(false)
+            )
+        )
         .addSubcommand((sub) =>
           sub
             .setName('modlog')
@@ -134,6 +148,18 @@ export const configCommand: Command = {
       group
         .setName('templates')
         .setDescription('Configurar templates de mensagens')
+        .addSubcommand((sub) =>
+          sub
+            .setName('report')
+            .setDescription('Definir/limpar template de denúncia')
+            .addStringOption((opt) =>
+              opt
+                .setName('template')
+                .setDescription('Template (omitido = limpar)')
+                .setMaxLength(4000)
+                .setRequired(false)
+            )
+        )
         .addSubcommand((sub) =>
           sub
             .setName('welcome')
@@ -405,7 +431,13 @@ export const configCommand: Command = {
       if (group === 'channels') {
         const channel_id = get_optional_text_channel_id(interaction, 'canal')
 
-        if (sub === 'modlog') {
+        if (sub === 'report') {
+          await prisma.guildConfig.upsert({
+            where: { guildId: guild_id },
+            update: { reportChannelId: channel_id },
+            create: { guildId: guild_id, reportChannelId: channel_id },
+          })
+        } else if (sub === 'modlog') {
           await prisma.guildConfig.upsert({
             where: { guildId: guild_id },
             update: { modLogChannelId: channel_id },
@@ -443,7 +475,9 @@ export const configCommand: Command = {
         clear_guild_config_caches(guild_id)
 
         const label =
-          sub === 'modlog'
+          sub === 'report'
+            ? 'Denúncias'
+            : sub === 'modlog'
             ? 'ModLog'
             : sub === 'welcome'
               ? 'Boas-vindas'
@@ -465,7 +499,13 @@ export const configCommand: Command = {
       if (group === 'templates') {
         const template = interaction.options.getString('template')
 
-        if (sub === 'welcome') {
+        if (sub === 'report') {
+          await prisma.guildConfig.upsert({
+            where: { guildId: guild_id },
+            update: { reportMessage: template },
+            create: { guildId: guild_id, reportMessage: template },
+          })
+        } else if (sub === 'welcome') {
           await prisma.guildConfig.upsert({
             where: { guildId: guild_id },
             update: { welcomeMessage: template },
@@ -490,7 +530,7 @@ export const configCommand: Command = {
 
         clear_guild_config_caches(guild_id)
 
-        const label = sub === 'welcome' ? 'Boas-vindas' : sub === 'leave' ? 'Saída' : 'ModLog'
+        const label = sub === 'welcome' ? 'Boas-vindas' : sub === 'leave' ? 'Saída' : sub === 'report' ? 'Denúncias' : 'ModLog'
 
         const embed = new EmbedBuilder()
           .setColor(COLORS.SUCCESS)

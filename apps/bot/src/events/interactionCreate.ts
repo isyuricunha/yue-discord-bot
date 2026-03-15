@@ -249,6 +249,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
     } else if (interaction.customId.startsWith('suggestion:decision:')) {
       const { suggestionService } = await import('../services/suggestion.service');
       await suggestionService.handle_decision_modal(interaction);
+    } else if (interaction.customId.startsWith('report:msg:')) {
+      const { handle_report_message_modal } = await import('../commands/utility/report_message')
+      await handle_report_message_modal(interaction)
     } else if (interaction.customId.startsWith('wizard_basic_')) {
       const { handleBasicInfo } = await import('../commands/sorteio-wizard');
       await handleBasicInfo(interaction);
