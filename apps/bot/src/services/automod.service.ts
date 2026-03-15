@@ -1,4 +1,5 @@
 import type { Message, GuildMember } from 'discord.js';
+import { PermissionFlagsBits } from 'discord.js'
 import { prisma } from '@yuebot/database';
 import type { GuildConfig } from '@yuebot/database';
 import type { Prisma } from '@yuebot/database';
@@ -79,6 +80,11 @@ function translate_openai_category(category: string): string {
   return map[category] ?? category
 }
 
+function normalize_string_array(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+}
+
 class AutoModService {
   private configCache: Map<string, { config: GuildConfig | null; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
@@ -111,11 +117,22 @@ class AutoModService {
     }
 
     // Verificar AI Moderation (OpenAI)
-    if (config.aiModerationEnabled && process.env.OPENAI_API_KEY) {
-      const aiCheck = await this.checkAiModeration(message, config);
-      if (aiCheck.violated) {
-        await this.handleViolation(message, member, aiCheck);
-        return true;
+    if (config.aiModerationEnabled) {
+      if (!process.env.OPENAI_API_KEY) {
+        logger.debug(
+          {
+            guild_id: message.guild.id,
+            channel_id: message.channel.id,
+            message_id: message.id,
+          },
+          '[automod.ai] enabled but OPENAI_API_KEY is missing, skipping moderation',
+        )
+      } else {
+        const aiCheck = await this.checkAiModeration(message, config);
+        if (aiCheck.violated) {
+          await this.handleViolation(message, member, aiCheck);
+          return true;
+        }
       }
     }
 
@@ -145,9 +162,9 @@ class AutoModService {
 
   private isWhitelisted(member: GuildMember, channelId: string, config: GuildConfig): boolean {
     // Verificar se o canal está na whitelist
-    const wordWhitelistChannels = config.wordFilterWhitelistChannels as string[];
-    const capsWhitelistChannels = config.capsWhitelistChannels as string[];
-    const linkWhitelistChannels = config.linkWhitelistChannels as string[];
+    const wordWhitelistChannels = normalize_string_array(config.wordFilterWhitelistChannels);
+    const capsWhitelistChannels = normalize_string_array(config.capsWhitelistChannels);
+    const linkWhitelistChannels = normalize_string_array(config.linkWhitelistChannels);
 
     const channelWhitelisted =
       wordWhitelistChannels.includes(channelId) ||
@@ -159,9 +176,9 @@ class AutoModService {
     // Verificar se o membro tem role na whitelist
     const memberRoles = member.roles.cache.map(r => r.id);
     
-    const wordWhitelistRoles = config.wordFilterWhitelistRoles as string[];
-    const capsWhitelistRoles = config.capsWhitelistRoles as string[];
-    const linkWhitelistRoles = config.linkWhitelistRoles as string[];
+    const wordWhitelistRoles = normalize_string_array(config.wordFilterWhitelistRoles);
+    const capsWhitelistRoles = normalize_string_array(config.capsWhitelistRoles);
+    const linkWhitelistRoles = normalize_string_array(config.linkWhitelistRoles);
 
     const roleWhitelisted = memberRoles.some(
       roleId =>
@@ -219,6 +236,14 @@ class AutoModService {
     const result = await openAiModerationService.checkContent(text, image_urls, thresholds);
 
     if (!result.flagged) {
+      logger.debug(
+        {
+          guild_id: message.guild?.id ?? null,
+          channel_id: message.channel?.id ?? null,
+          message_id: message.id,
+        },
+        '[automod.ai] moderation did not flag content',
+      )
       return { violated: false };
     }
 
@@ -288,6 +313,44 @@ class AutoModService {
 
       const reason = result.reason ?? 'Conteúdo impróprio detectado.'
 
+      const guild = message.guild
+      if (!guild) return
+
+      const bot_member = guild.members.me
+      if (!bot_member) {
+        logger.warn(
+          { guild_id: guild.id },
+          'AutoMod: bot member not available, cannot apply moderation actions',
+        )
+        return
+      }
+
+      const channel = message.channel
+      if (!channel.isTextBased() || !('permissionsFor' in channel)) {
+        logger.warn(
+          { guild_id: guild.id, channel_id: channel.id },
+          'AutoMod: channel does not support permissions checks',
+        )
+        return
+      }
+
+      const bot_permissions = channel.permissionsFor(bot_member)
+      if (!bot_permissions) {
+        logger.warn(
+          { guild_id: guild.id, channel_id: message.channel.id },
+          'AutoMod: cannot resolve bot permissions for channel',
+        )
+        return
+      }
+
+      if (!bot_permissions.has(PermissionFlagsBits.ManageMessages)) {
+        logger.warn(
+          { guild_id: guild.id, channel_id: message.channel.id },
+          'AutoMod: missing ManageMessages permission, cannot delete message',
+        )
+        return
+      }
+
       // Deletar mensagem
       await message.delete();
 
@@ -313,12 +376,33 @@ class AutoModService {
           await this.applyWarn(member, reason, metadata);
           break;
         case 'mute':
+          if (!bot_permissions.has(PermissionFlagsBits.ModerateMembers)) {
+            logger.warn(
+              { guild_id: guild.id, channel_id: message.channel.id },
+              'AutoMod: missing ModerateMembers permission, cannot timeout member',
+            )
+            break
+          }
           await this.applyMute(member, '5m', reason, metadata);
           break;
         case 'kick':
+          if (!bot_permissions.has(PermissionFlagsBits.KickMembers)) {
+            logger.warn(
+              { guild_id: guild.id, channel_id: message.channel.id },
+              'AutoMod: missing KickMembers permission, cannot kick member',
+            )
+            break
+          }
           await this.applyKick(member, reason, metadata);
           break;
         case 'ban':
+          if (!bot_permissions.has(PermissionFlagsBits.BanMembers)) {
+            logger.warn(
+              { guild_id: guild.id, channel_id: message.channel.id },
+              'AutoMod: missing BanMembers permission, cannot ban member',
+            )
+            break
+          }
           await this.applyBan(member, reason, metadata);
           break;
         case 'delete':
@@ -339,9 +423,9 @@ class AutoModService {
       }
 
       // Enviar para canal de logs se configurado
-      if (message.guild) {
+      if (guild) {
         await moderationLogService.notify({
-          guild: message.guild,
+          guild,
           user: member.user,
           staff: member.client.user!,
           punishment: action,
