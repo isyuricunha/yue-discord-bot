@@ -195,6 +195,8 @@ class AutoModService {
     try {
       const message_excerpt = message.content.substring(0, 200) || '[sem conteúdo]';
 
+      const reason = result.reason ?? 'Conteúdo impróprio detectado.'
+
       // Deletar mensagem
       await message.delete();
 
@@ -217,34 +219,32 @@ class AutoModService {
 
       switch (action) {
         case 'warn':
-          await this.applyWarn(member, result.reason!, metadata);
+          await this.applyWarn(member, reason, metadata);
           break;
         case 'mute':
-          await this.applyMute(member, '5m', result.reason!, metadata);
+          await this.applyMute(member, '5m', reason, metadata);
           break;
         case 'kick':
-          await this.applyKick(member, result.reason!, metadata);
+          await this.applyKick(member, reason, metadata);
           break;
         case 'ban':
-          await this.applyBan(member, result.reason!, metadata);
+          await this.applyBan(member, reason, metadata);
           break;
         case 'delete':
           // Apenas deletar, já foi feito acima
           break;
       }
 
-      // Enviar notificação no canal (opcional)
-      if (action !== 'delete') {
-        const notificationChannel = getSendableChannel(message.channel);
-        if (notificationChannel) {
-          await notificationChannel
-            .send({
-              content: `${EMOJIS.WARNING} ${member.user.tag}, sua mensagem foi removida: ${result.reason}`,
-            })
-            .then((msg) => {
-              setTimeout(() => msg.delete().catch(() => {}), 5000);
-            });
-        }
+      const notificationChannel = getSendableChannel(message.channel);
+      if (notificationChannel) {
+        await notificationChannel
+          .send({
+            content: `${EMOJIS.WARNING} <@${member.id}>, sua mensagem foi removida: ${reason}`,
+            allowedMentions: { users: [member.id], parse: [] },
+          })
+          .then((msg) => {
+            setTimeout(() => msg.delete().catch(() => {}), 7000);
+          });
       }
 
       // Enviar para canal de logs se configurado
@@ -254,7 +254,7 @@ class AutoModService {
           user: member.user,
           staff: member.client.user!,
           punishment: action,
-          reason: `${result.reason ?? ''}${message_excerpt ? ` | ${message_excerpt}` : ''}`,
+          reason: `${reason}${message_excerpt ? ` | ${message_excerpt}` : ''}`,
           duration: action === 'mute' ? '5m' : '',
         })
       }
