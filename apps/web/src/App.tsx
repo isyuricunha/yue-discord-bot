@@ -15,7 +15,6 @@ import PrivacyPage from './pages/Privacy'
 import DashboardPage from './pages/Dashboard'
 import GuildPage from './pages/Guild'
 import OverviewPage from './pages/Overview'
-import AutoModPage from './pages/AutoMod'
 import ModLogsPage from './pages/ModLogs'
 import AuditLogsPage from './pages/AuditLogs'
 import CommandsPage from './pages/Commands'
@@ -101,7 +100,7 @@ function App() {
           <Route path="/" element={<DashboardPage />} />
           <Route path="/guild/:guildId" element={<GuildPage />} />
           <Route path="/guild/:guildId/overview" element={<OverviewPage />} />
-          <Route path="/guild/:guildId/automod" element={<AutoModPage />} />
+          <Route path="/guild/:guildId/automod" element={<Navigate to="../moderation" replace />} />
           <Route path="/guild/:guildId/modlogs" element={<ModLogsPage />} />
           <Route path="/guild/:guildId/music" element={<MusicPage />} />
           <Route path="/guild/:guildId/custom-commands" element={<CustomCommandsPage />} />
