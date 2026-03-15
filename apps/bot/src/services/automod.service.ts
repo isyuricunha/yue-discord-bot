@@ -379,14 +379,10 @@ class AutoModService {
 
       const notificationChannel = getSendableChannel(message.channel);
       if (notificationChannel) {
-        await notificationChannel
-          .send({
-            content: `${EMOJIS.WARNING} <@${member.id}>, sua mensagem foi removida: ${reason}`,
-            allowedMentions: { users: [member.id], parse: [] },
-          })
-          .then((msg) => {
-            setTimeout(() => msg.delete().catch(() => {}), 7000);
-          });
+        await notificationChannel.send({
+          content: `${EMOJIS.WARNING} <@${member.id}>, sua mensagem foi removida: ${reason}`,
+          allowedMentions: { users: [member.id], parse: [] },
+        })
       }
 
       // Enviar para canal de logs se configurado
