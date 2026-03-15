@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { cn } from '../../lib/cn'
+import { Seo } from '../seo/seo'
 
 function nav_link_class({ isActive }: { isActive: boolean }) {
   return cn(
@@ -17,6 +18,7 @@ export function PublicShell() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <Seo />
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-accent/10 blur-[120px]" />
         <div className="absolute -bottom-52 right-[-120px] h-[520px] w-[520px] rounded-full bg-accent/5 blur-[120px]" />

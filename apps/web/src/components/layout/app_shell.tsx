@@ -3,6 +3,7 @@ import { Outlet, useLocation } from 'react-router-dom'
 
 import { cn } from '../../lib/cn'
 import { ToastViewport } from '../ui'
+import { Seo } from '../seo/seo'
 import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
 
@@ -29,6 +30,7 @@ export function AppShell() {
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
+      <Seo />
       <div className="pointer-events-none fixed inset-0">
         <div className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-accent/8 blur-[120px]" />
         <div className="absolute -bottom-52 right-[-120px] h-[520px] w-[520px] rounded-full bg-accent/4 blur-[120px]" />
