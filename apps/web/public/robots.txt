@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /guild/
+Disallow: /owner
+Disallow: /token-login
+
+Sitemap: https://yuebot.yuricunha.com/sitemap.xml

@@ -1,0 +1,18 @@
+{
+  "name": "Yue Bot",
+  "short_name": "Yue",
+  "description": "Painel de gerenciamento do Yue Bot para configurar recursos do seu servidor no Discord.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0b0b",
+  "theme_color": "#ff6a00",
+  "lang": "pt-BR",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

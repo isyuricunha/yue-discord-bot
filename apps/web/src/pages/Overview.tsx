@@ -335,7 +335,7 @@ export default function OverviewPage() {
                         <span className="text-muted-foreground">Usuário:</span> <span className="font-medium">{action.userId}</span>
                       </div>
                       {action.reason && (
-                        <div className="mt-1 break-words text-sm text-muted-foreground">Razão: {action.reason}</div>
+                        <div className="mt-1 wrap-break-word text-sm text-muted-foreground">Razão: {action.reason}</div>
                       )}
                     </div>
                   </div>
