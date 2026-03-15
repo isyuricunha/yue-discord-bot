@@ -11,6 +11,7 @@ import { COLORS, EMOJIS, warnThresholdsSchema } from '@yuebot/shared'
 
 import type { Command } from '../index'
 import { autoModService } from '../../services/automod.service'
+import { getPunishmentRoleService } from '../../services/punishmentRole.service'
 import { welcomeService } from '../../services/welcome.service'
 import { moderationLogService } from '../../services/moderationLog.service'
 import { reportLogService } from '../../services/reportLog.service'
@@ -28,9 +29,18 @@ function get_optional_text_channel_id(interaction: ChatInputCommandInteraction, 
 
 function clear_guild_config_caches(guild_id: string) {
   autoModService.clearCache(guild_id)
+  getPunishmentRoleService()?.clear_cache(guild_id)
   welcomeService.clear_cache(guild_id)
   moderationLogService.clear_cache(guild_id)
   reportLogService.clear_cache(guild_id)
+}
+
+function normalize_id_array(value: unknown): string[] {
+  if (!Array.isArray(value)) return []
+  return value
+    .filter((v): v is string => typeof v === 'string')
+    .map((v) => v.trim())
+    .filter(Boolean)
 }
 
 function normalize_string_array(value: unknown): string[] {
@@ -201,6 +211,28 @@ export const configCommand: Command = {
       group
         .setName('automod')
         .setDescription('Configurar AutoMod')
+        .addSubcommand((sub) =>
+          sub
+            .setName('mute-role-add')
+            .setDescription('Adicionar cargo de mute (sincroniza com timeout)')
+            .addRoleOption((opt) => opt.setName('cargo').setDescription('Cargo').setRequired(true))
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('mute-role-remove')
+            .setDescription('Remover cargo de mute')
+            .addRoleOption((opt) => opt.setName('cargo').setDescription('Cargo').setRequired(true))
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('mute-role-list')
+            .setDescription('Listar cargos de mute configurados')
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('mute-role-clear')
+            .setDescription('Limpar cargos de mute (desativar sincronização)')
+        )
         .addSubcommand((sub) =>
           sub
             .setName('word')
@@ -543,6 +575,73 @@ export const configCommand: Command = {
 
       if (group === 'automod') {
         const config_row = await prisma.guildConfig.findUnique({ where: { guildId: guild_id } })
+
+        if (sub === 'mute-role-add' || sub === 'mute-role-remove' || sub === 'mute-role-list' || sub === 'mute-role-clear') {
+          const existing = (() => {
+            const ids = normalize_id_array(config_row?.muteRoleIds)
+            if (ids.length > 0) return ids
+            const legacy = typeof config_row?.muteRoleId === 'string' ? config_row.muteRoleId.trim() : ''
+            return legacy ? [legacy] : []
+          })()
+
+          if (sub === 'mute-role-list') {
+            const lines = existing.slice(0, 30).map((id) => `- <@&${id}> (\`${id}\`)`).join('\n')
+            const more = existing.length > 30 ? `\n... e mais ${existing.length - 30}` : ''
+
+            const embed = new EmbedBuilder()
+              .setColor(COLORS.INFO)
+              .setTitle('📄 Cargos de mute')
+              .setDescription(existing.length === 0 ? 'Nenhum cargo configurado.' : `${lines}${more}`)
+            await interaction.editReply({ embeds: [embed] })
+            return
+          }
+
+          if (sub === 'mute-role-clear') {
+            await prisma.guildConfig.upsert({
+              where: { guildId: guild_id },
+              update: { muteRoleIds: [], muteRoleId: null },
+              create: { guildId: guild_id, muteRoleIds: [], muteRoleId: null },
+            })
+            clear_guild_config_caches(guild_id)
+
+            const embed = new EmbedBuilder()
+              .setColor(COLORS.SUCCESS)
+              .setTitle(`${EMOJIS.SUCCESS} Cargos de mute limpos`)
+              .setDescription('Sincronização de cargos de mute desativada.')
+            await interaction.editReply({ embeds: [embed] })
+            return
+          }
+
+          const role = interaction.options.getRole('cargo', true)
+          const role_id = role.id
+          const next_set = new Set(existing)
+
+          if (sub === 'mute-role-add') next_set.add(role_id)
+          if (sub === 'mute-role-remove') next_set.delete(role_id)
+
+          const next = Array.from(next_set).slice(0, 10)
+
+          await prisma.guildConfig.upsert({
+            where: { guildId: guild_id },
+            update: {
+              muteRoleIds: next,
+              muteRoleId: next[0] ?? null,
+            },
+            create: {
+              guildId: guild_id,
+              muteRoleIds: next,
+              muteRoleId: next[0] ?? null,
+            },
+          })
+          clear_guild_config_caches(guild_id)
+
+          const embed = new EmbedBuilder()
+            .setColor(COLORS.SUCCESS)
+            .setTitle(`${EMOJIS.SUCCESS} Cargos de mute atualizados`)
+            .setDescription(`Total: **${next.length}**`) 
+          await interaction.editReply({ embeds: [embed] })
+          return
+        }
 
         if (sub === 'word') {
           const enabled = interaction.options.getBoolean('ativar', true)
