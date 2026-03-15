@@ -6,6 +6,7 @@ import { EMOJIS } from '@yuebot/shared'
 import type { Command } from '../index'
 import { reportLogService } from '../../services/reportLog.service'
 import { RateLimiter } from '../../utils/rate_limiter'
+import { logger } from '../../utils/logger'
 
 const report_rate_limiter = new RateLimiter({ windowMs: 30_000, max: 1 })
 
@@ -74,6 +75,13 @@ export const reportCommand: Command = {
       reporter: interaction.user,
       reason,
     })
+
+    logger.info({
+      guildId: interaction.guildId,
+      reporterId: interaction.user.id,
+      reportedUserId: reported.id,
+      source: 'slash',
+    }, 'Report enviado')
 
     await interaction.editReply({ content: `${EMOJIS.SUCCESS} Denúncia enviada. Obrigado!` })
   },
