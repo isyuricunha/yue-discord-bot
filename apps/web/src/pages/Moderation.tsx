@@ -7,6 +7,7 @@ import { BrainCircuit, Plus, Save, X } from 'lucide-react'
 import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
+import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
 
 const API_URL = getApiUrl()
 
@@ -147,6 +148,11 @@ export default function ModerationPage() {
     ai_level,
     ai_thresholds,
   ])
+
+  use_unsaved_changes_warning({
+    enabled: has_changes,
+    message: 'Você tem alterações pendentes. Deseja realmente sair desta página?',
+  })
 
   useEffect(() => {
     if (!config) return

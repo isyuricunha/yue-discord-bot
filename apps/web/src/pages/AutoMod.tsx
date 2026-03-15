@@ -7,6 +7,7 @@ import { Save, Plus, Trash2, Shield, AlertTriangle, Link as LinkIcon, BrainCircu
 import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
+import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
 
 const API_URL = getApiUrl()
 
@@ -130,6 +131,11 @@ export default function AutoModPage() {
 
     return JSON.stringify(initial) !== JSON.stringify(config)
   }, [config])
+
+  use_unsaved_changes_warning({
+    enabled: has_changes,
+    message: 'Você tem alterações pendentes. Deseja realmente sair desta página?',
+  })
 
   const mutation = useMutation({
     mutationFn: async (data: Partial<GuildConfig>) => {
