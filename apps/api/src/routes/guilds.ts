@@ -483,6 +483,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         where: { guildId },
         select: {
           muteRoleId: true,
+          muteRoleIds: true,
 
           wordFilterEnabled: true,
           bannedWords: true,
@@ -547,9 +548,21 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     }
 
     const input = parsed.data
+    const normalized_mute_role_ids = (input.muteRoleIds ?? []).filter(Boolean)
+    const normalized_mute_role_id =
+      input.muteRoleId !== undefined
+        ? input.muteRoleId
+        : (normalized_mute_role_ids[0] ?? null)
+
     const updated = await prisma.guildConfig.upsert({
       where: { guildId },
       update: {
+        ...(input.muteRoleIds !== undefined
+          ? {
+              muteRoleIds: normalized_mute_role_ids,
+              muteRoleId: normalized_mute_role_ids[0] ?? null,
+            }
+          : {}),
         ...(input.muteRoleId !== undefined ? { muteRoleId: input.muteRoleId } : {}),
 
         ...(input.wordFilterEnabled !== undefined ? { wordFilterEnabled: input.wordFilterEnabled } : {}),
@@ -583,7 +596,8 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       },
       create: {
         guildId,
-        muteRoleId: input.muteRoleId ?? null,
+        muteRoleId: normalized_mute_role_id,
+        muteRoleIds: input.muteRoleIds ?? (normalized_mute_role_id ? [normalized_mute_role_id] : []),
 
         wordFilterEnabled: input.wordFilterEnabled ?? false,
         bannedWords: input.bannedWords ?? [],
@@ -614,6 +628,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       },
       select: {
         muteRoleId: true,
+        muteRoleIds: true,
 
         wordFilterEnabled: true,
         bannedWords: true,

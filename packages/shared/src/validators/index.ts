@@ -199,6 +199,7 @@ export const guildGiveawayConfigSchema = z.object({
 
 export const guildAutomodConfigSchema = z.object({
   muteRoleId: z.string().nullable().optional(),
+  muteRoleIds: z.array(z.string()).optional(),
 
   wordFilterEnabled: z.boolean().optional(),
   bannedWords: z
