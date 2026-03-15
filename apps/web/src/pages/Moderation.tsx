@@ -127,11 +127,10 @@ export default function ModerationPage() {
     const initial_ids = (config.muteRoleIds ?? []).filter(Boolean)
     if (initial_ids.length > 0) {
       set_mute_role_ids(initial_ids)
-      return
+    } else {
+      const legacy = config.muteRoleId ?? ''
+      set_mute_role_ids(legacy ? [legacy] : [])
     }
-
-    const legacy = config.muteRoleId ?? ''
-    set_mute_role_ids(legacy ? [legacy] : [])
 
     set_ai_enabled(Boolean(config.aiModerationEnabled))
     set_ai_action((config.aiModerationAction as automod_action) ?? 'delete')
