@@ -98,6 +98,7 @@ function App() {
           }
         >
           <Route path="/" element={<DashboardPage />} />
+          <Route path="/moderation" element={<Navigate to="/" replace />} />
           <Route path="/guild/:guildId" element={<GuildPage />} />
           <Route path="/guild/:guildId/overview" element={<OverviewPage />} />
           <Route path="/guild/:guildId/automod" element={<Navigate to="../moderation" replace />} />
