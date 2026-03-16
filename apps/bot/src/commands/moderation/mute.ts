@@ -4,6 +4,7 @@ import { prisma } from '@yuebot/database';
 import { logger } from '../../utils/logger';
 import { COLORS, discord_timeout_max_ms, EMOJIS, parseDurationMs } from '@yuebot/shared';
 import { moderationLogService } from '../../services/moderationLog.service';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 import type { Command } from '../index';
 
 function formatDuration(duration: string): string {
@@ -52,9 +53,8 @@ export const muteCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild || !interaction.member) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -64,17 +64,15 @@ export const muteCommand: Command = {
     const reason = interaction.options.get('razao')?.value as string | undefined;
 
     if (targetUser.id === interaction.user.id) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você não pode silenciar a si mesmo!`,
-        ephemeral: true,
       });
       return;
     }
 
     if (targetUser.id === interaction.client.user?.id) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você não pode me silenciar!`,
-        ephemeral: true,
       });
       return;
     }
@@ -82,9 +80,8 @@ export const muteCommand: Command = {
     // Validar duração
     const durationMs = parseDurationMs(duration, { maxMs: discord_timeout_max_ms, clampToMax: false });
     if (!durationMs) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Duração inválida! Use o formato: 5m, 2h, 1d, 1w (m=minutos, h=horas, d=dias, w=semanas)`,
-        ephemeral: true,
       });
       return;
     }
@@ -93,9 +90,8 @@ export const muteCommand: Command = {
       const targetMember = await interaction.guild.members.fetch(targetUser.id);
 
       if (!targetMember) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Usuário não encontrado no servidor!`,
-          ephemeral: true,
         });
         return;
       }
@@ -105,9 +101,8 @@ export const muteCommand: Command = {
       const targetPosition = targetMember.roles.highest.position;
 
       if (targetPosition >= memberPosition) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Você não pode silenciar este usuário pois ele tem uma role igual ou superior à sua!`,
-          ephemeral: true,
         });
         return;
       }
@@ -191,9 +186,8 @@ export const muteCommand: Command = {
       );
     } catch (error) {
       logger.error({ error }, 'Erro ao silenciar usuário');
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Erro ao silenciar o usuário. Verifique se tenho permissões suficientes.`,
-        ephemeral: true,
       });
     }
   },
