@@ -113,10 +113,14 @@ export async function handleInteractionCreate(interaction: Interaction) {
         ephemeral: true,
       };
 
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(errorMessage);
-      } else {
-        await interaction.reply(errorMessage);
+      try {
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(errorMessage);
+        } else {
+          await interaction.reply(errorMessage);
+        }
+      } catch (reply_error) {
+        logger.error({ err: safe_error_details(reply_error), command: interaction.commandName }, 'Erro ao responder falha de comando');
       }
     }
   }
@@ -159,10 +163,14 @@ export async function handleInteractionCreate(interaction: Interaction) {
         ephemeral: true,
       };
 
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(errorMessage);
-      } else {
-        await interaction.reply(errorMessage);
+      try {
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(errorMessage);
+        } else {
+          await interaction.reply(errorMessage);
+        }
+      } catch (reply_error) {
+        logger.error({ err: safe_error_details(reply_error), command: interaction.commandName }, 'Erro ao responder falha de context menu comando');
       }
     }
   }

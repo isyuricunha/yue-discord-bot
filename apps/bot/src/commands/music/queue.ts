@@ -9,12 +9,15 @@ export async function reply_with_queue_embed(interaction: ChatInputCommandIntera
 
   if (!musicService) return;
 
+  if (!interaction.deferred && !interaction.replied) {
+    await interaction.deferReply();
+  }
+
   const player = musicService.kazagumo.players.get(interaction.guildId);
 
   if (!player || !player.playing) {
-    await interaction.reply({
+    await interaction.editReply({
       content: `${EMOJIS.ERROR} Não há nenhuma música tocando no momento.`,
-      ephemeral: true,
     });
     return;
   }
@@ -53,7 +56,7 @@ export async function reply_with_queue_embed(interaction: ChatInputCommandIntera
     embed.setFooter({ text: `E mais ${queue.length - 10} músicas não listadas...` });
   }
 
-  await interaction.reply({ embeds: [embed] });
+  await interaction.editReply({ embeds: [embed] });
 }
 
 const queueCommand: Command = {
