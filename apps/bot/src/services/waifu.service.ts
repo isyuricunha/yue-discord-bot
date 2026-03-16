@@ -217,7 +217,7 @@ class WaifuService {
           'Encontrei mais de um resultado. Seja mais específico:\n' +
           results
             .slice(0, 10)
-            .map((c) => `- ${c.name.full ?? 'Unknown'}`)
+            .map((c) => `- ${c.name.full ?? 'Desconhecido'}`)
             .join('\n'),
       }
     }
@@ -227,7 +227,7 @@ class WaifuService {
     const upserted = await prisma.waifuCharacter.upsert({
       where: { source_sourceId: { source: 'ANILIST', sourceId: top.id } },
       update: {
-        name: top.name.full ?? 'Unknown',
+        name: top.name.full ?? 'Desconhecido',
         nameNative: top.name.native,
         imageUrl: top.image.large ?? '',
         gender: top.gender,
@@ -237,7 +237,7 @@ class WaifuService {
       create: {
         source: 'ANILIST',
         sourceId: top.id,
-        name: top.name.full ?? 'Unknown',
+        name: top.name.full ?? 'Desconhecido',
         nameNative: top.name.native,
         imageUrl: top.image.large ?? '',
         gender: top.gender,
@@ -255,6 +255,180 @@ class WaifuService {
       where: { id: userId },
       update: { username: input.username ?? undefined, avatar: input.avatar ?? undefined },
       create: { id: userId, username: input.username ?? null, avatar: input.avatar ?? null },
+    })
+  }
+
+  async reroll_by_roll_id(input: {
+    rollId: string
+    guildId: string
+    channelId: string
+    userId: string
+    now?: Date
+  }): Promise<reroll_result> {
+    const now = input.now ?? new Date()
+
+    return await with_serializable_retry(async (tx) => {
+      await tx.user.upsert({
+        where: { id: input.userId },
+        update: {},
+        create: { id: input.userId, username: null, avatar: null },
+      })
+
+      const old = await tx.waifuRoll.findUnique({
+        where: { id: input.rollId },
+        select: {
+          id: true,
+          guildId: true,
+          channelId: true,
+          rolledByUserId: true,
+          kind: true,
+          desiredGender: true,
+          messageId: true,
+          expiresAt: true,
+          claimedByUserId: true,
+          createdAt: true,
+        },
+      })
+
+      if (!old || old.guildId !== input.guildId || old.channelId !== input.channelId) {
+        return { success: false as const, error: 'not_found', message: 'Rolagem não encontrada.' }
+      }
+
+      if (old.rolledByUserId !== input.userId) {
+        return {
+          success: false as const,
+          error: 'not_found',
+          message: 'Você só pode rerrolar rolagens feitas por você.',
+        }
+      }
+
+      if (old.claimedByUserId) {
+        return {
+          success: false as const,
+          error: 'already_claimed',
+          message: 'Este roll já foi casado. Role novamente para rerrolar.',
+        }
+      }
+
+      if (old.expiresAt.getTime() < now.getTime()) {
+        return {
+          success: false as const,
+          error: 'expired',
+          message: 'Este roll já expirou. Role novamente para rerrolar.',
+        }
+      }
+
+      const quota = await this.consume_roll_use({ tx, guildId: input.guildId, userId: input.userId, now })
+      const rollResetAt = quota.rollResetAt
+      let rollsRemaining = 0
+
+      if (!quota.allowed) {
+        const consumed = await inventoryService.consume_reroll_ticket_if_available({
+          tx,
+          userId: input.userId,
+          guildId: input.guildId,
+          now,
+        })
+
+        if (!consumed) {
+          return {
+            success: false as const,
+            error: 'roll_cooldown',
+            message: `Você já usou seus ${ROLL_MAX_USES} rolls nesta janela.`,
+            rollResetAt,
+          }
+        }
+
+        rollsRemaining = 0
+      } else {
+        rollsRemaining = quota.rollsRemaining
+      }
+
+      const desiredGender: desired_gender =
+        (old.desiredGender as desired_gender | null) ??
+        ((old.kind as waifu_roll_kind) === 'waifu' ? 'female' : (old.kind as waifu_roll_kind) === 'husbando' ? 'male' : 'any')
+
+      const rolled = await aniListService.roll_character({ desiredGender })
+
+      const character = await tx.waifuCharacter.upsert({
+        where: {
+          source_sourceId: {
+            source: 'ANILIST',
+            sourceId: rolled.id,
+          },
+        },
+        update: {
+          name: rolled.name.full ?? 'Desconhecido',
+          nameNative: rolled.name.native,
+          imageUrl: rolled.image.large ?? '',
+          gender: rolled.gender,
+        },
+        create: {
+          source: 'ANILIST',
+          sourceId: rolled.id,
+          name: rolled.name.full ?? 'Desconhecido',
+          nameNative: rolled.name.native,
+          imageUrl: rolled.image.large ?? '',
+          gender: rolled.gender,
+        },
+        select: {
+          id: true,
+          source: true,
+          sourceId: true,
+          name: true,
+          nameNative: true,
+          imageUrl: true,
+          gender: true,
+        },
+      })
+
+      const existing_claim = await tx.waifuClaim.findUnique({
+        where: { guildId_characterId: { guildId: input.guildId, characterId: character.id } },
+        select: { userId: true },
+      })
+
+      const expiresAt = new Date(now.getTime() + ROLL_EXPIRES_MS)
+      const created_roll = await tx.waifuRoll.create({
+        data: {
+          guildId: input.guildId,
+          channelId: input.channelId,
+          messageId: null,
+          kind: old.kind as string,
+          desiredGender,
+          rolledByUserId: input.userId,
+          characterId: character.id,
+          expiresAt,
+        },
+        select: { id: true },
+      })
+
+      await tx.waifuRoll.update({
+        where: { id: old.id },
+        data: { expiresAt: new Date(now.getTime() - 1) },
+      })
+
+      return {
+        success: true as const,
+        kind: old.kind as waifu_roll_kind,
+        oldRollId: old.id,
+        oldMessageId: old.messageId,
+        rollsRemaining,
+        rollResetAt,
+        newRoll: {
+          rollId: created_roll.id,
+          character: {
+            id: character.id,
+            source: 'ANILIST',
+            sourceId: character.sourceId,
+            name: character.name,
+            nameNative: character.nameNative,
+            imageUrl: character.imageUrl,
+            gender: character.gender,
+          },
+          claimedByUserId: existing_claim?.userId ?? null,
+          expiresAt,
+        },
+      }
     })
   }
 
@@ -292,7 +466,7 @@ class WaifuService {
           },
         },
         update: {
-          name: rolled.name.full ?? 'Unknown',
+          name: rolled.name.full ?? 'Desconhecido',
           nameNative: rolled.name.native,
           imageUrl: rolled.image.large ?? '',
           gender: rolled.gender,
@@ -302,7 +476,7 @@ class WaifuService {
         create: {
           source: 'ANILIST',
           sourceId: rolled.id,
-          name: rolled.name.full ?? 'Unknown',
+          name: rolled.name.full ?? 'Desconhecido',
           nameNative: rolled.name.native,
           imageUrl: rolled.image.large ?? '',
           gender: rolled.gender,
@@ -564,7 +738,7 @@ class WaifuService {
           },
         },
         update: {
-          name: rolled.name.full ?? 'Unknown',
+          name: rolled.name.full ?? 'Desconhecido',
           nameNative: rolled.name.native,
           imageUrl: rolled.image.large ?? '',
           gender: rolled.gender,
@@ -572,7 +746,7 @@ class WaifuService {
         create: {
           source: 'ANILIST',
           sourceId: rolled.id,
-          name: rolled.name.full ?? 'Unknown',
+          name: rolled.name.full ?? 'Desconhecido',
           nameNative: rolled.name.native,
           imageUrl: rolled.image.large ?? '',
           gender: rolled.gender,
@@ -870,7 +1044,7 @@ class WaifuService {
     const upserted = await prisma.waifuCharacter.upsert({
       where: { source_sourceId: { source: 'ANILIST', sourceId: top.id } },
       update: {
-        name: top.name.full ?? 'Unknown',
+        name: top.name.full ?? 'Desconhecido',
         nameNative: top.name.native,
         imageUrl: top.image.large ?? '',
         gender: top.gender,
@@ -878,7 +1052,7 @@ class WaifuService {
       create: {
         source: 'ANILIST',
         sourceId: top.id,
-        name: top.name.full ?? 'Unknown',
+        name: top.name.full ?? 'Desconhecido',
         nameNative: top.name.native,
         imageUrl: top.image.large ?? '',
         gender: top.gender,

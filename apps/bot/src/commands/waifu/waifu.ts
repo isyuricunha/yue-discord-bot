@@ -21,8 +21,10 @@ function format_relative_time(date: Date): string {
 export const waifuCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('waifu')
-    .setDescription('Rolar uma waifu aleatória. Clique no ❤️ para casar.')
-    .setDescriptionLocalizations({ 'pt-BR': 'Rolar uma waifu aleatória. Clique no ❤️ para casar.' }),
+    .setDescription('Rolar uma waifu aleatória. Use os botões para rerrolar ou reivindicar.')
+    .setDescriptionLocalizations({
+      'pt-BR': 'Rolar uma waifu aleatória. Use os botões para rerrolar ou reivindicar.',
+    }),
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guildId || !interaction.channelId) {
@@ -80,13 +82,19 @@ export const waifuCommand: Command = {
       embed.addFields([{ name: 'Na wishlist de', value: `${preview}${suffix}`, inline: false }])
     }
 
-    const button = new ButtonBuilder()
-      .setCustomId(`waifu:claim:${roll.rollId}`)
-      .setStyle(ButtonStyle.Success)
-      .setLabel('❤️ Claim')
+    const reroll_button = new ButtonBuilder()
+      .setCustomId(`waifu:reroll:${roll.rollId}`)
+      .setStyle(ButtonStyle.Secondary)
+      .setLabel('🎲 Rerrolar')
       .setDisabled(Boolean(roll.claimedByUserId))
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button)
+    const claim_button = new ButtonBuilder()
+      .setCustomId(`waifu:claim:${roll.rollId}`)
+      .setStyle(ButtonStyle.Success)
+      .setLabel('❤️ Reivindicar')
+      .setDisabled(Boolean(roll.claimedByUserId))
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(reroll_button, claim_button)
 
     const reply = await interaction.editReply({ embeds: [embed], components: [row] })
 

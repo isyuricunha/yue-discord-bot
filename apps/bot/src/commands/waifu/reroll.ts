@@ -24,6 +24,10 @@ function kind_title(kind: 'waifu' | 'husbando' | 'casar'): string {
   return 'Casamento'
 }
 
+function kind_title_reroll(kind: 'waifu' | 'husbando' | 'casar'): string {
+  return `${kind_title(kind)} (rerrolagem)`
+}
+
 async function try_disable_old_roll_message(input: {
   interaction: ChatInputCommandInteraction
   messageId: string | null
@@ -47,7 +51,7 @@ async function try_disable_old_roll_message(input: {
   const disabled_button = new ButtonBuilder()
     .setCustomId('waifu:disabled')
     .setStyle(ButtonStyle.Secondary)
-    .setLabel('Roll rerolado')
+    .setLabel('Roll rerrolado')
     .setDisabled(true)
 
   const row = new ActionRowBuilder<ButtonBuilder>().addComponents(disabled_button)
@@ -99,7 +103,7 @@ export const rerollCommand: Command = {
 
     const embed = new EmbedBuilder()
       .setColor(COLORS.INFO)
-      .setTitle(`${EMOJIS.INFO} ${kind_title(res.kind)} (reroll)`)
+      .setTitle(`${EMOJIS.INFO} ${kind_title_reroll(res.kind)}`)
       .setDescription(`**${roll.character.name}**${roll.character.nameNative ? ` (${roll.character.nameNative})` : ''}`)
       .setImage(roll.character.imageUrl)
       .addFields([
@@ -122,7 +126,7 @@ export const rerollCommand: Command = {
     const button = new ButtonBuilder()
       .setCustomId(`waifu:claim:${roll.rollId}`)
       .setStyle(ButtonStyle.Success)
-      .setLabel('❤️ Claim')
+      .setLabel('❤️ Reivindicar')
       .setDisabled(Boolean(roll.claimedByUserId))
 
     const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button)

@@ -96,13 +96,19 @@ export const casarCommand: Command = {
       embed.addFields([{ name: 'Na wishlist de', value: `${preview}${suffix}`, inline: false }])
     }
 
-    const button = new ButtonBuilder()
-      .setCustomId(`waifu:claim:${roll.rollId}`)
-      .setStyle(ButtonStyle.Success)
-      .setLabel('❤️ Claim')
+    const reroll_button = new ButtonBuilder()
+      .setCustomId(`waifu:reroll:${roll.rollId}`)
+      .setStyle(ButtonStyle.Secondary)
+      .setLabel('🎲 Rerrolar')
       .setDisabled(Boolean(roll.claimedByUserId))
 
-    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(button)
+    const claim_button = new ButtonBuilder()
+      .setCustomId(`waifu:claim:${roll.rollId}`)
+      .setStyle(ButtonStyle.Success)
+      .setLabel('❤️ Reivindicar')
+      .setDisabled(Boolean(roll.claimedByUserId))
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(reroll_button, claim_button)
 
     const reply = await interaction.editReply({ embeds: [embed], components: [row] })
 
