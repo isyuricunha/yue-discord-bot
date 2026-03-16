@@ -110,6 +110,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const volumeCommand = (await import('./music/volume')).default;
   const queueCommand = (await import('./music/queue')).default;
   const playlistCommand = (await import('./music/playlist')).default;
+  const nowplayingCommand = (await import('./music/nowplaying')).default;
 
   // Register commands
   commands.set(banCommand.data.name, banCommand);
@@ -173,6 +174,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(volumeCommand.data.name, volumeCommand)
   commands.set(queueCommand.data.name, queueCommand)
   commands.set(playlistCommand.data.name, playlistCommand)
+  commands.set(nowplayingCommand.data.name, nowplayingCommand)
   
   client.commands = commands;
 }
