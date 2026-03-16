@@ -16,7 +16,7 @@ import {
 import { DiscordAutoModSyncService } from '../services/discordAutoModSync.service'
 import { musicService } from '../services/music.service'
 import { logger } from '../utils/logger';
-import { safe_error_details } from '../utils/safe_error';
+import { is_lavalink_player_not_found_error, safe_error_details } from '../utils/safe_error';
 
 type internal_api_options = {
   host: string;
@@ -31,6 +31,15 @@ type api_error_body = {
 function is_internal_api_authorized(req: http.IncomingMessage, options: internal_api_options): boolean {
   const auth = req.headers.authorization;
   return auth === `Bearer ${options.secret}`;
+}
+
+async function run_lavalink_action(action: () => unknown): Promise<void> {
+  try {
+    await action()
+  } catch (error: unknown) {
+    if (is_lavalink_player_not_found_error(error)) return
+    throw error
+  }
 }
 
 type send_message_body = {
@@ -1106,20 +1115,20 @@ export function start_internal_api(client: Client, options: internal_api_options
 
           switch (body.action) {
             case 'pause':
-              player.pause(true)
+              await run_lavalink_action(() => player.pause(true))
               break
             case 'resume':
-              player.pause(false)
+              await run_lavalink_action(() => player.pause(false))
               break
             case 'skip':
-              player.skip()
+              await run_lavalink_action(() => player.skip())
               break
             case 'stop':
-              player.destroy()
+              await run_lavalink_action(() => player.destroy())
               break
             case 'volume':
               if (typeof body.volume === 'number' && body.volume >= 1 && body.volume <= 150) {
-                player.setVolume(body.volume)
+                await run_lavalink_action(() => player.setVolume(body.volume))
               }
               break
           }

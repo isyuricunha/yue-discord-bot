@@ -5,6 +5,7 @@ import { Client, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js
 import { logger } from '../utils/logger';
 import { getSendableChannel } from '../utils/discord';
 import { djModeService } from './dj_mode.service';
+import { is_lavalink_player_not_found_error } from '../utils/safe_error';
 
 export class MusicService {
   public kazagumo: Kazagumo;
@@ -155,7 +156,10 @@ export class MusicService {
       }
 
       logger.info({ guild_id: player.guildId }, 'Player inativo, destruindo reprodução...');
-      player.destroy();
+      void player.destroy().catch((error: unknown) => {
+        if (is_lavalink_player_not_found_error(error)) return
+        logger.warn({ err: error, guild_id: player.guildId }, 'Falha ao destruir player (playerEmpty)')
+      })
     });
 
     // @ts-expect-error – kazagumo playerError event type is not typed correctly

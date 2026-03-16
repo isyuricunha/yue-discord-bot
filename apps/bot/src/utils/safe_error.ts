@@ -12,7 +12,7 @@ function is_record(value: unknown): value is Record<string, unknown> {
 
 export function safe_error_details(error: unknown): safe_error_details_payload {
   if (error instanceof Error) {
-    const any_error = error as unknown as { code?: unknown; statusCode?: unknown }
+    const any_error = error as unknown as { code?: unknown; statusCode?: unknown; status?: unknown }
 
     const details: safe_error_details_payload = {
       name: error.name,
@@ -25,6 +25,10 @@ export function safe_error_details(error: unknown): safe_error_details_payload {
 
     if (typeof any_error.statusCode === 'number') {
       details.statusCode = any_error.statusCode
+    }
+
+    if (typeof any_error.status === 'number') {
+      details.status = any_error.status
     }
 
     return details
@@ -63,4 +67,11 @@ export function safe_error_details(error: unknown): safe_error_details_payload {
   }
 
   return { message: 'Unknown error' }
+}
+
+export function is_lavalink_player_not_found_error(error: unknown): boolean {
+  const details = safe_error_details(error)
+  const status = typeof details.status === 'number' ? details.status : details.statusCode
+  if (status !== 404) return false
+  return /player not found/i.test(details.message)
 }

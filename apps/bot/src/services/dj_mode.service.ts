@@ -3,7 +3,7 @@ import type { Client } from 'discord.js';
 import { prisma } from '@yuebot/database';
 import type { Kazagumo } from 'kazagumo';
 import { logger } from '../utils/logger';
-import { safe_error_details } from '../utils/safe_error';
+import { is_lavalink_player_not_found_error, safe_error_details } from '../utils/safe_error';
 
 const fallback_default_playlist_url = 'https://open.spotify.com/playlist/6AgTejd48A5gixBakDxY5y?si=e19ea44d2f4f447c';
 
@@ -148,7 +148,10 @@ export class DjModeService {
 
     const player = this.kazagumo.players.get(guild_id);
     if (player) {
-      player.destroy();
+      await player.destroy().catch((error: unknown) => {
+        if (is_lavalink_player_not_found_error(error)) return
+        throw error
+      })
     }
   }
 

@@ -2,7 +2,7 @@ import type { Interaction } from 'discord.js';
 import { MessageFlags } from 'discord.js'
 import { logger } from '../utils/logger';
 import { EMOJIS } from '@yuebot/shared';
-import { safe_error_details } from '../utils/safe_error'
+import { is_lavalink_player_not_found_error, safe_error_details } from '../utils/safe_error'
 import { safe_reply_ephemeral, safe_reply_or_edit_ephemeral } from '../utils/interaction'
 import { prisma } from '@yuebot/database'
 import { musicService } from '../services/music.service'
@@ -48,6 +48,15 @@ async function is_command_disabled(guild_id: string, type: command_type, name: s
   } catch (error) {
     logger.error({ err: safe_error_details(error), guild_id, command_type: type, command_name: name }, 'Erro ao verificar comando desativado')
     return false
+  }
+}
+
+async function run_lavalink_action(action: () => unknown): Promise<void> {
+  try {
+    await action()
+  } catch (error: unknown) {
+    if (is_lavalink_player_not_found_error(error)) return
+    throw error
   }
 }
 
@@ -229,7 +238,7 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
         if (interaction.customId === 'music:toggle_pause') {
           const next = !player.paused
-          player.pause(next)
+          await run_lavalink_action(() => player.pause(next))
           await interaction.editReply({
             content: next ? `${EMOJIS.SUCCESS} Pausado.` : `${EMOJIS.SUCCESS} Retomado.`,
           })
@@ -238,7 +247,7 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
         if (interaction.customId === 'music:skip') {
           const current = player.queue.current
-          player.skip()
+          await run_lavalink_action(() => player.skip())
           await interaction.editReply({
             content: `${EMOJIS.SUCCESS} Pulando **${current?.title ?? 'música'}**...`,
           })
@@ -246,7 +255,7 @@ export async function handleInteractionCreate(interaction: Interaction) {
         }
 
         if (interaction.customId === 'music:stop') {
-          player.destroy()
+          await run_lavalink_action(() => player.destroy())
           await interaction.editReply({
             content: `${EMOJIS.SUCCESS} Player parado e fila limpa.`,
           })

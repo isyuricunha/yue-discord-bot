@@ -3,6 +3,7 @@ import type { Command } from '../index';
 import { EMOJIS } from '@yuebot/shared';
 import { musicService } from '../../services/music.service';
 import { safe_reply_ephemeral } from '../../utils/interaction';
+import { is_lavalink_player_not_found_error } from '../../utils/safe_error';
 
 const stopCommand: Command = {
   data: new SlashCommandBuilder()
@@ -42,7 +43,10 @@ const stopCommand: Command = {
       player.setTextChannel(interaction.channelId);
     }
 
-    player.destroy();
+    await player.destroy().catch((error: unknown) => {
+      if (is_lavalink_player_not_found_error(error)) return
+      throw error
+    })
 
     await interaction.reply({
       content: `${EMOJIS.SUCCESS} Música parada e fila limpa por <@${interaction.user.id}>! Saindo do canal...`,
