@@ -3,7 +3,7 @@ import { MessageFlags } from 'discord.js'
 import { logger } from '../utils/logger';
 import { EMOJIS } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
-import { safe_reply_ephemeral } from '../utils/interaction'
+import { safe_reply_ephemeral, safe_reply_or_edit_ephemeral } from '../utils/interaction'
 import { prisma } from '@yuebot/database'
 import { musicService } from '../services/music.service'
 import { build_queue_embed_and_components } from '../commands/music/queue'
@@ -166,9 +166,8 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
       const player = musicService.kazagumo.players.get(interaction.guildId)
       if (!player || !player.playing) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Não há nenhuma música tocando no momento.`,
-          ephemeral: true,
         }).catch(() => null)
         return
       }
@@ -196,28 +195,25 @@ export async function handleInteractionCreate(interaction: Interaction) {
       if (!musicService) return
 
       const member = interaction.guild?.members.cache.get(interaction.user.id) ?? null
-      const voice_channel_id = member?.voice?.channelId ?? null
+      const voice_channel_id = member?.voice?.channelId
       if (!voice_channel_id) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Você precisa estar em um canal de voz.`,
-          ephemeral: true,
         }).catch(() => null)
         return
       }
 
       const player = musicService.kazagumo.players.get(interaction.guildId)
       if (!player) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Não há nenhuma música tocando no momento.`,
-          ephemeral: true,
         }).catch(() => null)
         return
       }
 
       if (player.voiceId !== voice_channel_id) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Tente entrar no meu canal (\`<#${player.voiceId}>\`)!`,
-          ephemeral: true,
         }).catch(() => null)
         return
       }
@@ -273,11 +269,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
       } catch (error) {
         logger.error({ err: safe_error_details(error), action: interaction.customId }, 'Erro ao executar ação de música')
         try {
-          if (interaction.deferred || interaction.replied) {
-            await interaction.editReply({ content: `${EMOJIS.ERROR} Ocorreu um erro ao executar a ação.` })
-          } else {
-            await interaction.reply({ content: `${EMOJIS.ERROR} Ocorreu um erro ao executar a ação.`, ephemeral: true })
-          }
+          await safe_reply_or_edit_ephemeral(interaction, {
+            content: `${EMOJIS.ERROR} Ocorreu um erro ao executar a ação.`,
+          })
         } catch {
           return
         }

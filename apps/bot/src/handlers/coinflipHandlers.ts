@@ -5,6 +5,7 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import { coinflipService } from '../services/coinflip.service'
 import { format_bigint } from '../utils/bigint'
+import { safe_defer_ephemeral } from '../utils/interaction'
 
 function parse_custom_id(custom_id: string): { action: 'accept' | 'decline'; gameId: string } | null {
   const [prefix, action, gameId] = custom_id.split(':')
@@ -17,7 +18,7 @@ export async function handleCoinflipButton(interaction: ButtonInteraction): Prom
   const parsed = parse_custom_id(interaction.customId)
   if (!parsed) return
 
-  await interaction.deferReply({ ephemeral: true })
+  await safe_defer_ephemeral(interaction)
 
   if (parsed.action === 'decline') {
     const res = await coinflipService.decline_bet({ gameId: parsed.gameId, userId: interaction.user.id })

@@ -4,6 +4,7 @@ import type { ButtonInteraction } from 'discord.js'
 import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import { anilistWatchlistService } from '../services/anilistWatchlist.service'
+import { safe_reply_ephemeral } from '../utils/interaction'
 
 type anilist_custom_id =
   | {
@@ -64,7 +65,9 @@ export async function handleAniListButton(interaction: ButtonInteraction): Promi
 
   if (parsed.action === 'watchlist') {
     if (interaction.user.id !== parsed.viewerUserId) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Só quem executou o comando pode usar estes botões.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, {
+        content: `${EMOJIS.ERROR} Só quem executou o comando pode usar estes botões.`,
+      })
       return
     }
 

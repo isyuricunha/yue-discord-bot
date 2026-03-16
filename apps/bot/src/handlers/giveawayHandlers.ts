@@ -19,6 +19,7 @@ import {
 } from '@yuebot/shared'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../utils/interaction'
 
 function truncate_modal_title(input: string) {
   const max_len = 45
@@ -108,19 +109,19 @@ export async function handleGiveawayParticipate(interaction: ButtonInteraction) 
   })
 
   if (!giveaway) {
-    return interaction.reply({ content: '❌ Sorteio não encontrado!', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '❌ Sorteio não encontrado!' })
   }
 
   if (giveaway.ended) {
-    return interaction.reply({ content: '❌ Este sorteio já foi finalizado!', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '❌ Este sorteio já foi finalizado!' })
   }
 
   if (giveaway.cancelled) {
-    return interaction.reply({ content: '❌ Este sorteio foi cancelado!', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '❌ Este sorteio foi cancelado!' })
   }
 
   if (giveaway.suspended) {
-    return interaction.reply({ content: '⏸️ Este sorteio está suspenso no momento.', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '⏸️ Este sorteio está suspenso no momento.' })
   }
 
   // Validar role obrigatória
@@ -135,9 +136,8 @@ export async function handleGiveawayParticipate(interaction: ButtonInteraction) 
     const member = await interaction.guild.members.fetch(interaction.user.id)
     const has_any_required_role = required_role_ids.some((id) => member.roles.cache.has(id))
     if (!has_any_required_role) {
-      return interaction.reply({
+      return safe_reply_ephemeral(interaction, {
         content: '❌ Você não possui o cargo necessário para participar deste sorteio!',
-        ephemeral: true,
       })
     }
   }
@@ -177,18 +177,16 @@ export async function handleGiveawayParticipate(interaction: ButtonInteraction) 
     }
 
     if (choices && choices.length > 0) {
-      return interaction.reply({
+      return safe_reply_ephemeral(interaction, {
         content:
           `✅ Você já está participando!\n\n` +
           `**Suas escolhas:**\n${choices.map((c, i) => `${i + 1}. ${c}`).join('\n')}` +
           edit_suffix,
-        ephemeral: true,
       })
     }
 
-    return interaction.reply({
+    return safe_reply_ephemeral(interaction, {
       content: '✅ Você já está participando deste sorteio!' + edit_suffix,
-      ephemeral: true,
     })
   }
 
@@ -224,7 +222,7 @@ export async function handleGiveawayParticipate(interaction: ButtonInteraction) 
 
 export async function handleGiveawayItemsSelect(interaction: StringSelectMenuInteraction) {
   // Para quando usar select menu em vez de modal (listas pequenas)
-  await interaction.deferReply({ ephemeral: true })
+  await safe_defer_ephemeral(interaction)
   
   const giveawayId = interaction.customId.replace('giveaway_items_', '')
   
@@ -335,7 +333,7 @@ export async function handleGiveawayItemsSelect(interaction: StringSelectMenuInt
 }
 
 export async function handleGiveawayChoicesModal(interaction: ModalSubmitInteraction) {
-  await interaction.deferReply({ ephemeral: true })
+  await safe_defer_ephemeral(interaction)
 
   const giveawayId = interaction.customId.replace('giveaway_choices_', '')
   
