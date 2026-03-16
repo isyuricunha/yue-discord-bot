@@ -310,9 +310,12 @@ export async function handleInteractionCreate(interaction: Interaction) {
     } else if (interaction.customId.startsWith('wizard_skip_role_')) {
       const { handleFinish } = await import('../commands/sorteio-wizard');
       await handleFinish(interaction, true);
+    } else if (interaction.customId.startsWith('wizard_open_items_')) {
+      const { handleOpenItems } = await import('../commands/sorteio-wizard')
+      await handleOpenItems(interaction)
     } else if (interaction.customId.startsWith('wizard_skip_chances_')) {
-      const { handleContinueAfterChances } = await import('../commands/sorteio-wizard');
-      await handleContinueAfterChances(interaction);
+      const { handleFinish } = await import('../commands/sorteio-wizard');
+      await handleFinish(interaction, true);
     } else if (interaction.customId.startsWith('wizard_configure_chances_')) {
       const { handleConfigureChances } = await import('../commands/sorteio-wizard');
       await handleConfigureChances(interaction);

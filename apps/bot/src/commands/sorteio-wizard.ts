@@ -1,6 +1,10 @@
 import { 
   SlashCommandBuilder, 
   ChatInputCommandInteraction, 
+  ButtonInteraction,
+  ChannelSelectMenuInteraction,
+  MessageComponentInteraction,
+  ModalSubmitInteraction,
   PermissionFlagsBits,
   EmbedBuilder,
   ActionRowBuilder,
@@ -11,11 +15,15 @@ import {
   TextInputStyle,
   ChannelSelectMenuBuilder,
   ChannelType,
+  RoleSelectMenuInteraction,
   RoleSelectMenuBuilder,
+  StringSelectMenuInteraction,
   StringSelectMenuBuilder
 } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { generate_public_id, parseDurationMs, parse_giveaway_items_input } from '@yuebot/shared'
+
+import { safe_reply_ephemeral } from '../utils/interaction'
 
 export const data = new SlashCommandBuilder()
   .setName('sorteio-wizard')
@@ -93,10 +101,9 @@ export async function execute(interaction: ChatInputCommandInteraction) {
         .setStyle(ButtonStyle.Danger)
     )
   
-  await interaction.reply({ 
-    embeds: [embed], 
+  await safe_reply_ephemeral(interaction, {
+    embeds: [embed],
     components: [row, cancelRow],
-    ephemeral: true 
   })
   
   // Timeout de 5 minutos
@@ -108,12 +115,12 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 }
 
 // Handler para seleção de formato
-export async function handleFormatSelection(interaction: any) {
+export async function handleFormatSelection(interaction: StringSelectMenuInteraction) {
   const userId = interaction.user.id
   const state = wizardSessions.get(userId)
   
   if (!state) {
-    return interaction.reply({ content: '❌ Sessão expirada. Use `/sorteio-wizard` novamente.', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '❌ Sessão expirada. Use `/sorteio-wizard` novamente.' })
   }
   
   const format = interaction.values[0] as 'reaction' | 'list'
@@ -168,12 +175,12 @@ export async function handleFormatSelection(interaction: any) {
 }
 
 // Handler para modal de informações básicas
-export async function handleBasicInfo(interaction: any) {
+export async function handleBasicInfo(interaction: ModalSubmitInteraction) {
   const userId = interaction.user.id
   const state = wizardSessions.get(userId)
   
   if (!state) {
-    return interaction.reply({ content: '❌ Sessão expirada.', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '❌ Sessão expirada.' })
   }
   
   state.title = interaction.fields.getTextInputValue('title')
@@ -184,63 +191,87 @@ export async function handleBasicInfo(interaction: any) {
   // Validar duração
   try {
     parseDuration(state.duration)
-  } catch (error: any) {
-    return interaction.reply({ 
-      content: `❌ ${error.message}`, 
-      ephemeral: true 
-    })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro desconhecido'
+    return safe_reply_ephemeral(interaction, { content: `❌ ${message}` })
   }
   
   if (state.format === 'list') {
-    // Para lista, pedir itens
-    const modal = new ModalBuilder()
-      .setCustomId(`wizard_items_${userId}`)
-      .setTitle('Lista de Itens')
-    
-    const itemsInput = new TextInputBuilder()
-      .setCustomId('items')
-      .setLabel('Itens (separados por vírgula)')
-      .setStyle(TextInputStyle.Paragraph)
-      .setPlaceholder('Item 1, Item 2, Item 3...')
-      .setRequired(true)
-    
-    const minInput = new TextInputBuilder()
-      .setCustomId('min')
-      .setLabel('Mínimo de escolhas por pessoa')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('3')
-      .setValue('3')
-      .setRequired(false)
-    
-    const maxInput = new TextInputBuilder()
-      .setCustomId('max')
-      .setLabel('Máximo de escolhas por pessoa')
-      .setStyle(TextInputStyle.Short)
-      .setPlaceholder('10')
-      .setValue('10')
-      .setRequired(false)
-    
-    modal.addComponents(
-      new ActionRowBuilder<TextInputBuilder>().addComponents(itemsInput),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(minInput),
-      new ActionRowBuilder<TextInputBuilder>().addComponents(maxInput)
-    )
-    
-    await interaction.showModal(modal)
+    const open_items = new ButtonBuilder()
+      .setCustomId(`wizard_open_items_${userId}`)
+      .setLabel('📋 Inserir itens')
+      .setStyle(ButtonStyle.Primary)
+
+    const cancel = new ButtonBuilder()
+      .setCustomId(`wizard_cancel_${userId}`)
+      .setLabel('❌ Cancelar')
+      .setStyle(ButtonStyle.Danger)
+
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(open_items, cancel)
+
+    await safe_reply_ephemeral(interaction, {
+      content: '✅ Informações básicas salvas. Agora clique em **📋 Inserir itens** para continuar.',
+      components: [row],
+    })
   } else {
     // Para reação, pedir canal
     state.step = 3
-    await showChannelSelection(interaction, state)
+    await showChannelSelection_reply(interaction, state)
   }
 }
 
+export async function handleOpenItems(interaction: ButtonInteraction): Promise<void> {
+  const userId = interaction.user.id
+  const state = wizardSessions.get(userId)
+
+  if (!state) {
+    await safe_reply_ephemeral(interaction, { content: '❌ Sessão expirada.' })
+    return
+  }
+
+  if (interaction.customId !== `wizard_open_items_${userId}`) return
+
+  const modal = new ModalBuilder().setCustomId(`wizard_items_${userId}`).setTitle('Lista de Itens')
+
+  const itemsInput = new TextInputBuilder()
+    .setCustomId('items')
+    .setLabel('Itens (separados por vírgula)')
+    .setStyle(TextInputStyle.Paragraph)
+    .setPlaceholder('Item 1, Item 2, Item 3...')
+    .setRequired(true)
+
+  const minInput = new TextInputBuilder()
+    .setCustomId('min')
+    .setLabel('Mínimo de escolhas por pessoa')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('3')
+    .setValue('3')
+    .setRequired(false)
+
+  const maxInput = new TextInputBuilder()
+    .setCustomId('max')
+    .setLabel('Máximo de escolhas por pessoa')
+    .setStyle(TextInputStyle.Short)
+    .setPlaceholder('10')
+    .setValue('10')
+    .setRequired(false)
+
+  modal.addComponents(
+    new ActionRowBuilder<TextInputBuilder>().addComponents(itemsInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(minInput),
+    new ActionRowBuilder<TextInputBuilder>().addComponents(maxInput)
+  )
+
+  await interaction.showModal(modal)
+}
+
 // Handler para itens da lista
-export async function handleItems(interaction: any) {
+export async function handleItems(interaction: ModalSubmitInteraction) {
   const userId = interaction.user.id
   const state = wizardSessions.get(userId)
   
   if (!state) {
-    return interaction.reply({ content: '❌ Sessão expirada.', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '❌ Sessão expirada.' })
   }
   
   const itemsStr = interaction.fields.getTextInputValue('items')
@@ -249,24 +280,21 @@ export async function handleItems(interaction: any) {
   state.maxChoices = parseInt(interaction.fields.getTextInputValue('max') || '10')
   
   if (state.items.length < state.minChoices) {
-    return interaction.reply({ 
-      content: `❌ A lista deve ter pelo menos ${state.minChoices} itens!`, 
-      ephemeral: true 
-    })
+    return safe_reply_ephemeral(interaction, { content: `❌ A lista deve ter pelo menos ${state.minChoices} itens!` })
   }
 
   if (state.maxChoices > state.items.length) {
-    return interaction.reply({
+    return safe_reply_ephemeral(interaction, {
       content: `❌ O máximo de escolhas não pode ser maior que a quantidade de itens (${state.items.length}).`,
-      ephemeral: true,
     })
   }
   
   state.step = 3
-  await showChannelSelection(interaction, state)
+  await showChannelSelection_reply(interaction, state)
 }
 
-async function showChannelSelection(interaction: any, state: WizardState) {
+function build_channel_selection_payload(input: { userId: string; state: WizardState }) {
+  const state = input.state
   const embed = new EmbedBuilder()
     .setTitle('🧙‍♂️ Configurações do Sorteio')
     .setDescription('Escolha o canal onde o sorteio será criado:')
@@ -280,7 +308,7 @@ async function showChannelSelection(interaction: any, state: WizardState) {
   const channelRow = new ActionRowBuilder<ChannelSelectMenuBuilder>()
     .addComponents(
       new ChannelSelectMenuBuilder()
-        .setCustomId(`wizard_channel_${interaction.user.id}`)
+        .setCustomId(`wizard_channel_${input.userId}`)
         .setPlaceholder('Selecione o canal')
         .addChannelTypes(ChannelType.GuildText)
     )
@@ -288,25 +316,34 @@ async function showChannelSelection(interaction: any, state: WizardState) {
   const cancelRow = new ActionRowBuilder<ButtonBuilder>()
     .addComponents(
       new ButtonBuilder()
-        .setCustomId(`wizard_cancel_${interaction.user.id}`)
+        .setCustomId(`wizard_cancel_${input.userId}`)
         .setLabel('❌ Cancelar')
         .setStyle(ButtonStyle.Danger)
     )
-  
-  await interaction.reply({ 
-    embeds: [embed], 
-    components: [channelRow, cancelRow],
-    ephemeral: true 
+
+  return { embed, components: [channelRow, cancelRow] }
+}
+
+async function showChannelSelection_reply(interaction: ModalSubmitInteraction, state: WizardState) {
+  const built = build_channel_selection_payload({ userId: interaction.user.id, state })
+  await safe_reply_ephemeral(interaction, {
+    embeds: [built.embed],
+    components: built.components,
   })
 }
 
+async function showChannelSelection_update(interaction: MessageComponentInteraction, state: WizardState) {
+  const built = build_channel_selection_payload({ userId: interaction.user.id, state })
+  await interaction.update({ embeds: [built.embed], components: built.components })
+}
+
 // Handler para seleção de canal
-export async function handleChannelSelection(interaction: any) {
+export async function handleChannelSelection(interaction: ChannelSelectMenuInteraction) {
   const userId = interaction.user.id
   const state = wizardSessions.get(userId)
   
   if (!state) {
-    return interaction.reply({ content: '❌ Sessão expirada.', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '❌ Sessão expirada.' })
   }
   
   state.channelId = interaction.values[0]
@@ -342,15 +379,15 @@ export async function handleChannelSelection(interaction: any) {
 }
 
 // Handler para finalizar wizard
-export async function handleFinish(interaction: any, skipRole: boolean = false) {
+export async function handleFinish(interaction: RoleSelectMenuInteraction | ButtonInteraction, skipRole: boolean = false) {
   const userId = interaction.user.id
   const state = wizardSessions.get(userId)
   
   if (!state) {
-    return interaction.reply({ content: '❌ Sessão expirada.', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '❌ Sessão expirada.' })
   }
   
-  if (!skipRole && interaction.values) {
+  if (!skipRole && 'values' in interaction) {
     state.requiredRoleIds = interaction.values
   }
   
@@ -364,6 +401,7 @@ export async function handleFinish(interaction: any, skipRole: boolean = false) 
   await interaction.deferUpdate()
   
   try {
+    if (!interaction.guild) throw new Error('Este comando só funciona em servidores.')
     const duration = parseDuration(state.duration!)
     const endsAt = new Date(Date.now() + duration)
     const channel = await interaction.guild.channels.fetch(state.channelId!)
@@ -509,16 +547,14 @@ export async function handleFinish(interaction: any, skipRole: boolean = false) 
     
     await interaction.editReply({ embeds: [successEmbed], components: [] })
     wizardSessions.delete(userId)
-  } catch (error: any) {
-    await interaction.editReply({ 
-      content: `❌ Erro ao criar sorteio: ${error.message}`, 
-      components: [] 
-    })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro desconhecido'
+    await interaction.editReply({ content: `❌ Erro ao criar sorteio: ${message}`, components: [] })
     wizardSessions.delete(userId)
   }
 }
 
-async function showRoleChancesConfiguration(interaction: any, state: WizardState) {
+async function showRoleChancesConfiguration(interaction: MessageComponentInteraction, state: WizardState) {
   const embed = new EmbedBuilder()
     .setTitle('🎲 Chances por Cargo (Opcional)')
     .setDescription(
@@ -557,12 +593,12 @@ async function showRoleChancesConfiguration(interaction: any, state: WizardState
 }
 
 // Handler para configurar chances por cargo
-export async function handleConfigureChances(interaction: any) {
+export async function handleConfigureChances(interaction: ButtonInteraction) {
   const userId = interaction.user.id
   const state = wizardSessions.get(userId)
   
   if (!state || !state.requiredRoleIds) {
-    return interaction.reply({ content: '❌ Sessão expirada.', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '❌ Sessão expirada.' })
   }
   
   // Criar modal para configurar chances
@@ -595,12 +631,12 @@ export async function handleConfigureChances(interaction: any) {
 }
 
 // Handler para salvar configuração de chances
-export async function handleSaveChances(interaction: any) {
+export async function handleSaveChances(interaction: ModalSubmitInteraction) {
   const userId = interaction.user.id
   const state = wizardSessions.get(userId)
   
   if (!state || !state.requiredRoleIds) {
-    return interaction.reply({ content: '❌ Sessão expirada.', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '❌ Sessão expirada.' })
   }
   
   // Processar os valores de chances
@@ -648,16 +684,16 @@ export async function handleSaveChances(interaction: any) {
         .setStyle(ButtonStyle.Danger)
     )
   
-  await interaction.reply({ embeds: [embed], components: [buttonRow], ephemeral: true })
+  await safe_reply_ephemeral(interaction, { embeds: [embed], components: [buttonRow] })
 }
 
 // Handler para continuar após configurar chances
-export async function handleContinueAfterChances(interaction: any) {
+export async function handleContinueAfterChances(interaction: ButtonInteraction) {
   const userId = interaction.user.id
   const state = wizardSessions.get(userId)
   
   if (!state) {
-    return interaction.reply({ content: '❌ Sessão expirada.', ephemeral: true })
+    return safe_reply_ephemeral(interaction, { content: '❌ Sessão expirada.' })
   }
   
   await interaction.deferUpdate()
@@ -810,17 +846,15 @@ export async function handleContinueAfterChances(interaction: any) {
     
     await interaction.editReply({ embeds: [successEmbed], components: [] })
     wizardSessions.delete(userId)
-  } catch (error: any) {
-    await interaction.editReply({ 
-      content: `❌ Erro ao criar sorteio: ${error.message}`, 
-      components: [] 
-    })
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Erro desconhecido'
+    await interaction.editReply({ content: `❌ Erro ao criar sorteio: ${message}`, components: [] })
     wizardSessions.delete(userId)
   }
 }
 
 // Handler para cancelamento
-export async function handleCancel(interaction: any) {
+export async function handleCancel(interaction: ButtonInteraction) {
   const userId = interaction.user.id
   wizardSessions.delete(userId)
   
