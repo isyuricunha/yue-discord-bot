@@ -7,6 +7,7 @@ import {
 import { prisma } from '@yuebot/database'
 import { getSendableChannel } from '../utils/discord'
 import { generate_public_id, parseDurationMs } from '@yuebot/shared'
+import { safe_defer_ephemeral } from '../utils/interaction'
 
 export const data = new SlashCommandBuilder()
   .setName('sorteio')
@@ -164,7 +165,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleListActive(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true })
+  await safe_defer_ephemeral(interaction)
 
   if (!interaction.guildId) {
     return interaction.editReply('❌ Este comando só pode ser usado em servidores.')
@@ -224,7 +225,7 @@ async function handleListActive(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleCreate(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true })
+  await safe_defer_ephemeral(interaction)
   
   const title = interaction.options.getString('titulo', true)
   const description = interaction.options.getString('descricao', true)
@@ -296,7 +297,7 @@ async function handleCreate(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleEnd(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true })
+  await safe_defer_ephemeral(interaction)
   
   const identifier = interaction.options.getString('id', true)
   const guildId = interaction.guildId
@@ -402,7 +403,7 @@ async function handleEnd(interaction: ChatInputCommandInteraction) {
 }
 
 async function handleReroll(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true })
+  await safe_defer_ephemeral(interaction)
   
   const identifier = interaction.options.getString('id', true)
   const guildId = interaction.guildId
