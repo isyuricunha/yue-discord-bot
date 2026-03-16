@@ -48,6 +48,10 @@ const volumeCommand: Command = {
       return;
     }
 
+    if (player.textId !== interaction.channelId) {
+      player.setTextChannel(interaction.channelId);
+    }
+
     const volume = interaction.options.getInteger('porcentagem', true);
     player.setVolume(volume);
 

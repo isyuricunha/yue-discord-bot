@@ -103,6 +103,10 @@ const playCommand: Command = {
         });
         return;
       }
+
+      if (player.textId !== interaction.channelId) {
+        player.setTextChannel(interaction.channelId);
+      }
     }
 
     const had_active_track = Boolean(player.queue.current) && (player.playing || player.paused);

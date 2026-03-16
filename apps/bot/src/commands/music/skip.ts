@@ -40,6 +40,10 @@ const skipCommand: Command = {
       return;
     }
 
+    if (player.textId !== interaction.channelId) {
+      player.setTextChannel(interaction.channelId);
+    }
+
     const currentTrack = player.queue.current;
     player.skip();
 

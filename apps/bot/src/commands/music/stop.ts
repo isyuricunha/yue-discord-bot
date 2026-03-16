@@ -40,6 +40,10 @@ const stopCommand: Command = {
       return;
     }
 
+    if (player.textId !== interaction.channelId) {
+      player.setTextChannel(interaction.channelId);
+    }
+
     player.destroy();
 
     await interaction.reply({
