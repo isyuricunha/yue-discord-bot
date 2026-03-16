@@ -12,6 +12,7 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 import type { Command } from './index'
 import { shopService } from '../services/shop.service'
 import { format_bigint } from '../utils/bigint'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../utils/interaction'
 
 function clamp_autocomplete_name(input: string): string {
   return input.length > 100 ? input.slice(0, 100) : input
@@ -211,7 +212,7 @@ export const lojaCommand: Command = {
     const sub = interaction.options.getSubcommand()
 
     if (sub === 'listar') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const items = await shopService.list_items({ guildId: interaction.guildId ?? null })
 
@@ -237,7 +238,7 @@ export const lojaCommand: Command = {
     }
 
     if (sub === 'comprar') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const item_id = interaction.options.getString('item_id', true).trim()
       const qty = parse_quantity(interaction.options.getInteger('quantidade'))
@@ -283,16 +284,16 @@ export const lojaCommand: Command = {
 
     if (sub === 'admin_criar') {
       if (!interaction.guildId) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Use isso em um servidor.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use isso em um servidor.` })
         return
       }
 
       if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Você não tem permissão para usar este comando.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Você não tem permissão para usar este comando.` })
         return
       }
 
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const name = interaction.options.getString('nome', true).trim()
       const kind = interaction.options.getString('tipo', true)
@@ -383,6 +384,6 @@ export const lojaCommand: Command = {
       return
     }
 
-    await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+    await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Subcomando inválido.` })
   },
 }
