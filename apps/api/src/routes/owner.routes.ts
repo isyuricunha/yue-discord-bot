@@ -25,6 +25,10 @@ type announcement_preview_input = {
   addedTo?: string
 }
 
+type parse_preview_input_result =
+  | { ok: true; input: announcement_preview_input }
+  | { ok: false; error: string }
+
 type bot_presence_settings = {
   presenceEnabled: boolean
   presenceStatus: 'online' | 'idle' | 'dnd' | 'invisible'
@@ -197,34 +201,46 @@ function internal_bot_api_error_message(error: InternalBotApiError) {
   return `Internal bot API returned ${error.status}`
 }
 
-function parse_preview_input(body: unknown): announcement_preview_input | null {
-  if (!is_object(body)) return null
+function parse_preview_input(body: unknown): parse_preview_input_result {
+  if (!is_object(body)) return { ok: false, error: 'Body inválido.' }
 
   const content_raw = body.content
   const content = typeof content_raw === 'string' ? content_raw.trim() : ''
-  if (!content) return null
-  if (content.length > 2000) return null
+  if (!content) return { ok: false, error: 'O conteúdo do anúncio é obrigatório.' }
+  if (content.length > 2000) {
+    return {
+      ok: false,
+      error: `O conteúdo do anúncio excede 2000 caracteres (atual: ${content.length}).`,
+    }
+  }
 
   const image_url_raw = body.imageUrl
   const imageUrl = typeof image_url_raw === 'string' ? image_url_raw.trim() : ''
   if (imageUrl) {
-    if (imageUrl.length > 2048) return null
-    if (!/^https?:\/\//i.test(imageUrl)) return null
+    if (imageUrl.length > 2048) return { ok: false, error: 'URL da imagem é muito longa.' }
+    if (!/^https?:\/\//i.test(imageUrl)) return { ok: false, error: 'URL da imagem inválida (use http/https).' }
   }
 
   const query = typeof body.query === 'string' ? body.query.trim() : undefined
   const addedFrom = typeof body.addedFrom === 'string' ? body.addedFrom.trim() : undefined
   const addedTo = typeof body.addedTo === 'string' ? body.addedTo.trim() : undefined
 
-  if (addedFrom && !/^\d{4}-\d{2}-\d{2}$/.test(addedFrom)) return null
-  if (addedTo && !/^\d{4}-\d{2}-\d{2}$/.test(addedTo)) return null
+  if (addedFrom && !/^\d{4}-\d{2}-\d{2}$/.test(addedFrom)) {
+    return { ok: false, error: 'Data inicial inválida. Use o formato YYYY-MM-DD.' }
+  }
+  if (addedTo && !/^\d{4}-\d{2}-\d{2}$/.test(addedTo)) {
+    return { ok: false, error: 'Data final inválida. Use o formato YYYY-MM-DD.' }
+  }
 
   return {
-    content,
-    ...(imageUrl ? { imageUrl } : {}),
-    ...(query ? { query } : {}),
-    ...(addedFrom ? { addedFrom } : {}),
-    ...(addedTo ? { addedTo } : {}),
+    ok: true,
+    input: {
+      content,
+      ...(imageUrl ? { imageUrl } : {}),
+      ...(query ? { query } : {}),
+      ...(addedFrom ? { addedFrom } : {}),
+      ...(addedTo ? { addedTo } : {}),
+    },
   }
 }
 
@@ -806,8 +822,10 @@ export async function ownerRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 
-    const input = parse_preview_input(request.body)
-    if (!input) return reply.code(400).send({ error: 'Invalid body' })
+    const parsed = parse_preview_input(request.body)
+    if (!parsed.ok) return reply.code(400).send({ error: parsed.error })
+
+    const input = parsed.input
 
     const from_date = parse_date_input(input.addedFrom)
     const to_date = parse_date_input(input.addedTo)
