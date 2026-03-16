@@ -3,21 +3,17 @@ import { PermissionFlagsBits, type PermissionsBitField } from 'discord.js'
 type automod_action = 'delete' | 'warn' | 'mute' | 'kick' | 'ban'
 
 export function required_channel_permissions_for_automod_action(action: automod_action): bigint[] {
-  const perms: bigint[] = [PermissionFlagsBits.ManageMessages]
-
   switch (action) {
     case 'delete':
+      return [PermissionFlagsBits.ManageMessages]
     case 'warn':
-      return perms
+      return []
     case 'mute':
-      perms.push(PermissionFlagsBits.ModerateMembers)
-      return perms
+      return [PermissionFlagsBits.ModerateMembers]
     case 'kick':
-      perms.push(PermissionFlagsBits.KickMembers)
-      return perms
+      return [PermissionFlagsBits.KickMembers]
     case 'ban':
-      perms.push(PermissionFlagsBits.BanMembers)
-      return perms
+      return [PermissionFlagsBits.BanMembers]
   }
 }
 

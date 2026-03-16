@@ -1,6 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
+import { PermissionFlagsBits } from 'discord.js'
+
 import { can_apply_automod_action, required_channel_permissions_for_automod_action } from './automod.permissions'
 
 function perms_stub(has: (perm: bigint) => boolean) {
@@ -8,8 +10,13 @@ function perms_stub(has: (perm: bigint) => boolean) {
 }
 
 test('required_channel_permissions_for_automod_action: includes ManageMessages always', () => {
+  const required = required_channel_permissions_for_automod_action('delete')
+  assert.ok(required.includes(PermissionFlagsBits.ManageMessages))
+})
+
+test('required_channel_permissions_for_automod_action: warn requires no channel permissions', () => {
   const required = required_channel_permissions_for_automod_action('warn')
-  assert.ok(required.length >= 1)
+  assert.deepEqual(required, [])
 })
 
 test('can_apply_automod_action: ok when all permissions present', () => {
