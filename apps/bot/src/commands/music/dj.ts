@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, PermissionFlagsBits } from 'discord.js';
+import { SlashCommandBuilder, PermissionFlagsBits, MessageFlags } from 'discord.js';
 import type { Command } from '../index';
 import { EMOJIS } from '@yuebot/shared';
 import { prisma } from '@yuebot/database';
@@ -55,18 +55,20 @@ const djCommand: Command = {
 
     const sub = interaction.options.getSubcommand(true);
 
+    if (!interaction.deferred && !interaction.replied) {
+      await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+    }
+
     if (!can_manage_dj(interaction)) {
-      await interaction.reply({
+      await interaction.editReply({
         content: `${EMOJIS.ERROR} Você precisa de permissão de **Administrador** ou **Gerenciar Servidor** para usar o modo DJ.`,
-        ephemeral: true,
       });
       return;
     }
 
     if (!djModeService) {
-      await interaction.reply({
+      await interaction.editReply({
         content: `${EMOJIS.ERROR} O sistema de música não está habilitado.`,
-        ephemeral: true,
       });
       return;
     }
@@ -75,9 +77,8 @@ const djCommand: Command = {
       const url_raw = interaction.options.getString('url', true);
       const url = url_raw.trim();
       if (!/^https?:\/\//i.test(url) || url.length > 2048) {
-        await interaction.reply({
+        await interaction.editReply({
           content: `${EMOJIS.ERROR} URL inválida.`,
-          ephemeral: true,
         });
         return;
       }
@@ -88,9 +89,8 @@ const djCommand: Command = {
         create: { guildId: interaction.guildId, defaultPlaylistUrl: url },
       });
 
-      await interaction.reply({
+      await interaction.editReply({
         content: `${EMOJIS.SUCCESS} Playlist default do DJ atualizada.`,
-        ephemeral: true,
       });
       return;
     }
@@ -110,13 +110,12 @@ const djCommand: Command = {
       const enabled = Boolean(cfg?.enabled);
       const effective_url = (cfg?.playlistUrl ?? cfg?.defaultPlaylistUrl ?? default_dj_playlist_url) ?? default_dj_playlist_url;
 
-      await interaction.reply({
+      await interaction.editReply({
         content:
           `${enabled ? EMOJIS.SUCCESS : EMOJIS.ERROR} **DJ 24h:** ${enabled ? 'ligado' : 'desligado'}\n` +
           `**Voice:** ${cfg?.voiceChannelId ? `<#${cfg.voiceChannelId}>` : 'não configurado'}\n` +
           `**Texto:** ${cfg?.textChannelId ? `<#${cfg.textChannelId}>` : 'não configurado'}\n` +
           `**Playlist:** ${effective_url}`,
-        ephemeral: true,
       });
       return;
     }
@@ -124,9 +123,8 @@ const djCommand: Command = {
     if (sub === 'stop') {
       await djModeService.stop(interaction.guildId);
 
-      await interaction.reply({
+      await interaction.editReply({
         content: `${EMOJIS.SUCCESS} DJ 24h desligado.`,
-        ephemeral: true,
       });
       return;
     }
@@ -135,9 +133,8 @@ const djCommand: Command = {
     const member = interaction.guild.members.cache.get(interaction.user.id) ?? null;
     const voice_channel_id = member?.voice?.channelId ?? null;
     if (!voice_channel_id) {
-      await interaction.reply({
+      await interaction.editReply({
         content: `${EMOJIS.ERROR} Você precisa estar em um canal de voz para iniciar o DJ.`,
-        ephemeral: true,
       });
       return;
     }
@@ -145,9 +142,8 @@ const djCommand: Command = {
     const url_opt = interaction.options.getString('url', false);
     const url = typeof url_opt === 'string' ? url_opt.trim() : '';
     if (url && (!/^https?:\/\//i.test(url) || url.length > 2048)) {
-      await interaction.reply({
+      await interaction.editReply({
         content: `${EMOJIS.ERROR} URL inválida.`,
-        ephemeral: true,
       });
       return;
     }
@@ -165,9 +161,8 @@ const djCommand: Command = {
       playlistUrl: url || null,
     });
 
-    await interaction.reply({
+    await interaction.editReply({
       content: `${EMOJIS.SUCCESS} DJ 24h ligado. Vou tocar infinitamente: ${effective_url}`,
-      ephemeral: true,
     });
 
     // DJ mode started and will keep playing infinitely.
