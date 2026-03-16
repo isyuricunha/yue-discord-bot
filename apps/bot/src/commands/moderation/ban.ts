@@ -4,6 +4,7 @@ import { prisma } from '@yuebot/database';
 import { logger } from '../../utils/logger';
 import { COLORS, EMOJIS } from '@yuebot/shared';
 import { moderationLogService } from '../../services/moderationLog.service';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 import type { Command } from '../index';
 
 export const banCommand: Command = {
@@ -36,9 +37,8 @@ export const banCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild || !interaction.member) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -49,18 +49,16 @@ export const banCommand: Command = {
 
     // Verificar se o usuário está tentando banir a si mesmo
     if (targetUser.id === interaction.user.id) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você não pode banir a si mesmo!`,
-        ephemeral: true,
       });
       return;
     }
 
     // Verificar se o usuário está tentando banir o bot
     if (targetUser.id === interaction.client.user?.id) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você não pode me banir!`,
-        ephemeral: true,
       });
       return;
     }
@@ -74,9 +72,8 @@ export const banCommand: Command = {
         const targetPosition = targetMember.roles.highest.position;
 
         if (targetPosition >= memberPosition) {
-          await interaction.reply({
+          await safe_reply_ephemeral(interaction, {
             content: `${EMOJIS.ERROR} Você não pode banir este usuário pois ele tem uma role igual ou superior à sua!`,
-            ephemeral: true,
           });
           return;
         }
@@ -170,9 +167,8 @@ export const banCommand: Command = {
       );
     } catch (error) {
       logger.error({ error }, 'Erro ao banir usuário');
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Erro ao banir o usuário. Verifique se tenho permissões suficientes.`,
-        ephemeral: true,
       });
     }
   },
