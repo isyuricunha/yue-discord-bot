@@ -3,7 +3,7 @@ import type { Command } from '../index';
 import { EMOJIS } from '@yuebot/shared';
 import { prisma } from '@yuebot/database';
 
-import { musicService } from '../../services/music.service';
+import { djModeService } from '../../services/dj_mode.service';
 
 const default_dj_playlist_url = 'https://open.spotify.com/playlist/6AgTejd48A5gixBakDxY5y?si=e19ea44d2f4f447c';
 
@@ -63,7 +63,7 @@ const djCommand: Command = {
       return;
     }
 
-    if (!musicService) {
+    if (!djModeService) {
       await interaction.reply({
         content: `${EMOJIS.ERROR} O sistema de música não está habilitado.`,
         ephemeral: true,
@@ -122,16 +122,7 @@ const djCommand: Command = {
     }
 
     if (sub === 'stop') {
-      await prisma.guildDjConfig.upsert({
-        where: { guildId: interaction.guildId },
-        update: { enabled: false },
-        create: { guildId: interaction.guildId, enabled: false },
-      });
-
-      const player = musicService.kazagumo.players.get(interaction.guildId);
-      if (player) {
-        player.destroy();
-      }
+      await djModeService.stop(interaction.guildId);
 
       await interaction.reply({
         content: `${EMOJIS.SUCCESS} DJ 24h desligado.`,
@@ -168,22 +159,10 @@ const djCommand: Command = {
 
     const effective_url = (url || existing?.defaultPlaylistUrl || default_dj_playlist_url).trim();
 
-    await prisma.guildDjConfig.upsert({
-      where: { guildId: interaction.guildId },
-      update: {
-        enabled: true,
-        voiceChannelId: voice_channel_id,
-        textChannelId: interaction.channelId,
-        playlistUrl: url || null,
-      },
-      create: {
-        guildId: interaction.guildId,
-        enabled: true,
-        voiceChannelId: voice_channel_id,
-        textChannelId: interaction.channelId,
-        playlistUrl: url || null,
-        defaultPlaylistUrl: existing?.defaultPlaylistUrl ?? null,
-      },
+    await djModeService.start(interaction.guildId, {
+      voiceChannelId: voice_channel_id,
+      textChannelId: interaction.channelId,
+      playlistUrl: url || null,
     });
 
     await interaction.reply({
@@ -191,7 +170,7 @@ const djCommand: Command = {
       ephemeral: true,
     });
 
-    // Let the runtime restore handler pick it up (or the existing player empty handler).
+    // DJ mode started and will keep playing infinitely.
   },
 };
 

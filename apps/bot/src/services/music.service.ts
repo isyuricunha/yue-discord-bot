@@ -4,6 +4,7 @@ import { Client, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js
 
 import { logger } from '../utils/logger';
 import { getSendableChannel } from '../utils/discord';
+import { djModeService } from './dj_mode.service';
 
 export class MusicService {
   public kazagumo: Kazagumo;
@@ -144,6 +145,15 @@ export class MusicService {
     });
 
     this.kazagumo.on('playerEmpty', (player) => {
+      const dj_enabled = djModeService?.is_enabled(player.guildId) === true;
+      if (dj_enabled) {
+        logger.info({ guild_id: player.guildId }, 'Player vazio em modo DJ, recarregando playlist...');
+        void djModeService.handle_player_empty(player.guildId).catch((error) => {
+          logger.error({ guild_id: player.guildId, err: error }, 'Falha ao recarregar DJ mode');
+        });
+        return;
+      }
+
       logger.info({ guild_id: player.guildId }, 'Player inativo, destruindo reprodução...');
       player.destroy();
     });

@@ -15,6 +15,7 @@ import { get_groq_conversation_backend } from "./services/groq_conversation_back
 import { apply_startup_presence } from "./services/presence.service";
 import { apply_startup_app_description } from "./services/app_description.service";
 import { initMusicService } from "./services/music.service";
+import { initDjModeService, djModeService } from "./services/dj_mode.service";
 import type { Command, ContextMenuCommand } from "./commands";
 import { start_internal_api } from "./internal/api";
 let internal_server: ReturnType<typeof start_internal_api> | null = null;
@@ -146,6 +147,11 @@ client.once("clientReady", async () => {
 		host: CONFIG.internalApi.host,
 		port: CONFIG.internalApi.port,
 		secret: CONFIG.internalApi.secret,
+	});
+
+	// Restore DJ mode sessions (after client is ready and internal services are up)
+	void djModeService?.restore_all_enabled().catch((error) => {
+		logger.error({ error }, 'Falha ao restaurar DJ mode');
 	});
 
 	// Load commands
@@ -373,7 +379,8 @@ process.on("SIGTERM", async () => {
 logger.info("🔑 Tentando login no Discord...");
 
 // Initialize Kazagumo Music Service *before* login so Shoukaku catches the 'ready' event
-initMusicService(client);
+const music = initMusicService(client);
+initDjModeService(client, music.kazagumo);
 
 client.login(CONFIG.discord.token).catch((error) => {
 	logger.error("❌ Falha ao fazer login no Discord");
