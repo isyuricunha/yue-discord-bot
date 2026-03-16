@@ -7,6 +7,7 @@ import type { Command } from '../index'
 import { reportLogService } from '../../services/reportLog.service'
 import { RateLimiter } from '../../utils/rate_limiter'
 import { logger } from '../../utils/logger'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
 
 const report_rate_limiter = new RateLimiter({ windowMs: 30_000, max: 1 })
 
@@ -25,7 +26,7 @@ export const reportCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
       return
     }
 
@@ -33,17 +34,19 @@ export const reportCommand: Command = {
     const reason = interaction.options.getString('motivo', true).trim()
 
     if (reported.id === interaction.user.id) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Você não pode se denunciar.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Você não pode se denunciar.` })
       return
     }
 
     if (reported.bot) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Você não pode denunciar bots.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Você não pode denunciar bots.` })
       return
     }
 
     if (reason.length < 10) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Forneça um motivo mais detalhado (mínimo 10 caracteres).`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, {
+        content: `${EMOJIS.ERROR} Forneça um motivo mais detalhado (mínimo 10 caracteres).`,
+      })
       return
     }
 
@@ -51,23 +54,21 @@ export const reportCommand: Command = {
     const rate = report_rate_limiter.tryConsume(rate_key)
     if (!rate.allowed) {
       const seconds = Math.max(1, Math.ceil((rate.resetAt - Date.now()) / 1000))
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você está fazendo denúncias rápido demais. Tente novamente em ~${seconds}s.`,
-        ephemeral: true,
       })
       return
     }
 
     const config = await reportLogService.get_public_config(interaction.guildId)
     if (!config.reportChannelId) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Denúncias não estão configuradas neste servidor. Peça para um admin configurar em /config channels report.`,
-        ephemeral: true,
       })
       return
     }
 
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     await reportLogService.notify({
       guild: interaction.guild,

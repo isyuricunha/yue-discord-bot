@@ -11,6 +11,7 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import type { Command } from '../index'
 import { reactionRoleService } from '../../services/reactionRole.service'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
 
 type panel_mode = 'single' | 'multiple'
 
@@ -280,14 +281,14 @@ export const reactionrolesCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!must_be_in_guild(interaction)) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use isso em um servidor.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use isso em um servidor.` })
       return
     }
 
     const sub = interaction.options.getSubcommand()
 
     if (sub === 'list') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const panels = await prisma.reactionRolePanel.findMany({
         where: { guildId: interaction.guild.id },
@@ -328,7 +329,7 @@ export const reactionrolesCommand: Command = {
     }
 
     if (sub === 'create') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const name = clamp_string(interaction.options.getString('name', true).trim(), 64)
       if (!name) {
@@ -372,12 +373,12 @@ export const reactionrolesCommand: Command = {
 
     const panel_id = interaction.options.getString('panel_id', true).trim()
     if (!panel_id) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Panel ID inválido.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Panel ID inválido.` })
       return
     }
 
     if (sub === 'show') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const panel = await prisma.reactionRolePanel.findUnique({
         where: { id: panel_id },
@@ -429,7 +430,7 @@ export const reactionrolesCommand: Command = {
     }
 
     if (sub === 'delete') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const existing = await prisma.reactionRolePanel.findUnique({ where: { id: panel_id }, select: { id: true, guildId: true } })
       if (!existing || existing.guildId !== interaction.guild.id) {
@@ -443,7 +444,7 @@ export const reactionrolesCommand: Command = {
     }
 
     if (sub === 'add-item') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const panel = await prisma.reactionRolePanel.findUnique({
         where: { id: panel_id },
@@ -492,7 +493,7 @@ export const reactionrolesCommand: Command = {
     }
 
     if (sub === 'remove-item') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const panel = await prisma.reactionRolePanel.findUnique({ where: { id: panel_id }, select: { id: true, guildId: true } })
       if (!panel || panel.guildId !== interaction.guild.id) {
@@ -519,7 +520,7 @@ export const reactionrolesCommand: Command = {
     }
 
     if (sub === 'set') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const name = normalize_optional_string(interaction.options.getString('name'))
       const enabled = interaction.options.getBoolean('enabled')
@@ -552,7 +553,7 @@ export const reactionrolesCommand: Command = {
     }
 
     if (sub === 'sync') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const panel = await prisma.reactionRolePanel.findUnique({
         where: { id: panel_id },
@@ -591,7 +592,7 @@ export const reactionrolesCommand: Command = {
     }
 
     if (sub === 'publish') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const channel = interaction.options.getChannel('channel', true)
       if (channel.type !== ChannelType.GuildText && channel.type !== ChannelType.GuildAnnouncement) {
@@ -645,6 +646,6 @@ export const reactionrolesCommand: Command = {
       return
     }
 
-    await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+    await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Subcomando inválido.` })
   },
 }

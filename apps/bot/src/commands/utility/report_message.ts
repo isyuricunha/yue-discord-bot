@@ -17,6 +17,7 @@ import { EMOJIS } from '@yuebot/shared'
 import type { ContextMenuCommand } from '../index'
 import { reportLogService } from '../../services/reportLog.service'
 import { RateLimiter } from '../../utils/rate_limiter'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
 
 const MODAL_PREFIX = 'report:msg'
 
@@ -39,7 +40,9 @@ function parse_modal_custom_id(custom_id: string): { channelId: string; messageI
 
 export async function handle_report_message_modal(interaction: ModalSubmitInteraction) {
   if (!interaction.guild) {
-    await interaction.reply({ content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores.`, ephemeral: true })
+    await safe_reply_ephemeral(interaction, {
+      content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores.`,
+    })
     return
   }
 
@@ -48,12 +51,14 @@ export async function handle_report_message_modal(interaction: ModalSubmitIntera
 
   const reason = interaction.fields.getTextInputValue('motivo').trim()
   if (!reason) {
-    await interaction.reply({ content: `${EMOJIS.ERROR} Motivo inválido.`, ephemeral: true })
+    await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Motivo inválido.` })
     return
   }
 
   if (reason.length < 10) {
-    await interaction.reply({ content: `${EMOJIS.ERROR} Forneça um motivo mais detalhado (mínimo 10 caracteres).`, ephemeral: true })
+    await safe_reply_ephemeral(interaction, {
+      content: `${EMOJIS.ERROR} Forneça um motivo mais detalhado (mínimo 10 caracteres).`,
+    })
     return
   }
 
@@ -61,14 +66,13 @@ export async function handle_report_message_modal(interaction: ModalSubmitIntera
   const rate = report_message_rate_limiter.tryConsume(rate_key)
   if (!rate.allowed) {
     const seconds = Math.max(1, Math.ceil((rate.resetAt - Date.now()) / 1000))
-    await interaction.reply({
+    await safe_reply_ephemeral(interaction, {
       content: `${EMOJIS.ERROR} Você está fazendo denúncias rápido demais. Tente novamente em ~${seconds}s.`,
-      ephemeral: true,
     })
     return
   }
 
-  await interaction.deferReply({ ephemeral: true })
+  await safe_defer_ephemeral(interaction)
 
   const channel = (await interaction.guild.channels.fetch(parsed.channelId).catch(() => null)) as GuildTextBasedChannel | null
   if (!channel || !channel.isTextBased()) {
@@ -106,13 +110,13 @@ export const reportMessageCommand: ContextMenuCommand = {
 
   async execute(interaction: MessageContextMenuCommandInteraction) {
     if (!interaction.guildId) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores.` })
       return
     }
 
     const message = interaction.targetMessage
     if (!message) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Mensagem inválida.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Mensagem inválida.` })
       return
     }
 
