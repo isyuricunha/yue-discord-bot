@@ -4,6 +4,7 @@ import { EMOJIS } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
 import { prisma } from '@yuebot/database'
 import { musicService } from '../services/music.service'
+import { build_queue_embed_and_components } from '../commands/music/queue'
 
 type command_type = 'slash' | 'context'
 
@@ -178,6 +179,40 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
   // Handle buttons
   if (interaction.isButton()) {
+    if (interaction.customId.startsWith('music:queue_page:')) {
+      if (!interaction.guildId) return
+      if (!musicService) return
+
+      const raw = interaction.customId.slice('music:queue_page:'.length)
+      const page = Number.parseInt(raw, 10)
+
+      const player = musicService.kazagumo.players.get(interaction.guildId)
+      if (!player || !player.playing) {
+        await interaction.reply({
+          content: `${EMOJIS.ERROR} Não há nenhuma música tocando no momento.`,
+          ephemeral: true,
+        }).catch(() => null)
+        return
+      }
+
+      const authorAvatar = interaction.client.user?.displayAvatarURL() || ''
+      const built = build_queue_embed_and_components({
+        player: player as any,
+        authorAvatar,
+        page: Number.isFinite(page) ? page : 0,
+      })
+
+      await interaction.update({
+        embeds: [built.embed],
+        components: built.components,
+      }).catch((error) => {
+        logger.error({ err: safe_error_details(error), action: interaction.customId }, 'Erro ao atualizar paginação da fila')
+        return null
+      })
+
+      return
+    }
+
     if (interaction.customId.startsWith('music:')) {
       if (!interaction.guildId) return
       if (!musicService) return

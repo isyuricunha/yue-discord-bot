@@ -1,4 +1,4 @@
-import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import type { Command } from '../index';
 import { EMOJIS } from '@yuebot/shared';
@@ -26,6 +26,106 @@ function format_track_link(track: { title?: string; uri?: string }): string {
   return title;
 }
 
+const queue_page_size = 10;
+
+function clamp_page(page: number, max_page: number): number {
+  if (!Number.isFinite(page) || page < 0) return 0;
+  if (page > max_page) return max_page;
+  return page;
+}
+
+export function build_queue_embed_and_components(input: {
+  player: { queue: any; paused: boolean };
+  authorAvatar: string;
+  page: number;
+}): {
+  embed: EmbedBuilder;
+  components: ActionRowBuilder<ButtonBuilder>[];
+} {
+  const { player, authorAvatar } = input;
+
+  const currentTrack = player.queue.current;
+  if (!currentTrack) {
+    const embed = new EmbedBuilder()
+      .setColor('#ff6a00')
+      .setAuthor({
+        name: 'Fila de Músicas da Yue',
+        ...(authorAvatar ? { iconURL: authorAvatar } : null),
+      })
+      .setDescription(`${EMOJIS.ERROR} Não há nenhuma música tocando no momento.`);
+
+    return { embed, components: [] };
+  }
+
+  const queue = player.queue as any[];
+  const isPaused = player.paused;
+
+  const current_description = truncate_text(
+    `**Tocando agora:**\n${format_track_link(currentTrack)} \`[${formatTime(currentTrack.length)}]\` ${isPaused ? '⏸️' : '▶️'}\nPedida por: ${format_user_mention(currentTrack.requester)}`,
+    4096
+  );
+
+  const embed = new EmbedBuilder()
+    .setColor('#ff6a00')
+    .setAuthor({
+      name: 'Fila de Músicas da Yue',
+      ...(authorAvatar ? { iconURL: authorAvatar } : null),
+    })
+    .setDescription(current_description);
+
+  const max_page = Math.max(0, Math.ceil(queue.length / queue_page_size) - 1);
+  const page = clamp_page(input.page, max_page);
+
+  if (queue.length > 0) {
+    const start = page * queue_page_size;
+    const page_items = queue.slice(start, start + queue_page_size);
+
+    const upcoming_lines: string[] = [];
+    let used = 0;
+
+    for (const [idx, track] of page_items.entries()) {
+      const absolute_index = start + idx;
+      const line_raw = `**${absolute_index + 1}.** ${format_track_link(track)} \`[${formatTime(track.length)}]\` - ${format_user_mention(track.requester)}`;
+      const line = truncate_text(line_raw, 240);
+
+      const next_used = used + line.length + (upcoming_lines.length ? 1 : 0);
+      if (next_used > 1024) break;
+
+      upcoming_lines.push(line);
+      used = next_used;
+    }
+
+    embed.addFields({
+      name: `Próximas na Fila (${queue.length}) — Página ${page + 1}/${max_page + 1}`,
+      value: upcoming_lines.length ? upcoming_lines.join('\n') : '*Muitas músicas para listar aqui.*',
+    });
+  } else {
+    embed.addFields({
+      name: 'Próximas na Fila',
+      value: '*A fila está vazia. Adicione mais músicas usando `/play`!*',
+    });
+  }
+
+  if (queue.length > queue_page_size) {
+    const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+      new ButtonBuilder()
+        .setCustomId(`music:queue_page:${page - 1}`)
+        .setStyle(ButtonStyle.Secondary)
+        .setLabel('Anterior')
+        .setDisabled(page <= 0),
+      new ButtonBuilder()
+        .setCustomId(`music:queue_page:${page + 1}`)
+        .setStyle(ButtonStyle.Secondary)
+        .setLabel('Próxima')
+        .setDisabled(page >= max_page)
+    );
+
+    return { embed, components: [row] };
+  }
+
+  return { embed, components: [] };
+}
+
 export async function reply_with_queue_embed(interaction: ChatInputCommandInteraction): Promise<void> {
   if (!interaction.guildId) return;
 
@@ -44,57 +144,18 @@ export async function reply_with_queue_embed(interaction: ChatInputCommandIntera
     return;
   }
 
-  const currentTrack = player.queue.current;
-  if (!currentTrack) return;
-
-  const queue = player.queue;
-  const isPaused = player.paused;
   const authorAvatar = interaction.client.user?.displayAvatarURL() || '';
 
-  const current_description = truncate_text(
-    `**Tocando agora:**\n${format_track_link(currentTrack)} \`[${formatTime(currentTrack.length)}]\` ${isPaused ? '⏸️' : '▶️'}\nPedida por: ${format_user_mention(currentTrack.requester)}`,
-    4096
-  );
+  const built = build_queue_embed_and_components({
+    player: player as any,
+    authorAvatar,
+    page: 0,
+  });
 
-  const embed = new EmbedBuilder()
-    .setColor('#ff6a00')
-    .setAuthor({
-      name: 'Fila de Músicas da Yue',
-      ...(authorAvatar ? { iconURL: authorAvatar } : null),
-    })
-    .setDescription(current_description);
-
-  if (queue.length > 0) {
-    const upcoming_lines: string[] = [];
-    let used = 0;
-
-    for (const [i, track] of queue.slice(0, 10).entries()) {
-      const line_raw = `**${i + 1}.** ${format_track_link(track)} \`[${formatTime(track.length)}]\` - ${format_user_mention(track.requester)}`;
-      const line = truncate_text(line_raw, 240);
-
-      const next_used = used + line.length + (upcoming_lines.length ? 1 : 0);
-      if (next_used > 1024) break;
-
-      upcoming_lines.push(line);
-      used = next_used;
-    }
-
-    embed.addFields({
-      name: `Próximas na Fila (${queue.length})`,
-      value: upcoming_lines.length ? upcoming_lines.join('\n') : '*Muitas músicas para listar aqui.*',
-    });
-  } else {
-    embed.addFields({
-      name: 'Próximas na Fila',
-      value: '*A fila está vazia. Adicione mais músicas usando `/play`!*',
-    });
-  }
-
-  if (queue.length > 10) {
-    embed.setFooter({ text: `E mais ${queue.length - 10} músicas não listadas...` });
-  }
-
-  await interaction.editReply({ embeds: [embed] });
+  await interaction.editReply({
+    embeds: [built.embed],
+    components: built.components,
+  });
 }
 
 const queueCommand: Command = {
