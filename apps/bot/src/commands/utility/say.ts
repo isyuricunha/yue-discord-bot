@@ -5,6 +5,7 @@ import { render_discord_message_template } from '@yuebot/shared'
 
 import { logger } from '../../utils/logger'
 import type { Command } from '../index'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
 
 type sendable_message = {
   content?: string
@@ -64,9 +65,8 @@ export const sayCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: 'Este comando só pode ser usado em servidores!',
-        ephemeral: true,
       })
       return
     }
@@ -84,14 +84,13 @@ export const sayCommand: Command = {
     const can_send = !!target_channel && typeof target_channel === 'object' && 'send' in target_channel
 
     if (!target_channel || !is_text_based || !can_send) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: 'Canal inválido (precisa ser um canal de texto).',
-        ephemeral: true,
       })
       return
     }
 
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     try {
       const rendered = render_discord_message_template(raw_template, {

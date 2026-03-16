@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder, ChannelType } f
 import type { ChatInputCommandInteraction, TextChannel } from 'discord.js';
 import { logger } from '../../utils/logger';
 import { COLORS, EMOJIS } from '@yuebot/shared';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 import type { Command } from '../index';
 
 export const unlockCommand: Command = {
@@ -21,9 +22,8 @@ export const unlockCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -31,9 +31,8 @@ export const unlockCommand: Command = {
     const targetChannel = (interaction.options.getChannel('canal') || interaction.channel) as TextChannel;
 
     if (!targetChannel || targetChannel.type !== ChannelType.GuildText) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Canal inválido!`,
-        ephemeral: true,
       });
       return;
     }
@@ -70,9 +69,8 @@ export const unlockCommand: Command = {
       );
     } catch (error) {
       logger.error({ error }, 'Erro ao destrancar canal');
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Erro ao destrancar o canal. Verifique se tenho permissões suficientes.`,
-        ephemeral: true,
       });
     }
   },
