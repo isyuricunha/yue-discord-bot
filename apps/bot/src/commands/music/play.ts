@@ -105,6 +105,8 @@ const playCommand: Command = {
       }
     }
 
+    const had_active_track = Boolean(player.queue.current) && (player.playing || player.paused);
+
     try {
       const result = await search_with_fallback(
         (q, options) => musicService.kazagumo.search(q, options as any),
@@ -118,21 +120,37 @@ const playCommand: Command = {
       }
 
       if (result.type === 'PLAYLIST') {
-        for (const track of result.tracks) {
-          player.queue.add(track);
+        player.queue.add(result.tracks as any);
+
+        const should_start = !had_active_track && !player.playing && !player.paused;
+        if (should_start) {
+          await player.play();
         }
-        if (!player.playing && !player.paused) await player.play();
+
+        const now_playing = player.queue.current;
+        const now_playing_text = now_playing
+          ? `\n**Tocando agora:** ${now_playing.title}`
+          : '';
 
         await interaction.followUp(
-          `${EMOJIS.SUCCESS} Playlist **${result.playlistName}** adicionada à fila com **${result.tracks.length}** músicas!`
+          `${EMOJIS.SUCCESS} Playlist **${result.playlistName}** adicionada à fila com **${result.tracks.length}** músicas!${now_playing_text}`
         );
       } else {
         const track = result.tracks[0];
         player.queue.add(track);
 
-        if (!player.playing && !player.paused) await player.play();
+        const should_start = !had_active_track && !player.playing && !player.paused;
+        if (should_start) {
+          await player.play();
+        }
+
+        const now_playing = player.queue.current;
+        const now_playing_text = now_playing
+          ? `\n**Tocando agora:** ${now_playing.title}`
+          : '';
+
         await interaction.followUp(
-          `${EMOJIS.SUCCESS} Música **${track.title}** adicionada à fila!`
+          `${EMOJIS.SUCCESS} Música **${track.title}** adicionada à fila!${now_playing_text}`
         );
       }
     } catch (error) {
