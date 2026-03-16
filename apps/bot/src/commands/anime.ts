@@ -7,6 +7,7 @@ import type { Command } from './index'
 
 import { aniListService, type anilist_anime, type anilist_manga } from '../services/anilist.service'
 import { anilistWatchlistService } from '../services/anilistWatchlist.service'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../utils/interaction'
 
 type anilist_media = anilist_anime | anilist_manga
 
@@ -319,7 +320,7 @@ export const animeCommand: Command = {
         const kind = (interaction.options.getString('tipo') ?? 'anime') as 'anime' | 'manga'
         const title = interaction.options.getString('titulo', true)
 
-        await interaction.deferReply({ ephemeral: true })
+        await safe_defer_ephemeral(interaction)
 
         await anilistWatchlistService.ensure_user(interaction.user.id, {
           username: interaction.user.username,
@@ -350,7 +351,7 @@ export const animeCommand: Command = {
         const kind = interaction.options.getString('tipo', true) as 'anime' | 'manga'
         const media_id = interaction.options.getInteger('id', true)
 
-        await interaction.deferReply({ ephemeral: true })
+        await safe_defer_ephemeral(interaction)
 
         const removed = await anilistWatchlistService.remove({
           userId: interaction.user.id,
@@ -372,7 +373,7 @@ export const animeCommand: Command = {
         const page = interaction.options.getInteger('pagina') ?? 1
         const filter = (interaction.options.getString('tipo') ?? 'all') as 'all' | 'anime' | 'manga'
 
-        await interaction.deferReply({ ephemeral: true })
+        await safe_defer_ephemeral(interaction)
 
         const { total, items, page: currentPage, pageSize } = await anilistWatchlistService.list_items({
           userId: target.id,
@@ -436,7 +437,7 @@ export const animeCommand: Command = {
 
       if (action === 'dm') {
         const enabled = interaction.options.getBoolean('ativar', true)
-        await interaction.deferReply({ ephemeral: true })
+        await safe_defer_ephemeral(interaction)
 
         await anilistWatchlistService.set_dm_enabled(interaction.user.id, enabled)
 
@@ -451,17 +452,17 @@ export const animeCommand: Command = {
 
       if (action === 'channel-set') {
         if (!interaction.guildId) {
-          await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+          await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
           return
         }
 
         const channel = interaction.options.getChannel('canal', true)
         if (channel.type !== ChannelType.GuildText && channel.type !== ChannelType.GuildAnnouncement) {
-          await interaction.reply({ content: `${EMOJIS.ERROR} Canal inválido.`, ephemeral: true })
+          await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Canal inválido.` })
           return
         }
 
-        await interaction.deferReply({ ephemeral: true })
+        await safe_defer_ephemeral(interaction)
 
         await anilistWatchlistService.set_channel_for_guild({
           userId: interaction.user.id,
@@ -475,17 +476,17 @@ export const animeCommand: Command = {
 
       if (action === 'channel-clear') {
         if (!interaction.guildId) {
-          await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+          await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
           return
         }
 
-        await interaction.deferReply({ ephemeral: true })
+        await safe_defer_ephemeral(interaction)
         await anilistWatchlistService.clear_channel_for_guild({ userId: interaction.user.id, guildId: interaction.guildId })
         await interaction.editReply({ content: `${EMOJIS.SUCCESS} Canal de lembretes removido deste servidor.` })
         return
       }
 
-      await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Subcomando inválido.` })
       return
     }
 
@@ -629,6 +630,6 @@ export const animeCommand: Command = {
       return
     }
 
-    await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+    await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Subcomando inválido.` })
   },
 }
