@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import type { ChatInputCommandInteraction, TextChannel } from 'discord.js';
 import { logger } from '../../utils/logger';
 import { COLORS, EMOJIS } from '@yuebot/shared';
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction';
 import type { Command } from '../index';
 
 export const limparCommand: Command = {
@@ -38,9 +39,8 @@ export const limparCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild || !interaction.channel) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em canais de servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -52,7 +52,7 @@ export const limparCommand: Command = {
     const channel = interaction.channel as TextChannel;
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await safe_defer_ephemeral(interaction);
 
       // Buscar mensagens (máximo 100 por vez)
       const fetchLimit = Math.min(quantity, 100);

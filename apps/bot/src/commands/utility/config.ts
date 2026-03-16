@@ -16,6 +16,7 @@ import { welcomeService } from '../../services/welcome.service'
 import { moderationLogService } from '../../services/moderationLog.service'
 import { reportLogService } from '../../services/reportLog.service'
 import { xpService } from '../../services/xp.service'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
 
 function get_optional_text_channel_id(interaction: ChatInputCommandInteraction, name: string): string | null {
   const channel = interaction.options.getChannel(name)
@@ -448,14 +449,14 @@ export const configCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
       return
     }
 
     const group = interaction.options.getSubcommandGroup()
     const sub = interaction.options.getSubcommand()
 
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     const guild_id = interaction.guild.id
 

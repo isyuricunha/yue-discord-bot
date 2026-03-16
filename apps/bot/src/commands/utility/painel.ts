@@ -2,6 +2,7 @@ import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { logger } from '../../utils/logger';
 import { COLORS, EMOJIS } from '@yuebot/shared';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 import type { Command } from '../index';
 
 export const painelCommand: Command = {
@@ -11,9 +12,8 @@ export const painelCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -51,7 +51,7 @@ export const painelCommand: Command = {
       .setFooter({ text: 'Yue Bot • Painel de Gerenciamento' })
       .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await safe_reply_ephemeral(interaction, { embeds: [embed] });
 
     logger.info(`Painel: Link solicitado por ${interaction.user.tag} em ${interaction.guild.name}`);
   },
