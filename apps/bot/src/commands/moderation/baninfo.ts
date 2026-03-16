@@ -2,6 +2,7 @@ import { SlashCommandBuilder, PermissionFlagsBits, EmbedBuilder } from 'discord.
 import type { ChatInputCommandInteraction } from 'discord.js';
 import { logger } from '../../utils/logger';
 import { COLORS, EMOJIS } from '@yuebot/shared';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 import type { Command } from '../index';
 
 export const baninfoCommand: Command = {
@@ -18,9 +19,8 @@ export const baninfoCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -32,9 +32,8 @@ export const baninfoCommand: Command = {
       const ban = await interaction.guild.bans.fetch(userId).catch(() => null);
 
       if (!ban) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Usuário com ID \`${userId}\` não está banido neste servidor.`,
-          ephemeral: true,
         });
         return;
       }
@@ -56,9 +55,8 @@ export const baninfoCommand: Command = {
       logger.info(`BanInfo consultado por ${interaction.user.tag} para ${ban.user.tag}`);
     } catch (error) {
       logger.error({ error }, 'Erro ao buscar informações do ban');
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Erro ao buscar informações do banimento.`,
-        ephemeral: true,
       });
     }
   },
