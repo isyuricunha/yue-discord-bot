@@ -68,6 +68,29 @@ class AutoModService {
   private configCache: Map<string, { config: GuildConfig | null; timestamp: number }> = new Map();
   private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
 
+  private async upsertMemberRow(member: GuildMember): Promise<void> {
+    await prisma.guildMember.upsert({
+      where: {
+        userId_guildId: {
+          userId: member.id,
+          guildId: member.guild.id,
+        },
+      },
+      update: {
+        username: member.user.username,
+        avatar: member.user.avatar,
+        joinedAt: member.joinedAt ?? new Date(),
+      },
+      create: {
+        userId: member.id,
+        guildId: member.guild.id,
+        username: member.user.username,
+        avatar: member.user.avatar,
+        joinedAt: member.joinedAt ?? new Date(),
+      },
+    })
+  }
+
   async checkMessage(message: Message): Promise<boolean> {
     if (!message.guild || message.author.bot) return false;
 
@@ -360,6 +383,7 @@ class AutoModService {
       };
 
       if (action === 'delete') {
+        await this.upsertMemberRow(member)
         await prisma.modLog.create({
           data: {
             guildId: member.guild.id,
@@ -460,6 +484,8 @@ class AutoModService {
     const durationMs = parseDurationMs(duration, { maxMs: discord_timeout_max_ms, clampToMax: true }) ?? 5 * 60 * 1000;
     await member.timeout(durationMs, `[AutoMod] ${reason}`);
 
+    await this.upsertMemberRow(member)
+
     await prisma.modLog.create({
       data: {
         guildId: member.guild.id,
@@ -476,6 +502,8 @@ class AutoModService {
   private async applyKick(member: GuildMember, reason: string, metadata: Prisma.InputJsonValue): Promise<void> {
     await member.kick(`[AutoMod] ${reason}`);
 
+    await this.upsertMemberRow(member)
+
     await prisma.modLog.create({
       data: {
         guildId: member.guild.id,
@@ -490,6 +518,8 @@ class AutoModService {
 
   private async applyBan(member: GuildMember, reason: string, metadata: Prisma.InputJsonValue): Promise<void> {
     await member.ban({ reason: `[AutoMod] ${reason}` });
+
+    await this.upsertMemberRow(member)
 
     await prisma.modLog.create({
       data: {
