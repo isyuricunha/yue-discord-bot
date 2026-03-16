@@ -5,6 +5,7 @@ import { EMOJIS } from '@yuebot/shared'
 
 import type { ContextMenuCommand } from '../index'
 import { authenticatedMessageService } from '../../services/authenticatedMessage.service'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
 
 export const saveMessageDmCommand: ContextMenuCommand = {
   data: new ContextMenuCommandBuilder()
@@ -15,11 +16,11 @@ export const saveMessageDmCommand: ContextMenuCommand = {
     const message = interaction.targetMessage
 
     if (!interaction.guildId) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores.` })
       return
     }
 
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     const attachment = await authenticatedMessageService
       .render_signed_message_image({

@@ -5,6 +5,7 @@ import { EMOJIS, COLORS } from '@yuebot/shared'
 
 import type { Command } from '../index'
 import { authenticatedMessageService } from '../../services/authenticatedMessage.service'
+import { safe_defer_ephemeral } from '../../utils/interaction'
 
 type online_check =
   | { status: 'skipped' }
@@ -120,7 +121,7 @@ export const verifyMessageCommand: Command = {
         ? interaction.options.getAttachment('arquivo', true).url
         : interaction.options.getString('url', true)
 
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     const result = await authenticatedMessageService.verify_signed_message_image({ url: resolved_url }).catch((err: unknown) => {
       const error = err as Error
