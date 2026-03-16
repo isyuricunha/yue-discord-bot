@@ -433,8 +433,9 @@ class AutoModService {
       const notificationChannel = getSendableChannel(message.channel);
       if (notificationChannel) {
         try {
+          const action_text = deleted ? 'sua mensagem foi removida' : 'sua mensagem foi sinalizada pelo AutoMod'
           await notificationChannel.send({
-            content: `${EMOJIS.WARNING} <@${member.id}>, sua mensagem foi removida: ${reason}`,
+            content: `${EMOJIS.WARNING} <@${member.id}>, ${action_text}: ${reason}`,
             allowedMentions: { users: [member.id], parse: [] },
           })
         } catch (error) {
