@@ -5,6 +5,7 @@ import { WarnService } from '../../services/warnService';
 import { logger } from '../../utils/logger';
 import { COLORS, EMOJIS } from '@yuebot/shared';
 import { moderationLogService } from '../../services/moderationLog.service';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 import type { Command } from '../index';
 
 function is_guild_member(member: ChatInputCommandInteraction['member']): member is GuildMember {
@@ -36,9 +37,8 @@ export const warnCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild || !interaction.member) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -47,17 +47,15 @@ export const warnCommand: Command = {
     const reason = interaction.options.get('razao')?.value as string;
 
     if (targetUser.id === interaction.user.id) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você não pode advertir a si mesmo!`,
-        ephemeral: true,
       });
       return;
     }
 
     if (targetUser.id === interaction.client.user?.id) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você não pode me advertir!`,
-        ephemeral: true,
       });
       return;
     }
@@ -66,9 +64,8 @@ export const warnCommand: Command = {
       const targetMember = await interaction.guild.members.fetch(targetUser.id).catch(() => null);
 
       if (!targetMember) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Usuário não encontrado no servidor!`,
-          ephemeral: true,
         });
         return;
       }
@@ -82,9 +79,8 @@ export const warnCommand: Command = {
       const targetPosition = targetMember.roles.highest.position;
 
       if (targetPosition >= memberPosition) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Você não pode advertir este usuário pois ele tem uma role igual ou superior à sua!`,
-          ephemeral: true,
         });
         return;
       }
@@ -182,9 +178,8 @@ export const warnCommand: Command = {
       );
     } catch (error) {
       logger.error({ error }, 'Erro ao advertir usuário');
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Erro ao advertir o usuário.`,
-        ephemeral: true,
       });
     }
   },
