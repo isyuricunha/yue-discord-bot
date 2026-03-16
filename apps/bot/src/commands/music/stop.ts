@@ -2,6 +2,7 @@ import { SlashCommandBuilder } from 'discord.js';
 import type { Command } from '../index';
 import { EMOJIS } from '@yuebot/shared';
 import { musicService } from '../../services/music.service';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 
 const stopCommand: Command = {
   data: new SlashCommandBuilder()
@@ -13,9 +14,8 @@ const stopCommand: Command = {
 
     const { voice } = interaction.member as any;
     if (!voice.channelId) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você precisa estar em um canal de voz.`,
-        ephemeral: true,
       });
       return;
     }
@@ -25,17 +25,15 @@ const stopCommand: Command = {
     const player = musicService.kazagumo.players.get(interaction.guildId);
 
     if (!player) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Não estou tocando música no momento.`,
-        ephemeral: true,
       });
       return;
     }
 
     if (player.voiceId !== voice.channelId) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Tente entrar no meu canal (\`<#${player.voiceId}>\`)!`,
-        ephemeral: true,
       });
       return;
     }
