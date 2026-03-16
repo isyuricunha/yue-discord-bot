@@ -3,11 +3,14 @@ import { Connectors } from 'shoukaku';
 import { Client } from 'discord.js';
 
 import { logger } from '../utils/logger';
+import { getSendableChannel } from '../utils/discord';
 
 export class MusicService {
   public kazagumo: Kazagumo;
+  private readonly client: Client;
 
   constructor(client: Client) {
+    this.client = client;
     let rawNodes: any[] = [];
     try {
       if (process.env.LAVALINK_NODES) {
@@ -76,8 +79,41 @@ export class MusicService {
       logger.debug({ info }, 'Kazagumo debug');
     });
 
-    this.kazagumo.on('playerStart', (player, track) => {
+    this.kazagumo.on('playerStart', async (player, track) => {
       logger.info({ guild_id: player.guildId, track: track.title }, 'Começou a tocar uma música.');
+
+      const suppress = player.data.get('suppress_next_now_playing_announce') === true;
+      if (suppress) {
+        player.data.delete('suppress_next_now_playing_announce');
+        return;
+      }
+
+      const text_channel_id = typeof player.textId === 'string' ? player.textId : null;
+      if (!text_channel_id) return;
+
+      const title_raw = typeof track.title === 'string' ? track.title : 'Sem título';
+      const title = title_raw.length > 180 ? `${title_raw.slice(0, 179)}…` : title_raw;
+
+      const uri = typeof track.uri === 'string' ? track.uri : '';
+      const has_link = /^https?:\/\//i.test(uri);
+      const now_playing = has_link ? `[${title}](${uri})` : title;
+
+      const content_raw = `🎶 **Tocando agora:** ${now_playing}`;
+      const content = content_raw.length > 2000 ? content_raw.slice(0, 1999) : content_raw;
+
+      try {
+        const channel_cached = this.client.channels.cache.get(text_channel_id) ?? null;
+        const channel = channel_cached
+          ? channel_cached
+          : await this.client.channels.fetch(text_channel_id).catch(() => null);
+
+        const sendable = getSendableChannel(channel);
+        if (!sendable) return;
+
+        await sendable.send({ content, allowedMentions: { parse: [] } });
+      } catch (error) {
+        logger.warn({ err: error, guild_id: player.guildId, channel_id: text_channel_id }, 'Falha ao anunciar tocando agora');
+      }
     });
 
     this.kazagumo.on('playerEnd', (player) => {

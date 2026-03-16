@@ -124,6 +124,7 @@ const playCommand: Command = {
 
         const should_start = !had_active_track && !player.playing && !player.paused;
         if (should_start) {
+          player.data.set('suppress_next_now_playing_announce', true);
           await player.play();
         }
 
@@ -144,6 +145,7 @@ const playCommand: Command = {
 
         const should_start = !had_active_track && !player.playing && !player.paused;
         if (should_start) {
+          player.data.set('suppress_next_now_playing_announce', true);
           await player.play();
         }
 
