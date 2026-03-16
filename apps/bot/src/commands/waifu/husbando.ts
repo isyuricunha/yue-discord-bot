@@ -12,6 +12,7 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 import type { Command } from '../index'
 
 import { waifuService } from '../../services/waifu.service'
+import { safe_reply_ephemeral } from '../../utils/interaction'
 
 function format_relative_time(date: Date): string {
   const unix = Math.floor(date.getTime() / 1000)
@@ -26,7 +27,7 @@ export const husbandoCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guildId || !interaction.channelId) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
       return
     }
 
