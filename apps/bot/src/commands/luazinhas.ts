@@ -8,6 +8,7 @@ import { CONFIG } from '../config'
 import type { Command } from './index'
 import { luazinhaEconomyService } from '../services/luazinhaEconomy.service'
 import { format_bigint } from '../utils/bigint'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../utils/interaction'
 
 function parse_amount(input: string): bigint | null {
   const trimmed = input.trim()
@@ -155,13 +156,13 @@ export const luazinhasCommand: Command = {
         .setTitle(`${EMOJIS.INFO} Saldo de luazinhas`)
         .setDescription(`<@${user.id}> tem **${format_amount(balance)}** luazinhas.`)
 
-      await interaction.reply({ embeds: [embed], ephemeral: true })
+      await safe_reply_ephemeral(interaction, { embeds: [embed] })
       return
     }
 
     if (sub === 'transferir') {
       if (!interaction.guildId) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
         return
       }
 
@@ -171,16 +172,16 @@ export const luazinhasCommand: Command = {
 
       const amount = parse_amount(raw_amount)
       if (!amount) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Quantia inválida.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Quantia inválida.` })
         return
       }
 
       if (to_user.bot) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Você não pode transferir para bots.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Você não pode transferir para bots.` })
         return
       }
 
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       await luazinhaEconomyService.ensure_user(interaction.user.id, {
         username: interaction.user.username,
@@ -224,23 +225,21 @@ export const luazinhasCommand: Command = {
 
     if (sub === 'admin_add' || sub === 'admin_remove') {
       if (!interaction.guildId) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
         return
       }
 
       const allowlist = CONFIG.admin.ownerUserIds
       if (!Array.isArray(allowlist) || allowlist.length === 0) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Este comando está desativado (OWNER_USER_IDS não configurado).`,
-          ephemeral: true,
         })
         return
       }
 
       if (!allowlist.includes(interaction.user.id)) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Você não tem permissão para usar este comando.`,
-          ephemeral: true,
         })
         return
       }
@@ -251,11 +250,11 @@ export const luazinhasCommand: Command = {
 
       const amount = parse_amount(raw_amount)
       if (!amount) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Quantia inválida.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Quantia inválida.` })
         return
       }
 
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       await luazinhaEconomyService.ensure_user(target.id, { username: target.username, avatar: target.avatar })
 
@@ -280,6 +279,6 @@ export const luazinhasCommand: Command = {
       return
     }
 
-    await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+    await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Subcomando inválido.` })
   },
 }
