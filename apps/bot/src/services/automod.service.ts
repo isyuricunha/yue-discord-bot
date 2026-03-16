@@ -13,6 +13,7 @@ import { openAiModerationService } from './openaiModeration.service';
 import { extract_ai_moderation_image_urls } from './automod.ai_images'
 import { build_ai_moderation_thresholds } from './automod.ai_thresholds'
 import { can_apply_automod_action, required_channel_permissions_for_automod_action } from './automod.permissions'
+import { safe_error_details } from '../utils/safe_error'
 
 interface AutoModResult {
   violated: boolean;
@@ -366,7 +367,22 @@ class AutoModService {
       }
 
       // Deletar mensagem
-      await message.delete();
+      let deleted = false
+      try {
+        await message.delete();
+        deleted = true
+      } catch (error) {
+        logger.warn(
+          {
+            err: safe_error_details(error),
+            guild_id: guild.id,
+            channel_id: message.channel.id,
+            message_id: message.id,
+            action,
+          },
+          'AutoMod: failed to delete message',
+        )
+      }
 
       const metadata: Prisma.InputJsonValue = {
         source: 'automod',
@@ -379,7 +395,7 @@ class AutoModService {
           excerpt: message_excerpt,
           length: message.content.length,
         },
-        deleted: true,
+        deleted,
       };
 
       if (action === 'delete') {
@@ -416,10 +432,22 @@ class AutoModService {
 
       const notificationChannel = getSendableChannel(message.channel);
       if (notificationChannel) {
-        await notificationChannel.send({
-          content: `${EMOJIS.WARNING} <@${member.id}>, sua mensagem foi removida: ${reason}`,
-          allowedMentions: { users: [member.id], parse: [] },
-        })
+        try {
+          await notificationChannel.send({
+            content: `${EMOJIS.WARNING} <@${member.id}>, sua mensagem foi removida: ${reason}`,
+            allowedMentions: { users: [member.id], parse: [] },
+          })
+        } catch (error) {
+          logger.warn(
+            {
+              err: safe_error_details(error),
+              guild_id: guild.id,
+              channel_id: message.channel.id,
+              action,
+            },
+            'AutoMod: failed to send notification message',
+          )
+        }
       }
 
       // Enviar para canal de logs se configurado
