@@ -37,15 +37,15 @@ function build_controls_row(): ActionRowBuilder<ButtonBuilder> {
     new ButtonBuilder()
       .setCustomId('music:toggle_pause')
       .setStyle(ButtonStyle.Secondary)
-      .setLabel('Pause/Resume'),
+      .setLabel('Pausar/Retomar'),
     new ButtonBuilder()
       .setCustomId('music:skip')
       .setStyle(ButtonStyle.Primary)
-      .setLabel('Skip'),
+      .setLabel('Pular'),
     new ButtonBuilder()
       .setCustomId('music:stop')
       .setStyle(ButtonStyle.Danger)
-      .setLabel('Stop'),
+      .setLabel('Parar'),
     new ButtonBuilder()
       .setCustomId('music:loop')
       .setStyle(ButtonStyle.Secondary)
@@ -94,13 +94,14 @@ const nowplayingCommand: Command = {
 
     const volume = typeof player.volume === 'number' ? player.volume : 70;
     const loop = typeof player.loop === 'string' ? player.loop : 'none';
+    const loop_label = loop === 'track' ? 'faixa' : loop === 'queue' ? 'fila' : 'desligado';
 
     const description = truncate_text(
       `${title_display}\n\n` +
         `**Status:** ${status}\n` +
         `**Tempo:** ${format_time(position)} / ${format_time(duration)}\n` +
         `**Volume:** ${volume}%\n` +
-        `**Loop:** ${loop}\n` +
+        `**Loop:** ${loop_label}\n` +
         `**Pedido por:** ${format_user_mention(current.requester)}`,
       4096
     );

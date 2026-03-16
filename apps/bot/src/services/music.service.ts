@@ -115,15 +115,15 @@ export class MusicService {
           new ButtonBuilder()
             .setCustomId('music:toggle_pause')
             .setStyle(ButtonStyle.Secondary)
-            .setLabel('Pause/Resume'),
+            .setLabel('Pausar/Retomar'),
           new ButtonBuilder()
             .setCustomId('music:skip')
             .setStyle(ButtonStyle.Primary)
-            .setLabel('Skip'),
+            .setLabel('Pular'),
           new ButtonBuilder()
             .setCustomId('music:stop')
             .setStyle(ButtonStyle.Danger)
-            .setLabel('Stop'),
+            .setLabel('Parar'),
           new ButtonBuilder()
             .setCustomId('music:loop')
             .setStyle(ButtonStyle.Secondary)

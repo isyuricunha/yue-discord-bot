@@ -1,4 +1,5 @@
 import type { Interaction } from 'discord.js';
+import { MessageFlags } from 'discord.js'
 import { logger } from '../utils/logger';
 import { EMOJIS } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
@@ -250,7 +251,7 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
       try {
         if (!interaction.deferred && !interaction.replied) {
-          await interaction.deferReply({ ephemeral: true })
+          await interaction.deferReply({ flags: MessageFlags.Ephemeral })
         }
 
         if (interaction.customId === 'music:toggle_pause') {
@@ -282,7 +283,7 @@ export async function handleInteractionCreate(interaction: Interaction) {
         if (interaction.customId === 'music:loop') {
           player.setLoop()
           const mode = player.loop
-          const label = mode === 'track' ? 'track' : mode === 'queue' ? 'queue' : 'off'
+          const label = mode === 'track' ? 'faixa' : mode === 'queue' ? 'fila' : 'desligado'
           await interaction.editReply({
             content: `${EMOJIS.SUCCESS} Loop: **${label}**.`,
           })
