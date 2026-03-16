@@ -21,6 +21,7 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../utils/interaction'
 
 type panel_mode = 'single' | 'multiple'
 
@@ -292,7 +293,7 @@ class ReactionRoleService {
 
   async handle_button(interaction: ButtonInteraction): Promise<void> {
     if (!interaction.guild) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use isso em um servidor.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use isso em um servidor.` })
       return
     }
 
@@ -304,7 +305,7 @@ class ReactionRoleService {
     const panel_id = parts[1]!
     const role_id = parts[2]!
 
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     const panel = await this.get_panel(panel_id)
     if (!panel || panel.guildId !== interaction.guild.id) {

@@ -14,9 +14,11 @@ import type { ButtonInteraction, Guild, GuildMember, GuildTextBasedChannel, Mess
 import { prisma } from '@yuebot/database'
 import { EMOJIS } from '@yuebot/shared'
 
-import { CONFIG } from '../config'
-import { safe_error_details } from '../utils/safe_error'
 import { logger } from '../utils/logger'
+import { safe_error_details } from '../utils/safe_error'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../utils/interaction'
+
+import { CONFIG } from '../config'
 
 type suggestion_config = {
   enabled: boolean
@@ -256,14 +258,14 @@ class SuggestionService {
     if (!parsed) return
 
     if (!interaction.guild) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Este recurso só funciona em servidores.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Este recurso só funciona em servidores.` })
       return
     }
 
     if (parsed.kind === 'decide') {
       const allowed = await can_manage_suggestions(interaction.guild, interaction.user.id)
       if (!allowed) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Sem permissão.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Sem permissão.` })
         return
       }
 
@@ -284,7 +286,7 @@ class SuggestionService {
       return
     }
 
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     try {
       const result = await prisma.$transaction(async (tx) => {
@@ -410,17 +412,17 @@ class SuggestionService {
     if (!parsed) return
 
     if (!interaction.guild) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Este recurso só funciona em servidores.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Este recurso só funciona em servidores.` })
       return
     }
 
     const allowed = await can_manage_suggestions(interaction.guild, interaction.user.id)
     if (!allowed) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Sem permissão.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Sem permissão.` })
       return
     }
 
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     const note_raw = interaction.fields.getTextInputValue('note')
     const note = typeof note_raw === 'string' && note_raw.trim().length > 0 ? note_raw.trim() : null

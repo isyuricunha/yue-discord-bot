@@ -3,6 +3,7 @@ import { MessageFlags } from 'discord.js'
 import { logger } from '../utils/logger';
 import { EMOJIS } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
+import { safe_reply_ephemeral } from '../utils/interaction'
 import { prisma } from '@yuebot/database'
 import { musicService } from '../services/music.service'
 import { build_queue_embed_and_components } from '../commands/music/queue'
@@ -91,13 +92,10 @@ export async function handleInteractionCreate(interaction: Interaction) {
     if (guild_id) {
       const disabled = await is_command_disabled(guild_id, 'slash', interaction.commandName)
       if (disabled) {
-        const message = {
-          content: `${EMOJIS.ERROR} Este comando está desativado neste servidor.`,
-          ephemeral: true,
-        }
-
         try {
-          await interaction.reply(message)
+          await safe_reply_ephemeral(interaction, {
+            content: `${EMOJIS.ERROR} Este comando está desativado neste servidor.`,
+          })
         } catch (error) {
           logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao responder comando desativado')
         }
@@ -111,17 +109,8 @@ export async function handleInteractionCreate(interaction: Interaction) {
     } catch (error) {
       logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao executar comando');
 
-      const errorMessage = {
-        content: `${EMOJIS.ERROR} Ocorreu um erro ao executar este comando!`,
-        ephemeral: true,
-      };
-
       try {
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(errorMessage);
-        } else {
-          await interaction.reply(errorMessage);
-        }
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Ocorreu um erro ao executar este comando!` })
       } catch (reply_error) {
         logger.error({ err: safe_error_details(reply_error), command: interaction.commandName }, 'Erro ao responder falha de comando');
       }
@@ -141,13 +130,10 @@ export async function handleInteractionCreate(interaction: Interaction) {
     if (guild_id) {
       const disabled = await is_command_disabled(guild_id, 'context', interaction.commandName)
       if (disabled) {
-        const message = {
-          content: `${EMOJIS.ERROR} Este comando está desativado neste servidor.`,
-          ephemeral: true,
-        }
-
         try {
-          await interaction.reply(message)
+          await safe_reply_ephemeral(interaction, {
+            content: `${EMOJIS.ERROR} Este comando está desativado neste servidor.`,
+          })
         } catch (error) {
           logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao responder comando desativado')
         }
@@ -161,17 +147,8 @@ export async function handleInteractionCreate(interaction: Interaction) {
     } catch (error) {
       logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao executar context menu comando');
 
-      const errorMessage = {
-        content: `${EMOJIS.ERROR} Ocorreu um erro ao executar este comando!`,
-        ephemeral: true,
-      };
-
       try {
-        if (interaction.replied || interaction.deferred) {
-          await interaction.followUp(errorMessage);
-        } else {
-          await interaction.reply(errorMessage);
-        }
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Ocorreu um erro ao executar este comando!` })
       } catch (reply_error) {
         logger.error({ err: safe_error_details(reply_error), command: interaction.commandName }, 'Erro ao responder falha de context menu comando');
       }
