@@ -128,8 +128,11 @@ const playCommand: Command = {
         }
 
         const now_playing = player.queue.current;
-        const now_playing_text = now_playing
-          ? `\n**Tocando agora:** ${now_playing.title}`
+        const now_playing_link = now_playing?.uri
+          ? `[${now_playing.title}](${now_playing.uri})`
+          : now_playing?.title;
+        const now_playing_text = now_playing_link
+          ? `\n**Tocando agora:** ${now_playing_link}`
           : '';
 
         await interaction.followUp(
@@ -145,8 +148,11 @@ const playCommand: Command = {
         }
 
         const now_playing = player.queue.current;
-        const now_playing_text = now_playing
-          ? `\n**Tocando agora:** ${now_playing.title}`
+        const now_playing_link = now_playing?.uri
+          ? `[${now_playing.title}](${now_playing.uri})`
+          : now_playing?.title;
+        const now_playing_text = now_playing_link
+          ? `\n**Tocando agora:** ${now_playing_link}`
           : '';
 
         await interaction.followUp(
