@@ -3,6 +3,45 @@ import type { Command } from '../index';
 import { EMOJIS } from '@yuebot/shared';
 import { musicService } from '../../services/music.service';
 
+export type SearchAttempt = {
+  label: string;
+  source?: string;
+};
+
+export function build_search_attempts(query: string): SearchAttempt[] {
+  const is_url = /^https?:\/\//i.test(query);
+  if (is_url) {
+    return [{ label: 'url' }];
+  }
+
+  return [
+    { label: 'default' },
+    { label: 'youtube', source: 'ytsearch:' },
+    { label: 'youtube_music', source: 'ytmsearch:' },
+    { label: 'soundcloud', source: 'scsearch:' },
+    { label: 'spotify', source: 'spsearch:' },
+  ];
+}
+
+export async function search_with_fallback<T extends { tracks: unknown[] }>(
+  search: (query: string, options: { requester: unknown; source?: string }) => Promise<T>,
+  query: string,
+  requester: unknown
+): Promise<T | null> {
+  const attempts = build_search_attempts(query);
+
+  for (const attempt of attempts) {
+    const result = await search(query, {
+      requester,
+      ...(attempt.source ? { source: attempt.source } : null),
+    });
+
+    if (result.tracks.length) return result;
+  }
+
+  return null;
+}
+
 const playCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('play')
@@ -66,30 +105,39 @@ const playCommand: Command = {
       }
     }
 
-    const result = await musicService.kazagumo.search(query, { requester: interaction.user });
+    try {
+      const result = await search_with_fallback(
+        (q, options) => musicService.kazagumo.search(q, options as any),
+        query,
+        interaction.user
+      );
 
-    if (!result.tracks.length) {
-      await interaction.followUp(`${EMOJIS.ERROR} Não encontrei resultados para \`${query}\`.`);
-      return;
-    }
-
-    if (result.type === 'PLAYLIST') {
-      for (const track of result.tracks) {
-        player.queue.add(track);
+      if (!result || !result.tracks.length) {
+        await interaction.followUp(`${EMOJIS.ERROR} Não encontrei resultados para \`${query}\`.`);
+        return;
       }
-      if (!player.playing && !player.paused) await player.play();
 
-      await interaction.followUp(
-        `${EMOJIS.SUCCESS} A playlist **${result.playlistName}** com \`${result.tracks.length}\` faixas foi adicionada à fila.`
-      );
-    } else {
-      const track = result.tracks[0];
-      player.queue.add(track);
-      if (!player.playing && !player.paused) await player.play();
+      if (result.type === 'PLAYLIST') {
+        for (const track of result.tracks) {
+          player.queue.add(track);
+        }
+        if (!player.playing && !player.paused) await player.play();
 
-      await interaction.followUp(
-        `${EMOJIS.SUCCESS} A faixa **${track.title}** foi adicionada à fila.`
-      );
+        await interaction.followUp(
+          `${EMOJIS.SUCCESS} Playlist **${result.playlistName}** adicionada à fila com **${result.tracks.length}** músicas!`
+        );
+      } else {
+        const track = result.tracks[0];
+        player.queue.add(track);
+
+        if (!player.playing && !player.paused) await player.play();
+        await interaction.followUp(
+          `${EMOJIS.SUCCESS} Música **${track.title}** adicionada à fila!`
+        );
+      }
+    } catch (error) {
+      await interaction.followUp(`${EMOJIS.ERROR} Ocorreu um erro ao buscar a música.`);
+      return;
     }
   },
 };

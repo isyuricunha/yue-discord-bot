@@ -72,6 +72,10 @@ export class MusicService {
       logger.warn({ node: name, attemptsLeft: left, timeout }, `Lavalink Node [${name}] reconnecting...`);
     });
 
+    (this.kazagumo as any).on('debug', (info: unknown) => {
+      logger.debug({ info }, 'Kazagumo debug');
+    });
+
     this.kazagumo.on('playerStart', (player, track) => {
       logger.info({ guild_id: player.guildId, track: track.title }, 'Começou a tocar uma música.');
     });
