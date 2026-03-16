@@ -4,6 +4,7 @@ import { prisma } from '@yuebot/database';
 import { COLORS, EMOJIS } from '@yuebot/shared';
 import type { Command } from '../index';
 import { logger } from '../../utils/logger';
+import { safe_reply_ephemeral } from '../../utils/interaction'
 
 // Constants for Pet system limits
 const PET_DEGRADE_PER_HOUR = 5; 
@@ -66,10 +67,9 @@ export const petCommand: Command = {
       // Check if user already has a pet
       const existingPet = await prisma.pet.findFirst({ where: { userId } });
       if (existingPet) {
-        return interaction.reply({
+        return safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Você já adota o(a) **${existingPet.name}**! Cuide dele primeiro.`,
-          ephemeral: true,
-        });
+        })
       }
 
       await prisma.user.upsert({
@@ -95,10 +95,9 @@ export const petCommand: Command = {
     const currentPet = await prisma.pet.findFirst({ where: { userId } });
 
     if (!currentPet) {
-      return interaction.reply({
+      return safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você ainda não tem um Pet! Use \`/pet adotar\` para começar.`,
-        ephemeral: true,
-      });
+      })
     }
 
     // Apply temporal degradation before showing/acting
@@ -146,7 +145,7 @@ export const petCommand: Command = {
     let replyMessage = '';
 
     if (subcommand === 'alimentar') {
-       if (hunger >= 100) return interaction.reply({ content: `🍔 **${name}** já está muito cheio!`, ephemeral: true });
+       if (hunger >= 100) return safe_reply_ephemeral(interaction, { content: `🍔 **${name}** já está muito cheio!` })
        const gain = Math.floor(Math.random() * 20) + 15;
        updateData.hunger = Math.min(100, hunger + gain);
        updateData.xp = { increment: 5 };
@@ -154,8 +153,8 @@ export const petCommand: Command = {
     } 
     
     else if (subcommand === 'brincar') {
-       if (happiness >= 100) return interaction.reply({ content: `⚽ **${name}** já está super feliz!`, ephemeral: true });
-       if (energy <= 20) return interaction.reply({ content: `😴 **${name}** está muito cansado para brincar agora...`, ephemeral: true });
+       if (happiness >= 100) return safe_reply_ephemeral(interaction, { content: `⚽ **${name}** já está super feliz!` })
+       if (energy <= 20) return safe_reply_ephemeral(interaction, { content: `😴 **${name}** está muito cansado para brincar agora...` })
        
        const gain = Math.floor(Math.random() * 25) + 15;
        const energyCost = 15;
@@ -166,7 +165,7 @@ export const petCommand: Command = {
     }
 
     else if (subcommand === 'dormir') {
-       if (energy >= 100) return interaction.reply({ content: `💤 **${name}** não está com sono!`, ephemeral: true });
+       if (energy >= 100) return safe_reply_ephemeral(interaction, { content: `💤 **${name}** não está com sono!` })
        const gain = Math.floor(Math.random() * 40) + 30;
        updateData.energy = Math.min(100, energy + gain);
        updateData.xp = { increment: 5 };
@@ -181,7 +180,7 @@ export const petCommand: Command = {
       await interaction.reply({ content: replyMessage });
     } catch (e) {
       logger.error(e, 'Failed to interact with pet');
-      await interaction.reply({ content: `${EMOJIS.ERROR} Erro ao interagir com seu pet.`, ephemeral: true });
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Erro ao interagir com seu pet.` })
     }
 
   },

@@ -11,6 +11,7 @@ import { prisma } from '@yuebot/database'
 import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import type { Command } from '../index'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
 
 const INPUT_MAX_TITLE = 100
 const INPUT_MAX_DESC = 2000
@@ -169,14 +170,14 @@ export const eventoCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use isso em um servidor.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use isso em um servidor.` })
       return
     }
 
     const sub = interaction.options.getSubcommand()
 
     if (sub === 'listar') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const now = new Date()
       const rows = await prisma.scheduledEvent.findMany({
@@ -205,7 +206,7 @@ export const eventoCommand: Command = {
     }
 
     if (sub === 'cancelar') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const event_id = interaction.options.getString('event_id', true).trim()
       const existing = await prisma.scheduledEvent.findUnique({
@@ -233,7 +234,7 @@ export const eventoCommand: Command = {
     }
 
     if (sub === 'criar') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const title_raw = interaction.options.getString('titulo', true)
       const date_time_raw = interaction.options.getString('data_hora', true)
@@ -305,6 +306,6 @@ export const eventoCommand: Command = {
       return
     }
 
-    await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+    await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Subcomando inválido.` })
   },
 }

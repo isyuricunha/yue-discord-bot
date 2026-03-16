@@ -10,6 +10,7 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import type { Command } from '../index'
 import { ticketService } from '../../services/ticket.service'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
 
 function optional_channel_id(
   interaction: ChatInputCommandInteraction,
@@ -74,13 +75,13 @@ export const ticketCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
       return
     }
 
     const sub = interaction.options.getSubcommand()
     if (sub !== 'setup') {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Subcomando inválido.` })
       return
     }
 
@@ -88,11 +89,11 @@ export const ticketCommand: Command = {
 
     const panel_channel = interaction.options.getChannel('canal', true)
     if (panel_channel.type !== ChannelType.GuildText) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Canal inválido.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Canal inválido.` })
       return
     }
 
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     const category_id = optional_channel_id(interaction, 'categoria', [ChannelType.GuildCategory])
     const log_channel_id = optional_channel_id(interaction, 'log', [ChannelType.GuildText])
