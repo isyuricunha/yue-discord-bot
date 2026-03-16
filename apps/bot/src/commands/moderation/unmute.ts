@@ -4,6 +4,7 @@ import { prisma } from '@yuebot/database';
 import { logger } from '../../utils/logger';
 import { COLORS, EMOJIS } from '@yuebot/shared';
 import { moderationLogService } from '../../services/moderationLog.service';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 import type { Command } from '../index';
 
 export const unmuteCommand: Command = {
@@ -22,9 +23,8 @@ export const unmuteCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild || !interaction.member) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -35,18 +35,16 @@ export const unmuteCommand: Command = {
       const targetMember = await interaction.guild.members.fetch(targetUser.id);
 
       if (!targetMember) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Usuário não encontrado no servidor!`,
-          ephemeral: true,
         });
         return;
       }
 
       // Verificar se o usuário está silenciado
       if (!targetMember.communicationDisabledUntil) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Este usuário não está silenciado!`,
-          ephemeral: true,
         });
         return;
       }
@@ -109,9 +107,8 @@ export const unmuteCommand: Command = {
       );
     } catch (error) {
       logger.error({ error }, 'Erro ao dessilenciar usuário');
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Erro ao dessilenciar o usuário. Verifique se tenho permissões suficientes.`,
-        ephemeral: true,
       });
     }
   },
