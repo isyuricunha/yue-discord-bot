@@ -3,6 +3,7 @@ import type { ChatInputCommandInteraction } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { COLORS, EMOJIS } from '@yuebot/shared'
 import { CONFIG } from '../../config'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
 import type { Command } from '../index'
 
 function is_badge_admin(user_id: string): boolean {
@@ -140,17 +141,17 @@ export const badgesCommand: Command = {
         .setThumbnail(target.displayAvatarURL())
         .setTimestamp()
 
-      await interaction.reply({ embeds: [embed], ephemeral: true })
+      await safe_reply_ephemeral(interaction, { embeds: [embed] })
       return
     }
 
     if (sub === 'holders') {
       if (!is_badge_admin(interaction.user.id)) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Você não tem permissão para isso.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Você não tem permissão para isso.` })
         return
       }
 
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const badge_id = interaction.options.getString('badge', true)
       const limit = interaction.options.getInteger('limite') ?? 10
@@ -196,7 +197,7 @@ export const badgesCommand: Command = {
     }
 
     if (!is_badge_admin(interaction.user.id)) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Você não tem permissão para isso.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Você não tem permissão para isso.` })
       return
     }
 
@@ -205,7 +206,7 @@ export const badgesCommand: Command = {
 
     const badge = await prisma.badge.findUnique({ where: { id: badge_id } })
     if (!badge) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Badge não encontrada: ${badge_id}`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Badge não encontrada: ${badge_id}` })
       return
     }
 
@@ -237,7 +238,9 @@ export const badgesCommand: Command = {
         },
       })
 
-      await interaction.reply({ content: `${EMOJIS.SUCCESS} Badge **${badge.name}** concedida para **${target.username}**.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, {
+        content: `${EMOJIS.SUCCESS} Badge **${badge.name}** concedida para **${target.username}**.`,
+      })
       return
     }
 
@@ -249,16 +252,18 @@ export const badgesCommand: Command = {
             badgeId: badge_id,
           },
         },
-      }).catch((err: unknown) => {
-        const prisma_error = err as { code?: unknown }
-        if (prisma_error.code === 'P2025') return null
-        throw err
+      }).catch((err) => {
+        if (err.code !== 'P2025') {
+          throw err
+        }
       })
 
-      await interaction.reply({ content: `${EMOJIS.SUCCESS} Badge **${badge.name}** removida de **${target.username}**.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, {
+        content: `${EMOJIS.SUCCESS} Badge **${badge.name}** removida de **${target.username}**.`,
+      })
       return
     }
 
-    await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+    await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Subcomando inválido.` })
   },
 }

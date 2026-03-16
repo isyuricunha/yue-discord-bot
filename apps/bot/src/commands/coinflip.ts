@@ -17,6 +17,7 @@ import type { Command } from './index'
 import { coinflipService, type coin_side } from '../services/coinflip.service'
 import { luazinhaEconomyService } from '../services/luazinhaEconomy.service'
 import { format_bigint } from '../utils/bigint'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../utils/interaction'
 
 function parse_amount(input: string): bigint | null {
   const trimmed = input.trim()
@@ -136,13 +137,13 @@ export const coinflipCommand: Command = {
             '- Se alguém parece “ganhar sempre”, geralmente é só variância: em amostras pequenas, sequências improváveis acontecem.'
         )
 
-      await interaction.reply({ embeds: [embed], ephemeral: true })
+      await safe_reply_ephemeral(interaction, { embeds: [embed] })
       return
     }
 
     if (sub === 'bet') {
       if (!interaction.guildId || !interaction.channelId) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Use este comando em um servidor.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use este comando em um servidor.` })
         return
       }
 
@@ -151,18 +152,18 @@ export const coinflipCommand: Command = {
       const side = interaction.options.getString('lado', true) as coin_side
 
       if (opponent.bot) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Você não pode apostar contra bots.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Você não pode apostar contra bots.` })
         return
       }
 
       if (opponent.id === interaction.user.id) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Você não pode apostar contra si mesmo.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Você não pode apostar contra si mesmo.` })
         return
       }
 
       const amount = parse_amount(raw_amount)
       if (!amount) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Quantia inválida.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Quantia inválida.` })
         return
       }
 
@@ -228,7 +229,7 @@ export const coinflipCommand: Command = {
     if (sub === 'stats') {
       const user = interaction.options.getUser('usuario') ?? interaction.user
 
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const played = await prisma.coinflipGame.count({
         where: {
@@ -278,6 +279,6 @@ export const coinflipCommand: Command = {
       return
     }
 
-    await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+    await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Subcomando inválido.` })
   },
 }
