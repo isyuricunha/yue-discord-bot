@@ -1,6 +1,7 @@
 import {
   ActionRowBuilder,
   ButtonBuilder,
+  ButtonInteraction,
   ButtonStyle,
   ChannelType,
   EmbedBuilder,
@@ -8,14 +9,15 @@ import {
   PermissionFlagsBits,
   TextInputBuilder,
   TextInputStyle,
-} from 'discord.js'
-import type { ButtonInteraction, Guild, GuildTextBasedChannel, ModalSubmitInteraction } from 'discord.js'
+} from "discord.js";
+import type { Guild, GuildTextBasedChannel, ModalSubmitInteraction } from 'discord.js'
 
 import { prisma } from '@yuebot/database'
 import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import { logger } from '../utils/logger'
-import { safe_error_details } from '../utils/safe_error'
+import { safe_error_details } from "../utils/safe_error";
+import { safe_defer_ephemeral, safe_reply_ephemeral, safe_reply_or_edit_ephemeral } from "../utils/interaction";
 
 type ticket_config = {
   enabled: boolean
@@ -169,11 +171,11 @@ class TicketService {
 
   async handle_open(interaction: ButtonInteraction): Promise<void> {
     if (!interaction.guild) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use isso em um servidor.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use isso em um servidor.` })
       return
     }
 
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     const config = await this.get_config(interaction.guild.id)
     if (!config.enabled) {
@@ -294,7 +296,7 @@ class TicketService {
 
   async handle_close_button(interaction: ButtonInteraction): Promise<void> {
     if (!interaction.guild) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use isso em um servidor.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use isso em um servidor.` })
       return
     }
 
@@ -309,17 +311,17 @@ class TicketService {
     })
 
     if (!ticket || ticket.guildId !== interaction.guild.id) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Ticket não encontrado.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Ticket não encontrado.` })
       return
     }
 
     if (interaction.channelId !== ticket.channelId) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Este botão só pode ser usado no canal do ticket.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Este botão só pode ser usado no canal do ticket.` })
       return
     }
 
     if (ticket.status !== 'open') {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Este ticket já está fechado.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Este ticket já está fechado.` })
       return
     }
 
@@ -331,7 +333,7 @@ class TicketService {
     const is_admin = Boolean(member?.permissions.has(PermissionFlagsBits.Administrator))
 
     if (!is_owner && !is_support && !is_admin) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Você não tem permissão para fechar este ticket.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Você não tem permissão para fechar este ticket.` })
       return
     }
 
@@ -354,7 +356,7 @@ class TicketService {
 
   async handle_close_modal(interaction: ModalSubmitInteraction): Promise<void> {
     if (!interaction.guild) {
-      await interaction.reply({ content: `${EMOJIS.ERROR} Use isso em um servidor.`, ephemeral: true })
+      await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use isso em um servidor.` })
       return
     }
 
@@ -363,7 +365,7 @@ class TicketService {
 
     const ticket_id = interaction.customId.slice(prefix.length)
 
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     const ticket = await prisma.ticket.findUnique({
       where: { id: ticket_id },
@@ -371,12 +373,17 @@ class TicketService {
     })
 
     if (!ticket || ticket.guildId !== interaction.guild.id) {
-      await interaction.editReply({ content: `${EMOJIS.ERROR} Ticket não encontrado.` })
+      await safe_reply_or_edit_ephemeral(interaction, { content: `${EMOJIS.ERROR} Ticket não encontrado.` })
+      return
+    }
+
+    if (interaction.channelId !== ticket.channelId) {
+      await safe_reply_or_edit_ephemeral(interaction, { content: `${EMOJIS.ERROR} Este modal só pode ser usado no canal do ticket.` })
       return
     }
 
     if (ticket.status !== 'open') {
-      await interaction.editReply({ content: `${EMOJIS.ERROR} Este ticket já está fechado.` })
+      await safe_reply_or_edit_ephemeral(interaction, { content: `${EMOJIS.ERROR} Este ticket já está fechado.` })
       return
     }
 
@@ -388,7 +395,7 @@ class TicketService {
     const is_admin = Boolean(member?.permissions.has(PermissionFlagsBits.Administrator))
 
     if (!is_owner && !is_support && !is_admin) {
-      await interaction.editReply({ content: `${EMOJIS.ERROR} Você não tem permissão para fechar este ticket.` })
+      await safe_reply_or_edit_ephemeral(interaction, { content: `${EMOJIS.ERROR} Você não tem permissão para fechar este ticket.` })
       return
     }
 
