@@ -5,6 +5,7 @@ import { COLORS, EMOJIS } from '@yuebot/shared';
 import type { Command } from '../index';
 import { aniListService } from '../../services/anilist.service';
 import { logger } from '../../utils/logger';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 
 function shuffle_array<T>(array: T[]): T[] {
   const newArr = [...array];
@@ -86,7 +87,7 @@ export const triviaCommand: Command = {
 
       collector.on('collect', async (btnInteraction: ButtonInteraction) => {
         if (btnInteraction.user.id !== userId) {
-           await btnInteraction.reply({ content: 'Você não iniciou esta partida de Trivia!', ephemeral: true });
+           await safe_reply_ephemeral(btnInteraction, { content: 'Você não iniciou esta partida de Trivia!' });
            return;
         }
 

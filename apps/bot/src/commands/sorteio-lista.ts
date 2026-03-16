@@ -10,6 +10,7 @@ import {
 import { prisma } from '@yuebot/database'
 import { getSendableChannel } from '../utils/discord'
 import { generate_public_id, parseDurationMs, parse_giveaway_items_input } from '@yuebot/shared'
+import { safe_defer_ephemeral } from '../utils/interaction'
 
 export const data = new SlashCommandBuilder()
   .setName('sorteio-lista')
@@ -81,7 +82,7 @@ function parseDuration(duration: string): number {
 }
 
 export async function execute(interaction: ChatInputCommandInteraction) {
-  await interaction.deferReply({ ephemeral: true })
+  await safe_defer_ephemeral(interaction)
   
   const title = interaction.options.getString('titulo', true)
   const description = interaction.options.getString('descricao', true)
