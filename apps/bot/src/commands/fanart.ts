@@ -4,6 +4,7 @@ import type { Attachment, ChatInputCommandInteraction } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { COLORS, EMOJIS } from '@yuebot/shared'
 import { CONFIG } from '../config'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../utils/interaction'
 
 function is_fanart_reviewer(user_id: string): boolean {
   return CONFIG.admin.fanArtReviewerUserIds.includes(user_id)
@@ -99,7 +100,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   const sub = interaction.options.getSubcommand()
 
   if (sub === 'submit') {
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     const attachment = get_required_attachment(interaction)
     const title = interaction.options.getString('titulo')
@@ -152,7 +153,7 @@ export async function execute(interaction: ChatInputCommandInteraction) {
   }
 
   if (sub === 'review') {
-    await interaction.deferReply({ ephemeral: true })
+    await safe_defer_ephemeral(interaction)
 
     if (!is_fanart_reviewer(interaction.user.id)) {
       await interaction.editReply({ content: `${EMOJIS.ERROR} Você não tem permissão para revisar fan arts.` })
@@ -189,5 +190,5 @@ export async function execute(interaction: ChatInputCommandInteraction) {
     return
   }
 
-  await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+  await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Subcomando inválido.` })
 }

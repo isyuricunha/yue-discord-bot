@@ -5,6 +5,7 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import type { Command } from './index'
 import { inventoryService } from '../services/inventory.service'
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../utils/interaction'
 
 function normalize_hex_color(input: string): string | null {
   const trimmed = input.trim()
@@ -75,7 +76,7 @@ export const inventarioCommand: Command = {
     const sub = interaction.options.getSubcommand()
 
     if (sub === 'listar') {
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const rows = await inventoryService.list({ userId: interaction.user.id, guildId: interaction.guildId ?? null })
       if (rows.length === 0) {
@@ -106,11 +107,11 @@ export const inventarioCommand: Command = {
 
     if (sub === 'usar') {
       if (!interaction.guildId) {
-        await interaction.reply({ content: `${EMOJIS.ERROR} Use isso em um servidor.`, ephemeral: true })
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Use isso em um servidor.` })
         return
       }
 
-      await interaction.deferReply({ ephemeral: true })
+      await safe_defer_ephemeral(interaction)
 
       const item_id = interaction.options.getString('item_id', true).trim()
 
@@ -259,6 +260,6 @@ export const inventarioCommand: Command = {
       return
     }
 
-    await interaction.reply({ content: `${EMOJIS.ERROR} Subcomando inválido.`, ephemeral: true })
+    await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} Subcomando inválido.` })
   },
 }
