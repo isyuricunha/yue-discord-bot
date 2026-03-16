@@ -3,6 +3,7 @@ import { prisma } from '@yuebot/database';
 import { logger } from '../../utils/logger';
 import { COLORS, EMOJIS } from '@yuebot/shared';
 import { moderationLogService } from '../../services/moderationLog.service';
+import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction';
 import type { Command } from '../index';
 
 export const unwarnCommand: Command = {
@@ -28,9 +29,8 @@ export const unwarnCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild || !interaction.member) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -39,7 +39,7 @@ export const unwarnCommand: Command = {
     const quantity = interaction.options.getInteger('quantidade');
 
     try {
-      await interaction.deferReply({ ephemeral: true });
+      await safe_defer_ephemeral(interaction);
 
       // Buscar membro no banco
       const member = await prisma.guildMember.findUnique({
