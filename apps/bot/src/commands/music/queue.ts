@@ -31,7 +31,10 @@ export async function reply_with_queue_embed(interaction: ChatInputCommandIntera
 
   const embed = new EmbedBuilder()
     .setColor('#ff6a00')
-    .setAuthor({ name: 'Fila de Músicas da Yue', iconURL: authorAvatar })
+    .setAuthor({
+      name: 'Fila de Músicas da Yue',
+      ...(authorAvatar ? { iconURL: authorAvatar } : null),
+    })
     .setDescription(
       `**Tocando agora:**\n[${currentTrack.title}](${currentTrack.uri}) \`[${formatTime(currentTrack.length)}]\` ${isPaused ? '⏸️' : '▶️'}\nPedida por: <@${(currentTrack.requester as { id: string })?.id}>`
     );
