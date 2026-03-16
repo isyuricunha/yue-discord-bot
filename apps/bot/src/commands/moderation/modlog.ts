@@ -3,6 +3,7 @@ import type { ChatInputCommandInteraction } from 'discord.js';
 import { prisma } from '@yuebot/database';
 import { logger } from '../../utils/logger';
 import { COLORS, EMOJIS } from '@yuebot/shared';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 import type { Command } from '../index';
 
 export const modlogCommand: Command = {
@@ -40,9 +41,8 @@ export const modlogCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -76,9 +76,8 @@ export const modlogCommand: Command = {
       });
 
       if (logs.length === 0) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.INFO} Nenhum registro encontrado para ${targetUser.tag}.`,
-          ephemeral: true,
         });
         return;
       }
@@ -137,9 +136,8 @@ export const modlogCommand: Command = {
       logger.info(`ModLog consultado por ${interaction.user.tag} para ${targetUser.tag}`);
     } catch (error) {
       logger.error({ error }, 'Erro ao buscar modlog');
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Erro ao buscar histórico de moderação.`,
-        ephemeral: true,
       });
     }
   },
