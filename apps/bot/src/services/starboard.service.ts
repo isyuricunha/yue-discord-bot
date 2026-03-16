@@ -72,7 +72,7 @@ function build_starboard_embed(source: Message, stars: number) {
   const embed = new EmbedBuilder()
     .setColor(COLORS.INFO)
     .setAuthor({
-      name: source.author?.tag ?? source.author?.username ?? 'Unknown',
+      name: source.author?.tag ?? source.author?.username ?? 'Desconhecido',
       iconURL: source.author?.displayAvatarURL?.() ?? undefined,
     })
     .setDescription(source.content?.trim() ? source.content.slice(0, 3900) : '')

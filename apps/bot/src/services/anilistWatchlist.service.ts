@@ -12,7 +12,7 @@ type base_media = {
 }
 
 function pick_title(input: { title: { english: string | null; romaji: string | null; native: string | null } }): string {
-  return input.title.english ?? input.title.romaji ?? input.title.native ?? 'Unknown'
+  return input.title.english ?? input.title.romaji ?? input.title.native ?? 'Desconhecido'
 }
 
 function extract_media(input: anilist_anime | anilist_manga): base_media {

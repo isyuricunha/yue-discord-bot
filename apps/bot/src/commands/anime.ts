@@ -11,7 +11,7 @@ import { anilistWatchlistService } from '../services/anilistWatchlist.service'
 type anilist_media = anilist_anime | anilist_manga
 
 function pick_title(title: anilist_media['title']): string {
-  return title.english ?? title.romaji ?? title.native ?? 'Unknown'
+  return title.english ?? title.romaji ?? title.native ?? 'Desconhecido'
 }
 
 function strip_html(input: string): string {
