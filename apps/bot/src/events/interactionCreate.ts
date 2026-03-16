@@ -3,6 +3,7 @@ import { logger } from '../utils/logger';
 import { EMOJIS } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
 import { prisma } from '@yuebot/database'
+import { musicService } from '../services/music.service'
 
 type command_type = 'slash' | 'context'
 
@@ -177,6 +178,101 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
   // Handle buttons
   if (interaction.isButton()) {
+    if (interaction.customId.startsWith('music:')) {
+      if (!interaction.guildId) return
+      if (!musicService) return
+
+      const member = interaction.guild?.members.cache.get(interaction.user.id) ?? null
+      const voice_channel_id = member?.voice?.channelId ?? null
+      if (!voice_channel_id) {
+        await interaction.reply({
+          content: `${EMOJIS.ERROR} Você precisa estar em um canal de voz.`,
+          ephemeral: true,
+        }).catch(() => null)
+        return
+      }
+
+      const player = musicService.kazagumo.players.get(interaction.guildId)
+      if (!player) {
+        await interaction.reply({
+          content: `${EMOJIS.ERROR} Não há nenhuma música tocando no momento.`,
+          ephemeral: true,
+        }).catch(() => null)
+        return
+      }
+
+      if (player.voiceId !== voice_channel_id) {
+        await interaction.reply({
+          content: `${EMOJIS.ERROR} Tente entrar no meu canal (\`<#${player.voiceId}>\`)!`,
+          ephemeral: true,
+        }).catch(() => null)
+        return
+      }
+
+      if (player.textId !== interaction.channelId) {
+        player.setTextChannel(interaction.channelId)
+      }
+
+      try {
+        if (!interaction.deferred && !interaction.replied) {
+          await interaction.deferReply({ ephemeral: true })
+        }
+
+        if (interaction.customId === 'music:toggle_pause') {
+          const next = !player.paused
+          player.pause(next)
+          await interaction.editReply({
+            content: next ? `${EMOJIS.SUCCESS} Pausado.` : `${EMOJIS.SUCCESS} Retomado.`,
+          })
+          return
+        }
+
+        if (interaction.customId === 'music:skip') {
+          const current = player.queue.current
+          player.skip()
+          await interaction.editReply({
+            content: `${EMOJIS.SUCCESS} Pulando **${current?.title ?? 'música'}**...`,
+          })
+          return
+        }
+
+        if (interaction.customId === 'music:stop') {
+          player.destroy()
+          await interaction.editReply({
+            content: `${EMOJIS.SUCCESS} Player parado e fila limpa.`,
+          })
+          return
+        }
+
+        if (interaction.customId === 'music:loop') {
+          player.setLoop()
+          const mode = player.loop
+          const label = mode === 'track' ? 'track' : mode === 'queue' ? 'queue' : 'off'
+          await interaction.editReply({
+            content: `${EMOJIS.SUCCESS} Loop: **${label}**.`,
+          })
+          return
+        }
+
+        await interaction.editReply({
+          content: `${EMOJIS.ERROR} Ação desconhecida.`,
+        })
+      } catch (error) {
+        logger.error({ err: safe_error_details(error), action: interaction.customId }, 'Erro ao executar ação de música')
+        try {
+          if (interaction.deferred || interaction.replied) {
+            await interaction.editReply({ content: `${EMOJIS.ERROR} Ocorreu um erro ao executar a ação.` })
+          } else {
+            await interaction.reply({ content: `${EMOJIS.ERROR} Ocorreu um erro ao executar a ação.`, ephemeral: true })
+          }
+        } catch {
+          return
+        }
+      }
+
+      return
+    }
+
     if (interaction.customId === 'giveaway_participate') {
       const { handleGiveawayParticipate } = await import('../handlers/giveawayHandlers');
       await handleGiveawayParticipate(interaction);

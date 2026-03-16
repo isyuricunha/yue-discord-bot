@@ -1,6 +1,6 @@
 import { Kazagumo, Plugins } from 'kazagumo';
 import { Connectors } from 'shoukaku';
-import { Client } from 'discord.js';
+import { Client, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
 import { logger } from '../utils/logger';
 import { getSendableChannel } from '../utils/discord';
@@ -110,7 +110,30 @@ export class MusicService {
         const sendable = getSendableChannel(channel);
         if (!sendable) return;
 
-        await sendable.send({ content, allowedMentions: { parse: [] } });
+        const controls = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setCustomId('music:toggle_pause')
+            .setStyle(ButtonStyle.Secondary)
+            .setLabel('Pause/Resume'),
+          new ButtonBuilder()
+            .setCustomId('music:skip')
+            .setStyle(ButtonStyle.Primary)
+            .setLabel('Skip'),
+          new ButtonBuilder()
+            .setCustomId('music:stop')
+            .setStyle(ButtonStyle.Danger)
+            .setLabel('Stop'),
+          new ButtonBuilder()
+            .setCustomId('music:loop')
+            .setStyle(ButtonStyle.Secondary)
+            .setLabel('Loop')
+        );
+
+        await sendable.send({
+          content,
+          allowedMentions: { parse: [] },
+          components: [controls],
+        });
       } catch (error) {
         logger.warn({ err: error, guild_id: player.guildId, channel_id: text_channel_id }, 'Falha ao anunciar tocando agora');
       }
