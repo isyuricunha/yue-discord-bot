@@ -4,6 +4,7 @@ import { prisma } from '@yuebot/database';
 import { logger } from '../../utils/logger';
 import { COLORS, EMOJIS } from '@yuebot/shared';
 import { moderationLogService } from '../../services/moderationLog.service';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 import type { Command } from '../index';
 
 export const kickCommand: Command = {
@@ -28,9 +29,8 @@ export const kickCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild || !interaction.member) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -39,17 +39,15 @@ export const kickCommand: Command = {
     const reason = interaction.options.get('razao')?.value as string | undefined;
 
     if (targetUser.id === interaction.user.id) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você não pode expulsar a si mesmo!`,
-        ephemeral: true,
       });
       return;
     }
 
     if (targetUser.id === interaction.client.user?.id) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você não pode me expulsar!`,
-        ephemeral: true,
       });
       return;
     }
@@ -58,9 +56,8 @@ export const kickCommand: Command = {
       const targetMember = await interaction.guild.members.fetch(targetUser.id);
 
       if (!targetMember) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Usuário não encontrado no servidor!`,
-          ephemeral: true,
         });
         return;
       }
@@ -70,9 +67,8 @@ export const kickCommand: Command = {
       const targetPosition = targetMember.roles.highest.position;
 
       if (targetPosition >= memberPosition) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.ERROR} Você não pode expulsar este usuário pois ele tem uma role igual ou superior à sua!`,
-          ephemeral: true,
         });
         return;
       }
@@ -153,9 +149,8 @@ export const kickCommand: Command = {
       );
     } catch (error) {
       logger.error({ error }, 'Erro ao expulsar usuário');
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Erro ao expulsar o usuário. Verifique se tenho permissões suficientes.`,
-        ephemeral: true,
       });
     }
   },
