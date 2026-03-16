@@ -3,6 +3,7 @@ import type { ChatInputCommandInteraction } from 'discord.js';
 import { prisma } from '@yuebot/database';
 import { COLORS, EMOJIS } from '@yuebot/shared';
 import type { Command } from '../index';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 
 export const prestigeCommand: Command = {
   data: new SlashCommandBuilder()
@@ -13,9 +14,8 @@ export const prestigeCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -33,9 +33,8 @@ export const prestigeCommand: Command = {
     });
 
     if (!entry || entry.level < PRESTIGE_COST_LEVEL) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Você precisa estar no mínimo no nível **${PRESTIGE_COST_LEVEL}** para usar o Prestígio. (Nível Atual: **${entry?.level ?? 0}**)`,
-        ephemeral: true,
       });
       return;
     }
@@ -60,9 +59,8 @@ export const prestigeCommand: Command = {
 
       await interaction.reply({ embeds: [embed] });
     } catch (error) {
-       await interaction.reply({
+       await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Ocorreu um erro ao realizar seu prestígio! Tente novamente.`,
-        ephemeral: true,
       });
     }
   },

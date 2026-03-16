@@ -3,6 +3,7 @@ import type { ChatInputCommandInteraction } from 'discord.js';
 import { prisma } from '@yuebot/database';
 import { COLORS, EMOJIS } from '@yuebot/shared';
 import type { Command } from '../index';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 
 function format_line(position: number, username: string, level: number, xp: number) {
   return `**#${position}** ${username} — Nível **${level}** (${xp} XP)`;
@@ -35,9 +36,8 @@ export const leaderboardCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
@@ -52,9 +52,8 @@ export const leaderboardCommand: Command = {
       });
 
       if (rows.length === 0) {
-        await interaction.reply({
+        await safe_reply_ephemeral(interaction, {
           content: `${EMOJIS.INFO} Ainda não há dados de XP global.`,
-          ephemeral: true,
         });
         return;
       }
@@ -79,9 +78,8 @@ export const leaderboardCommand: Command = {
     });
 
     if (rows.length === 0) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.INFO} Ainda não há dados de XP neste servidor.`,
-        ephemeral: true,
       });
       return;
     }

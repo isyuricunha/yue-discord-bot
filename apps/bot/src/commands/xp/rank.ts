@@ -3,6 +3,7 @@ import type { ChatInputCommandInteraction } from 'discord.js';
 import { prisma } from '@yuebot/database';
 import { COLORS, EMOJIS } from '@yuebot/shared';
 import type { Command } from '../index';
+import { safe_reply_ephemeral } from '../../utils/interaction';
 
 function level_from_xp(xp: number) {
   return Math.floor(xp / 1000);
@@ -38,9 +39,8 @@ export const rankCommand: Command = {
 
   async execute(interaction: ChatInputCommandInteraction) {
     if (!interaction.guild) {
-      await interaction.reply({
+      await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Este comando só pode ser usado em servidores!`,
-        ephemeral: true,
       });
       return;
     }
