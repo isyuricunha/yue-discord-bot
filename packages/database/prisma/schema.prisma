@@ -21,6 +21,7 @@ model Guild {
   autoroleRoles               GuildAutoroleRole[]
   commandOverrides            GuildCommandOverride[]
   config                      GuildConfig?
+  djConfig                    GuildDjConfig?
   levelRoleRewards            GuildLevelRoleReward[]
   members                     GuildMember[]
   xpConfig                    GuildXpConfig?
@@ -44,6 +45,21 @@ model Guild {
   customCommands              CustomCommand[]
 
   @@map("guilds")
+}
+
+model GuildDjConfig {
+  id                String   @id @default(cuid())
+  guildId            String   @unique
+  enabled            Boolean  @default(false)
+  voiceChannelId     String?
+  textChannelId      String?
+  playlistUrl        String?
+  defaultPlaylistUrl String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  guild              Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@map("guild_dj_configs")
 }
 
 model GuildConfig {
