@@ -35,6 +35,7 @@ function is_internal_api_authorized(req: http.IncomingMessage, options: internal
 
 type send_message_body = {
   content: string;
+  imageUrl?: string | null;
 };
 
 type ticket_panel_publish_body = {
@@ -745,6 +746,9 @@ export function start_internal_api(client: Client, options: internal_api_options
               ? (body as send_message_body).content
               : '';
 
+          const image_url_raw = body ? (body as send_message_body).imageUrl : null;
+          const imageUrl = typeof image_url_raw === 'string' ? image_url_raw.trim() : null;
+
           if (!content.trim()) {
             return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body);
           }
@@ -763,7 +767,31 @@ export function start_internal_api(client: Client, options: internal_api_options
             return send_json(res, 404, { error: 'Channel not found' } satisfies api_error_body);
           }
 
-          const sent = await channel.send({ content, allowedMentions: { parse: [] } });
+          const me = await guild.members.fetchMe().catch(() => null);
+          if (me) {
+            const perms = channel.permissionsFor(me)
+            const needs = imageUrl
+              ? [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages, PermissionFlagsBits.EmbedLinks]
+              : [PermissionFlagsBits.ViewChannel, PermissionFlagsBits.SendMessages]
+            if (!perms?.has(needs)) {
+              return send_json(res, 403, { error: 'Bot lacks permissions' } satisfies api_error_body)
+            }
+          }
+
+          if (imageUrl) {
+            if (imageUrl.length > 2048) {
+              return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
+            }
+            if (!/^https?:\/\//i.test(imageUrl)) {
+              return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
+            }
+          }
+
+          const sent = await channel.send({
+            content,
+            embeds: imageUrl ? [{ image: { url: imageUrl } }] : undefined,
+            allowedMentions: { parse: [] },
+          });
           return send_json(res, 200, { messageId: sent.id });
         }
 

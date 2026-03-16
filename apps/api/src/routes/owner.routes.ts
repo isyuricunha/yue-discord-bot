@@ -19,6 +19,7 @@ import { safe_error_details } from '../utils/safe_error'
 
 type announcement_preview_input = {
   content: string
+  imageUrl?: string
   query?: string
   addedFrom?: string
   addedTo?: string
@@ -204,6 +205,13 @@ function parse_preview_input(body: unknown): announcement_preview_input | null {
   if (!content) return null
   if (content.length > 2000) return null
 
+  const image_url_raw = body.imageUrl
+  const imageUrl = typeof image_url_raw === 'string' ? image_url_raw.trim() : ''
+  if (imageUrl) {
+    if (imageUrl.length > 2048) return null
+    if (!/^https?:\/\//i.test(imageUrl)) return null
+  }
+
   const query = typeof body.query === 'string' ? body.query.trim() : undefined
   const addedFrom = typeof body.addedFrom === 'string' ? body.addedFrom.trim() : undefined
   const addedTo = typeof body.addedTo === 'string' ? body.addedTo.trim() : undefined
@@ -213,6 +221,7 @@ function parse_preview_input(body: unknown): announcement_preview_input | null {
 
   return {
     content,
+    ...(imageUrl ? { imageUrl } : {}),
     ...(query ? { query } : {}),
     ...(addedFrom ? { addedFrom } : {}),
     ...(addedTo ? { addedTo } : {}),
@@ -882,6 +891,7 @@ export async function ownerRoutes(fastify: FastifyInstance) {
         status: 'preview',
         request: {
           content: input.content,
+          imageUrl: input.imageUrl ?? null,
           query: input.query ?? null,
           addedFrom: input.addedFrom ?? null,
           addedTo: input.addedTo ?? null,
@@ -931,10 +941,21 @@ export async function ownerRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 
-    const request_payload = existing.request as { content?: unknown }
+    const request_payload = existing.request as { content?: unknown; imageUrl?: unknown }
     const content = typeof request_payload?.content === 'string' ? request_payload.content : ''
     if (!content.trim() || content.length > 2000) {
       return reply.code(400).send({ error: 'Invalid preview content' })
+    }
+
+    const image_url_raw = request_payload?.imageUrl
+    const imageUrl = typeof image_url_raw === 'string' ? image_url_raw.trim() : ''
+    if (imageUrl) {
+      if (imageUrl.length > 2048) {
+        return reply.code(400).send({ error: 'Invalid preview content' })
+      }
+      if (!/^https?:\/\//i.test(imageUrl)) {
+        return reply.code(400).send({ error: 'Invalid preview content' })
+      }
     }
 
     const preview_payload = existing.preview as {
@@ -982,7 +1003,9 @@ export async function ownerRoutes(fastify: FastifyInstance) {
         if (!t) return
 
         try {
-          const sent = await send_guild_message(t.guildId, t.channelId, content, request.log)
+          const sent = await send_guild_message(t.guildId, t.channelId, content, request.log, {
+            imageUrl: imageUrl || null,
+          })
           results.push({
             guildId: t.guildId,
             guildName: t.guildName,

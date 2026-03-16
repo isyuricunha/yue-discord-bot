@@ -81,6 +81,7 @@ export default function OwnerPage() {
   const has_initialized_presence = useRef(false)
 
   const [announcement_content, set_announcement_content] = useState('')
+  const [announcement_image_url, set_announcement_image_url] = useState('')
   const [announcement_preview_id, set_announcement_preview_id] = useState<string | null>(null)
   const [announcement_preview, set_announcement_preview] = useState<any>(null)
   const [announcement_confirm, set_announcement_confirm] = useState('')
@@ -248,6 +249,7 @@ export default function OwnerPage() {
     mutationFn: async () => {
       const payload = {
         content: announcement_content.trim(),
+        imageUrl: announcement_image_url.trim() || undefined,
         query: query || undefined,
         addedFrom: added_from || undefined,
         addedTo: added_to || undefined,
@@ -577,6 +579,12 @@ export default function OwnerPage() {
             value={announcement_content}
             onChange={(e) => set_announcement_content(e.target.value)}
             placeholder="Escreva o anúncio (máx 2000 caracteres)."
+          />
+
+          <Input
+            value={announcement_image_url}
+            onChange={(e) => set_announcement_image_url(e.target.value)}
+            placeholder="URL da imagem (opcional)"
           />
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">

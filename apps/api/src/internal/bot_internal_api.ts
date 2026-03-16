@@ -44,6 +44,10 @@ type send_message_response = {
   messageId: string;
 };
 
+type send_guild_message_options = {
+  imageUrl?: string | null
+}
+
 type ticket_panel_publish_body = {
   moderatorId: string
   channelId: string
@@ -420,12 +424,16 @@ export async function send_guild_message(
   guild_id: string,
   channel_id: string,
   content: string,
-  log: FastifyBaseLogger
+  log: FastifyBaseLogger,
+  options?: send_guild_message_options
 ) {
   const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/channels/${channel_id}/messages`;
   return (await fetch_json_with_timeout_ms(url, log, 20_000, {
     method: 'POST',
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({
+      content,
+      imageUrl: options?.imageUrl ?? null,
+    }),
   })) as send_message_response;
 }
 
