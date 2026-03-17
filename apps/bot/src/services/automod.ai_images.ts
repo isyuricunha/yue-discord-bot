@@ -2,6 +2,8 @@ type image_attachment_like = {
   url: string | null
   contentType: string | null
   name: string | null
+  width?: number | null
+  height?: number | null
 }
 
 type embed_like = {
@@ -15,6 +17,7 @@ type extract_input = {
 }
 
 const image_exts = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp'])
+const image_formats = new Set(['png', 'jpg', 'jpeg', 'gif', 'webp', 'bmp'])
 
 function normalize_image_url(value: string): string | null {
   const trimmed = value.trim()
@@ -33,17 +36,40 @@ function normalize_image_url(value: string): string | null {
   }
 }
 
+function is_likely_image_url(value: string): boolean {
+  const normalized = normalize_image_url(value)
+  if (!normalized) return false
+
+  try {
+    const url = new URL(normalized)
+    const pathname = url.pathname.toLowerCase()
+
+    for (const ext of image_exts) {
+      if (pathname.endsWith(ext)) return true
+    }
+
+    const format = url.searchParams.get('format')
+    if (format && image_formats.has(format.toLowerCase())) return true
+    return false
+  } catch {
+    return false
+  }
+}
+
 function is_image_attachment(att: image_attachment_like) {
   if (typeof att.contentType === 'string' && att.contentType.startsWith('image/')) return true
+
+  if (typeof att.width === 'number' && typeof att.height === 'number' && att.width > 0 && att.height > 0) {
+    return true
+  }
+
   const name = typeof att.name === 'string' ? att.name.toLowerCase() : ''
   for (const ext of image_exts) {
     if (name.endsWith(ext)) return true
   }
-  const url = typeof att.url === 'string' ? att.url.toLowerCase() : ''
-  for (const ext of image_exts) {
-    if (url.includes(ext)) return true
-  }
-  return false
+
+  const url = typeof att.url === 'string' ? att.url : ''
+  return Boolean(url) && is_likely_image_url(url)
 }
 
 export function extract_ai_moderation_image_urls(input: extract_input): string[] {

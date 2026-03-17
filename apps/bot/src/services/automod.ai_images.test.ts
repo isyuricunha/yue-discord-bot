@@ -25,6 +25,28 @@ test('extract_ai_moderation_image_urls: includes image attachments by filename w
   assert.deepEqual(urls, ['https://cdn.discordapp.com/a'])
 })
 
+test('extract_ai_moderation_image_urls: includes discord cdn urls by format query', () => {
+  const urls = extract_ai_moderation_image_urls({
+    attachments: [
+      { url: 'https://cdn.discordapp.com/attachments/1/2/3?ex=1&is=1&hm=1&format=webp', contentType: null, name: null },
+    ],
+    embeds: [],
+  })
+
+  assert.deepEqual(urls, ['https://cdn.discordapp.com/attachments/1/2/3?ex=1&is=1&hm=1&format=webp'])
+})
+
+test('extract_ai_moderation_image_urls: includes attachments by width/height when metadata missing', () => {
+  const urls = extract_ai_moderation_image_urls({
+    attachments: [
+      { url: 'https://cdn.discordapp.com/attachments/1/2/3', contentType: null, name: null, width: 600, height: 400 },
+    ],
+    embeds: [],
+  })
+
+  assert.deepEqual(urls, ['https://cdn.discordapp.com/attachments/1/2/3'])
+})
+
 test('extract_ai_moderation_image_urls: includes embed image url', () => {
   const urls = extract_ai_moderation_image_urls({
     attachments: [],
