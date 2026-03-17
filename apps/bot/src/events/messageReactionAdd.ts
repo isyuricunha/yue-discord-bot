@@ -3,6 +3,28 @@ import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
 
+function is_expected_reaction_fetch_error(error: unknown): boolean {
+  if (!error || typeof error !== 'object') return false
+
+  const any_error = error as { status?: unknown; code?: unknown; message?: unknown; name?: unknown }
+  const status = typeof any_error.status === 'number' ? any_error.status : null
+  const code = typeof any_error.code === 'number' ? any_error.code : null
+  const name = typeof any_error.name === 'string' ? any_error.name : ''
+  const message = typeof any_error.message === 'string' ? any_error.message : ''
+
+  // DiscordAPIError[50001]: Missing Access (commonly when bot lost permission or channel/message is no longer accessible)
+  if (status === 403 && (code === 50001 || name.includes('50001') || message.toLowerCase().includes('missing access'))) {
+    return true
+  }
+
+  // DiscordAPIError[10008]: Unknown Message (reaction partial fetch can fail if message was deleted)
+  if (status === 404 && (code === 10008 || name.includes('10008') || message.toLowerCase().includes('unknown message'))) {
+    return true
+  }
+
+  return false
+}
+
 export async function execute(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
   // Ignorar bots
   if (user.bot) return
@@ -12,6 +34,7 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
     try {
       await reaction.fetch()
     } catch (error) {
+      if (is_expected_reaction_fetch_error(error)) return
       logger.warn({ err: safe_error_details(error) }, 'Erro ao buscar reaction')
       return
     }
@@ -21,6 +44,7 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
     try {
       await user.fetch()
     } catch (error) {
+      if (is_expected_reaction_fetch_error(error)) return
       logger.warn({ err: safe_error_details(error) }, 'Erro ao buscar user')
       return
     }
