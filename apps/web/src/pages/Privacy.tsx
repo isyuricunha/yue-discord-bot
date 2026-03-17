@@ -167,7 +167,7 @@ export default function PrivacyPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            Para exercer seus direitos ou esclarecer dúvidas sobre privacidade, entre em contato através do servidor de suporte da Yue no Discord.
+            Para exercer seus direitos ou esclarecer dúvidas sobre privacidade, entre em contato através do servidor de suporte da Yue no Discord. Ou via e-mail em yue@yuricunha.com
           </div>
         </CardContent>
       </Card>
