@@ -16,6 +16,7 @@ import { apply_startup_presence } from "./services/presence.service";
 import { apply_startup_app_description } from "./services/app_description.service";
 import { initMusicService } from "./services/music.service";
 import { initDjModeService, djModeService } from "./services/dj_mode.service";
+import { antiRaidService } from "./services/antiRaid.service";
 import type { Command, ContextMenuCommand } from "./commands";
 import { start_internal_api } from "./internal/api";
 let internal_server: ReturnType<typeof start_internal_api> | null = null;
@@ -142,6 +143,8 @@ client.once("clientReady", async () => {
 
 	initModerationPersistenceService(client);
 	initPunishmentRoleService(client);
+
+	antiRaidService.setClient(client);
 
 	internal_server = start_internal_api(client, {
 		host: CONFIG.internalApi.host,
