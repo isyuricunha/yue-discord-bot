@@ -310,10 +310,11 @@ class XpService {
       }
 
       const config = await prisma.guildXpConfig.findUnique({ where: { guildId: guild_id } });
+      const level_up_enabled = config?.levelUpEnabled ?? true;
       const channel_id = config?.levelUpChannelId;
       const template = config?.levelUpMessage;
 
-      if (channel_id) {
+      if (level_up_enabled && channel_id) {
         const channel = await message.guild.channels.fetch(channel_id).catch(() => null);
         if (channel && channel.isTextBased()) {
           const xp_row = await prisma.guildXpMember.findUnique({

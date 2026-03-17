@@ -1,6 +1,7 @@
 import {
 	AttachmentBuilder,
 	Client,
+	EmbedBuilder,
 	Events,
 	Message,
 	PermissionFlagsBits,
@@ -12,8 +13,10 @@ import { autoroleService } from "../services/autorole.service";
 import { suggestionService } from "../services/suggestion.service";
 import { customCommandService } from "../services/customCommand.service";
 import { xpService } from "../services/xp.service";
+import { afkService } from "../services/afk.service";
 import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
 import { MistralApiError } from "../services/mistral.service";
+import { COLORS, EMOJIS } from "@yuebot/shared";
 
 import { get_llm_client } from "../services/llm_client_singleton";
 import { get_groq_conversation_backend } from "../services/groq_conversation_backend_factory";
@@ -84,6 +87,90 @@ function start_typing_indicator(channel: Message["channel"]): () => void {
 export async function handleMessageCreate(message: Message) {
 	// Ignorar mensagens de bots e DMs
 	if (message.author.bot || !message.guild) return;
+
+	const userId = message.author.id;
+	const guildId = message.guild.id;
+
+	// Verificar e remover AFK quando o usuário enviar uma mensagem
+	try {
+		const existingAfk = await afkService.getAfk(userId, guildId);
+		if (existingAfk && existingAfk.isAfk) {
+			const startedAtTimestamp = Math.floor(new Date(existingAfk.startedAt).getTime() / 1000);
+			const durationMs = Date.now() - new Date(existingAfk.startedAt).getTime();
+			const hours = Math.floor(durationMs / (1000 * 60 * 60));
+			const minutes = Math.floor((durationMs % (1000 * 60 * 60)) / (1000 * 60));
+
+			await afkService.removeAfk(userId, guildId);
+
+			const durationText = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`;
+
+			const embed = new EmbedBuilder()
+				.setColor(COLORS.SUCCESS)
+				.setTitle(`${EMOJIS.SUCCESS} Bem-vindo de volta!`)
+				.setDescription(`Você estava AFK desde <t:${startedAtTimestamp}:f>`)
+				.addFields([
+					{
+						name: 'Duração',
+						value: durationText,
+						inline: true,
+					},
+					{
+						name: 'Motivo original',
+						value: existingAfk.reason || 'Sem motivo definido',
+						inline: true,
+					},
+				])
+				.setTimestamp(new Date());
+
+			await message.reply({ embeds: [embed] }).catch(() => null);
+		}
+	} catch (error) {
+		logger.error(
+			{ err: safe_error_details(error) },
+			"AFK check/remove failed on messageCreate"
+		);
+	}
+
+	// Verificar se alguém mencionou um usuário AFK
+	if (message.mentions.users.size > 0) {
+		try {
+			for (const [_, mentionedUser] of message.mentions.users) {
+				if (mentionedUser.id === message.author.id) continue; // Não mostrar para si mesmo
+				if (mentionedUser.bot) continue;
+
+				const mentionedAfk = await afkService.getAfk(mentionedUser.id, guildId);
+				if (mentionedAfk && mentionedAfk.isAfk) {
+					const startedAtTimestamp = Math.floor(new Date(mentionedAfk.startedAt).getTime() / 1000);
+
+					const embed = new EmbedBuilder()
+						.setColor(COLORS.WARNING)
+						.setTitle(`${EMOJIS.WARNING} Usuário AFK`)
+						.setDescription(`<@${mentionedUser.id}> está ausente no momento.`)
+						.addFields([
+							{
+								name: 'Está AFK desde',
+								value: `<t:${startedAtTimestamp}:f>`,
+								inline: true,
+							},
+							{
+								name: 'Motivo',
+								value: mentionedAfk.reason || 'Sem motivo definido',
+								inline: true,
+							},
+						])
+						.setFooter({ text: 'O usuário será notificado quando voltar.' });
+
+					await message.reply({ embeds: [embed] }).catch(() => null);
+					break; // Só mostrar uma vez por mensagem
+				}
+			}
+		} catch (error) {
+			logger.error(
+				{ err: safe_error_details(error) },
+				"AFK mention check failed on messageCreate"
+			);
+		}
+	}
 
 	try {
 		await autoroleService.handle_message(message);

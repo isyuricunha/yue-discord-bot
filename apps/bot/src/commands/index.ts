@@ -42,6 +42,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const { unwarnCommand } = await import('./moderation/unwarn');
   const { modlogCommand } = await import('./moderation/modlog');
   const { baninfoCommand } = await import('./moderation/baninfo');
+  const { antiraidCommand } = await import('./moderation/antiraid');
   
   // Import utility commands
   const { limparCommand } = await import('./utility/limpar');
@@ -58,6 +59,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const { triviaCommand } = await import('./utility/trivia')
   const { dailyCommand } = await import('./utility/daily')
   const { pollCommand } = await import('./utility/poll')
+  const { afkCommand, volteiCommand } = await import('./utility/afk')
   
   // Import giveaway commands
   const giveawayCommand = await import('./giveaway');
@@ -68,6 +70,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const { rankCommand } = await import('./xp/rank');
   const { leaderboardCommand } = await import('./xp/leaderboard');
   const { prestigeCommand } = await import('./xp/prestige');
+  const { levelUpCommand } = await import('./xp/levelup');
 
   // Import profile commands
   const { profileCommand } = await import('./profile/profile');
@@ -124,6 +127,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(unwarnCommand.data.name, unwarnCommand);
   commands.set(modlogCommand.data.name, modlogCommand);
   commands.set(baninfoCommand.data.name, baninfoCommand);
+  commands.set(antiraidCommand.data.name, antiraidCommand);
   commands.set(limparCommand.data.name, limparCommand);
   commands.set(lockCommand.data.name, lockCommand);
   commands.set(unlockCommand.data.name, unlockCommand);
@@ -143,12 +147,15 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(triviaCommand.data.name, triviaCommand)
   commands.set(dailyCommand.data.name, dailyCommand)
   commands.set(pollCommand.data.name, pollCommand)
+  commands.set(afkCommand.data.name, afkCommand)
+  commands.set(volteiCommand.data.name, volteiCommand)
   commands.set(giveawayCommand.data.name, { data: giveawayCommand.data, execute: giveawayCommand.execute });
   commands.set(giveawayListaCommand.data.name, { data: giveawayListaCommand.data, execute: giveawayListaCommand.execute });
   commands.set(giveawayWizardCommand.data.name, { data: giveawayWizardCommand.data, execute: giveawayWizardCommand.execute });
   commands.set(rankCommand.data.name, rankCommand);
   commands.set(leaderboardCommand.data.name, leaderboardCommand);
   commands.set(prestigeCommand.data.name, prestigeCommand);
+  commands.set(levelUpCommand.data.name, levelUpCommand);
   commands.set(profileCommand.data.name, profileCommand);
   commands.set(badgesCommand.data.name, badgesCommand);
   commands.set(fanartCommand.data.name, { data: fanartCommand.data, execute: fanartCommand.execute });

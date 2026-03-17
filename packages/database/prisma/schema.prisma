@@ -16,6 +16,7 @@ model Guild {
   aniListNotificationChannels AniListNotificationChannel[]
   auditLogs                   AuditLog[]
   giveaways                   Giveaway[]
+  antiRaidConfig              GuildAntiRaidConfig?
   autoroleConfig              GuildAutoroleConfig?
   autorolePendings            GuildAutorolePending[]
   autoroleRoles               GuildAutoroleRole[]
@@ -62,6 +63,28 @@ model GuildDjConfig {
   guild              Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@map("guild_dj_configs")
+}
+
+model GuildAntiRaidConfig {
+  id                    String   @id @default(cuid())
+  guildId               String   @unique
+  enabled               Boolean  @default(false)
+  joinThreshold         Int      @default(10)
+  joinTimeWindow        Int      @default(60)
+  action                String   @default("mute")
+  duration              Int      @default(10)
+  exemptRoles           Json     @default("[]")
+  exemptChannels        Json     @default("[]")
+  cooldown              Int      @default(300)
+  notificationChannelId String?
+  raidActive            Boolean  @default(false)
+  lastRaidAt            DateTime?
+  locked                Boolean  @default(false)
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  guild                 Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@map("guild_anti_raid_configs")
 }
 
 model GuildConfig {
@@ -346,6 +369,7 @@ model GuildXpConfig {
   ignoredRoleIds    Json     @default("[]")
   roleXpMultipliers Json     @default("{}")
   rewardMode        String   @default("stack")
+  levelUpEnabled    Boolean  @default(true)
   levelUpChannelId  String?
   levelUpMessage    String?
   voiceXpEnabled    Boolean  @default(false)
@@ -1089,4 +1113,18 @@ model GuildDailyRewardConfig {
   guild           Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@map("guild_daily_reward_configs")
+}
+
+model UserAfk {
+  id        String   @id @default(cuid())
+  userId    String
+  guildId   String
+  reason    String?
+  startedAt DateTime @default(now())
+  isAfk     Boolean  @default(true)
+
+  @@unique([userId, guildId])
+  @@index([guildId])
+  @@index([userId])
+  @@map("user_afks")
 }
