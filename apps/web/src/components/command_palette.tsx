@@ -320,7 +320,7 @@ export function CommandPalette() {
       <button
         onClick={() => setIsOpen(true)}
         className={cn(
-          'fixed bottom-6 right-6 z-50',
+          'fixed bottom-6 left-6 z-50',
           'flex items-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-medium text-black shadow-lg',
           'hover:bg-accent/90 transition-all hover:shadow-xl hover:scale-105',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50'
