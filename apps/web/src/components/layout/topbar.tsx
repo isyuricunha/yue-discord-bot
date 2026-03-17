@@ -1,8 +1,9 @@
 import { useMemo } from 'react'
 import { useLocation, useNavigate, useParams, Link } from 'react-router-dom'
-import { LogOut, ExternalLink, ChevronRight, Home, LayoutDashboard } from 'lucide-react'
+import { LogOut, ExternalLink, ChevronRight, Home, LayoutDashboard, Search } from 'lucide-react'
 
 import { useAuthStore } from '../../store/auth'
+import { useCommandPaletteStore } from '../../store/command_palette'
 import { cn } from '../../lib/cn'
 import { Button } from '../ui'
 
@@ -63,6 +64,7 @@ export function Topbar() {
   const navigate = useNavigate()
   const { guildId } = useParams()
   const { user, logout } = useAuthStore()
+  const { open } = useCommandPaletteStore()
   const breadcrumbs = useBreadcrumbs(guildId, location)
 
   const title = useMemo(() => {
@@ -111,6 +113,14 @@ export function Topbar() {
         </div>
 
         <div className="flex items-center gap-3">
+          <Button variant="outline" size="sm" onClick={open} className="h-10">
+            <Search className="h-4 w-4" />
+            <span className="hidden sm:inline">Buscar</span>
+            <kbd className="hidden rounded bg-surface/60 px-1.5 py-0.5 text-xs font-mono sm:inline">
+              ⌘K
+            </kbd>
+          </Button>
+
           <Button variant="outline" size="sm" onClick={handleExtras} className="h-10">
             <ExternalLink className="h-4 w-4" />
             <span className="hidden sm:inline">Extras</span>

@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { Search, X, CornerDownLeft, LayoutDashboard, Shield, Trophy, FileText, Users, Settings, Sparkles, UserPlus, LifeBuoy, Wand2, Lightbulb, MousePointerClick, Star, TerminalSquare, ClipboardList, BarChart3, Crown, Award, ImageIcon, Coins, Swords, Command } from 'lucide-react'
 import { cn } from '../lib/cn'
 import { useAuthStore } from '../store/auth'
+import { useCommandPaletteStore } from '../store/command_palette'
 
 type command_item = {
   id: string
@@ -16,7 +17,7 @@ type command_item = {
 }
 
 export function CommandPalette() {
-  const [isOpen, setIsOpen] = React.useState(false)
+  const { isOpen, close, toggle } = useCommandPaletteStore()
   const [query, setQuery] = React.useState('')
   const [selectedIndex, setSelectedIndex] = React.useState(0)
   const navigate = useNavigate()
@@ -278,11 +279,11 @@ export function CommandPalette() {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault()
-        setIsOpen((prev) => !prev)
+        toggle()
       }
       if (e.key === 'Escape' && isOpen) {
         e.preventDefault()
-        setIsOpen(false)
+        close()
       }
     }
 
@@ -298,7 +299,7 @@ export function CommandPalette() {
 
   const handleSelect = (command: command_item) => {
     navigate(command.to)
-    setIsOpen(false)
+    close()
     setQuery('')
   }
 
@@ -315,32 +316,13 @@ export function CommandPalette() {
     }
   }
 
-  if (!isOpen) {
-    return (
-      <button
-        onClick={() => setIsOpen(true)}
-        className={cn(
-          'fixed bottom-24 left-6 z-50',
-          'flex items-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-medium text-black shadow-lg',
-          'hover:bg-accent/90 transition-all hover:shadow-xl hover:scale-105',
-          'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50'
-        )}
-        aria-label="Abrir Command Palette (Cmd+K)"
-      >
-        <Search className="h-4 w-4" />
-        <span className="hidden sm:inline">Buscar</span>
-        <kbd className="hidden rounded bg-black/20 px-1.5 py-0.5 text-xs font-mono sm:inline">
-          ⌘K
-        </kbd>
-      </button>
-    )
-  }
+  if (!isOpen) return null
 
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-        onClick={() => setIsOpen(false)}
+        onClick={close}
       />
       <div
         className={cn(
@@ -368,7 +350,7 @@ export function CommandPalette() {
               ESC
             </kbd>
             <button
-              onClick={() => setIsOpen(false)}
+              onClick={close}
               className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground hover:bg-surface/70 hover:text-foreground transition-colors"
               aria-label="Fechar"
             >
