@@ -27,6 +27,7 @@ import GiveawayEntryEditPage from './pages/GiveawayEntryEdit'
 import SettingsPage from './pages/Settings'
 import ModerationPage from './pages/Moderation'
 import AutoModPage from './pages/AutoMod'
+import AntiRaidPage from './pages/AntiRaid'
 import WelcomePage from './pages/Welcome'
 import XpLevelsPage from './pages/XpLevels'
 import AutorolePage from './pages/Autorole'
@@ -148,6 +149,7 @@ function App() {
           <Route path="/guild/:guildId" element={<GuildPage />} />
           <Route path="/guild/:guildId/overview" element={<OverviewPage />} />
           <Route path="/guild/:guildId/automod" element={<AutoModPage />} />
+          <Route path="/guild/:guildId/antiraid" element={<AntiRaidPage />} />
           <Route path="/guild/:guildId/modlogs" element={<ModLogsPage />} />
           <Route path="/guild/:guildId/music" element={<MusicPage />} />
           <Route path="/guild/:guildId/custom-commands" element={<CustomCommandsPage />} />

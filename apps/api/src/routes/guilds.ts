@@ -3,6 +3,7 @@ import { prisma } from '@yuebot/database';
 import {
   autoModConfigSchema,
   guildAnnouncementConfigSchema,
+  guildAntiRaidConfigSchema,
   guildAutomodConfigSchema,
   guildAutoroleConfigSchema,
   guildCommandOverridesUpsertSchema,
@@ -2589,4 +2590,110 @@ export default async function guildRoutes(fastify: FastifyInstance) {
       return reply.code(502).send({ error: public_error_message(fastify, 'Failed to fetch roles', 'Bad gateway') });
     }
   });
+
+  // Buscar configuração de Anti-Raid
+  fastify.get('/:guildId/antiraid-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const config = await prisma.guildAntiRaidConfig.findUnique({
+      where: { guildId },
+    })
+
+    if (!config) {
+      // Return default config
+      return reply.send({
+        success: true,
+        config: {
+          enabled: false,
+          joinThreshold: 10,
+          joinTimeWindow: 60,
+          action: 'mute',
+          duration: 10,
+          exemptRoles: [],
+          exemptChannels: [],
+          cooldown: 300,
+          notificationChannelId: null,
+          raidActive: false,
+          locked: false,
+        },
+      })
+    }
+
+    return reply.send({ success: true, config })
+  })
+
+  // Atualizar configuração de Anti-Raid
+  fastify.put('/:guildId/antiraid-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = guildAntiRaidConfigSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const input = parsed.data
+
+    const updated = await prisma.guildAntiRaidConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
+        ...(input.joinThreshold !== undefined ? { joinThreshold: input.joinThreshold } : {}),
+        ...(input.joinTimeWindow !== undefined ? { joinTimeWindow: input.joinTimeWindow } : {}),
+        ...(input.action !== undefined ? { action: input.action } : {}),
+        ...(input.duration !== undefined ? { duration: input.duration } : {}),
+        ...(input.exemptRoles !== undefined ? { exemptRoles: input.exemptRoles } : {}),
+        ...(input.exemptChannels !== undefined ? { exemptChannels: input.exemptChannels } : {}),
+        ...(input.cooldown !== undefined ? { cooldown: input.cooldown } : {}),
+        ...(input.notificationChannelId !== undefined ? { notificationChannelId: input.notificationChannelId } : {}),
+      },
+      create: {
+        guildId,
+        enabled: input.enabled ?? false,
+        joinThreshold: input.joinThreshold ?? 10,
+        joinTimeWindow: input.joinTimeWindow ?? 60,
+        action: input.action ?? 'mute',
+        duration: input.duration ?? 10,
+        exemptRoles: input.exemptRoles ?? [],
+        exemptChannels: input.exemptChannels ?? [],
+        cooldown: input.cooldown ?? 300,
+        notificationChannelId: input.notificationChannelId ?? null,
+        raidActive: false,
+        locked: false,
+      },
+    })
+
+    return reply.send({ success: true, config: updated })
+  })
 }

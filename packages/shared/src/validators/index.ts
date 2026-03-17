@@ -359,6 +359,18 @@ export const xpResetSchema = z.object({
   userId: z.string().min(1).optional(),
 });
 
+export const guildAntiRaidConfigSchema = z.object({
+  enabled: z.boolean().optional(),
+  joinThreshold: z.number().int().min(3).max(50).optional(),
+  joinTimeWindow: z.number().int().min(10).max(300).optional(),
+  action: z.enum(['mute', 'kick', 'ban']).optional(),
+  duration: z.number().int().min(1).max(60).optional(),
+  exemptRoles: z.array(z.string()).optional(),
+  exemptChannels: z.array(z.string()).optional(),
+  cooldown: z.number().int().min(60).max(3600).optional(),
+  notificationChannelId: z.string().nullable().optional(),
+});
+
 export const globalXpResetSchema = z.object({
   scope: z.enum(['global', 'user']).default('global'),
   userId: z.string().min(1).optional(),
@@ -459,6 +471,7 @@ export type ReactionRolePanelPublishInput = z.infer<typeof reactionRolePanelPubl
 export type StarboardConfigInput = z.infer<typeof starboardConfigSchema>;
 export type XpRoleRewardInput = z.infer<typeof xpRoleRewardSchema>;
 export type XpResetInput = z.infer<typeof xpResetSchema>;
+export type GuildAntiRaidConfigInput = z.infer<typeof guildAntiRaidConfigSchema>;
 export type GlobalXpResetInput = z.infer<typeof globalXpResetSchema>;
 export type PaginationInput = z.infer<typeof paginationSchema>;
 
