@@ -67,11 +67,6 @@ export function Topbar() {
   const { open } = useCommandPaletteStore()
   const breadcrumbs = useBreadcrumbs(guildId, location)
 
-  const title = useMemo(() => {
-    const lastCrumb = breadcrumbs[breadcrumbs.length - 1]
-    return lastCrumb?.label ?? 'Painel'
-  }, [breadcrumbs])
-
   const handleLogout = () => {
     logout()
     navigate('/login')
@@ -83,13 +78,14 @@ export function Topbar() {
 
   return (
     <header className="sticky top-0 z-20 border-b border-border/80 bg-background/75 backdrop-blur-md">
-      <div className="flex items-center justify-between px-5 py-4">
-        <div className="min-w-0 flex-1">
-          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-muted-foreground">
+      <div className="flex h-16 items-center justify-between gap-4 px-5">
+        {/* Left: Breadcrumbs */}
+        <div className="flex min-w-0 flex-1 items-center">
+          <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
             {breadcrumbs.map((crumb, idx) => {
               const isLast = idx === breadcrumbs.length - 1
               return (
-                <div key={crumb.label} className="flex items-center gap-1.5">
+                <div key={crumb.label} className="flex items-center gap-1">
                   {idx > 0 && <ChevronRight className="h-3 w-3" />}
                   {crumb.to && !isLast ? (
                     <Link
@@ -109,40 +105,64 @@ export function Topbar() {
               )
             })}
           </nav>
-          <div className="mt-1 text-sm font-semibold tracking-tight text-foreground">{title}</div>
         </div>
 
-        <div className="flex items-center gap-3">
-          <Button variant="outline" size="sm" onClick={open} className="h-10">
-            <Search className="h-4 w-4" />
-            <span className="hidden sm:inline">Buscar</span>
-            <kbd className="hidden rounded bg-surface/60 px-1.5 py-0.5 text-xs font-mono sm:inline">
-              ⌘K
-            </kbd>
-          </Button>
+        {/* Right: Actions + User */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Action buttons */}
+          <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={open} 
+              className="h-9 gap-1.5 px-2.5 sm:px-3"
+            >
+              <Search className="h-4 w-4" />
+              <span className="hidden lg:inline text-sm">Buscar</span>
+              <kbd className="hidden rounded bg-surface/60 px-1 py-0.5 text-[10px] font-mono lg:inline">
+                ⌘K
+              </kbd>
+            </Button>
 
-          <Button variant="outline" size="sm" onClick={handleExtras} className="h-10">
-            <ExternalLink className="h-4 w-4" />
-            <span className="hidden sm:inline">Extras</span>
-          </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleExtras} 
+              className="h-9 gap-1.5 px-2.5 sm:px-3"
+            >
+              <ExternalLink className="h-4 w-4" />
+              <span className="hidden lg:inline text-sm">Extras</span>
+            </Button>
+          </div>
 
+          {/* Divider */}
+          <div className="hidden h-6 w-px bg-border/60 sm:block" />
+
+          {/* User info */}
           <div className="hidden text-right sm:block">
-            <div className="text-sm text-foreground">{user?.username}</div>
+            <div className="text-sm font-medium leading-tight">{user?.username}</div>
             <div className="text-xs text-muted-foreground">#{user?.discriminator}</div>
           </div>
 
+          {/* Avatar */}
           <div
             className={cn(
-              'grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60',
+              'grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border/80 bg-surface/60',
               'shadow-[0_0_0_1px_rgba(255,255,255,0.03)]'
             )}
           >
-            <img src="/icon.png" alt="Yue" className="h-6 w-6 rounded" />
+            <img src="/icon.png" alt="Yue" className="h-5 w-5 rounded" />
           </div>
 
-          <Button variant="ghost" size="sm" onClick={handleLogout} className="h-10">
+          {/* Logout */}
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleLogout} 
+            className="h-9 w-9 px-0 sm:w-auto sm:px-2.5"
+          >
             <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sair</span>
+            <span className="hidden sm:inline ml-1.5 text-sm">Sair</span>
           </Button>
         </div>
       </div>
