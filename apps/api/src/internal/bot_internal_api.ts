@@ -12,6 +12,12 @@ export class InternalBotApiError extends Error {
   }
 }
 
+function internal_bot_api_error_message(body: unknown): string | null {
+  if (!body || typeof body !== 'object') return null
+  const any_body = body as Record<string, unknown>
+  return typeof any_body.error === 'string' ? any_body.error : null
+}
+
 type guild_channels_response = {
   channels: Array<{ id: string; name: string; type: number }>;
 };
@@ -238,7 +244,10 @@ async function fetch_with_timeout_ms(url: string, log: FastifyBaseLogger, timeou
 
     if (!res.ok) {
       const body = await res.json().catch(() => null)
-      log.warn({ status: res.status, url }, 'Internal bot API returned error');
+      log.warn(
+        { status: res.status, url, error: internal_bot_api_error_message(body) },
+        'Internal bot API returned error'
+      );
       throw new InternalBotApiError(`Internal bot API returned ${res.status}`, res.status, body)
     }
 
@@ -278,7 +287,10 @@ async function fetch_json_with_timeout_ms(
 
     if (!res.ok) {
       const body = await res.json().catch(() => null)
-      log.warn({ status: res.status, url }, 'Internal bot API returned error');
+      log.warn(
+        { status: res.status, url, error: internal_bot_api_error_message(body) },
+        'Internal bot API returned error'
+      );
       throw new InternalBotApiError(`Internal bot API returned ${res.status}`, res.status, body)
     }
 
