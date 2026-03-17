@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database'
 import { economyAdminAdjustSchema, economyTransferSchema } from '@yuebot/shared'
+import { z } from 'zod'
 
 import { validation_error_details } from '../utils/validation_error'
 
@@ -258,5 +259,121 @@ export async function economyRoutes(fastify: FastifyInstance) {
     }
 
     return reply.send({ success: true, balance: res.balance.toString() })
+  })
+
+  // Daily Reward Config Routes
+  fastify.get('/economy/daily-reward/:guildId', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    const member = await prisma.guildMember.findUnique({
+      where: { userId_guildId: { userId: user.userId, guildId } },
+    })
+
+    if (!member) {
+      return reply.code(403).send({ error: 'Not a member of this guild' })
+    }
+
+    const config = await prisma.guildDailyRewardConfig.findUnique({
+      where: { guildId },
+    })
+
+    if (!config) {
+      return reply.send({
+        success: true,
+        config: {
+          enabled: true,
+          rewardAmount: '1000',
+          streakBonus: '100',
+          maxStreakBonus: 30,
+        },
+      })
+    }
+
+    return reply.send({
+      success: true,
+      config: {
+        enabled: config.enabled,
+        rewardAmount: config.rewardAmount.toString(),
+        streakBonus: config.streakBonus.toString(),
+        maxStreakBonus: config.maxStreakBonus,
+      },
+    })
+  })
+
+  fastify.patch('/economy/daily-reward/:guildId', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    const member = await prisma.guildMember.findUnique({
+      where: { userId_guildId: { userId: user.userId, guildId } },
+    })
+
+    if (!member) {
+      return reply.code(403).send({ error: 'Not a member of this guild' })
+    }
+
+    const body = request.body as {
+      enabled?: boolean
+      rewardAmount?: string
+      streakBonus?: string
+      maxStreakBonus?: number
+    }
+
+    const updateData: {
+      enabled?: boolean
+      rewardAmount?: bigint
+      streakBonus?: bigint
+      maxStreakBonus?: number
+    } = {}
+
+    if (body.enabled !== undefined) {
+      updateData.enabled = body.enabled
+    }
+
+    if (body.rewardAmount !== undefined) {
+      const amount = BigInt(body.rewardAmount)
+      if (amount < 0n) {
+        return reply.code(400).send({ error: 'Invalid reward amount' })
+      }
+      updateData.rewardAmount = amount
+    }
+
+    if (body.streakBonus !== undefined) {
+      const bonus = BigInt(body.streakBonus)
+      if (bonus < 0n) {
+        return reply.code(400).send({ error: 'Invalid streak bonus' })
+      }
+      updateData.streakBonus = bonus
+    }
+
+    if (body.maxStreakBonus !== undefined) {
+      if (body.maxStreakBonus < 0) {
+        return reply.code(400).send({ error: 'Invalid max streak bonus' })
+      }
+      updateData.maxStreakBonus = body.maxStreakBonus
+    }
+
+    const config = await prisma.guildDailyRewardConfig.upsert({
+      where: { guildId },
+      update: updateData,
+      create: {
+        guildId,
+        enabled: updateData.enabled ?? true,
+        rewardAmount: updateData.rewardAmount ?? 1000n,
+        streakBonus: updateData.streakBonus ?? 100n,
+        maxStreakBonus: updateData.maxStreakBonus ?? 30,
+      },
+    })
+
+    return reply.send({
+      success: true,
+      config: {
+        enabled: config.enabled,
+        rewardAmount: config.rewardAmount.toString(),
+        streakBonus: config.streakBonus.toString(),
+        maxStreakBonus: config.maxStreakBonus,
+      },
+    })
   })
 }

@@ -43,6 +43,7 @@ model Guild {
   waifuUserStates             WaifuUserState[]
   waifuWishlists              WaifuWishlist[]
   customCommands              CustomCommand[]
+  dailyRewardConfig           GuildDailyRewardConfig?
 
   @@map("guilds")
 }
@@ -620,6 +621,7 @@ model User {
   wallet                       Wallet?
   pets                         Pet[]
   triviaStats                  TriviaStat?
+  dailyRewards                 UserDailyReward[]
 
   @@map("users")
 }
@@ -1021,4 +1023,34 @@ model TriviaStat {
 
   @@index([userId, score])
   @@map("trivia_stats")
+}
+
+model UserDailyReward {
+  id            String   @id @default(cuid())
+  userId        String
+  lastClaimDate DateTime @default(now())
+  streakCount   Int      @default(0)
+  totalClaims   Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId])
+  @@index([userId])
+  @@index([lastClaimDate])
+  @@map("user_daily_rewards")
+}
+
+model GuildDailyRewardConfig {
+  id              String   @id @default(cuid())
+  guildId         String   @unique
+  enabled         Boolean  @default(true)
+  rewardAmount    BigInt   @default(0)
+  streakBonus     BigInt   @default(0)
+  maxStreakBonus  Int      @default(30)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  guild           Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@map("guild_daily_reward_configs")
 }
