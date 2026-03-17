@@ -5,8 +5,12 @@ import { COLORS, EMOJIS } from '@yuebot/shared';
 import type { Command } from '../index';
 import { safe_reply_ephemeral } from '../../utils/interaction';
 
-function format_line(position: number, username: string, level: number, xp: number) {
-  return `**#${position}** ${username} — Nível **${level}** (${xp} XP)`;
+function format_line_global(position: number, username: string, level: number, xp: number, serverCount: number) {
+  return `**#${position}** ${username} — Nível **${level}** (${xp.toLocaleString('pt-BR')} XP) — ${serverCount} servidor${serverCount !== 1 ? 'es' : ''}`;
+}
+
+function format_line_local(position: number, username: string, level: number, xp: number) {
+  return `**#${position}** ${username} — Nível **${level}** (${xp.toLocaleString('pt-BR')} XP)`;
 }
 
 export const leaderboardCommand: Command = {
@@ -58,7 +62,26 @@ export const leaderboardCommand: Command = {
         return;
       }
 
-      const lines = rows.map((row, idx) => format_line(idx + 1, row.username, row.level, row.xp));
+      // Get server count for each user
+      const userIds = rows.map((r) => r.userId);
+      const guildXpCounts = await prisma.guildXpMember.groupBy({
+        by: ['userId'],
+        where: { userId: { in: userIds } },
+        _count: { guildId: true },
+      });
+      const serverCountByUserId = new Map(
+        guildXpCounts.map((g) => [g.userId, g._count.guildId])
+      );
+
+      const lines = rows.map((row, idx) =>
+        format_line_global(
+          idx + 1,
+          row.username,
+          row.level,
+          row.xp,
+          serverCountByUserId.get(row.userId) ?? 1
+        )
+      );
 
       const embed = new EmbedBuilder()
         .setColor(COLORS.INFO)
@@ -114,7 +137,7 @@ export const leaderboardCommand: Command = {
     }
 
     const lines = rows.map((row, idx) =>
-      format_line(idx + 1, username_by_id.get(row.userId) ?? row.userId, row.level, row.xp)
+      format_line_local(idx + 1, username_by_id.get(row.userId) ?? row.userId, row.level, row.xp)
     );
 
     const embed = new EmbedBuilder()

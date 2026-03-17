@@ -66,14 +66,20 @@ export const rankCommand: Command = {
 
       const position = above === null ? null : above + 1;
 
+      // Get server count for this user
+      const serverCount = await prisma.guildXpMember.count({
+        where: { userId: target.id },
+      });
+
       const embed = new EmbedBuilder()
         .setColor(COLORS.INFO)
         .setTitle(`${EMOJIS.INFO} Rank Global de Experiência`)
         .setDescription(`**${target.username}**`)
         .addFields([
           { name: 'Nível atual', value: String(level), inline: true },
-          { name: 'XP atual', value: String(xp), inline: true },
+          { name: 'XP atual', value: xp.toLocaleString('pt-BR'), inline: true },
           { name: 'Colocação', value: position ? `#${position}` : '—', inline: true },
+          { name: 'Servidores', value: String(serverCount), inline: true },
           { name: `XP necessário para o próximo nível (${level + 1})`, value: String(xp_to_next_level(xp)), inline: false },
         ])
         .setThumbnail(target.displayAvatarURL())
@@ -112,7 +118,7 @@ export const rankCommand: Command = {
       .setDescription(`**${target.username}**`) 
       .addFields([
         { name: 'Nível atual', value: String(level), inline: true },
-        { name: 'XP atual', value: String(xp), inline: true },
+        { name: 'XP atual', value: xp.toLocaleString('pt-BR'), inline: true },
         { name: 'Colocação', value: position ? `#${position}` : '—', inline: true },
         { name: `XP necessário para o próximo nível (${level + 1})`, value: String(xp_to_next_level(xp)), inline: false },
       ])
