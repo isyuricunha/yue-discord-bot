@@ -36,6 +36,29 @@ test('extract_ai_moderation_image_urls: includes embed image url', () => {
   assert.deepEqual(urls, ['https://example.com/embed.webp'])
 })
 
+test("extract_ai_moderation_image_urls: strips trailing '&' from urls", () => {
+  const urls = extract_ai_moderation_image_urls({
+    attachments: [
+      { url: 'https://cdn.discordapp.com/a.png?x=1&', contentType: 'image/png', name: 'a.png' },
+    ],
+    embeds: [],
+  })
+
+  assert.deepEqual(urls, ['https://cdn.discordapp.com/a.png?x=1'])
+})
+
+test('extract_ai_moderation_image_urls: drops non-http(s) urls', () => {
+  const urls = extract_ai_moderation_image_urls({
+    attachments: [
+      { url: 'ftp://example.com/a.png', contentType: 'image/png', name: 'a.png' },
+      { url: 'https://cdn.discordapp.com/ok.png', contentType: 'image/png', name: 'ok.png' },
+    ],
+    embeds: [],
+  })
+
+  assert.deepEqual(urls, ['https://cdn.discordapp.com/ok.png'])
+})
+
 test('extract_ai_moderation_image_urls: de-duplicates and caps at 10', () => {
   const attachments = Array.from({ length: 20 }, (_, idx) => ({
     url: `https://cdn.discordapp.com/${idx}.png`,
