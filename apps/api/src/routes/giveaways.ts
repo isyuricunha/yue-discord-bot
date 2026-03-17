@@ -143,6 +143,9 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
           maxChoices: data.maxChoices || null,
           endsAt: data.endsAt,
           startsAt: data.startsAt ?? null,
+          minXP: typeof data.minXP === 'number' ? data.minXP : null,
+          minLevel: typeof data.minLevel === 'number' ? data.minLevel : null,
+          minLuazinhas: typeof data.minLuazinhas === 'number' ? data.minLuazinhas : null,
         },
       })
 

@@ -243,6 +243,9 @@ model Giveaway {
   requiredRoleIds Json?
   suspended       Boolean          @default(false)
   roleChances     Json?
+  minXP           Int?
+  minLevel        Int?
+  minLuazinhas    Int?
   entries         GiveawayEntry[]
   winners         GiveawayWinner[]
   entryEditTokens GiveawayEntryEditToken[]

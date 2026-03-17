@@ -20,6 +20,8 @@ import {
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
 import { safe_defer_ephemeral, safe_reply_ephemeral } from '../utils/interaction'
+import { luazinhaEconomyService } from '../services/luazinhaEconomy.service'
+import { xpService } from '../services/xp.service'
 
 function truncate_modal_title(input: string) {
   const max_len = 45
@@ -138,6 +140,66 @@ export async function handleGiveawayParticipate(interaction: ButtonInteraction) 
     if (!has_any_required_role) {
       return safe_reply_ephemeral(interaction, {
         content: '❌ Você não possui o cargo necessário para participar deste sorteio!',
+      })
+    }
+  }
+
+  // Validar requisitos de XP, nível e luazinhas
+  const hasMinXP = typeof giveaway.minXP === 'number' && giveaway.minXP > 0
+  const hasMinLevel = typeof giveaway.minLevel === 'number' && giveaway.minLevel > 0
+  const hasMinLuazinhas = typeof giveaway.minLuazinhas === 'number' && giveaway.minLuazinhas > 0
+
+  if (hasMinXP || hasMinLevel || hasMinLuazinhas) {
+    // Buscar dados do usuário
+    let userXP = 0
+    let userLevel = 0
+    let userLuazinhas = 0n
+
+    // Buscar XP e nível do usuário
+    if (hasMinXP || hasMinLevel) {
+      if (interaction.guild) {
+        const xpMember = await prisma.guildXpMember.findUnique({
+          where: {
+            userId_guildId: {
+              userId: interaction.user.id,
+              guildId: interaction.guild.id,
+            },
+          },
+          select: {
+            xp: true,
+            level: true,
+          },
+        })
+        userXP = xpMember?.xp ?? 0
+        userLevel = xpMember?.level ?? 0
+      }
+    }
+
+    // Buscar luazinhas do usuário
+    if (hasMinLuazinhas) {
+      const wallet = await prisma.wallet.findUnique({
+        where: { userId: interaction.user.id },
+        select: { balance: true },
+      })
+      userLuazinhas = wallet?.balance ?? 0n
+    }
+
+    // Verificar requisitos
+    const failedRequirements: string[] = []
+
+    if (hasMinXP && userXP < giveaway.minXP) {
+      failedRequirements.push(`⭐ XP: ${userXP}/${giveaway.minXP}`)
+    }
+    if (hasMinLevel && userLevel < giveaway.minLevel) {
+      failedRequirements.push(`📊 Nível: ${userLevel}/${giveaway.minLevel}`)
+    }
+    if (hasMinLuazinhas && userLuazinhas < BigInt(giveaway.minLuazinhas)) {
+      failedRequirements.push(`💰 Luazinhas: ${userLuazinhas}/${giveaway.minLuazinhas}`)
+    }
+
+    if (failedRequirements.length > 0) {
+      return safe_reply_ephemeral(interaction, {
+        content: `❌ Você não atende os requisitos deste sorteio!\n\n**Seus stats:**\n${failedRequirements.join('\n')}`,
       })
     }
   }

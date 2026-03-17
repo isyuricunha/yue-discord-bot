@@ -134,6 +134,25 @@ export class GiveawayScheduler {
           })
         }
 
+        // Adicionar requisitos ao embed
+        const requirements: string[] = []
+        if (giveaway.minXP && giveaway.minXP > 0) {
+          requirements.push(`⭐ Mínimo ${giveaway.minXP} XP`)
+        }
+        if (giveaway.minLevel && giveaway.minLevel > 0) {
+          requirements.push(`📊 Mínimo nível ${giveaway.minLevel}`)
+        }
+        if (giveaway.minLuazinhas && giveaway.minLuazinhas > 0) {
+          requirements.push(`💰 Mínimo ${giveaway.minLuazinhas} Luazinhas`)
+        }
+        if (requirements.length > 0) {
+          embed.addFields({
+            name: '📝 Requisitos',
+            value: requirements.join(' • '),
+            inline: false,
+          })
+        }
+
         const role_ping =
           required_role_ids.length > 0 ? required_role_ids.map((id) => `<@&${id}>`).join(' ') : ''
 

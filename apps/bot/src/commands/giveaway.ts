@@ -55,6 +55,27 @@ export const data = new SlashCommandBuilder()
           .setDescription('Cargo necessário para participar')
           .setRequired(false)
       )
+      .addIntegerOption(option =>
+        option
+          .setName('minxp')
+          .setDescription('XP mínimo necessário para participar')
+          .setRequired(false)
+          .setMinValue(0)
+      )
+      .addIntegerOption(option =>
+        option
+          .setName('minlevel')
+          .setDescription('Nível mínimo necessário para participar')
+          .setRequired(false)
+          .setMinValue(0)
+      )
+      .addIntegerOption(option =>
+        option
+          .setName('minluazinhas')
+          .setDescription('Luazinhas mínimo necessário para participar')
+          .setRequired(false)
+          .setMinValue(0)
+      )
   )
   .addSubcommand(subcommand =>
     subcommand
@@ -239,6 +260,9 @@ async function handleCreate(interaction: ChatInputCommandInteraction) {
 
   const channel = getSendableChannel(fetchedSelectedChannel || selectedChannel || interaction.channel)
   const requiredRole = interaction.options.getRole('cargo')
+  const minXP = interaction.options.getInteger('minxp')
+  const minLevel = interaction.options.getInteger('minlevel')
+  const minLuazinhas = interaction.options.getInteger('minluazinhas')
   
   if (!channel) {
     return interaction.editReply('❌ Canal inválido!')
@@ -265,6 +289,21 @@ async function handleCreate(interaction: ChatInputCommandInteraction) {
       embed.addFields({ name: '🎭 Cargo Necessário', value: requiredRole.toString(), inline: false })
     }
 
+    // Adicionar requisitos ao embed
+    const requirements: string[] = []
+    if (minXP && minXP > 0) {
+      requirements.push(`⭐ Mínimo ${minXP} XP`)
+    }
+    if (minLevel && minLevel > 0) {
+      requirements.push(`📊 Mínimo nível ${minLevel}`)
+    }
+    if (minLuazinhas && minLuazinhas > 0) {
+      requirements.push(`💰 Mínimo ${minLuazinhas} Luazinhas`)
+    }
+    if (requirements.length > 0) {
+      embed.addFields({ name: '📝 Requisitos', value: requirements.join(' • '), inline: false })
+    }
+
     const role_ping = requiredRole ? `<@&${requiredRole.id}>` : ''
     const message = await channel.send({
       content: role_ping || undefined,
@@ -287,6 +326,9 @@ async function handleCreate(interaction: ChatInputCommandInteraction) {
         requiredRoleIds: requiredRole ? [requiredRole.id] : [],
         maxWinners: winners,
         endsAt,
+        minXP: minXP ?? null,
+        minLevel: minLevel ?? null,
+        minLuazinhas: minLuazinhas ?? null,
       },
     })
     

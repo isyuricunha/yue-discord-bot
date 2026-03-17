@@ -88,6 +88,9 @@ export const createGiveawaySchema = z.object({
   maxChoices: z.coerce.number().int().min(1).optional(),
   endsAt: z.coerce.date(),
   startsAt: z.coerce.date().optional(),
+  minXP: z.coerce.number().int().min(0).optional(),
+  minLevel: z.coerce.number().int().min(0).optional(),
+  minLuazinhas: z.coerce.number().int().min(0).optional(),
 });
 
 export const giveawayEntrySchema = z.object({
