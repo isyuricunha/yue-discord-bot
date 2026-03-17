@@ -2,6 +2,7 @@ import { MessageReaction, User, PartialMessageReaction, PartialUser } from 'disc
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
+import { pollService } from '../services/poll.service'
 
 export async function execute(reaction: MessageReaction | PartialMessageReaction, user: User | PartialUser) {
   if (user.bot) return
@@ -70,5 +71,22 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
     await starboardService.handle_reaction_update(reaction, user)
   } catch (error: unknown) {
     logger.warn({ err: safe_error_details(error) }, 'starboard: failed to handle reaction remove')
+  }
+
+  // Handle poll vote removal
+  const pollEmojis = ['1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣', '🔟']
+  if (pollEmojis.includes(reaction.emoji.name || '')) {
+    try {
+      const poll = await pollService.handlePollReactionRemove(
+        reaction.message.id,
+        user.id,
+        reaction.emoji.name || ''
+      )
+      if (poll) {
+        await pollService.updatePollMessage(poll, reaction.client)
+      }
+    } catch (error: unknown) {
+      logger.warn({ err: safe_error_details(error) }, 'poll: failed to handle reaction remove')
+    }
   }
 }

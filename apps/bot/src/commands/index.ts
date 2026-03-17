@@ -57,6 +57,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const { petCommand } = await import('./utility/pet')
   const { triviaCommand } = await import('./utility/trivia')
   const { dailyCommand } = await import('./utility/daily')
+  const { pollCommand } = await import('./utility/poll')
   
   // Import giveaway commands
   const giveawayCommand = await import('./giveaway');
@@ -141,6 +142,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(petCommand.data.name, petCommand)
   commands.set(triviaCommand.data.name, triviaCommand)
   commands.set(dailyCommand.data.name, dailyCommand)
+  commands.set(pollCommand.data.name, pollCommand)
   commands.set(giveawayCommand.data.name, { data: giveawayCommand.data, execute: giveawayCommand.execute });
   commands.set(giveawayListaCommand.data.name, { data: giveawayListaCommand.data, execute: giveawayListaCommand.execute });
   commands.set(giveawayWizardCommand.data.name, { data: giveawayWizardCommand.data, execute: giveawayWizardCommand.execute });

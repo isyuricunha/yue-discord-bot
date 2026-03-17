@@ -44,6 +44,7 @@ model Guild {
   waifuWishlists              WaifuWishlist[]
   customCommands              CustomCommand[]
   dailyRewardConfig           GuildDailyRewardConfig?
+  polls                      Poll[]
 
   @@map("guilds")
 }
@@ -527,6 +528,41 @@ model SuggestionVote {
   @@index([suggestionId])
   @@index([userId])
   @@map("suggestion_votes")
+}
+
+model Poll {
+  id          String      @id @default(cuid())
+  guildId     String
+  channelId   String
+  messageId   String      @unique
+  question    String
+  options     Json
+  multiVote   Boolean     @default(false)
+  endsAt      DateTime
+  ended       Boolean     @default(false)
+  createdBy   String
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  votes       PollVote[]
+  guild       Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, ended])
+  @@index([endsAt])
+  @@map("polls")
+}
+
+model PollVote {
+  id         String   @id @default(cuid())
+  pollId     String
+  userId     String
+  optionIds  Json
+  votedAt    DateTime @default(now())
+  poll       Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+
+  @@unique([pollId, userId])
+  @@index([pollId])
+  @@index([userId])
+  @@map("poll_votes")
 }
 
 model ReactionRolePanel {
