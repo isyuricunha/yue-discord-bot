@@ -202,6 +202,8 @@ class AutoModService {
         url: att.url ?? null,
         contentType: att.contentType ?? null,
         name: att.name ?? null,
+        width: att.width ?? null,
+        height: att.height ?? null,
       })),
       embeds: message.embeds.map((embed) => ({
         imageUrl: embed.image?.url ?? null,
