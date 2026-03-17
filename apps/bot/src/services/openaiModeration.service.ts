@@ -56,6 +56,45 @@ type openai_moderation_error_summary = {
   message: string
 }
 
+export function normalize_openai_moderation_image_url(url: string): string | null {
+  const trimmed = url.trim()
+  if (!trimmed) return null
+
+  const cleaned = trimmed.replace(/[&?]+$/g, '')
+  if (!cleaned) return null
+  if (cleaned.length > 2048) return null
+
+  try {
+    const parsed = new URL(cleaned)
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null
+    return parsed.toString()
+  } catch {
+    return null
+  }
+}
+
+function normalize_openai_moderation_image_urls(urls: string[]): { ok: string[]; dropped: number } {
+  const ok: string[] = []
+  const seen = new Set<string>()
+  let dropped = 0
+
+  for (const raw of urls) {
+    const normalized = normalize_openai_moderation_image_url(raw)
+    if (!normalized) {
+      dropped += 1
+      continue
+    }
+
+    if (seen.has(normalized)) continue
+    seen.add(normalized)
+    ok.push(normalized)
+
+    if (ok.length >= 10) break
+  }
+
+  return { ok, dropped }
+}
+
 function summarize_openai_moderation_error(error: unknown): openai_moderation_error_summary {
   const details = safe_error_details(error)
   const code = typeof details.code === 'string' ? details.code : undefined
@@ -131,7 +170,8 @@ class OpenAiModerationService {
     }
 
     const normalized_text = text.trim().length > 0 ? text.substring(0, 10_000) : ''
-    const normalized_images = imageUrls.slice(0, 10)
+    const normalized_images_result = normalize_openai_moderation_image_urls(imageUrls)
+    const normalized_images = normalized_images_result.ok
 
     const input: ModerationInputItem[] = [];
 
@@ -144,6 +184,16 @@ class OpenAiModerationService {
     for (const url of normalized_images) {
       input.push({ type: 'image_url', image_url: { url } });
     }
+
+    logger.debug(
+      {
+        text_present: Boolean(normalized_text),
+        image_urls_collected: imageUrls.length,
+        image_urls_sent: normalized_images.length,
+        image_urls_dropped: normalized_images_result.dropped,
+      },
+      '[automod.ai] openai moderation input prepared',
+    )
 
     // Nothing to check
     if (input.length === 0) {
