@@ -39,6 +39,15 @@ type xp_config = {
   voiceXpEnabled: boolean
   voiceXpRate: number
 
+  // XP Mode: 'formula' or 'flat'
+  xpMode: 'formula' | 'flat'
+  xpPerMessage: number
+  xpPerVoiceMinute: number
+  xpBonusMinLength: number
+  xpBonusAmount: number
+  dailyXpBonusEnabled: boolean
+  dailyXpBonusAmount: number
+
   minMessageLength: number
   minUniqueLength: number
   typingCps: number
@@ -259,6 +268,15 @@ export default function XpLevelsPage() {
       enabled: initial_config.enabled ?? true,
       voiceXpEnabled: (initial_config as any).voiceXpEnabled ?? false,
       voiceXpRate: (initial_config as any).voiceXpRate ?? 10,
+
+      // New XP mode fields
+      xpMode: (initial_config as any).xpMode ?? 'formula',
+      xpPerMessage: (initial_config as any).xpPerMessage ?? 1,
+      xpPerVoiceMinute: (initial_config as any).xpPerVoiceMinute ?? 1,
+      xpBonusMinLength: (initial_config as any).xpBonusMinLength ?? 0,
+      xpBonusAmount: (initial_config as any).xpBonusAmount ?? 0,
+      dailyXpBonusEnabled: (initial_config as any).dailyXpBonusEnabled ?? false,
+      dailyXpBonusAmount: (initial_config as any).dailyXpBonusAmount ?? 0,
 
       minMessageLength: initial_config.minMessageLength ?? 5,
       minUniqueLength: initial_config.minUniqueLength ?? 12,
@@ -608,97 +626,97 @@ export default function XpLevelsPage() {
           </CardContent>
         </Card>
 
-      <Card>
-        <CardContent className="space-y-5 p-6">
-          <div>
-            <div className="text-sm font-semibold text-red-500">Zerar XP (guild)</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              Remove o XP/level de todos os usuários desta guild. Esta ação não pode ser desfeita.
+        <Card>
+          <CardContent className="space-y-5 p-6">
+            <div>
+              <div className="text-sm font-semibold text-red-500">Zerar XP (guild)</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Remove o XP/level de todos os usuários desta guild. Esta ação não pode ser desfeita.
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
-            <Input
-              value={reset_confirm}
-              onChange={(e) => setResetConfirm(e.target.value)}
-              placeholder="Digite ZERAR para confirmar"
-            />
-            <Button
-              variant="outline"
-              isLoading={reset_mutation.isPending}
-              disabled={reset_confirm !== 'ZERAR'}
-              onClick={() => reset_mutation.mutate()}
-              className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
-            >
-              <span>Zerar XP da guild</span>
-            </Button>
-          </div>
-
-          <div className="h-px w-full bg-border/60" />
-
-          <div>
-            <div className="text-sm font-semibold text-red-500">Zerar XP (usuário na guild)</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              Informe o ID do usuário para remover o XP apenas dele neste servidor.
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
+              <Input
+                value={reset_confirm}
+                onChange={(e) => setResetConfirm(e.target.value)}
+                placeholder="Digite ZERAR para confirmar"
+              />
+              <Button
+                variant="outline"
+                isLoading={reset_mutation.isPending}
+                disabled={reset_confirm !== 'ZERAR'}
+                onClick={() => reset_mutation.mutate()}
+                className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+              >
+                <span>Zerar XP da guild</span>
+              </Button>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
-            <Input value={reset_user_id} onChange={(e) => setResetUserId(e.target.value)} placeholder="User ID" />
-            <Input
-              value={reset_user_confirm}
-              onChange={(e) => setResetUserConfirm(e.target.value)}
-              placeholder="Digite ZERAR USUARIO"
-            />
-            <Button
-              variant="outline"
-              isLoading={reset_user_mutation.isPending}
-              disabled={!reset_user_id || reset_user_confirm !== 'ZERAR USUARIO'}
-              onClick={() => reset_user_mutation.mutate({ userId: reset_user_id })}
-              className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
-            >
-              <span>Zerar usuário</span>
-            </Button>
-          </div>
+            <div className="h-px w-full bg-border/60" />
 
-          <div className="h-px w-full bg-border/60" />
-
-          <div>
-            <div className="text-sm font-semibold text-red-500">Zerar XP global</div>
-            <div className="mt-1 text-xs text-muted-foreground">
-              Restrito (allowlist). Se você não estiver autorizado, o servidor retornará Forbidden.
+            <div>
+              <div className="text-sm font-semibold text-red-500">Zerar XP (usuário na guild)</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Informe o ID do usuário para remover o XP apenas dele neste servidor.
+              </div>
             </div>
-          </div>
 
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
-            <Input
-              value={reset_global_user_id}
-              onChange={(e) => setResetGlobalUserId(e.target.value)}
-              placeholder="(Opcional) User ID para zerar somente 1 usuário"
-            />
-            <Input
-              value={reset_global_confirm}
-              onChange={(e) => setResetGlobalConfirm(e.target.value)}
-              placeholder="Digite ZERAR GLOBAL"
-            />
-            <Button
-              variant="outline"
-              isLoading={reset_global_mutation.isPending}
-              disabled={reset_global_confirm !== 'ZERAR GLOBAL'}
-              onClick={() =>
-                reset_global_mutation.mutate(
-                  reset_global_user_id
-                    ? { scope: 'user', userId: reset_global_user_id }
-                    : { scope: 'global' }
-                )
-              }
-              className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
-            >
-              <span>Zerar global</span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
+              <Input value={reset_user_id} onChange={(e) => setResetUserId(e.target.value)} placeholder="User ID" />
+              <Input
+                value={reset_user_confirm}
+                onChange={(e) => setResetUserConfirm(e.target.value)}
+                placeholder="Digite ZERAR USUARIO"
+              />
+              <Button
+                variant="outline"
+                isLoading={reset_user_mutation.isPending}
+                disabled={!reset_user_id || reset_user_confirm !== 'ZERAR USUARIO'}
+                onClick={() => reset_user_mutation.mutate({ userId: reset_user_id })}
+                className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+              >
+                <span>Zerar usuário</span>
+              </Button>
+            </div>
+
+            <div className="h-px w-full bg-border/60" />
+
+            <div>
+              <div className="text-sm font-semibold text-red-500">Zerar XP global</div>
+              <div className="mt-1 text-xs text-muted-foreground">
+                Restrito (allowlist). Se você não estiver autorizado, o servidor retornará Forbidden.
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
+              <Input
+                value={reset_global_user_id}
+                onChange={(e) => setResetGlobalUserId(e.target.value)}
+                placeholder="(Opcional) User ID para zerar somente 1 usuário"
+              />
+              <Input
+                value={reset_global_confirm}
+                onChange={(e) => setResetGlobalConfirm(e.target.value)}
+                placeholder="Digite ZERAR GLOBAL"
+              />
+              <Button
+                variant="outline"
+                isLoading={reset_global_mutation.isPending}
+                disabled={reset_global_confirm !== 'ZERAR GLOBAL'}
+                onClick={() =>
+                  reset_global_mutation.mutate(
+                    reset_global_user_id
+                      ? { scope: 'user', userId: reset_global_user_id }
+                      : { scope: 'global' }
+                  )
+                }
+                className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+              >
+                <span>Zerar global</span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card className="lg:col-span-1">
           <CardContent className="space-y-3 p-6">
@@ -914,22 +932,22 @@ export default function XpLevelsPage() {
                     <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
                       <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
                       <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
-{JSON.stringify(
-  {
-    content: '{@user}',
-    embed: {
-      title: 'Level up!',
-      description: '{user.tag} virou nível {level} (#{experience.ranking})',
-      color: 16742144,
-      fields: [
-        { name: 'XP', value: '{xp}', inline: true },
-        { name: 'Próximo nível', value: '{experience.next-level}', inline: true },
-      ],
-    },
-  },
-  null,
-  2
-)}</pre>
+                        {JSON.stringify(
+                          {
+                            content: '{@user}',
+                            embed: {
+                              title: 'Level up!',
+                              description: '{user.tag} virou nível {level} (#{experience.ranking})',
+                              color: 16742144,
+                              fields: [
+                                { name: 'XP', value: '{xp}', inline: true },
+                                { name: 'Próximo nível', value: '{experience.next-level}', inline: true },
+                              ],
+                            },
+                          },
+                          null,
+                          2
+                        )}</pre>
                     </div>
                   </div>
                 </div>

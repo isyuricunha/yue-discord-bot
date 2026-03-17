@@ -2323,6 +2323,17 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         where: { guildId },
         update: {
           ...(data.enabled !== undefined ? { enabled: data.enabled } : {}),
+          
+          // New XP mode fields
+          ...(data.xpMode !== undefined ? { xpMode: data.xpMode } : {}),
+          ...(data.xpPerMessage !== undefined ? { xpPerMessage: data.xpPerMessage } : {}),
+          ...(data.xpPerVoiceMinute !== undefined ? { xpPerVoiceMinute: data.xpPerVoiceMinute } : {}),
+          ...(data.xpBonusMinLength !== undefined ? { xpBonusMinLength: data.xpBonusMinLength } : {}),
+          ...(data.xpBonusAmount !== undefined ? { xpBonusAmount: data.xpBonusAmount } : {}),
+          ...(data.dailyXpBonusEnabled !== undefined ? { dailyXpBonusEnabled: data.dailyXpBonusEnabled } : {}),
+          ...(data.dailyXpBonusAmount !== undefined ? { dailyXpBonusAmount: data.dailyXpBonusAmount } : {}),
+          
+          // Legacy fields
           ...(data.voiceXpEnabled !== undefined ? { voiceXpEnabled: data.voiceXpEnabled } : {}),
           ...(data.voiceXpRate !== undefined ? { voiceXpRate: data.voiceXpRate } : {}),
           ...(data.minMessageLength !== undefined ? { minMessageLength: data.minMessageLength } : {}),
@@ -2341,6 +2352,17 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         create: {
           guildId,
           enabled: data.enabled ?? true,
+          
+          // New XP mode fields
+          xpMode: data.xpMode ?? 'formula',
+          xpPerMessage: data.xpPerMessage ?? 1,
+          xpPerVoiceMinute: data.xpPerVoiceMinute ?? 1,
+          xpBonusMinLength: data.xpBonusMinLength ?? 0,
+          xpBonusAmount: data.xpBonusAmount ?? 0,
+          dailyXpBonusEnabled: data.dailyXpBonusEnabled ?? false,
+          dailyXpBonusAmount: data.dailyXpBonusAmount ?? 0,
+          
+          // Legacy fields
           voiceXpEnabled: data.voiceXpEnabled ?? false,
           voiceXpRate: data.voiceXpRate ?? 10,
           minMessageLength: data.minMessageLength ?? 5,

@@ -362,6 +362,25 @@ model GuildXpConfig {
   id                String   @id @default(cuid())
   guildId           String   @unique
   enabled           Boolean  @default(true)
+  
+  // XP Mode: 'formula' (divisor-based) or 'flat' (fixed amount per message)
+  xpMode            String   @default("formula")
+  
+  // Flat XP per message (used when xpMode = 'flat')
+  xpPerMessage      Int      @default(1)
+  
+  // XP per voice minute (replaces voiceXpRate which was per 10 minutes)
+  xpPerVoiceMinute  Int      @default(1)
+  
+  // Bonus XP for messages exceeding minimum length
+  xpBonusMinLength  Int      @default(0)
+  xpBonusAmount     Int      @default(0)
+  
+  // Daily XP bonus for first message of the day
+  dailyXpBonusEnabled Boolean @default(false)
+  dailyXpBonusAmount  Int     @default(0)
+  
+  // Legacy fields (kept for backwards compatibility)
   minMessageLength  Int      @default(5)
   minUniqueLength   Int      @default(12)
   typingCps         Int      @default(7)
@@ -376,7 +395,7 @@ model GuildXpConfig {
   levelUpChannelId  String?
   levelUpMessage    String?
   voiceXpEnabled    Boolean  @default(false)
-  voiceXpRate       Int      @default(10)
+  voiceXpRate       Int      @default(10) // Deprecated: kept for backwards compatibility
   updatedAt         DateTime @updatedAt
   guild             Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 

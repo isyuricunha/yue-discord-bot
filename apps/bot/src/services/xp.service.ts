@@ -19,6 +19,13 @@ function remove_repeated_characters(content: string): string {
 function normalize_xp_config(config: GuildXpConfig | null) {
   return {
     enabled: config?.enabled ?? true,
+    xpMode: config?.xpMode ?? 'formula',
+    xpPerMessage: config?.xpPerMessage ?? 1,
+    xpPerVoiceMinute: config?.xpPerVoiceMinute ?? 1,
+    xpBonusMinLength: config?.xpBonusMinLength ?? 0,
+    xpBonusAmount: config?.xpBonusAmount ?? 0,
+    dailyXpBonusEnabled: config?.dailyXpBonusEnabled ?? false,
+    dailyXpBonusAmount: config?.dailyXpBonusAmount ?? 0,
     minMessageLength: config?.minMessageLength ?? 5,
     minUniqueLength: config?.minUniqueLength ?? 12,
     typingCps: config?.typingCps ?? 7,
@@ -296,11 +303,41 @@ class XpService {
       if (delta_seconds < min_seconds) return;
     }
 
-    const base_xp = compute_message_xp(reduced.length, {
-      xpDivisorMin: config.xpDivisorMin,
-      xpDivisorMax: config.xpDivisorMax,
-      xpCap: config.xpCap,
-    });
+    const base_xp = config.xpMode === 'flat' 
+      ? config.xpPerMessage 
+      : compute_message_xp(reduced.length, {
+          xpDivisorMin: config.xpDivisorMin,
+          xpDivisorMax: config.xpDivisorMax,
+          xpCap: config.xpCap,
+        });
+
+    // Apply bonus XP for messages exceeding minimum length
+    let bonus_xp = 0;
+    if (config.xpBonusMinLength > 0 && config.xpBonusAmount > 0) {
+      if (reduced.length >= config.xpBonusMinLength) {
+        bonus_xp = config.xpBonusAmount;
+      }
+    }
+
+    // Check for daily first message bonus
+    let daily_bonus_xp = 0;
+    if (config.dailyXpBonusEnabled && config.dailyXpBonusAmount > 0) {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
+      if (existing?.lastMessageAt) {
+        const lastMessageDay = new Date(existing.lastMessageAt);
+        lastMessageDay.setHours(0, 0, 0, 0);
+        
+        if (lastMessageDay.getTime() < today.getTime()) {
+          // First message of the day!
+          daily_bonus_xp = config.dailyXpBonusAmount;
+        }
+      } else {
+        // First message ever
+        daily_bonus_xp = config.dailyXpBonusAmount;
+      }
+    }
 
     let multiplier = 1;
     if (member) {
@@ -315,7 +352,10 @@ class XpService {
     const combined_multiplier = multiplier * xp_boost_multiplier
 
     const xp_cap_with_multiplier = Math.max(1, Math.round(config.xpCap * combined_multiplier));
-    const xp_gain = Math.min(Math.round(base_xp * combined_multiplier), xp_cap_with_multiplier);
+    const xp_gain = Math.min(
+      Math.round((base_xp + bonus_xp + daily_bonus_xp) * combined_multiplier), 
+      xp_cap_with_multiplier
+    );
     if (xp_gain <= 0) {
       await prisma.guildXpMember.upsert({
         where: {

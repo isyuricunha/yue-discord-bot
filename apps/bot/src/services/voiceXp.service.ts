@@ -121,31 +121,27 @@ class VoiceXpService {
       const config = await prisma.guildXpConfig.findUnique({ where: { guildId } })
       if (!config || !config.enabled || !config.voiceXpEnabled) return
       
-      // Calculate amount of 10-minute chunks
-      const tenMinuteChunks = Math.floor(durationMs / 600_000) 
-      const spareMinutes = Math.floor((durationMs % 600_000) / 60_000)
-
-      let gainedXp = 0
+      // Calculate XP based on xpPerVoiceMinute (new) or voiceXpRate (legacy - per 10 min)
+      const xpPerMinute = config.xpPerVoiceMinute ?? 1
+      const minutes = Math.floor(durationMs / 60_000)
       
-      if (tenMinuteChunks > 0) {
-        // Full Reward per chunk
-         gainedXp += tenMinuteChunks * config.voiceXpRate
-      }
+      // Legacy support: if voiceXpRate is used, convert to per-minute
+      // voiceXpRate was XP per 10 minutes
+      const legacyXpPerMinute = Math.floor((config.voiceXpRate ?? 10) / 10)
       
-      // Bonus: pro-rata spare minutes based on voice xp rate
-      // Assuming 10m = full voiceXpRate, so each minute = 10%
-      if (spareMinutes > 0) {
-          gainedXp += Math.floor((spareMinutes / 10) * config.voiceXpRate)
-      }
+      // Use new xpPerVoiceMinute if set (>0), otherwise fall back to legacy calculation
+      const earnedXp = xpPerMinute > 0 
+        ? minutes * xpPerMinute 
+        : minutes * legacyXpPerMinute
 
-      if (gainedXp <= 0) return
+      if (earnedXp <= 0) return
 
       const existingRecord = await prisma.guildXpMember.findUnique({
          where: { userId_guildId: { userId, guildId } }
       })
 
       const currentXp = existingRecord?.xp ?? 0
-      const newXp = currentXp + gainedXp
+      const newXp = currentXp + earnedXp
 
       // Use the standard 1000 threshold level-up logic
       const compute_level_from_xp = (xp: number) => {

@@ -259,6 +259,25 @@ export const xpRoleRewardsSchema = z.array(xpRoleRewardSchema);
 
 export const guildXpConfigSchema = z.object({
   enabled: z.boolean().optional(),
+  
+  // XP Mode: 'formula' (divisor-based) or 'flat' (fixed amount per message)
+  xpMode: z.enum(['formula', 'flat']).optional(),
+  
+  // Flat XP per message (used when xpMode = 'flat')
+  xpPerMessage: z.number().int().min(0).optional(),
+  
+  // XP per voice minute
+  xpPerVoiceMinute: z.number().int().min(0).optional(),
+  
+  // Bonus XP for messages exceeding minimum length
+  xpBonusMinLength: z.number().int().min(0).optional(),
+  xpBonusAmount: z.number().int().min(0).optional(),
+  
+  // Daily XP bonus for first message of the day
+  dailyXpBonusEnabled: z.boolean().optional(),
+  dailyXpBonusAmount: z.number().int().min(0).optional(),
+  
+  // Legacy/advanced settings
   voiceXpEnabled: z.boolean().optional(),
   voiceXpRate: z.number().int().min(1).optional(),
 
