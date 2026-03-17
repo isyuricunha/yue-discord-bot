@@ -327,7 +327,7 @@ export default function ExtrasCommandsPage() {
                   Opções: <InlineCode>{'usuario_id'}</InlineCode> (obrigatório)
                 </div>
                 <div>
-                  Exemplo: <InlineCode>{'/baninfo usuario_id:123456789012345678'}</InlineCode>
+                  Exemplo: <InlineCode>{'/baninfo usuario_id:1434271732507611289'}</InlineCode>
                 </div>
               </>
             ),

@@ -155,7 +155,7 @@ Note:
   - Example: `/modlog usuario:@User tipo:warn limite:10`
 - `/baninfo` - Check if an ID is banned and display ban details.
   - Options: `usuario_id` (required)
-  - Example: `/baninfo usuario_id:123456789012345678`
+  - Example: `/baninfo usuario_id:1434271732507611289`
 
 #### Utility
 
