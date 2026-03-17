@@ -31,11 +31,18 @@ function format_item_line(item: {
   return `\`${item.id}\` — **${item.title}** (${item.kind}) — restante: **${remaining}**/${item.quantity}${expires}`
 }
 
+function count_total_items(
+  items: Array<{ quantity: number; usedQuantity: number }>
+): number {
+  return items.reduce((acc, item) => acc + Math.max(0, item.quantity - item.usedQuantity), 0)
+}
+
 export const inventarioCommand: Command = {
   data: new SlashCommandBuilder()
     .setName('inventario')
     .setDescription('Inventário: ver e usar itens')
     .addSubcommand((sub) => sub.setName('listar').setDescription('Listar itens do seu inventário'))
+    .addSubcommand((sub) => sub.setName('global').setDescription('Ver inventário de todos os servidores'))
     .addSubcommand((sub) =>
       sub
         .setName('usar')
@@ -100,6 +107,57 @@ export const inventarioCommand: Command = {
         .setTitle('🎒 Inventário')
         .setDescription(lines.join('\n'))
         .setFooter({ text: rows.length > 15 ? `Mostrando 15 de ${rows.length}` : `${rows.length} item(ns)` })
+
+      await interaction.editReply({ embeds: [embed] })
+      return
+    }
+
+    if (sub === 'global') {
+      await safe_defer_ephemeral(interaction)
+
+      const allInventories = await inventoryService.list_all_for_user({ userId: interaction.user.id })
+
+      if (allInventories.length === 0 || allInventories.every((inv) => inv.items.length === 0)) {
+        await interaction.editReply({ content: `${EMOJIS.INFO} Você não tem itens em nenhum servidor.` })
+        return
+      }
+
+      let totalItems = 0
+      const embedFields: { name: string; value: string; inline?: boolean }[] = []
+
+      for (const inventory of allInventories) {
+        const itemCount = count_total_items(inventory.items)
+        if (itemCount === 0) continue
+
+        totalItems += itemCount
+
+        const guildIcon = inventory.guildIcon
+          ? `https://cdn.discordapp.com/icons/${inventory.guildId}/${inventory.guildIcon}.png`
+          : null
+
+        const topItems = inventory.items.slice(0, 5).map((item) => {
+          const remaining = Math.max(0, item.quantity - item.usedQuantity)
+          return `• **${item.title}**: ${remaining}`
+        })
+
+        embedFields.push({
+          name: `${guildIcon ? '' : '🌐'} ${inventory.guildName}`,
+          value: `Itens: **${itemCount}**\n${topItems.join('\n')}${inventory.items.length > 5 ? `\n*+${inventory.items.length - 5} mais...*` : ''}`,
+          inline: true,
+        })
+      }
+
+      if (embedFields.length === 0) {
+        await interaction.editReply({ content: `${EMOJIS.INFO} Você não tem itens em nenhum servidor.` })
+        return
+      }
+
+      const embed = new EmbedBuilder()
+        .setColor(COLORS.INFO)
+        .setTitle('🎒 Inventário Global')
+        .setDescription(`Total de itens: **${totalItems}** em ${allInventories.filter((i) => count_total_items(i.items) > 0).length} servidor(es)`)
+        .setFields(embedFields)
+        .setFooter({ text: 'Use /inventario listar em um servidor específico para ver todos os itens' })
 
       await interaction.editReply({ embeds: [embed] })
       return

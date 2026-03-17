@@ -477,6 +477,74 @@ class InventoryService {
 
     return best
   }
+
+  async list_all_for_user(input: { userId: string }): Promise<
+    Array<{
+      guildId: string | null
+      guildName: string | null
+      guildIcon: string | null
+      items: inventory_list_row[]
+    }>
+  > {
+    const rows = await prisma.inventoryItem.findMany({
+      where: { userId: input.userId },
+      orderBy: [{ guildId: 'asc' }, { createdAt: 'desc' }],
+      select: {
+        id: true,
+        guildId: true,
+        shopItemId: true,
+        kind: true,
+        title: true,
+        description: true,
+        quantity: true,
+        usedQuantity: true,
+        metadata: true,
+        activatedAt: true,
+        expiresAt: true,
+        expiredHandledAt: true,
+        createdAt: true,
+      },
+    })
+
+    const groupedByGuild = new Map<string | null, inventory_list_row[]>()
+    for (const row of rows) {
+      const key = row.guildId
+      const existing = groupedByGuild.get(key) || []
+      existing.push(row)
+      groupedByGuild.set(key, existing)
+    }
+
+    const result: Array<{
+      guildId: string | null
+      guildName: string | null
+      guildIcon: string | null
+      items: inventory_list_row[]
+    }> = []
+
+    for (const [guildId, items] of groupedByGuild) {
+      if (guildId === null) {
+        result.push({
+          guildId: null,
+          guildName: 'Global',
+          guildIcon: null,
+          items,
+        })
+      } else {
+        const guild = await prisma.guild.findUnique({
+          where: { id: guildId },
+          select: { name: true, icon: true },
+        })
+        result.push({
+          guildId,
+          guildName: guild?.name || 'Servidor Desconhecido',
+          guildIcon: guild?.icon || null,
+          items,
+        })
+      }
+    }
+
+    return result
+  }
 }
 
 export const inventoryService = new InventoryService()
