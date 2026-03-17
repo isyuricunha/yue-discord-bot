@@ -263,6 +263,48 @@ export async function endPoll(messageId: string) {
   return updatedPoll;
 }
 
+export async function sendPollExpirationNotification(
+  client: { channels: { fetch: (id: string) => Promise<unknown> } },
+  pollData: {
+    id: string;
+    channelId: string;
+    question: string;
+    options: poll_option[];
+  }
+): Promise<boolean> {
+  try {
+    const channel = await client.channels.fetch(pollData.channelId);
+    if (!channel || !('send' in channel)) {
+      logger.warn({ channelId: pollData.channelId }, 'Channel not found or not text-based for poll expiration');
+      return false;
+    }
+
+    const options = pollData.options as poll_option[];
+    const totalVotes = options.reduce((sum, opt) => sum + opt.votes, 0);
+    
+    // Find the winner(s)
+    const maxVotes = Math.max(...options.map(o => o.votes));
+    const winners = options.filter(o => o.votes === maxVotes);
+    
+    let winnerText: string;
+    if (totalVotes === 0) {
+      winnerText = 'Sem votos';
+    } else if (winners.length === 1) {
+      winnerText = `${winners[0].text} com ${winners[0].votes} voto${winners[0].votes !== 1 ? 's' : ''}`;
+    } else {
+      winnerText = winners.map(w => `${w.text} (${w.votes} votos)`).join(', ');
+    }
+
+    const message = `📊 A enquete "${pollData.question}" acabou!\n🏆 Vencedor: ${winnerText}`;
+
+    await channel.send(message);
+    return true;
+  } catch (error) {
+    logger.error({ err: safe_error_details(error), pollId: pollData.id }, 'Failed to send poll expiration notification');
+    return false;
+  }
+}
+
 export function buildPollResultsEmbed(poll: {
   question: string;
   options: poll_option[];
@@ -399,4 +441,5 @@ export const pollService = {
   handlePollReactionAdd,
   handlePollReactionRemove,
   updatePollMessage,
+  sendPollExpirationNotification,
 };

@@ -8,6 +8,7 @@ import { AutoroleScheduler } from "./services/autoroleScheduler";
 import { ScheduledEventScheduler } from "./services/scheduledEventScheduler";
 import { InventoryExpirationScheduler } from "./services/inventoryExpirationScheduler";
 import { AniListWatchlistScheduler } from "./services/anilistWatchlistScheduler";
+import { PollExpirationScheduler } from "./services/pollExpirationScheduler";
 import { initModerationPersistenceService } from "./services/moderationPersistence.service";
 import { initPunishmentRoleService } from "./services/punishmentRole.service";
 import { get_llm_client } from "./services/llm_client_singleton";
@@ -22,6 +23,7 @@ import { start_internal_api } from "./internal/api";
 let internal_server: ReturnType<typeof start_internal_api> | null = null;
 let giveawayScheduler: GiveawayScheduler | null = null;
 let aniListWatchlistScheduler: AniListWatchlistScheduler | null = null;
+let pollExpirationScheduler: PollExpirationScheduler | null = null;
 
 // Extend Client to include commands collection
 declare module "discord.js" {
@@ -190,6 +192,10 @@ client.once("clientReady", async () => {
 	// Iniciar scheduler de expiração de inventário (roles/nick-color/xp boost)
 	const inventoryExpirationScheduler = new InventoryExpirationScheduler(client);
 	inventoryExpirationScheduler.start();
+
+	// Iniciar scheduler de expiração de enquetes
+	pollExpirationScheduler = new PollExpirationScheduler(client);
+	pollExpirationScheduler.start();
 });
 
 // Event: Guild create (bot joins server)
@@ -363,6 +369,7 @@ process.on("SIGINT", async () => {
 	internal_server?.close();
   await giveawayScheduler?.stop();
   await aniListWatchlistScheduler?.stop();
+  pollExpirationScheduler?.stop();
 	client.destroy();
 	await prisma.$disconnect();
 	process.exit(0);
@@ -373,6 +380,7 @@ process.on("SIGTERM", async () => {
 	internal_server?.close();
   await giveawayScheduler?.stop();
   await aniListWatchlistScheduler?.stop();
+  pollExpirationScheduler?.stop();
 	client.destroy();
 	await prisma.$disconnect();
 	process.exit(0);
