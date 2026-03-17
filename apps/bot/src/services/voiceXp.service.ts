@@ -1,4 +1,4 @@
-import { VoiceState } from 'discord.js'
+import { VoiceState, EmbedBuilder } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { getSendableChannel } from '../utils/discord'
@@ -31,6 +31,8 @@ class VoiceXpService {
       if (!this.voiceSessions.has(sessionKey)) {
          this.voiceSessions.set(sessionKey, Date.now())
       }
+      // Send notification when user joins voice channel and voice XP is enabled
+      await this.sendVoiceXpNotification(newState)
     }
     // State 2: Member left or muted/deafened themselves
     else if (!isNowActive && wasActive) {
@@ -40,6 +42,74 @@ class VoiceXpService {
         const durationMs = Date.now() - startTime
         await this.grantVoiceXp(guildId, userId, member.user.username, durationMs, newState)
       }
+    }
+  }
+
+  /**
+   * Send a temporary notification when user joins voice channel
+   * Shows current XP, level progress, and that they're earning XP
+   */
+  private async sendVoiceXpNotification(newState: VoiceState) {
+    const member = newState.member
+    if (!member) return
+
+    const guildId = member.guild.id
+    const userId = member.id
+
+    try {
+      // Check if voice XP is enabled
+      const config = await prisma.guildXpConfig.findUnique({ where: { guildId } })
+      if (!config || !config.enabled || !config.voiceXpEnabled) return
+
+      // Get user's current XP data
+      const memberXp = await prisma.guildXpMember.findUnique({
+        where: { userId_guildId: { userId, guildId } }
+      })
+
+      const currentXp = memberXp?.xp ?? 0
+      const currentLevel = memberXp?.level ?? Math.floor(currentXp / 1000)
+      const xpForNextLevel = (currentLevel + 1) * 1000
+      const xpProgress = currentXp % 1000
+      const progressPercent = Math.floor((xpProgress / 1000) * 100)
+
+      // Create the notification embed
+      const embed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle('🎤 XP de Voz Ativado!')
+        .setDescription(`Você estáganhando XP enquanto fica em call!`)
+        .addFields(
+          { name: 'Nível Atual', value: `**${currentLevel}**`, inline: true },
+          { name: 'XP Total', value: `**${currentXp.toLocaleString('pt-BR')}**`, inline: true },
+          { name: 'Próximo Nível', value: `${xpProgress}/${xpForNextLevel} XP (${progressPercent}%)`, inline: false }
+        )
+        .setFooter({ text: 'Fique em call por pelo menos 1 minuto para ganhar XP!' })
+        .setTimestamp()
+
+      // Try to send DM to user (most reliable for ephemeral notification)
+      try {
+        const dmChannel = await member.user.createDM()
+        const message = await dmChannel.send({ embeds: [embed] })
+        
+        // Delete the message after 10 seconds
+        setTimeout(async () => {
+          try {
+            await message.delete()
+          } catch {
+            // Ignore errors when deleting
+          }
+        }, 10000)
+      } catch {
+        // If DM fails, try to send in the voice channel as a temporary message
+        if (newState.channelId) {
+          const channel = await newState.guild.channels.fetch(newState.channelId)
+          if (channel && channel.isVoiceBased()) {
+            // For voice channels, we can't send messages directly
+            // So we'll skip this fallback as it's not ideal
+          }
+        }
+      }
+    } catch (error) {
+      logger.error({ error, guildId, userId }, 'Error sending voice XP notification')
     }
   }
 
