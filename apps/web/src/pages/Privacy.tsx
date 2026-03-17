@@ -19,12 +19,10 @@ export default function PrivacyPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            Ao fazer login, usamos OAuth do Discord para identificar sua conta e listar servidores onde você possui permissão
-            para administrar.
+            Ao fazer login, usamos OAuth do Discord para identificar sua conta e listar servidores onde você possui permissão para administrar.
           </div>
           <div>
-            O painel armazena configurações e dados operacionais (por exemplo: logs de moderação, dados de sorteios e XP)
-            para cumprir as funcionalidades configuradas.
+            O painel armazena configurações e dados operacionais para cumprir as funcionalidades configuradas.
           </div>
         </CardContent>
       </Card>
@@ -36,65 +34,51 @@ export default function PrivacyPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            O login é realizado via Discord OAuth com escopos como <span className="font-mono text-foreground">identify</span> e{' '}
+            O login é realizado via Discord OAuth com escocos como <span className="font-mono text-foreground">identify</span> e{' '}
             <span className="font-mono text-foreground">guilds</span>.
           </div>
           <div>
-            Após autenticar, um token é emitido e armazenado em cookie <span className="font-mono text-foreground">httpOnly</span> (não acessível
-            via JavaScript do navegador) para manter a sessão.
+            Após autenticar, um token é emitido e armazenado em cookie <span className="font-mono text-foreground">httpOnly</span> para manter a sessão.
           </div>
           <div>
-            Também utilizamos um cookie temporário de estado (<span className="font-mono text-foreground">oauth_state</span>) para proteger contra
-            ataques de CSRF no fluxo OAuth.
+            Também utilizamos um cookie temporário de estado (<span className="font-mono text-foreground">oauth_state</span>) para proteger contra ataques de CSRF.
           </div>
         </CardContent>
       </Card>
 
       <Card>
         <CardHeader>
-          <div className="text-base font-semibold">O que coletamos, como coletamos e quando coletamos</div>
-          <div className="mt-1 text-sm text-muted-foreground">Transparência total sobre seu fluxo de dados.</div>
+          <div className="text-base font-semibold">Dados coletados</div>
+          <div className="mt-1 text-sm text-muted-foreground">O que, como e quando coletamos.</div>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
+        <CardContent className="space-y-4 text-sm text-muted-foreground">
           <div>
-            A Yue coleta dados de forma passiva (quando mensagens são enviadas em servidores com sistemas ativos) ou de forma ativa (quando você interage com nossos comandos de barra, de contexto ou usa o painel web).
-          </div>
-          <div className="pt-2 font-medium text-foreground">1. Dados de Usuário e Autenticação</div>
-          <div>
-            • ID, nome de usuário e avatar do Discord para exibir seu perfil personalizável (bio, insígnias).
-          </div>
-          <div>
-            • Sessões ativas de login e configuração de notificações (por exemplo: alertas na mensagem direta).
-          </div>
-          
-          <div className="pt-2 font-medium text-foreground">2. Dados de Servidores</div>
-          <div>
-            • ID, nome, ícone e configurações gerais (canais de recepção, logs de moderação, sistemas de tickets, painéis de reação e starboard).
-          </div>
-          <div>
-            • Listagem de quais servidores você administra quando realiza o login no painel.
+            A Yue coleta dados de forma passiva (mensagens em servidores com sistemas ativos) ou ativa (interações com comandos ou uso do painel).
           </div>
 
-          <div className="pt-2 font-medium text-foreground">3. Dados de Interação e Moderação</div>
-          <div>
-            • Registros de aviso, expulsão ou punições (logs de moderação) com motivo e validade.
-          </div>
-          <div>
-            • Tickets abertos (motivos de contato via suporte em um servidor), sugestões aprovadas ou rejeitadas e ações de auditoria.
+          <div className="border-l-2 border-primary/30 pl-3">
+            <div className="font-medium text-foreground">1. Dados de Usuário</div>
+            <div className="mt-1">ID, nome, avatar e configurações de perfil do Discord.</div>
           </div>
 
-          <div className="pt-2 font-medium text-foreground">4. Dados de Economia e Entretenimento</div>
-          <div>
-            • Saldo da sua carteira virtual, histórico de transações, itens da loja e inventário (itens comprados/expirados).
+          <div className="border-l-2 border-primary/30 pl-3">
+            <div className="font-medium text-foreground">2. Dados de Servidores</div>
+            <div className="mt-1">ID, nome, ícone e configurações (canais de recepção, logs, tickets, reaction roles, starboard).</div>
           </div>
-          <div>
-            • Resultados do jogo Cara ou Coroa e histórico de vitórias/derrotas nas suas interações com a economia.
+
+          <div className="border-l-2 border-primary/30 pl-3">
+            <div className="font-medium text-foreground">3. Dados de Moderação</div>
+            <div className="mt-1">Registros de warn, kick, ban e mute. Também: tickets, sugestões e logs de auditoria.</div>
           </div>
-          <div>
-            • Dados do sistema Waifu (personagens reivindicados, histórico de rolagens, lista de desejos e valor acumulado do personagem).
-          </div>
-          <div>
-            • Progresso e histórico de animes (integração com AniList) e artes de fãs submetidas (imagens e metadados).
+
+          <div className="border-l-2 border-primary/30 pl-3">
+            <div className="font-medium text-foreground">4. Dados de Economia e Entretenimento</div>
+            <div className="mt-1 space-y-1">
+              <div>• Saldo da carteira virtual, histórico de transações e itens do inventário.</div>
+              <div>• Cara ou Coroa: jogo de moeda virtual com histórico de vitórias/derrotas.</div>
+              <div>• Waifu: sistema de personagens colecionáveis (gacha) com rolagens e listas de desejos.</div>
+              <div>• Integração com AniList e artes de fãs.</div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -103,21 +87,21 @@ export default function PrivacyPage() {
         <CardHeader>
           <div className="text-base font-semibold">Finalidades</div>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
           <div>
-            Usamos os dados para:
+            Os dados são usados para:
           </div>
           <div>
             • Autenticar usuários e autorizar acesso ao painel.
           </div>
           <div>
-            • Aplicar configurações e automatizações (recepção de membros, proteção, autorole e gerenciamento de experiência).
+            • Aplicar configurações e automatizações (recepção, proteção, autorole, XP).
           </div>
           <div>
-            • Garantir persistência dos seus itens, inventário, histórico nas interações de economia e personagens reivindicados no gacha.
+            • Manter progresso em jogos e economia virtual.
           </div>
           <div>
-            • Garantir segurança, auditoria e prevenção de abuso (por exemplo: logs de moderação e registros de eventos).
+            • Garantir segurança e auditoria.
           </div>
         </CardContent>
       </Card>
@@ -134,7 +118,7 @@ export default function PrivacyPage() {
             O serviço interage com o Discord (API) para executar as funcionalidades do bot e realizar login.
           </div>
           <div>
-            Dados podem ser processados por provedores de infraestrutura (por exemplo: hospedagem) para operar o serviço.
+            Dados podem ser processados por provedores de infraestrutura para operar o serviço.
           </div>
         </CardContent>
       </Card>
@@ -145,11 +129,45 @@ export default function PrivacyPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            Mantemos dados enquanto necessário para fornecer o serviço e cumprir propósitos operacionais (ex: auditoria e histórico).
+            Mantemos dados enquanto necessário para fornecer o serviço e cumprir propósitos operacionais.
           </div>
           <div>
-            Em muitos casos, remover a Yue de um servidor ou desativar módulos interrompe a coleta futura, mas dados históricos podem permanecer
-            por um período para segurança e consistência.
+            Remover a Yue de um servidor ou desativar módulos interrompe a coleta futura. Dados históricos podem permanecer por um período para segurança e consistência.
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="text-base font-semibold">Seus direitos</div>
+          <div className="mt-1 text-sm text-muted-foreground">Direitos conforme LGPD e GDPR.</div>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <div>
+            Você tem os seguintes direitos:
+          </div>
+          <div>
+            • <span className="font-medium text-foreground">Acesso</span>: solicitar uma cópia dos seus dados.
+          </div>
+          <div>
+            • <span className="font-medium text-foreground">Correção</span>: solicitar correção de dados incorretos.
+          </div>
+          <div>
+            • <span className="font-medium text-foreground">Exclusão</span>: solicitar a remoção dos seus dados.
+          </div>
+          <div>
+            • <span className="font-medium text-foreground">Portabilidade</span>: solicitar seus dados em formato legível.
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="text-base font-semibold">Contato</div>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <div>
+            Para exercer seus direitos ou esclarecer dúvidas sobre privacidade, entre em contato através do servidor de suporte da Yue no Discord.
           </div>
         </CardContent>
       </Card>
@@ -160,10 +178,10 @@ export default function PrivacyPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            Adotamos medidas razoáveis como cookies httpOnly, validação de origem em requisições autenticadas por cookie e controles de acesso.
+            Adotamos medidas como cookies httpOnly, validação de origem em requisições autenticadas e controles de acesso.
           </div>
           <div>
-            Apesar disso, nenhum sistema é 100% seguro. Recomendamos que você proteja sua conta do Discord e permissões do servidor.
+            Nenhum sistema é 100% seguro. Recomendamos que você proteja sua conta do Discord e permissões do servidor.
           </div>
         </CardContent>
       </Card>

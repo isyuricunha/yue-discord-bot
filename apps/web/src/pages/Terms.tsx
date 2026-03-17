@@ -19,8 +19,7 @@ export default function TermsPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            A Yue é um bot multifuncional para Discord equipado com painel web para configurar módulos como recepção de membros, registro de auditoria, níveis de experiência (XP),
-            loja virtual, economia (carteiras e inventário), sistemas gacha de entretenimento e ferramentas de moderação contínua.
+            A Yue é um bot multifuncional para Discord. O serviço inclui um painel web para configuração de módulos como: recepção de membros, registro de auditoria, níveis de experiência (XP), loja virtual, economia virtual e ferramentas de moderação.
           </div>
           <div>
             Estes Termos se aplicam ao uso do bot e do painel, incluindo quaisquer integrações com a plataforma Discord.
@@ -37,7 +36,7 @@ export default function TermsPage() {
             • Você deve estar em conformidade com os Termos do Discord e as regras do servidor em que usa a Yue.
           </div>
           <div>
-            • Você é o único responsável pelas configurações de canais efetuadas no painel, pelo conteúdo de mensagens configuradas, itens de loja criados e artes de fãs submetidas usando o bot.
+            • Você é o único responsável pelas configurações de canais, conteúdo de mensagens, itens de loja criados e artes de fãs submetidas.
           </div>
           <div>
             • Você deve ter permissões administrativas ativas para gerenciar comandos, economia e punições diretamente no painel.
@@ -47,21 +46,45 @@ export default function TermsPage() {
 
       <Card>
         <CardHeader>
-          <div className="text-base font-semibold">Uso aceitável</div>
-          <div className="mt-1 text-sm text-muted-foreground">O que é permitido e o que não é.</div>
+          <div className="text-base font-semibold">Uso permitido</div>
+          <div className="mt-1 text-sm text-muted-foreground">O que você pode fazer.</div>
         </CardHeader>
-        <CardContent className="space-y-3 text-sm text-muted-foreground">
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
           <div>
-            Você concorda em não:
+            Você pode usar a Yue para:
           </div>
           <div>
-            • Tentar explorar falhas, burlar limites virtuais e de solicitações (farming ou automação) em módulos de entretenimento como jogos de Cara ou Coroa, comércio virtual ou resgate no gacha de Waifus.
+            • Gerenciar e moderar seu servidor com ferramentas automatizadas.
           </div>
           <div>
-            • Usar a Yue para assédio, mensagens indesejadas, coleta de dados pessoais ou qualquer violação enquadrada nas políticas do Discord.
+            • Configurar sistemas de entretenimento, como economia virtual e jogos.
           </div>
           <div>
-            • Inserir link fraudulento ou submeter envios maliciosos (como conteúdo adulto nas artes de fãs) abusando das ferramentas sociais e interativas propostas.
+            • Criar experiências interativas para sua comunidade.
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="text-base font-semibold">Uso proibido</div>
+          <div className="mt-1 text-sm text-muted-foreground">O que não é permitido.</div>
+        </CardHeader>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <div>
+            Você não pode:
+          </div>
+          <div>
+            • Tentar explorar falhas ou burlar limites em jogos de entretenimento virtual.
+          </div>
+          <div>
+            • Usar a Yue para assédio, spam ou coleta de dados pessoais de outros usuários.
+          </div>
+          <div>
+            • Inserir links fraudulentos ou submeter conteúdo maliciosoabusando das ferramentas sociais.
+          </div>
+          <div>
+            • Violar as políticas do Discord ou as leis aplicáveis.
           </div>
         </CardContent>
       </Card>
@@ -86,10 +109,32 @@ export default function TermsPage() {
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
-            Conteúdo criado por você (ex: mensagens, configurações, textos e templates) permanece sob sua responsabilidade.
+            Conteúdo criado por você (mensagens, configurações, textos e templates) permanece sob sua responsabilidade.
           </div>
           <div>
-            O painel pode armazenar esses dados para fornecer as funcionalidades solicitadas.
+            O painel armazena esses dados para fornecer as funcionalidades solicitadas.
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="text-base font-semibold">Contato e举报</div>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <div>
+            Para reportar violações destes Termos ou solicitar informações, entre em contato através do servidor de suporte da Yue no Discord.
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="text-base font-semibold">Lei aplicável</div>
+        </CardHeader>
+        <CardContent className="space-y-3 text-sm text-muted-foreground">
+          <div>
+            Estes Termos são regidos pelas leis do Brasil. Qualquer disputa será resolvida nos tribunais brasileiros.
           </div>
         </CardContent>
       </Card>
