@@ -50,3 +50,17 @@ code {
   background: rgba(255, 106, 0, 0.35);
   color: #f5f5f5;
 }
+
+/* Toast progress animation */
+@keyframes progress {
+  from {
+    width: 100%;
+  }
+  to {
+    width: 0%;
+  }
+}
+
+.animate-progress {
+  animation: progress linear forwards;
+}
