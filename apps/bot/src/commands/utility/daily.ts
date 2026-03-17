@@ -58,19 +58,48 @@ export const dailyCommand: Command = {
     if (!result.success) {
       if ('error' in result && result.error === 'cooldown') {
         const streakInfo = await dailyRewardService.getStreakInfo(userId)
+        const config = await dailyRewardService.getGuildConfig(guildId)
+        
+        const getNextMilestone = (streak: number): { days: number; bonus: string } => {
+          const milestones = [7, 14, 21, 30]
+          for (const m of milestones) {
+            if (streak < m) return { days: m, bonus: format_bigint(BigInt(m) * config.streakBonus) }
+          }
+          return { days: streak, bonus: format_bigint(BigInt(streak) * config.streakBonus) }
+        }
+        
+        const nextMilestone = getNextMilestone(streakInfo.streakCount)
+        
         const embed = new EmbedBuilder()
           .setColor(COLORS.WARNING)
           .setTitle(`${EMOJIS.WARNING} Recompensa já reivindicada`)
           .setDescription(`Você já reivindicou sua recompensa diária!`)
           .addFields([
             {
-              name: 'Sequência atual',
+              name: '🔥 Sequência atual',
               value: `${streakInfo.streakCount} dias`,
+              inline: true,
+            },
+            {
+              name: '⭐ Multiplicador',
+              value: streakInfo.streakCount > 1 
+                ? `${(Math.min(streakInfo.streakCount, config.maxStreakBonus)).toFixed(1)}x`
+                : '1.0x',
               inline: true,
             },
             {
               name: 'Próxima recompensa em',
               value: streakInfo.nextClaimAt ? formatTimeRemaining(streakInfo.nextClaimAt) : 'Agora',
+              inline: true,
+            },
+            {
+              name: '🎯 Próximo marco',
+              value: `${nextMilestone.days} dias (+${nextMilestone.bonus} luazinhas)`,
+              inline: true,
+            },
+            {
+              name: 'Total de reinvindicações',
+              value: `${streakInfo.totalClaims} dias`,
               inline: true,
             },
           ])
@@ -92,11 +121,35 @@ export const dailyCommand: Command = {
       ? `\n+Bônus de sequência: **${format_bigint(result.streakBonus)}** luazinhas`
       : ''
 
+    const streakMultiplier = result.newStreakCount > 1 
+      ? (Number(result.streakBonus) / Number(config.rewardAmount) * result.newStreakCount).toFixed(1)
+      : '1.0'
+
+    const getNextMilestone = (streak: number): { days: number; bonus: string } => {
+      const milestones = [7, 14, 21, 30]
+      for (const m of milestones) {
+        if (streak < m) return { days: m, bonus: format_bigint(BigInt(m) * config.streakBonus) }
+      }
+      return { days: streak, bonus: format_bigint(result.streakBonus) }
+    }
+
+    const nextMilestone = getNextMilestone(result.newStreakCount)
+
     const embed = new EmbedBuilder()
       .setColor(COLORS.SUCCESS)
       .setTitle(`${EMOJIS.SUCCESS} Recompensa diária recebida!`)
       .setDescription(`Você ganhou **${format_bigint(result.totalReward)}** luazinhas!${streakBonusText}`)
       .addFields([
+        {
+          name: '🔥 Sequência atual',
+          value: `**${result.newStreakCount} dias**`,
+          inline: true,
+        },
+        {
+          name: '⭐ Multiplicador',
+          value: `${streakMultiplier}x`,
+          inline: true,
+        },
         {
           name: 'Recompensa base',
           value: format_bigint(result.rewardAmount),
@@ -108,13 +161,13 @@ export const dailyCommand: Command = {
           inline: true,
         },
         {
-          name: 'Sequência atual',
-          value: `${result.newStreakCount} dias`,
+          name: '🎯 Próximo marco',
+          value: `${nextMilestone.days} dias (+${nextMilestone.bonus} luazinhas)`,
           inline: true,
         },
         {
           name: 'Total de reinvindicações',
-          value: `${result.newStreakCount} dias`,
+          value: `${result.newTotalClaims} dias`,
           inline: true,
         },
         {

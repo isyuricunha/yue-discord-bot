@@ -26,6 +26,7 @@ interface ClaimResult {
   streakBonus: bigint
   totalReward: bigint
   newStreakCount: number
+  newTotalClaims: number
   newBalance: bigint
 }
 
@@ -192,12 +193,18 @@ class DailyRewardService {
       select: { balance: true },
     })
 
+    const dailyRewardAfter = await prisma.userDailyReward.findUnique({
+      where: { userId },
+      select: { totalClaims: true },
+    })
+
     return {
       success: true,
       rewardAmount: config.rewardAmount,
       streakBonus,
       totalReward,
       newStreakCount,
+      newTotalClaims: dailyRewardAfter?.totalClaims ?? 0,
       newBalance: wallet?.balance ?? 0n,
     }
   }
