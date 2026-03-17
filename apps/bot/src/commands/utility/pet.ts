@@ -7,8 +7,13 @@ import { logger } from '../../utils/logger';
 import { safe_reply_ephemeral } from '../../utils/interaction'
 
 // Constants for Pet system limits
-const PET_DEGRADE_PER_HOUR = 5; 
+const PET_DEGRADE_PER_HOUR = 5;
 const PET_ACTION_COOLDOWN_MS = 1000 * 60 * 30; // 30 minutes
+
+// XP needed per level (exponential growth)
+function get_xp_for_level(level: number): number {
+  return Math.floor(100 * Math.pow(1.5, level - 1));
+}
 
 function get_pet_mood(happiness: number, hunger: number, energy: number) {
   if (happiness > 80 && hunger > 80 && energy > 80) return 'Feliz 😄';
@@ -16,6 +21,44 @@ function get_pet_mood(happiness: number, hunger: number, energy: number) {
   if (energy < 30) return 'Exausto 😴';
   if (happiness < 30) return 'Triste 😢';
   return 'Neutro 😐';
+}
+
+function create_progress_bar(value: number, max: number, length: number = 10): string {
+  const percentage = Math.max(0, Math.min(100, (value / max) * 100));
+  const filled = Math.round((percentage / 100) * length);
+  const empty = length - filled;
+  return '█'.repeat(filled) + '░'.repeat(empty);
+}
+
+function calculate_days_owned(createdAt: Date): number {
+  const now = new Date();
+  const diffTime = Math.abs(now.getTime() - createdAt.getTime());
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  return diffDays;
+}
+
+function format_last_interaction(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMinutes = Math.floor(diffMs / (1000 * 60));
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  if (diffMinutes < 1) return 'agora mesmo';
+  if (diffMinutes < 60) return `${diffMinutes} minuto${diffMinutes > 1 ? 's' : ''} atrás`;
+  if (diffHours < 24) return `${diffHours} hora${diffHours > 1 ? 's' : ''} atrás`;
+  return `${diffDays} dia${diffDays > 1 ? 's' : ''} atrás`;
+}
+
+function get_species_emoji(species: string): string {
+  const emojis: Record<string, string> = {
+    'Cachorro': '🐶',
+    'Gato': '🐱',
+    'Coelho': '🐰',
+    'Pinguim': '🐧',
+    'Raposa': '🦊',
+  };
+  return emojis[species] || '🐾';
 }
 
 function calculate_degradation(lastInteraction: Date) {
@@ -121,20 +164,44 @@ export const petCommand: Command = {
       });
     }
 
-    const { hunger, energy, happiness, name, species, level } = petVars;
+    const { hunger, energy, happiness, name, species, level, xp, createdAt, lastInteractionAt } = petVars;
 
     if (subcommand === 'status') {
       const mood = get_pet_mood(happiness, hunger, energy);
+      const daysOwned = calculate_days_owned(createdAt);
+      const lastInteraction = format_last_interaction(lastInteractionAt);
+      const speciesEmoji = get_species_emoji(species);
+      
+      // Calculate XP progress
+      const xpForCurrentLevel = get_xp_for_level(level);
+      const xpForNextLevel = get_xp_for_level(level + 1);
+      const xpProgress = xp - xpForCurrentLevel;
+      const xpNeeded = xpForNextLevel - xpForCurrentLevel;
+      const xpBar = create_progress_bar(xpProgress, xpNeeded, 10);
+
+      // Create progress bars for stats
+      const hungerBar = create_progress_bar(hunger, 100, 8);
+      const energyBar = create_progress_bar(energy, 100, 8);
+      const happinessBar = create_progress_bar(happiness, 100, 8);
+
       const embed = new EmbedBuilder()
         .setColor(COLORS.INFO)
-        .setTitle(`🐾 Perfil de ${name} (${species})`)
-        .setDescription(`Nível: **${level}** | Status: **${mood}**`)
+        .setTitle(`${speciesEmoji} ${name} - ${species}`)
+        .setDescription(`**Nível:** ${level} ${get_pet_mood(happiness, hunger, energy)}
+**XP:** ${xpBar} ${xp}/${xpNeeded}`)
         .addFields(
-          { name: '🍔 Fome', value: `${hunger}/100`, inline: true },
-          { name: '😴 Energia', value: `${energy}/100`, inline: true },
-          { name: '😄 Felicidade', value: `${happiness}/100`, inline: true }
+          { 
+            name: '📊 Estatísticas', 
+            value: `🍔 **Fome:** ${hungerBar} ${hunger}/100\n😴 **Energia:** ${energyBar} ${energy}/100\n😄 **Felicidade:** ${happinessBar} ${happiness}/100`,
+            inline: false 
+          },
+          { 
+            name: '📅 Informações', 
+            value: `🏠 **Tempo comigo:** ${daysOwned} dia${daysOwned !== 1 ? 's' : ''}\n⏰ **Última interação:** ${lastInteraction}`, 
+            inline: false 
+          }
         )
-        .setFooter({ text: 'Cuide bem dele interagindo com /pet alimentar, brincar ou dormir.' })
+        .setFooter({ text: 'Use /pet alimentar, /pet brincar ou /pet dormir para cuidar do seu pet!' })
         .setThumbnail(interaction.user.displayAvatarURL());
 
       return interaction.reply({ embeds: [embed] });
