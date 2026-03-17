@@ -107,6 +107,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const { haremCommand } = await import('./waifu/harem')
   const { marryCommand } = await import('./waifu/marry')
   const { divorceCommand } = await import('./waifu/divorce')
+  const { rankingCommand } = await import('./waifu/ranking')
 
   // Music commands
   const playCommand = (await import('./music/play')).default;
@@ -178,6 +179,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(haremCommand.data.name, haremCommand)
   commands.set(marryCommand.data.name, marryCommand)
   commands.set(divorceCommand.data.name, divorceCommand)
+  commands.set(rankingCommand.data.name, rankingCommand)
 
   // Register music commands
   commands.set(playCommand.data.name, playCommand)

@@ -953,6 +953,44 @@ class WaifuService {
     return { total, page, pageSize, rows }
   }
 
+  async points_rank_global(input: { page: number; pageSize: number }): Promise<{
+    total: number
+    page: number
+    pageSize: number
+    rows: { userId: string; totalValue: number; totalWaifus: number }[]
+  }> {
+    const page = Math.max(1, input.page)
+    const pageSize = Math.min(25, Math.max(1, input.pageSize))
+
+    // Aggregate totalValue and count claims per user across all guilds
+    const aggregated = await prisma.waifuUserState.groupBy({
+      by: ['userId'],
+      _sum: { totalValue: true },
+      orderBy: [{ _sum: { totalValue: 'desc' } }, { userId: 'asc' }],
+    })
+
+    const total = aggregated.length
+    const paginated = aggregated.slice((page - 1) * pageSize, page * pageSize)
+
+    // Get total waifu count for each user (sum of claims across all guilds)
+    const userIds = paginated.map((u) => u.userId)
+    const waifuCounts = await prisma.waifuClaim.groupBy({
+      by: ['userId'],
+      where: { userId: { in: userIds } },
+      _count: { characterId: true },
+    })
+
+    const waifuCountMap = new Map(waifuCounts.map((w) => [w.userId, w._count.characterId]))
+
+    const rows = paginated.map((u) => ({
+      userId: u.userId,
+      totalValue: u._sum.totalValue ?? 0,
+      totalWaifus: waifuCountMap.get(u.userId) ?? 0,
+    }))
+
+    return { total, page, pageSize, rows }
+  }
+
   async divorce(input: { guildId: string; userId: string; query: string }) {
     const q = input.query.trim()
     if (!q) return { success: false as const, error: 'invalid_query' as const, message: 'Informe o nome do personagem.' }
