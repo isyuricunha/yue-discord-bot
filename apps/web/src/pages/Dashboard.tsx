@@ -3,11 +3,20 @@ import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { Settings, Shield, Trophy, Plus } from 'lucide-react'
 
-import { getApiUrl } from '../env'
+import { getApiUrl, getDiscordClientId } from '../env'
 import { Card, CardContent, Skeleton, Button } from '../components/ui'
 import { useAuthStore } from '../store/auth'
 
 const API_URL = getApiUrl()
+
+function buildInviteUrl(clientId: string) {
+  const params = new URLSearchParams({
+    client_id: clientId,
+    scope: 'bot applications.commands',
+    permissions: '0',
+  })
+  return `https://discord.com/api/oauth2/authorize?${params.toString()}`
+}
 
 interface Guild {
   id: string
@@ -18,6 +27,9 @@ interface Guild {
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+
+  const clientId = getDiscordClientId()
+  const inviteUrl = clientId ? buildInviteUrl(clientId) : null
 
   const { data: guilds, isLoading } = useQuery({
     queryKey: ['guilds'],
@@ -42,8 +54,7 @@ export default function DashboardPage() {
           variant="outline"
           size="sm"
           className="h-10 w-10 px-0 sm:w-auto sm:px-3"
-          onClick={() => window.open('https://discord.com/oauth2/authorize', '_blank')}
-          title="Adicionar bot a um servidor"
+          onClick={() => inviteUrl ? window.open(inviteUrl, '_blank') : undefined}
         >
           <Plus className="h-4 w-4 sm:mr-2" />
           <span className="hidden sm:inline">Adicionar servidor</span>
@@ -136,7 +147,7 @@ export default function DashboardPage() {
             {!user?.isOwner && (
               <Button
                 className="mt-4"
-                onClick={() => window.open('https://discord.com/oauth2/authorize', '_blank')}
+                onClick={() => inviteUrl ? window.open(inviteUrl, '_blank') : undefined}
               >
                 <Plus className="mr-2 h-4 w-4" />
                 Adicionar bot ao servidor
