@@ -235,7 +235,10 @@ export async function membersRoutes(fastify: FastifyInstance) {
 
         // If it's a user/action error (4xx), return it as-is so the UI can show the real reason.
         if (upstream_status >= 400 && upstream_status < 500) {
-          return reply.code(upstream_status).send({ error: upstream_error ?? 'Request rejected by bot' })
+          const message = upstream_error && upstream_error.trim().length > 0
+            ? upstream_error
+            : `Request rejected by bot (status ${upstream_status})`
+          return reply.code(upstream_status).send({ error: message })
         }
 
         request.log.error(
