@@ -1,6 +1,6 @@
 import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, EmbedBuilder } from 'discord.js'
 import { prisma } from '@yuebot/database'
-import { normalize_giveaway_items_list } from '@yuebot/shared'
+import { normalize_giveaway_items_list, COLORS, EMOJIS } from '@yuebot/shared'
 import { assign_giveaway_prizes } from './giveawayPrizeAssignment.logic'
 import { logger } from '../utils/logger'
 import { getSendableChannel } from '../utils/discord'
@@ -378,20 +378,63 @@ export class GiveawayScheduler {
   }
 
   private async notifyWinners(giveaway: any, winners: any[]) {
+    // Buscar o nome do servidor
+    let serverName = 'Servidor desconhecido'
+    try {
+      const guild = await this.client.guilds.fetch(giveaway.guildId).catch(() => null)
+      if (guild) {
+        serverName = guild.name
+      }
+    } catch (error) {
+      logger.warn({ err: safe_error_details(error) }, 'Erro ao buscar nome do servidor para DM de vencedor')
+    }
+
     for (const winner of winners) {
       try {
         const user = await this.client.users.fetch(winner.userId)
         
-        let message = `🎉 **Parabéns! Você ganhou no sorteio "${giveaway.title}"!**\n\n`
-        
-        if (winner.prize) {
-          message += `🎁 **Seu prêmio:** ${winner.prize}\n\n`
-        }
-        
-        message += `Servidor: ${giveaway.guildId}\n`
-        message += `Data: ${new Date().toLocaleString('pt-BR')}`
-        
-        await user.send(message)
+        // Criar embed profissional para o vencedor
+        const winnerEmbed = new EmbedBuilder()
+          .setColor(COLORS.GIVEAWAY)
+          .setTitle(`${EMOJIS.GIVEAWAY} Parabéns! Você ganhou um sorteio!`)
+          .setDescription(
+            `Você foi selecionado como vencedor no sorteio: **${giveaway.title}**`
+          )
+          .addFields(
+            { 
+              name: '🎁 Sorteio', 
+              value: giveaway.title, 
+              inline: true 
+            },
+            { 
+              name: '🏠 Servidor', 
+              value: serverName, 
+              inline: true 
+            },
+            ...(winner.prize 
+              ? [{ name: '🎯 Prêmio', value: winner.prize, inline: false } as any]
+              : []
+            ),
+            { 
+              name: '📅 Data', 
+              value: new Date().toLocaleString('pt-BR', { 
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }), 
+              inline: true 
+            }
+          )
+          .setFooter({ 
+            text: 'Obrigado por participar! 🎉',
+            iconURL: this.client.user?.avatarURL() || undefined
+          })
+          .setTimestamp()
+
+        await user.send({ embeds: [winnerEmbed] })
         
         // Marcar como notificado
         await prisma.giveawayWinner.updateMany({
@@ -402,9 +445,10 @@ export class GiveawayScheduler {
           data: { notified: true }
         })
         
-        logger.info(`DM enviado para vencedor ${winner.username}`)
+        logger.info({ winnerId: winner.userId, giveawayId: giveaway.id }, 'DM de vencedor enviado com sucesso')
       } catch (error) {
-        logger.error({ err: safe_error_details(error) }, `Erro ao enviar DM para ${winner.username}`)
+        // Usuário pode ter DM desativado - não é um erro crítico
+        logger.warn({ err: safe_error_details(error), winnerId: winner.userId }, 'Não foi possível enviar DM para vencedor (provavelmente tem DM desativado)')
       }
     }
   }
