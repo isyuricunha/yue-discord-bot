@@ -7,12 +7,15 @@ import { Seo } from '../seo/seo'
 import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
 import { CommandPalette } from '../command_palette'
+import { useKeyboardShortcuts } from '../../hooks/use_keyboard'
 
 const STORAGE_KEY = 'yuebot-sidebar-collapsed'
 
 export function AppShell() {
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
+  
+  useKeyboardShortcuts()
 
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY)
