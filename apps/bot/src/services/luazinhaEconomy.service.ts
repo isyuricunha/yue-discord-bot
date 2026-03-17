@@ -10,6 +10,10 @@ type admin_adjust_result =
   | { success: true; balance: bigint }
   | { success: false; error: 'invalid_amount' | 'insufficient_funds' }
 
+type deduct_tax_result =
+  | { success: true; newBalance: bigint }
+  | { success: false; error: 'insufficient_funds' | 'invalid_amount' }
+
 type tx_client = Prisma.TransactionClient
 
 function normalize_amount(input: bigint): bigint {
@@ -190,6 +194,42 @@ class LuazinhaEconomyService {
       })
 
       return { success: true as const, balance: updated.balance }
+    })
+  }
+
+  async deduct_tax(input: { user_id: string; amount: bigint; guild_id?: string | null; reason?: string | null }): Promise<deduct_tax_result> {
+    const amount = normalize_amount(input.amount)
+    if (amount <= 0n) return { success: false as const, error: 'invalid_amount' }
+
+    return await with_serializable_retry(async (tx) => {
+      const wallet = await tx.wallet.upsert({
+        where: { userId: input.user_id },
+        update: {},
+        create: { userId: input.user_id, balance: 0n },
+        select: { balance: true },
+      })
+
+      if (wallet.balance < amount) {
+        return { success: false as const, error: 'insufficient_funds' }
+      }
+
+      const updated = await tx.wallet.update({
+        where: { userId: input.user_id },
+        data: { balance: { decrement: amount } },
+        select: { balance: true },
+      })
+
+      await tx.luazinhaTransaction.create({
+        data: {
+          type: 'tax',
+          amount,
+          fromUserId: input.user_id,
+          guildId: input.guild_id ?? null,
+          reason: input.reason ?? null,
+        },
+      })
+
+      return { success: true as const, newBalance: updated.balance }
     })
   }
 }

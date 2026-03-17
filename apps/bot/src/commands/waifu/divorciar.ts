@@ -6,6 +6,7 @@ import { EMOJIS } from '@yuebot/shared'
 import type { Command } from '../index'
 
 import { waifuService } from '../../services/waifu.service'
+import { format_bigint } from '../../utils/bigint'
 
 export const divorciarCommand: Command = {
   data: new SlashCommandBuilder()
@@ -38,6 +39,10 @@ export const divorciarCommand: Command = {
       return
     }
 
-    await interaction.editReply({ content: `${EMOJIS.SUCCESS} Você se divorciou de **${res.characterName}**.` })
+    await interaction.editReply({ 
+      content: `${EMOJIS.SUCCESS} Você se divorciou de **${res.characterName}**.\n\n` +
+               `Taxa de divórcio: **${format_bigint(res.taxPaid)}** luazinhas\n` +
+               `Seu novo saldo: **${format_bigint(res.newBalance)}** luazinhas`
+    })
   },
 }

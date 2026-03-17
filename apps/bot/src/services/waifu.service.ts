@@ -2,6 +2,7 @@ import { prisma, Prisma } from '@yuebot/database'
 
 import { aniListService } from './anilist.service'
 import { inventoryService } from './inventory.service'
+import { luazinhaEconomyService } from './luazinhaEconomy.service'
 
 type waifu_source = 'ANILIST'
 
@@ -93,6 +94,7 @@ const ROLL_EXPIRES_MS = 45 * 1000
 const ROLL_WINDOW_MS = 120 * 1000
 const ROLL_MAX_USES = 5
 const SNIPE_PROTECT_MS = 8 * 1000
+const DIVORCE_TAX_AMOUNT = 1000n
 
 async function with_serializable_retry<T>(fn: (tx: tx_client) => Promise<T>, max_attempts = 5): Promise<T> {
   let attempt = 0
@@ -995,6 +997,16 @@ class WaifuService {
     const q = input.query.trim()
     if (!q) return { success: false as const, error: 'invalid_query' as const, message: 'Informe o nome do personagem.' }
 
+    // Check user's luazinhas balance for divorce tax
+    const { balance } = await luazinhaEconomyService.get_balance(input.userId)
+    if (balance < DIVORCE_TAX_AMOUNT) {
+      return {
+        success: false as const,
+        error: 'insufficient_funds' as const,
+        message: `Você precisa de ${DIVORCE_TAX_AMOUNT} luazinhas para se divorciar. Você tem apenas ${balance} luazinhas.`,
+      }
+    }
+
     const matches = await prisma.waifuClaim.findMany({
       where: {
         guildId: input.guildId,
@@ -1021,6 +1033,23 @@ class WaifuService {
     }
 
     const target = matches[0]
+
+    // Deduct divorce tax
+    const taxResult = await luazinhaEconomyService.deduct_tax({
+      user_id: input.userId,
+      amount: DIVORCE_TAX_AMOUNT,
+      guild_id: input.guildId,
+      reason: `Divórcio de ${target.character.name}`,
+    })
+
+    if (!taxResult.success) {
+      return {
+        success: false as const,
+        error: 'insufficient_funds' as const,
+        message: 'Saldo insuficiente para pagar a taxa de divórcio.',
+      }
+    }
+
     await prisma.waifuClaim.delete({ where: { id: target.id } })
 
     const value = target.valueAtClaim ?? 0
@@ -1036,7 +1065,7 @@ class WaifuService {
       })
     }
 
-    return { success: true as const, characterName: target.character.name }
+    return { success: true as const, characterName: target.character.name, taxPaid: DIVORCE_TAX_AMOUNT, newBalance: taxResult.newBalance }
   }
 
   async info(input: { guildId: string; query: string }) {
