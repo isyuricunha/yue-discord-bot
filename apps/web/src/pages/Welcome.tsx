@@ -2,15 +2,18 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { Save } from 'lucide-react'
+import { Save, Eye, MessageSquare, UserMinus } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, ErrorState, Select, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, CardHeader, ErrorState, Select, Skeleton } from '../components/ui'
 import { MessageVariantEditor } from '../components/message_variant_editor'
 import { PlaceholderChips } from '../components/template_placeholders'
 import { validate_extended_template_variants } from '../lib/message_template'
 import { toast_error, toast_success } from '../store/toast'
-
+import {
+  pick_discord_message_template_variant,
+  render_discord_message_template,
+} from '@yuebot/shared'
 import template_placeholders from '@yuebot/shared/template_placeholders'
 
 const API_URL = getApiUrl()
@@ -38,8 +41,43 @@ type welcome_config_response = {
   }
 }
 
+type preview_type = 'welcome' | 'leave'
+
+// Sample data for preview
+const preview_user = {
+  id: '123456789012345678',
+  username: 'NovoMembro',
+  tag: 'NovoMembro#1234',
+  avatarUrl: 'https://cdn.discordapp.com/embed/avatars/0.png',
+  nickname: undefined,
+}
+
+const preview_guild = {
+  id: '987654321098765432',
+  name: 'Meu Servidor Discord',
+  memberCount: 150,
+  iconUrl: 'https://cdn.discordapp.com/embed/avatars/1.png',
+}
+
 function channel_label(channel: api_channel) {
   return `#${channel.name}`
+}
+
+function render_preview(template: string) {
+  if (!template.trim()) {
+    return null
+  }
+
+  // Pick a variant (use fixed seed for consistent preview)
+  const chosen = pick_discord_message_template_variant(template, () => 0.5)
+
+  // Render with preview data
+  const rendered = render_discord_message_template(chosen, {
+    user: preview_user,
+    guild: preview_guild,
+  })
+
+  return rendered
 }
 
 export default function WelcomePage() {
@@ -78,6 +116,8 @@ export default function WelcomePage() {
   const [leave_channel_id, set_leave_channel_id] = useState('')
   const [welcome_message, set_welcome_message] = useState('')
   const [leave_message, set_leave_message] = useState('')
+  const [preview_type, set_preview_type] = useState<preview_type>('welcome')
+  const [show_preview, set_show_preview] = useState(false)
 
   const has_initialized = useRef(false)
 
@@ -101,6 +141,12 @@ export default function WelcomePage() {
   }, [leave_message])
 
   const has_errors = Boolean(welcome_validation) || Boolean(leave_validation)
+
+  const current_preview_message = preview_type === 'welcome' ? welcome_message : leave_message
+  const preview_rendered = useMemo(() => {
+    if (!show_preview) return null
+    return render_preview(current_preview_message)
+  }, [current_preview_message, show_preview])
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -136,6 +182,18 @@ export default function WelcomePage() {
         >
           <Save className="h-4 w-4" />
           <span>Salvar</span>
+        </Button>
+      </div>
+
+      {/* Preview Toggle Button */}
+      <div className="flex items-center gap-2">
+        <Button
+          variant="outline"
+          onClick={() => set_show_preview(!show_preview)}
+          className="shrink-0"
+        >
+          <Eye className="h-4 w-4" />
+          <span>{show_preview ? 'Ocultar visualização' : 'Visualizar mensagem'}</span>
         </Button>
       </div>
 
@@ -246,18 +304,8 @@ export default function WelcomePage() {
                         <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
                           <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
                           <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
-{JSON.stringify(
-  {
-    content: '{@user}',
-    embed: {
-      title: 'Bem-vindo(a)!',
-      description: '{user.tag} entrou no {guild}',
-      color: 16742144,
-    },
-  },
-  null,
-  2
-)}</pre>
+                            {"Bem-vindo {@user} ao {guild}! Agora somos {guild-size} membros."}
+                          </pre>
                         </div>
                       </div>
 
@@ -272,6 +320,125 @@ export default function WelcomePage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Preview Section */}
+      {show_preview && (
+        <Card className="border-accent/40 bg-accent/5">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="text-sm font-semibold">Visualização</div>
+              <div className="flex gap-1">
+                <Button
+                  variant={preview_type === 'welcome' ? 'solid' : 'outline'}
+                  size="sm"
+                  onClick={() => set_preview_type('welcome')}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  <span>Boas-vindas</span>
+                </Button>
+                <Button
+                  variant={preview_type === 'leave' ? 'solid' : 'outline'}
+                  size="sm"
+                  onClick={() => set_preview_type('leave')}
+                >
+                  <UserMinus className="h-4 w-4" />
+                  <span>Saída</span>
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="pt-0">
+            {preview_rendered ? (
+              <div className="rounded-lg border border-border/60 bg-background/80 p-4">
+                {/* User info in preview */}
+                <div className="mb-3 flex items-center gap-3 border-b border-border/40 pb-3">
+                  <img
+                    src={preview_user.avatarUrl}
+                    alt={preview_user.username}
+                    className="h-12 w-12 rounded-full"
+                  />
+                  <div>
+                    <div className="font-semibold">{preview_user.username}</div>
+                    <div className="text-xs text-muted-foreground">
+                      {preview_guild.name} • {preview_guild.memberCount} membros
+                    </div>
+                  </div>
+                </div>
+
+                {/* Message content */}
+                {preview_rendered.content && (
+                  <div className="mb-3 whitespace-pre-wrap text-sm">{preview_rendered.content}</div>
+                )}
+
+                {/* Embed preview */}
+                {preview_rendered.embeds && preview_rendered.embeds[0] && (
+                  <div
+                    className="rounded-lg border border-border/60 p-3"
+                    style={{
+                      backgroundColor: 'var(--card)',
+                      borderColor: 'var(--border)',
+                    }}
+                  >
+                    {preview_rendered.embeds[0].author && (
+                      <div className="mb-2 flex items-center gap-2">
+                        {preview_rendered.embeds[0].author.icon_url && (
+                          <img
+                            src={preview_rendered.embeds[0].author.icon_url}
+                            alt=""
+                            className="h-6 w-6 rounded-full"
+                          />
+                        )}
+                        <span className="text-xs font-semibold">{preview_rendered.embeds[0].author.name}</span>
+                      </div>
+                    )}
+                    {preview_rendered.embeds[0].title && (
+                      <div className="text-sm font-semibold" style={{ color: preview_rendered.embeds[0].color ? `#${preview_rendered.embeds[0].color.toString(16).padStart(6, '0')}` : undefined }}>
+                        {preview_rendered.embeds[0].title}
+                      </div>
+                    )}
+                    {preview_rendered.embeds[0].description && (
+                      <div className="mt-1 text-sm text-muted-foreground whitespace-pre-wrap">
+                        {preview_rendered.embeds[0].description}
+                      </div>
+                    )}
+                    {preview_rendered.embeds[0].thumbnail && (
+                      <div className="mt-2">
+                        <img
+                          src={preview_rendered.embeds[0].thumbnail.url}
+                          alt=""
+                          className="max-h-32 rounded"
+                        />
+                      </div>
+                    )}
+                    {preview_rendered.embeds[0].footer && (
+                      <div className="mt-2 border-t border-border/40 pt-2">
+                        <div className="flex items-center gap-2">
+                          {preview_rendered.embeds[0].footer.icon_url && (
+                            <img
+                              src={preview_rendered.embeds[0].footer.icon_url}
+                              alt=""
+                              className="h-4 w-4 rounded-full"
+                            />
+                          )}
+                          <span className="text-xs text-muted-foreground">{preview_rendered.embeds[0].footer.text}</span>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                <div className="mt-3 text-xs text-muted-foreground">
+                  Esta é uma visualização com dados de exemplo.
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-lg border border-border/60 bg-background/80 p-6 text-center text-sm text-muted-foreground">
+                {preview_type === 'welcome' ? 'Digite uma mensagem de boas-vindas para visualizar.' : 'Digite uma mensagem de saída para visualizar.'}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card className="border-accent/20">
         <CardContent className="p-6 text-sm text-muted-foreground">
