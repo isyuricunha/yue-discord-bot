@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
+import { useState, useMemo } from 'react'
 import axios from 'axios'
-import { Settings, Shield, Trophy } from 'lucide-react'
+import { Settings, Shield, Trophy, Search, Plus } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Card, CardContent, Skeleton } from '../components/ui'
+import { Card, CardContent, Skeleton, Input, Button } from '../components/ui'
 import { useAuthStore } from '../store/auth'
 
 const API_URL = getApiUrl()
@@ -18,6 +19,7 @@ interface Guild {
 export default function DashboardPage() {
   const navigate = useNavigate()
   const { user } = useAuthStore()
+  const [searchQuery, setSearchQuery] = useState('')
 
   const { data, isLoading } = useQuery({
     queryKey: ['guilds'],
@@ -27,14 +29,46 @@ export default function DashboardPage() {
     },
   })
 
+  const filteredGuilds = useMemo(() => {
+    if (!data) return []
+    if (!searchQuery.trim()) return data
+    return data.filter((guild) =>
+      guild.name.toLowerCase().includes(searchQuery.toLowerCase())
+    )
+  }, [data, searchQuery])
+
+  const hasNoResults = !isLoading && filteredGuilds.length === 0 && searchQuery.trim().length > 0
+
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div>
-        <div className="text-2xl font-semibold tracking-tight">Seus servidores</div>
-        <div className="mt-1 text-sm text-muted-foreground">
-          {user?.isOwner
-            ? 'Você está em modo owner - acesso total aos servidores onde o bot está instalado.'
-            : 'Selecione um servidor para gerenciar'}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <div className="text-2xl font-semibold tracking-tight">Seus servidores</div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            {user?.isOwner
+              ? 'Você está em modo owner - acesso total aos servidores onde o bot está instalado.'
+              : 'Selecione um servidor para gerenciar'}
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Buscar servidor..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-full pl-9 sm:w-[240px]"
+            />
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10 w-10 px-0"
+            onClick={() => window.open('https://discord.com/oauth2/authorize', '_blank')}
+            title="Adicionar bot a um servidor"
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
         </div>
       </div>
 
@@ -59,9 +93,28 @@ export default function DashboardPage() {
             </Card>
           ))}
         </div>
+      ) : hasNoResults ? (
+        <Card>
+          <CardContent className="p-8 text-center">
+            <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-surface/60">
+              <Search className="h-5 w-5 text-muted-foreground" />
+            </div>
+            <div className="text-base font-semibold">Nenhum servidor encontrado</div>
+            <div className="mt-1 text-sm text-muted-foreground">
+              Tente ajustar sua busca ou adicione o bot a um novo servidor.
+            </div>
+            <Button
+              variant="outline"
+              className="mt-4"
+              onClick={() => setSearchQuery('')}
+            >
+              Limpar busca
+            </Button>
+          </CardContent>
+        </Card>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {data?.map((guild) => (
+          {filteredGuilds.map((guild) => (
             <Card
               key={guild.id}
               className="group cursor-pointer transition-colors hover:border-accent/40"
@@ -111,13 +164,25 @@ export default function DashboardPage() {
 
       {!isLoading && data?.length === 0 && (
         <Card>
-          <CardContent className="p-6 text-center">
+          <CardContent className="p-8 text-center">
+            <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-surface/60">
+              <Plus className="h-5 w-5 text-muted-foreground" />
+            </div>
             <div className="text-base font-semibold">Nenhum servidor encontrado</div>
             <div className="mt-2 text-sm text-muted-foreground">
               {user?.isOwner
                 ? 'O bot ainda não sincronizou nenhum servidor no banco. Verifique se ele está online e conectado.'
                 : 'Convide o bot para seus servidores onde você é administrador.'}
             </div>
+            {!user?.isOwner && (
+              <Button
+                className="mt-4"
+                onClick={() => window.open('https://discord.com/oauth2/authorize', '_blank')}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Adicionar bot ao servidor
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}

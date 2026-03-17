@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
+import { useMemo } from 'react'
 import axios from 'axios'
 import {
   BarChart3,
@@ -30,9 +31,169 @@ interface Guild {
   icon: string | null
 }
 
+type module_card = {
+  to: string
+  label: string
+  description: string
+  icon: React.ReactNode
+  category: 'essentials' | 'automation' | 'engagement' | 'support' | 'admin'
+}
+
+function useGuildModules(guildId: string) {
+  return useMemo(() => {
+    const modules: module_card[] = [
+      {
+        to: `/guild/${guildId}/setup`,
+        label: 'Setup Wizard',
+        description: 'Configuração guiada inicial',
+        icon: <Wand2 className="h-5 w-5" />,
+        category: 'essentials',
+      },
+      {
+        to: `/guild/${guildId}/overview`,
+        label: 'Visão geral',
+        description: 'Estatísticas e resumo',
+        icon: <BarChart3 className="h-5 w-5" />,
+        category: 'essentials',
+      },
+      {
+        to: `/guild/${guildId}/commands`,
+        label: 'Comandos',
+        description: 'Lista do que o bot oferece',
+        icon: <TerminalSquare className="h-5 w-5" />,
+        category: 'essentials',
+      },
+      {
+        to: `/guild/${guildId}/automod`,
+        label: 'AutoMod',
+        description: 'Moderação automática',
+        icon: <Shield className="h-5 w-5" />,
+        category: 'automation',
+      },
+      {
+        to: `/guild/${guildId}/moderation`,
+        label: 'Moderação',
+        description: 'Punições e automação',
+        icon: <Shield className="h-5 w-5" />,
+        category: 'automation',
+      },
+      {
+        to: `/guild/${guildId}/welcome`,
+        label: 'Boas-vindas',
+        description: 'Mensagens automáticas',
+        icon: <Sparkles className="h-5 w-5" />,
+        category: 'automation',
+      },
+      {
+        to: `/guild/${guildId}/autorole`,
+        label: 'Autorole',
+        description: 'Cargos para novos membros',
+        icon: <UserPlus className="h-5 w-5" />,
+        category: 'automation',
+      },
+      {
+        to: `/guild/${guildId}/xp`,
+        label: 'XP & Níveis',
+        description: 'Sistema de ranking',
+        icon: <Sparkles className="h-5 w-5" />,
+        category: 'engagement',
+      },
+      {
+        to: `/guild/${guildId}/reaction-roles`,
+        label: 'Reaction Roles',
+        description: 'Painéis de cargos',
+        icon: <MousePointerClick className="h-5 w-5" />,
+        category: 'engagement',
+      },
+      {
+        to: `/guild/${guildId}/starboard`,
+        label: 'Starboard',
+        description: 'Destaque mensagens',
+        icon: <Star className="h-5 w-5" />,
+        category: 'engagement',
+      },
+      {
+        to: `/guild/${guildId}/suggestions`,
+        label: 'Sugestões',
+        description: 'Canal de ideias',
+        icon: <Lightbulb className="h-5 w-5" />,
+        category: 'engagement',
+      },
+      {
+        to: `/guild/${guildId}/custom-commands`,
+        label: 'Custom Commands',
+        description: 'Comandos personalizados',
+        icon: <TerminalSquare className="h-5 w-5" />,
+        category: 'engagement',
+      },
+      {
+        to: `/guild/${guildId}/music`,
+        label: 'Música',
+        description: 'Player e playlists',
+        icon: <TerminalSquare className="h-5 w-5" />,
+        category: 'engagement',
+      },
+      {
+        to: `/guild/${guildId}/tickets`,
+        label: 'Tickets',
+        description: 'Suporte e painel',
+        icon: <LifeBuoy className="h-5 w-5" />,
+        category: 'support',
+      },
+      {
+        to: `/guild/${guildId}/members`,
+        label: 'Membros',
+        description: 'Gerenciar usuários',
+        icon: <Users className="h-5 w-5" />,
+        category: 'admin',
+      },
+      {
+        to: `/guild/${guildId}/giveaways`,
+        label: 'Sorteios',
+        description: 'Criar e gerenciar',
+        icon: <Trophy className="h-5 w-5" />,
+        category: 'admin',
+      },
+      {
+        to: `/guild/${guildId}/settings`,
+        label: 'Configurações',
+        description: 'Preferências gerais',
+        icon: <Settings className="h-5 w-5" />,
+        category: 'admin',
+      },
+      {
+        to: `/guild/${guildId}/modlogs`,
+        label: 'Logs',
+        description: 'Histórico de ações',
+        icon: <FileText className="h-5 w-5" />,
+        category: 'admin',
+      },
+      {
+        to: `/guild/${guildId}/audit`,
+        label: 'Audit',
+        description: 'Eventos importantes',
+        icon: <ClipboardList className="h-5 w-5" />,
+        category: 'admin',
+      },
+    ]
+    return modules
+  }, [guildId])
+}
+
+const category_labels: Record<module_card['category'], string> = {
+  essentials: 'Primeiros passos',
+  automation: 'Automação',
+  engagement: 'Engajamento',
+  support: 'Suporte',
+  admin: 'Administração',
+}
+
+const category_order: module_card['category'][] = ['essentials', 'automation', 'engagement', 'support', 'admin']
+
 export default function GuildPage() {
   const { guildId } = useParams()
   const navigate = useNavigate()
+  const modules = useGuildModules(guildId ?? '')
 
   const { data: guild, isLoading } = useQuery({
     queryKey: ['guild-summary', guildId],
@@ -41,6 +202,14 @@ export default function GuildPage() {
       return response.data.guild as Guild
     },
   })
+
+  const groupedModules = useMemo(() => {
+    const grouped: Record<string, module_card[]> = {}
+    for (const cat of category_order) {
+      grouped[cat] = modules.filter((m: module_card) => m.category === cat)
+    }
+    return grouped
+  }, [modules])
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -80,296 +249,45 @@ export default function GuildPage() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/setup`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Wand2 className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Setup Wizard</div>
-                <div className="text-xs text-muted-foreground">Configuração guiada</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {!isLoading &&
+        category_order.map((category) => {
+          const items = groupedModules[category]
+          if (!items || items.length === 0) return null
 
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/automod`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Shield className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">AutoMod</div>
-                <div className="text-xs text-muted-foreground">Moderação automática</div>
+          return (
+            <div key={category} className="space-y-3">
+              <div className="flex items-center gap-2 px-1">
+                <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
+                  {category_labels[category]}
+                </h2>
+                <div className="h-px flex-1 bg-border/60" />
+              </div>
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {items.map((item) => (
+                  <Card
+                    key={item.to}
+                    className="group cursor-pointer transition-all hover:border-accent/40 hover:shadow-sm"
+                    onClick={() => navigate(item.to)}
+                  >
+                    <CardContent className="p-5">
+                      <div className="flex items-center gap-3">
+                        <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent transition-colors group-hover:bg-accent/10">
+                          {item.icon}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-semibold group-hover:text-accent transition-colors">
+                            {item.label}
+                          </div>
+                          <div className="text-xs text-muted-foreground">{item.description}</div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/autorole`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <UserPlus className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Autorole</div>
-                <div className="text-xs text-muted-foreground">Cargos para novos membros</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/commands`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <TerminalSquare className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Comandos</div>
-                <div className="text-xs text-muted-foreground">Lista do que o bot oferece</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/welcome`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Sparkles className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Boas-vindas</div>
-                <div className="text-xs text-muted-foreground">Mensagens e canais automáticos</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/settings`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Settings className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Configurações</div>
-                <div className="text-xs text-muted-foreground">Preferências do servidor</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/modlogs`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <FileText className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Logs</div>
-                <div className="text-xs text-muted-foreground">Histórico de ações</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/audit`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <ClipboardList className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Audit</div>
-                <div className="text-xs text-muted-foreground">Eventos importantes do servidor</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/members`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Users className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Membros</div>
-                <div className="text-xs text-muted-foreground">Gerenciar usuários</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/moderation`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Shield className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Moderação</div>
-                <div className="text-xs text-muted-foreground">Configurações de punição e automação</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/giveaways`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Trophy className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Sorteios</div>
-                <div className="text-xs text-muted-foreground">Criar e gerenciar</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/overview`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <BarChart3 className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Visão geral</div>
-                <div className="text-xs text-muted-foreground">Estatísticas e resumo</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/xp`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Sparkles className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">XP</div>
-                <div className="text-xs text-muted-foreground">Níveis e recompensas</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/tickets`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <LifeBuoy className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Tickets</div>
-                <div className="text-xs text-muted-foreground">Suporte e painel</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/suggestions`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Lightbulb className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Sugestões</div>
-                <div className="text-xs text-muted-foreground">Canal e lista</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/reaction-roles`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <MousePointerClick className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Reaction Roles</div>
-                <div className="text-xs text-muted-foreground">Painéis de cargos</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card
-          className="group cursor-pointer transition-colors hover:border-accent/40"
-          onClick={() => navigate(`/guild/${guildId}/starboard`)}
-        >
-          <CardContent className="p-5">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Star className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-sm font-semibold">Starboard</div>
-                <div className="text-xs text-muted-foreground">Canal de estrelas</div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+          )
+        })}
     </div>
   )
 }

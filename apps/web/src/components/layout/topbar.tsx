@@ -1,14 +1,61 @@
 import { useMemo } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
-import { LogOut, ExternalLink } from 'lucide-react'
+import { useLocation, useNavigate, useParams, Link } from 'react-router-dom'
+import { LogOut, ExternalLink, ChevronRight, Home, LayoutDashboard } from 'lucide-react'
 
 import { useAuthStore } from '../../store/auth'
 import { cn } from '../../lib/cn'
 import { Button } from '../ui'
 
-function truncate_middle(value: string, start = 6, end = 4) {
-  if (value.length <= start + end + 3) return value
-  return `${value.slice(0, start)}...${value.slice(-end)}`
+type breadcrumb_item = {
+  label: string
+  to?: string
+  icon?: React.ReactNode
+}
+
+function useBreadcrumbs(guildId: string | undefined, location: { pathname: string }) {
+  return useMemo(() => {
+    const path = location.pathname
+    const crumbs: breadcrumb_item[] = [{ label: 'Painel', to: '/', icon: <Home className="h-3.5 w-3.5" /> }]
+
+    if (guildId) {
+      crumbs.push({
+        label: 'Servidor',
+        to: `/guild/${guildId}`,
+        icon: <LayoutDashboard className="h-3.5 w-3.5" />,
+      })
+    }
+
+    const segments: Record<string, { label: string; parent?: string }> = {
+      overview: { label: 'Visão geral' },
+      automod: { label: 'AutoMod' },
+      modlogs: { label: 'Logs' },
+      moderation: { label: 'Moderação' },
+      members: { label: 'Membros' },
+      giveaways: { label: 'Sorteios' },
+      settings: { label: 'Configurações' },
+      welcome: { label: 'Boas-vindas' },
+      xp: { label: 'XP' },
+      autorole: { label: 'Autorole' },
+      tickets: { label: 'Tickets' },
+      suggestions: { label: 'Sugestões' },
+      'reaction-roles': { label: 'Reaction Roles' },
+      starboard: { label: 'Starboard' },
+      audit: { label: 'Audit' },
+      commands: { label: 'Comandos' },
+      setup: { label: 'Setup' },
+      'custom-commands': { label: 'Custom Commands' },
+      music: { label: 'Música' },
+    }
+
+    for (const [key, value] of Object.entries(segments)) {
+      if (path.includes(`/${key}`)) {
+        const basePath = guildId ? `/guild/${guildId}/${key}` : `/${key}`
+        crumbs.push({ label: value.label, to: basePath })
+      }
+    }
+
+    return crumbs
+  }, [guildId, location.pathname])
 }
 
 export function Topbar() {
@@ -16,29 +63,12 @@ export function Topbar() {
   const navigate = useNavigate()
   const { guildId } = useParams()
   const { user, logout } = useAuthStore()
+  const breadcrumbs = useBreadcrumbs(guildId, location)
 
   const title = useMemo(() => {
-    const path = location.pathname
-
-    if (path === '/') return 'Dashboard'
-    if (guildId && path === `/guild/${guildId}`) return 'Guild'
-
-    if (path.includes('/overview')) return 'Visão geral'
-    if (path.includes('/automod')) return 'AutoMod'
-    if (path.includes('/modlogs')) return 'Logs'
-    if (path.includes('/moderation')) return 'Moderação'
-    if (path.includes('/members')) return 'Membros'
-    if (path.includes('/giveaways')) return 'Sorteios'
-    if (path.includes('/settings')) return 'Configurações'
-    if (path.includes('/welcome')) return 'Boas-vindas'
-
-    return 'Painel'
-  }, [location.pathname, guildId])
-
-  const subtitle = useMemo(() => {
-    if (!guildId) return null
-    return `Guild: ${truncate_middle(guildId)}`
-  }, [guildId])
+    const lastCrumb = breadcrumbs[breadcrumbs.length - 1]
+    return lastCrumb?.label ?? 'Painel'
+  }, [breadcrumbs])
 
   const handleLogout = () => {
     logout()
@@ -52,9 +82,32 @@ export function Topbar() {
   return (
     <header className="sticky top-0 z-20 border-b border-border/80 bg-background/75 backdrop-blur-md">
       <div className="flex items-center justify-between px-5 py-4">
-        <div className="min-w-0">
-          <div className="text-sm font-semibold tracking-tight">{title}</div>
-          {subtitle && <div className="text-xs text-muted-foreground">{subtitle}</div>}
+        <div className="min-w-0 flex-1">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-1.5 text-xs text-muted-foreground">
+            {breadcrumbs.map((crumb, idx) => {
+              const isLast = idx === breadcrumbs.length - 1
+              return (
+                <div key={crumb.label} className="flex items-center gap-1.5">
+                  {idx > 0 && <ChevronRight className="h-3 w-3" />}
+                  {crumb.to && !isLast ? (
+                    <Link
+                      to={crumb.to}
+                      className="flex items-center gap-1 hover:text-foreground transition-colors"
+                    >
+                      {crumb.icon}
+                      <span className="hidden sm:inline">{crumb.label}</span>
+                    </Link>
+                  ) : (
+                    <span className={cn('flex items-center gap-1', isLast && 'font-medium text-foreground')}>
+                      {crumb.icon}
+                      {crumb.label}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </nav>
+          <div className="mt-1 text-sm font-semibold tracking-tight text-foreground">{title}</div>
         </div>
 
         <div className="flex items-center gap-3">

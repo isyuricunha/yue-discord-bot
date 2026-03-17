@@ -202,7 +202,13 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
 
         <nav className={cn('scrollbar-yue min-h-0 flex-1 space-y-1 overflow-y-auto px-3', collapsed && 'px-2')}>
           {base.map((item) => (
-            <NavLink key={item.to} to={item.to} className={nav_link_class} end>
+            <NavLink
+              key={item.to}
+              to={item.to}
+              className={nav_link_class}
+              end
+              title={collapsed ? item.label : undefined}
+            >
               <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
                 {item.icon}
               </span>
@@ -216,6 +222,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
             rel="noreferrer"
             className={nav_link_class_static()}
             aria-label="Abrir Extras em uma nova aba"
+            title={collapsed ? 'Extras' : undefined}
           >
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
               <ExternalLink className="h-4 w-4" />
@@ -230,7 +237,12 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
               )}
 
               {section.items.map((item) => (
-                <NavLink key={item.to} to={item.to} className={nav_link_class}>
+                <NavLink
+                  key={item.to}
+                  to={item.to}
+                  className={nav_link_class}
+                  title={collapsed ? item.label : undefined}
+                >
                   <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
                     {item.icon}
                   </span>
