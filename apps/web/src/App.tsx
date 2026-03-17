@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useAuthStore } from './store/auth'
 import LoginPage from './pages/Login'
 import TokenLoginPage from './pages/TokenLogin'
@@ -43,29 +43,74 @@ import OwnerPage from './pages/Owner'
 import MusicPage from './pages/Music'
 import CustomCommandsPage from './pages/CustomCommands'
 import { AppShell, PublicShell, RequireAuth, RequireOwner } from './components/layout'
+import { getApiUrl } from './env'
+import axios from 'axios'
 
 function App() {
-  const { user, isLoading, setToken, initialize } = useAuthStore()
+  const { user, isLoading, initialize } = useAuthStore()
 
-  const allow_token_login = import.meta.env.DEV
+  const isDevelopment = import.meta.env.DEV
+  const allowTokenLogin = isDevelopment
+  const [isProcessingUrlToken, setIsProcessingUrlToken] = useState(false)
 
   const isAuthenticated = Boolean(user)
   const isAuthResolved = !isLoading
 
   useEffect(() => {
-    if (allow_token_login) {
+    // In development mode, check for token in URL and securely store it in cookie
+    if (allowTokenLogin) {
       const params = new URLSearchParams(window.location.search)
       const urlToken = params.get('token')
 
       if (urlToken) {
-        setToken(urlToken)
-        window.history.replaceState({}, '', window.location.pathname)
+        setIsProcessingUrlToken(true)
+        // Show security warning in development
+        console.warn(
+          '[Security Warning] Token detected in URL. This is insecure for production. ' +
+          'The token will be stored in an httpOnly cookie and removed from the URL.'
+        )
+
+        // Send token to API to store in httpOnly cookie
+        axios
+          .post(
+            `${getApiUrl()}/api/auth/set-token-cookie`,
+            { token: urlToken },
+            { withCredentials: true }
+          )
+          .then(() => {
+            // Clean up URL - remove token parameter
+            window.history.replaceState({}, '', window.location.pathname)
+            // Reload the page to let the auth store initialize with the cookie
+            window.location.reload()
+          })
+          .catch((err) => {
+            console.error('[Security] Failed to store token in cookie:', err)
+            // Still clean up URL even if it fails
+            window.history.replaceState({}, '', window.location.pathname)
+            setIsProcessingUrlToken(false)
+          })
+
         return
       }
     }
 
+    // In production or if no token in URL, just initialize normally
     initialize()
   }, [])
+
+  // Show loading while processing URL token
+  if (isProcessingUrlToken) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-center">
+          <div className="text-lg font-medium">Processing secure login...</div>
+          <div className="mt-2 text-sm text-muted-foreground">
+            Storing token in secure cookie
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <BrowserRouter>
@@ -74,7 +119,7 @@ function App() {
           path="/login"
           element={!isAuthResolved || !isAuthenticated ? <LoginPage /> : <Navigate to="/" />}
         />
-        {allow_token_login && <Route path="/token-login" element={<TokenLoginPage />} />}
+        {allowTokenLogin && <Route path="/token-login" element={<TokenLoginPage />} />}
 
         <Route element={<PublicShell />}>
           <Route path="/extras" element={<ExtrasPage />}>

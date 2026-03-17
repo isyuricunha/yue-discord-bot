@@ -3,6 +3,8 @@ import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import helmet from '@fastify/helmet';
 import jwt from '@fastify/jwt';
+import rateLimit from '@fastify/rate-limit';
+import Redis from 'ioredis';
 import type { FastifyReply, FastifyRequest } from 'fastify';
 import { CONFIG } from './config';
 import { prisma } from '@yuebot/database';
@@ -90,6 +92,48 @@ app.register(jwt, {
   },
 });
 
+// Rate limiting with Redis backend for multi-instance support
+const redisUrl = CONFIG.redis.url;
+const hasRedis = redisUrl && redisUrl.trim().length > 0 && redisUrl !== 'redis://localhost:6379';
+
+let redisClient: Redis | undefined;
+if (hasRedis) {
+  try {
+    redisClient = new Redis(redisUrl, {
+      maxRetriesPerRequest: 1,
+      lazyConnect: true,
+      connectTimeout: 5000,
+    });
+    // Don't test connection here - let the rate-limit plugin handle it lazily
+    app.log.info('Rate limiting: Redis client created (will connect lazily)');
+  } catch (error) {
+    app.log.warn({ err: error }, 'Rate limiting: Failed to create Redis client, falling back to in-memory');
+    redisClient = undefined;
+  }
+}
+
+app.register(rateLimit, {
+  // Use Redis if available, otherwise in-memory
+  redis: redisClient,
+  // Default global limit
+  max: CONFIG.rateLimit.max,
+  timeWindow: CONFIG.rateLimit.timeWindowMs,
+  // Skip health check endpoints
+  allowList: ['/health', '/status'],
+  // Key generator: use IP address (supports X-Forwarded-For via Fastify's trustProxy setting on server)
+  keyGenerator: (request: FastifyRequest) => {
+    return request.ip;
+  },
+  // Error response format
+  errorResponseBuilder: (_request: FastifyRequest, context: { after: string }) => {
+    const afterSeconds = Math.ceil(parseInt(context.after, 10) / 1000);
+    return {
+      error: 'Too many requests',
+      message: `Rate limit exceeded. Try again in ${afterSeconds} seconds.`,
+    };
+  },
+});
+
 // Decorators para autenticação
 app.decorate('authenticate', async function (request: FastifyRequest, reply: FastifyReply) {
   try {
@@ -143,22 +187,44 @@ app.setErrorHandler(async (error, request, reply) => {
       ? (error as { statusCode: number }).statusCode
       : 500;
 
+  const is_development = CONFIG.environment === 'development';
+  const is_client_error = statusCode < 500;
+  const should_expose_details = is_development && (is_client_error || statusCode === 500);
+
+  // In development: expose full error details
+  // In production: only expose generic error messages without implementation details
+  if (should_expose_details) {
+    const errorMessage = typeof (error as { message?: unknown }).message === 'string'
+      ? (error as { message: string }).message
+      : 'Unknown error';
+
+    const errorCode = typeof (error as { code?: unknown }).code === 'string'
+      ? (error as { code: string }).code
+      : undefined;
+
+    const response: Record<string, unknown> = {
+      error: errorMessage,
+      statusCode,
+    };
+
+    if (errorCode) {
+      response.code = errorCode;
+    }
+
+    return reply.code(statusCode).send(response);
+  }
+
+  // Production: generic error messages only
   const default_message_by_status: Record<number, string> = {
     400: 'Bad request',
     401: 'Unauthorized',
     403: 'Forbidden',
     404: 'Not found',
     429: 'Too many requests',
+    500: 'Internal server error',
   };
 
-  const should_expose_message = CONFIG.environment === 'development' && statusCode < 500;
-  const message =
-    statusCode >= 500
-      ? 'Internal server error'
-      : should_expose_message && typeof (error as { message?: unknown }).message === 'string'
-          ? (error as { message: string }).message
-          : (default_message_by_status[statusCode] ?? 'Bad request');
-
+  const message = default_message_by_status[statusCode] ?? 'Bad request';
   return reply.code(statusCode).send({ error: message });
 });
 

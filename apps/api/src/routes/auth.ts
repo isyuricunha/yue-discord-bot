@@ -277,4 +277,42 @@ export default async function authRoutes(fastify: FastifyInstance) {
     });
     return { success: true };
   });
+
+  // Set token cookie (for dev mode URL token handling)
+  // This endpoint accepts a token from the web app and stores it in an httpOnly cookie
+  // Only available in development mode for security
+  fastify.post('/set-token-cookie', async (request, reply) => {
+    const key = rate_limit_key('auth:set-token-cookie', request)
+    if (!allow_request_rate_limited(key, 10, 60_000)) {
+      return reply.code(429).send({ error: 'Too many requests' })
+    }
+
+    // Only allow this endpoint in development mode
+    if (CONFIG.environment !== 'development') {
+      return reply.code(403).send({ error: 'Not available in production' })
+    }
+
+    const { token } = request.body as { token?: unknown }
+    if (typeof token !== 'string' || !token.trim()) {
+      return reply.code(400).send({ error: 'Invalid token' })
+    }
+
+    // Verify the token is valid before setting cookie
+    try {
+      await fastify.jwt.verify(token)
+    } catch {
+      return reply.code(401).send({ error: 'Invalid token' })
+    }
+
+    reply.setCookie('yuebot_token', token, {
+      httpOnly: true,
+      secure: CONFIG.cookies.secure,
+      sameSite: CONFIG.cookies.sameSite,
+      domain: CONFIG.cookies.domain,
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+    })
+
+    return { success: true }
+  });
 }
