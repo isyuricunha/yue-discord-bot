@@ -34,23 +34,31 @@ export const Button = React.forwardRef<HTMLButtonElement, button_props>(
     return (
       <button
         ref={ref}
-        className={cn(base, variants[variant], sizes[size], className)}
+        className={cn(
+          base, 
+          variants[variant], 
+          sizes[size], 
+          isLoading && 'cursor-wait',
+          className
+        )}
         disabled={disabled || isLoading}
         {...props}
       >
-        {isLoading ? (
-          <span className="inline-flex items-center gap-2">
+        {isLoading && (
+          <span className="absolute inset-0 flex items-center justify-center">
             <span
               className={cn(
-                'h-4 w-4 animate-spin rounded-full border-2',
-                variant === 'solid' ? 'border-black/30 border-t-black' : 'border-foreground/25 border-t-foreground'
+                'h-5 w-5 animate-spin rounded-full border-[2.5px]',
+                variant === 'solid' 
+                  ? 'border-black/20 border-t-black' 
+                  : 'border-foreground/20 border-t-accent'
               )}
             />
-            <span>Carregando</span>
           </span>
-        ) : (
-          children
         )}
+        <span className={cn('transition-opacity duration-200', isLoading && 'opacity-0')}>
+          {children}
+        </span>
       </button>
     )
   }
