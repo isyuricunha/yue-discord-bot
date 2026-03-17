@@ -119,7 +119,7 @@ export default function TermsPage() {
 
       <Card>
         <CardHeader>
-          <div className="text-base font-semibold">Contato e举报</div>
+          <div className="text-base font-semibold">Contato</div>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <div>
