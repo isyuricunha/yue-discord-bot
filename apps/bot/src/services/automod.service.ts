@@ -467,7 +467,7 @@ class AutoModService {
         `AutoMod: ${member.user.tag} - ${result.reason} - Ação: ${action}`
       );
     } catch (error) {
-      logger.error({ error }, 'Erro ao processar violação do AutoMod');
+      logger.error({ err: safe_error_details(error) }, 'Erro ao processar violação do AutoMod');
     }
   }
 
@@ -511,7 +511,67 @@ class AutoModService {
 
   private async applyMute(member: GuildMember, duration: string, reason: string, metadata: Prisma.InputJsonValue): Promise<void> {
     const durationMs = parseDurationMs(duration, { maxMs: discord_timeout_max_ms, clampToMax: true }) ?? 5 * 60 * 1000;
-    await member.timeout(durationMs, `[AutoMod] ${reason}`);
+
+    const bot_member = member.guild.members.me
+    if (!bot_member) {
+      logger.warn(
+        { guild_id: member.guild.id, user_id: member.id },
+        'AutoMod: cannot apply mute (bot member not available)'
+      )
+      return
+    }
+
+    if (!bot_member.permissions.has(PermissionFlagsBits.ModerateMembers)) {
+      logger.warn(
+        { guild_id: member.guild.id, user_id: member.id },
+        'AutoMod: cannot apply mute (missing ModerateMembers permission)'
+      )
+      return
+    }
+
+    const is_moderatable = typeof (member as unknown as { moderatable?: unknown }).moderatable === 'boolean'
+      ? Boolean((member as unknown as { moderatable: boolean }).moderatable)
+      : bot_member.roles.highest.position > member.roles.highest.position
+
+    if (!is_moderatable) {
+      logger.warn(
+        {
+          guild_id: member.guild.id,
+          user_id: member.id,
+          bot_role_position: bot_member.roles.highest.position,
+          target_role_position: member.roles.highest.position,
+        },
+        'AutoMod: cannot apply mute (target not moderatable)'
+      )
+      return
+    }
+
+    try {
+      await member.timeout(durationMs, `[AutoMod] ${reason}`);
+    } catch (error) {
+      const is_missing_permissions = (() => {
+        if (!error || typeof error !== 'object') return false
+        const any_error = error as Record<string, unknown>
+        if (any_error.code === 50013) return true
+        const raw = any_error.rawError
+        if (raw && typeof raw === 'object' && (raw as Record<string, unknown>).code === 50013) return true
+        return false
+      })()
+
+      if (is_missing_permissions) {
+        logger.warn(
+          {
+            err: safe_error_details(error),
+            guild_id: member.guild.id,
+            user_id: member.id,
+          },
+          'AutoMod: cannot apply mute (missing permissions)'
+        )
+        return
+      }
+
+      throw error
+    }
 
     await this.upsertMemberRow(member)
 
