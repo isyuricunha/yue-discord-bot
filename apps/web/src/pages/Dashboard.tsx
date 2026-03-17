@@ -35,7 +35,7 @@ export default function DashboardPage() {
           <div className="mt-1 text-sm text-muted-foreground">
             {user?.isOwner
               ? 'Você está em modo owner - acesso total aos servidores onde o bot está instalado.'
-              : 'Selecione um servidor para gerenciar. Use ⌘K para buscar rapidamente.'}
+              : `Selecione um servidor para gerenciar. Use ${typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('win') ? 'Ctrl+K' : '⌘K'} para buscar rapidamente.`}
           </div>
         </div>
         <Button

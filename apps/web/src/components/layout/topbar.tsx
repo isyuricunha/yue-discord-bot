@@ -48,8 +48,23 @@ function useBreadcrumbs(guildId: string | undefined, location: { pathname: strin
       music: { label: 'Música' },
     }
 
+    // Build regex pattern to match path segments exactly
+    // Matches /segment or /guild/{guildId}/segment
+    const pathParts = path.split('/').filter(Boolean)
+
     for (const [key, value] of Object.entries(segments)) {
-      if (path.includes(`/${key}`)) {
+      const keyParts = key.split('/')
+      // Check if path contains this segment at the correct position
+      const segmentIndex = pathParts.findIndex((part, idx) => {
+        // For guild routes: guild/{guildId}/{segment}
+        // For base routes: {segment}
+        if (guildId && idx === 0 && part === 'guild') {
+          return keyParts.every((kp, ki) => pathParts[idx + 1 + ki] === kp)
+        }
+        return keyParts.every((kp, ki) => pathParts[idx + ki] === kp)
+      })
+
+      if (segmentIndex !== -1) {
         const basePath = guildId ? `/guild/${guildId}/${key}` : `/${key}`
         crumbs.push({ label: value.label, to: basePath })
       }
@@ -111,23 +126,23 @@ export function Topbar() {
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Action buttons */}
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={open} 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={open}
               className="h-9 gap-1.5 px-2.5 sm:px-3"
             >
               <Search className="h-4 w-4" />
               <span className="hidden lg:inline text-sm">Buscar</span>
               <kbd className="hidden rounded bg-surface/60 px-1 py-0.5 text-[10px] font-mono lg:inline">
-                ⌘K
+                {typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('win') ? 'Ctrl+K' : '⌘K'}
               </kbd>
             </Button>
 
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleExtras} 
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExtras}
               className="h-9 gap-1.5 px-2.5 sm:px-3"
             >
               <ExternalLink className="h-4 w-4" />
@@ -155,10 +170,10 @@ export function Topbar() {
           </div>
 
           {/* Logout */}
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={handleLogout} 
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
             className="h-9 w-9 px-0 sm:w-auto sm:px-2.5"
           >
             <LogOut className="h-4 w-4" />

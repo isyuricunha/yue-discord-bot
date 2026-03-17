@@ -21,12 +21,14 @@ import {
   Star,
   Users,
   Trophy,
-  Sparkles,
   UserPlus,
   Settings,
   ExternalLink,
   Music,
-  Command, // Added Command icon
+  Command,
+  ScanEye,
+  Heart,
+  TrendingUp,
 } from 'lucide-react'
 
 import { cn } from '../../lib/cn'
@@ -59,7 +61,7 @@ function nav_link_class_static() {
   return cn(
     'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors',
     'hover:bg-surface/70 hover:text-foreground',
-    'text-muted-foreground'
+    'text-muted-foreground cursor-pointer'
   )
 }
 
@@ -125,7 +127,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
         title: 'Moderação & logs',
         items: [
           { to: `/guild/${guildId}/moderation`, label: 'Moderação', icon: <Shield className="h-4 w-4" /> },
-          { to: `/guild/${guildId}/automod`, label: 'AutoMod', icon: <Shield className="h-4 w-4" /> },
+          { to: `/guild/${guildId}/automod`, label: 'AutoMod', icon: <ScanEye className="h-4 w-4" /> },
           { to: `/guild/${guildId}/modlogs`, label: 'Logs', icon: <FileText className="h-4 w-4" /> },
           { to: `/guild/${guildId}/audit`, label: 'Audit', icon: <ClipboardList className="h-4 w-4" /> },
         ],
@@ -134,7 +136,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
         title: 'Automações',
         items: [
           { to: `/guild/${guildId}/autorole`, label: 'Autorole', icon: <UserPlus className="h-4 w-4" /> },
-          { to: `/guild/${guildId}/welcome`, label: 'Boas-vindas', icon: <Sparkles className="h-4 w-4" /> },
+          { to: `/guild/${guildId}/welcome`, label: 'Boas-vindas', icon: <Heart className="h-4 w-4" /> },
         ],
       },
       {
@@ -142,7 +144,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
         items: [
           { to: `/guild/${guildId}/music`, label: 'Música', icon: <Music className="h-4 w-4" /> },
           { to: `/guild/${guildId}/custom-commands`, label: 'Custom Commands', icon: <Command className="h-4 w-4" /> },
-          { to: `/guild/${guildId}/xp`, label: 'XP', icon: <Sparkles className="h-4 w-4" /> },
+          { to: `/guild/${guildId}/xp`, label: 'XP', icon: <TrendingUp className="h-4 w-4" /> },
           { to: `/guild/${guildId}/reaction-roles`, label: 'Reaction Roles', icon: <MousePointerClick className="h-4 w-4" /> },
           { to: `/guild/${guildId}/starboard`, label: 'Starboard', icon: <Star className="h-4 w-4" /> },
           { to: `/guild/${guildId}/suggestions`, label: 'Sugestões', icon: <Lightbulb className="h-4 w-4" /> },
