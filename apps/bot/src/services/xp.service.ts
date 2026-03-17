@@ -1,9 +1,11 @@
 import type { Message } from 'discord.js';
-import { prisma } from '@yuebot/database';
+import { prisma, Prisma } from '@yuebot/database';
 import type { GuildXpConfig } from '@yuebot/database';
 import { pick_discord_message_template_variant, render_discord_message_template } from '@yuebot/shared';
 import { logger } from '../utils/logger';
 import { inventoryService } from './inventory.service'
+
+const XP_TRANSFER_TAX_PERCENT = 10; // 10% tax on XP transfers
 
 function normalize_content_for_repeat_check(content: string): string {
   return content.trim().replace(/\s+/g, ' ').toLowerCase();
@@ -70,6 +72,135 @@ class XpService {
 
   clear_cache(guild_id: string) {
     this.config_cache.delete(guild_id)
+  }
+
+  async transfer_xp(input: {
+    from_user_id: string;
+    to_user_id: string;
+    guild_id: string;
+    amount: number;
+  }): Promise<
+    | {
+        success: true;
+        fromXpBefore: number;
+        fromXpAfter: number;
+        toXpBefore: number;
+        toXpAfter: number;
+        taxDeducted: number;
+        amountReceived: number;
+      }
+    | { success: false; error: 'invalid_amount' | 'insufficient_funds' | 'same_user' | 'same_server' }
+  > {
+    const { from_user_id, to_user_id, guild_id, amount } = input;
+
+    if (amount <= 0) {
+      return { success: false, error: 'invalid_amount' };
+    }
+
+    if (from_user_id === to_user_id) {
+      return { success: false, error: 'same_user' };
+    }
+
+    // Calculate tax and amounts
+    const taxDeducted = Math.floor(amount * (XP_TRANSFER_TAX_PERCENT / 100));
+    const amountReceived = amount - taxDeducted;
+
+    if (amountReceived <= 0) {
+      return { success: false, error: 'invalid_amount' };
+    }
+
+    try {
+      const result = await prisma.$transaction(async (tx) => {
+        // Get sender's XP
+        const fromMember = await tx.guildXpMember.findUnique({
+          where: {
+            userId_guildId: {
+              userId: from_user_id,
+              guildId: guild_id,
+            },
+          },
+        });
+
+        const fromXpBefore = fromMember?.xp ?? 0;
+
+        if (fromXpBefore < amount) {
+          return { success: false as const, error: 'insufficient_funds' as const };
+        }
+
+        // Get receiver's XP (create if doesn't exist)
+        const toMember = await tx.guildXpMember.findUnique({
+          where: {
+            userId_guildId: {
+              userId: to_user_id,
+              guildId: guild_id,
+            },
+          },
+        });
+
+        const toXpBefore = toMember?.xp ?? 0;
+
+        // Update sender's XP
+        const fromXpAfter = fromXpBefore - amount;
+        const fromLevelAfter = compute_level_from_xp(fromXpAfter);
+
+        await tx.guildXpMember.upsert({
+          where: {
+            userId_guildId: {
+              userId: from_user_id,
+              guildId: guild_id,
+            },
+          },
+          update: {
+            xp: fromXpAfter,
+            level: fromLevelAfter,
+          },
+          create: {
+            userId: from_user_id,
+            guildId: guild_id,
+            xp: fromXpAfter,
+            level: fromLevelAfter,
+          },
+        });
+
+        // Update receiver's XP
+        const toXpAfter = toXpBefore + amountReceived;
+        const toLevelAfter = compute_level_from_xp(toXpAfter);
+
+        await tx.guildXpMember.upsert({
+          where: {
+            userId_guildId: {
+              userId: to_user_id,
+              guildId: guild_id,
+            },
+          },
+          update: {
+            xp: toXpAfter,
+            level: toLevelAfter,
+          },
+          create: {
+            userId: to_user_id,
+            guildId: guild_id,
+            xp: toXpAfter,
+            level: toLevelAfter,
+          },
+        });
+
+        return {
+          success: true as const,
+          fromXpBefore,
+          fromXpAfter,
+          toXpBefore,
+          toXpAfter,
+          taxDeducted,
+          amountReceived,
+        };
+      });
+
+      return result;
+    } catch (error) {
+      logger.error({ error, input }, 'Erro ao transferir XP');
+      return { success: false as const, error: 'invalid_amount' as const };
+    }
   }
 
   private async get_xp_boost_multiplier(input: { guild_id: string; user_id: string; now: Date }): Promise<number> {
