@@ -295,7 +295,8 @@ export default function MemberDetailsPage() {
                   </Button>
 
                   <Button
-                    variant="ghost"
+                    variant="outline"
+                    className="border border-border"
                     onClick={() =>
                       moderateMutation.mutate({
                         action: 'untimeout',
@@ -382,7 +383,7 @@ export default function MemberDetailsPage() {
                         <div className="text-muted-foreground">
                           Moderador: <span className="text-foreground">{log.moderatorId}</span>
                         </div>
-                        {log.reason && <div className="text-muted-foreground">Razão: <span className="text-foreground">{log.reason}</span></div>}
+                        {log.reason && <div className="text-muted-foreground">Razão: <span className="text-foreground line-clamp-3" title={log.reason}>{log.reason}</span></div>}
                         {log.duration && <div className="text-muted-foreground">Duração: <span className="text-foreground">{log.duration}</span></div>}
                       </div>
                     </div>

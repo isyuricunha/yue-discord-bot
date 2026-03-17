@@ -1,18 +1,10 @@
 import { Card, CardContent, CardHeader } from '../../components/ui'
-import type { ReactNode } from 'react'
-
-function faq_item(props: { question: string; children: ReactNode }) {
-  return (
-    <details className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-      <summary className="cursor-pointer select-none text-sm font-medium text-foreground">{props.question}</summary>
-      <div className="mt-2 space-y-2 text-sm text-muted-foreground">{props.children}</div>
-    </details>
-  )
-}
+import { BackLink, faq_item } from './components'
 
 export default function ExtrasBanAppealPage() {
   return (
     <div className="space-y-6">
+      <BackLink />
       <div>
         <div className="text-2xl font-semibold tracking-tight">Apelo de ban</div>
         <div className="mt-1 text-sm text-muted-foreground">

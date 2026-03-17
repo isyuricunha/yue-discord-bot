@@ -146,9 +146,11 @@ export default function FanArtsPage() {
                 ))}
               </div>
             ) : approved.length === 0 ? (
-              <EmptyState title="Nenhuma fan art aprovada" description="As fan arts aprovadas aparecerão aqui." />
+              <div className="max-h-[500px] overflow-y-auto">
+                <EmptyState title="Nenhuma fan art aprovada" description="As fan arts aprovadas aparecerão aqui." />
+              </div>
             ) : (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="max-h-[500px] overflow-y-auto grid grid-cols-1 gap-3 md:grid-cols-2">
                 {approved.map((fa) => (
                   <a
                     key={fa.id}

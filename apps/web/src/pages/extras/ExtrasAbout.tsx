@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader } from '../../components/ui'
 import { getDiscordClientId } from '../../env'
-import type { ReactNode } from 'react'
+import { BackLink, faq_item } from './components'
 
 function build_invite_url(client_id: string) {
   const params = new URLSearchParams({
@@ -12,21 +12,13 @@ function build_invite_url(client_id: string) {
   return `https://discord.com/api/oauth2/authorize?${params.toString()}`
 }
 
-function faq_item(props: { question: string; children: ReactNode }) {
-  return (
-    <details className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-      <summary className="cursor-pointer select-none text-sm font-medium text-foreground">{props.question}</summary>
-      <div className="mt-2 space-y-2 text-sm text-muted-foreground">{props.children}</div>
-    </details>
-  )
-}
-
 export default function ExtrasAboutPage() {
   const client_id = getDiscordClientId()
   const invite_url = client_id ? build_invite_url(client_id) : null
 
   return (
     <div className="space-y-6">
+      <BackLink />
       <div>
         <div className="text-2xl font-semibold tracking-tight">Sobre a Yue</div>
         <div className="mt-1 text-sm text-muted-foreground">

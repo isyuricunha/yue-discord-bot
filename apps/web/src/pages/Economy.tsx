@@ -206,6 +206,7 @@ export default function EconomyPage() {
                 isLoading={is_admin_loading}
                 disabled={!admin_user_id.trim() || !admin_amount.trim()}
                 onClick={() => void do_admin_adjust('remove')}
+                className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
               >
                 Remover
               </Button>

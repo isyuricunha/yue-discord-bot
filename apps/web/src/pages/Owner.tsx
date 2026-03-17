@@ -713,7 +713,7 @@ export default function OwnerPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 flex flex-wrap gap-2">
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <Button
                     type="button"
                     size="sm"

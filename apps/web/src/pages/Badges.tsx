@@ -320,7 +320,7 @@ export default function BadgesPage() {
                 }))} />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
                 <Button
                   onClick={() => {
                     const current = editing
@@ -336,7 +336,12 @@ export default function BadgesPage() {
                   <Save className="h-4 w-4" />
                   Salvar
                 </Button>
-                <Button variant="ghost" onClick={() => setEditing(null)} className="h-10" disabled={!editing}>
+                <Button
+                  variant="ghost"
+                  onClick={() => setEditing(null)}
+                  disabled={!editing}
+                  className="h-10 px-3 text-red-500 hover:bg-red-500/10"
+                >
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>

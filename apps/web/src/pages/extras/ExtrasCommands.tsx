@@ -1,42 +1,56 @@
 import { Card, CardContent, CardHeader } from '../../components/ui'
-import type { ReactNode } from 'react'
-
-function section_title(props: { children: string }) {
-  return <div className="text-sm font-semibold text-foreground">{props.children}</div>
-}
-
-function help_box(props: { title: string; children: ReactNode }) {
-  return (
-    <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-      <div className="text-sm font-medium text-foreground">{props.title}</div>
-      <div className="mt-1 space-y-1 text-sm text-muted-foreground">{props.children}</div>
-    </div>
-  )
-}
-
-function command_item(props: { name: string; description: string; children: ReactNode }) {
-  return (
-    <details className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-      <summary className="cursor-pointer select-none text-sm font-medium text-foreground">
-        <span className="font-mono">{props.name}</span>
-        <span className="ml-2 text-muted-foreground">— {props.description}</span>
-      </summary>
-      <div className="mt-2 space-y-2 text-sm text-muted-foreground">{props.children}</div>
-    </details>
-  )
-}
-
-function InlineCode(props: { children: string }) {
-  return <span className="font-mono text-foreground">{props.children}</span>
-}
+import { BackLink, command_item, help_box, InlineCode, section_title } from './components'
 
 export default function ExtrasCommandsPage() {
+  const tableOfContents = [
+    { id: 'como-usar', label: 'Como usar' },
+    { id: 'administracao', label: 'Administração do servidor' },
+    { id: 'moderacao', label: 'Moderação' },
+    { id: 'utilidades', label: 'Utilidades' },
+    { id: 'sorteios', label: 'Sorteios' },
+    { id: 'xp', label: 'XP / Levels' },
+    { id: 'perfil', label: 'Perfil e badges' },
+    { id: 'fanart', label: 'Fan art' },
+    { id: 'anime', label: 'Anime (AniList)' },
+    { id: 'economia', label: 'Economia (luazinhas)' },
+    { id: 'loja', label: 'Loja e inventário' },
+    { id: 'jogos', label: 'Jogos (coinflip)' },
+    { id: 'waifu', label: 'Waifu / casamento' },
+    { id: 'autenticadas', label: 'Mensagens autenticadas' },
+  ]
+
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id)
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+  }
+
   return (
     <div className="space-y-6">
+      <BackLink />
       <div>
         <div className="text-2xl font-semibold tracking-tight">Comandos</div>
         <div className="mt-1 text-sm text-muted-foreground">
           Lista completa dos comandos do bot (slash) e interações, com exemplos de uso.
+        </div>
+      </div>
+
+      {/* Table of Contents - Sticky on desktop */}
+      <div className="sticky top-4 z-10 mb-6 lg:mb-0">
+        <div className="rounded-xl border border-border/70 bg-surface/80 backdrop-blur-sm px-4 py-3">
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Índice</div>
+          <nav className="flex flex-wrap gap-2" aria-label="Table of contents">
+            {tableOfContents.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => scrollToSection(item.id)}
+                className="text-xs text-muted-foreground hover:text-foreground transition-colors rounded-md px-2 py-1 hover:bg-surface/60"
+              >
+                {item.label}
+              </button>
+            ))}
+          </nav>
         </div>
       </div>
 

@@ -13,7 +13,7 @@ type button_props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const base =
-  'relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:pointer-events-none disabled:opacity-60'
+  'relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-medium transition-all duration-200 text-center leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:pointer-events-none disabled:opacity-60'
 
 const variants: Record<button_variant, string> = {
   solid:
@@ -35,9 +35,9 @@ export const Button = React.forwardRef<HTMLButtonElement, button_props>(
       <button
         ref={ref}
         className={cn(
-          base, 
-          variants[variant], 
-          sizes[size], 
+          base,
+          variants[variant],
+          sizes[size],
           isLoading && 'cursor-wait',
           className
         )}
@@ -49,14 +49,14 @@ export const Button = React.forwardRef<HTMLButtonElement, button_props>(
             <span
               className={cn(
                 'h-5 w-5 animate-spin rounded-full border-[2.5px]',
-                variant === 'solid' 
-                  ? 'border-black/20 border-t-black' 
+                variant === 'solid'
+                  ? 'border-black/20 border-t-black'
                   : 'border-foreground/20 border-t-accent'
               )}
             />
           </span>
         )}
-        <span className={cn('transition-opacity duration-200', isLoading && 'opacity-0')}>
+        <span className={cn('inline-flex items-center justify-center leading-none transition-opacity duration-200', isLoading && 'opacity-0')}>
           {children}
         </span>
       </button>
