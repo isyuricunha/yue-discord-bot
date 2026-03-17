@@ -7,7 +7,7 @@ import {
 import type { ChatInputCommandInteraction } from 'discord.js'
 
 import { prisma } from '@yuebot/database'
-import { COLORS, EMOJIS, warnThresholdsSchema } from '@yuebot/shared'
+import { COLORS, EMOJIS, warnThresholdsSchema, DEFAULT_COMMAND_COOLDOWNS } from '@yuebot/shared'
 
 import type { Command } from '../index'
 import { autoModService } from '../../services/automod.service'
@@ -17,6 +17,7 @@ import { moderationLogService } from '../../services/moderationLog.service'
 import { reportLogService } from '../../services/reportLog.service'
 import { xpService } from '../../services/xp.service'
 import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
+import { commandCooldownService } from '../../services/commandCooldown.service'
 
 function get_optional_text_channel_id(interaction: ChatInputCommandInteraction, name: string): string | null {
   const channel = interaction.options.getChannel(name)
@@ -444,6 +445,51 @@ export const configCommand: Command = {
             .setName('levelup-message')
             .setDescription('Definir/limpar template de level up')
             .addStringOption((opt) => opt.setName('template').setDescription('Template (omitido = limpar)').setMaxLength(4000).setRequired(false))
+        )
+    )
+    .addSubcommandGroup((group) =>
+      group
+        .setName('cooldown')
+        .setDescription('Configurar cooldowns de comandos')
+        .addSubcommand((sub) =>
+          sub
+            .setName('set')
+            .setDescription('Definir cooldown para um comando')
+            .addStringOption((opt) =>
+              opt
+                .setName('comando')
+                .setDescription('Nome do comando')
+                .setRequired(true)
+            )
+            .addIntegerOption((opt) =>
+              opt
+                .setName('segundos')
+                .setDescription('Tempo de cooldown em segundos (0 = desativar)')
+                .setMinValue(0)
+                .setMaxValue(86400)
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('remove')
+            .setDescription('Remover cooldown customizado de um comando')
+            .addStringOption((opt) =>
+              opt
+                .setName('comando')
+                .setDescription('Nome do comando')
+                .setRequired(true)
+            )
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('list')
+            .setDescription('Listar cooldowns configurados')
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('reset')
+            .setDescription('Resetar todos os cooldowns para o padrão')
         )
     ),
 
@@ -1091,6 +1137,132 @@ export const configCommand: Command = {
 
         await interaction.editReply({ content: `${EMOJIS.ERROR} Subcomando inválido.` })
         return
+      }
+
+      // Handle cooldown subcommand group
+      if (group === 'cooldown') {
+        if (sub === 'set') {
+          const commandName = interaction.options.getString('comando', true).toLowerCase()
+          const segundos = interaction.options.getInteger('segundos', true)
+
+          // Validate command exists
+          const commands = interaction.client.commands
+          if (!commands.has(commandName)) {
+            const availableCommands = Array.from(commands.keys()).slice(0, 20).join(', ')
+            await interaction.editReply({
+              content: `${EMOJIS.ERROR} Comando \`${commandName}\` não encontrado. Comandos disponíveis: ${availableCommands}...`,
+            })
+            return
+          }
+
+          // Clear cache before updating
+          commandCooldownService.clearCache(guild_id)
+
+          if (segundos === 0) {
+            // Remove custom cooldown (use default or none)
+            await prisma.guildCommandCooldown.deleteMany({
+              where: { guildId: guild_id, commandName },
+            })
+
+            const embed = new EmbedBuilder()
+              .setColor(COLORS.SUCCESS)
+              .setTitle(`${EMOJIS.SUCCESS} Cooldown removido`)
+              .setDescription(`Comando \`${commandName}\` agora usa o cooldown padrão.`)
+            await interaction.editReply({ embeds: [embed] })
+            return
+          }
+
+          // Upsert custom cooldown
+          await prisma.guildCommandCooldown.upsert({
+            where: {
+              guildId_commandName: {
+                guildId: guild_id,
+                commandName,
+              },
+            },
+            update: { cooldownSeconds: segundos },
+            create: { guildId: guild_id, commandName, cooldownSeconds: segundos },
+          })
+
+          const embed = new EmbedBuilder()
+            .setColor(COLORS.SUCCESS)
+            .setTitle(`${EMOJIS.SUCCESS} Cooldown configurado`)
+            .setDescription(`Comando \`${commandName}\`: **${segundos}** segundo${segundos !== 1 ? 's' : ''}`)
+          await interaction.editReply({ embeds: [embed] })
+          return
+        }
+
+        if (sub === 'remove') {
+          const commandName = interaction.options.getString('comando', true).toLowerCase()
+
+          // Clear cache before updating
+          commandCooldownService.clearCache(guild_id)
+
+          const deleted = await prisma.guildCommandCooldown.deleteMany({
+            where: { guildId: guild_id, commandName },
+          })
+
+          if (deleted.count === 0) {
+            const embed = new EmbedBuilder()
+              .setColor(COLORS.INFO)
+              .setTitle('ℹ️ Cooldown não encontrado')
+              .setDescription(`O comando \`${commandName}\` não tinha um cooldown customizado.`)
+            await interaction.editReply({ embeds: [embed] })
+            return
+          }
+
+          const embed = new EmbedBuilder()
+            .setColor(COLORS.SUCCESS)
+            .setTitle(`${EMOJIS.SUCCESS} Cooldown removido`)
+            .setDescription(`Comando \`${commandName}\` agora usa o cooldown padrão.`)
+          await interaction.editReply({ embeds: [embed] })
+          return
+        }
+
+        if (sub === 'list') {
+          const cooldowns = await prisma.guildCommandCooldown.findMany({
+            where: { guildId: guild_id },
+            orderBy: { commandName: 'asc' },
+          })
+
+          if (cooldowns.length === 0) {
+            const embed = new EmbedBuilder()
+              .setColor(COLORS.INFO)
+              .setTitle('📄 Cooldowns configurados')
+              .setDescription('Nenhum cooldown customizado. Usando padrões do bot.')
+            await interaction.editReply({ embeds: [embed] })
+            return
+          }
+
+          const lines = cooldowns
+            .slice(0, 25)
+            .map((c) => `- \`${c.commandName}\`: **${c.cooldownSeconds}s**`)
+            .join('\n')
+          const more = cooldowns.length > 25 ? `\n... e mais ${cooldowns.length - 25}` : ''
+
+          const embed = new EmbedBuilder()
+            .setColor(COLORS.INFO)
+            .setTitle('📄 Cooldowns configurados')
+            .setDescription(`${lines}${more}`)
+          await interaction.editReply({ embeds: [embed] })
+          return
+        }
+
+        if (sub === 'reset') {
+          // Clear cache before updating
+          commandCooldownService.clearCache(guild_id)
+
+          const deleted = await prisma.guildCommandCooldown.deleteMany({
+            where: { guildId: guild_id },
+          })
+
+          const embed = new EmbedBuilder()
+            .setColor(COLORS.SUCCESS)
+            .setTitle(`${EMOJIS.SUCCESS} Cooldowns resetados`)
+            .setDescription(`Removidos **${deleted.count}** cooldown${deleted.count !== 1 ? 's' : ''} customizado(s). Agora usando padrões do bot.`)
+          await interaction.editReply({ embeds: [embed] })
+          return
+        }
       }
 
       await interaction.editReply({ content: `${EMOJIS.ERROR} Grupo inválido.` })

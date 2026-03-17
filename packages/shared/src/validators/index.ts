@@ -250,6 +250,49 @@ export const guildCommandOverridesUpsertSchema = z.object({
   overrides: z.array(guildCommandOverrideSchema).min(1),
 })
 
+export const guildCommandCooldownSchema = z.object({
+  commandName: z.string().min(1),
+  cooldownSeconds: z.number().int().min(0).max(86400), // Max 24 hours
+})
+
+export const guildCommandCooldownsUpsertSchema = z.object({
+  cooldowns: z.array(guildCommandCooldownSchema),
+})
+
+// Default cooldowns for commonly spammed commands (in seconds)
+export const DEFAULT_COMMAND_COOLDOWNS: Record<string, number> = {
+  // Economy
+  daily: 86400, // 24 hours
+  luazinhas: 60, // 1 minute
+  loja: 10,
+  inventario: 10,
+  
+  // Waifu
+  waifu: 300, // 5 minutes
+  husbando: 300,
+  casar: 60,
+  reroll: 300,
+  divorce: 60,
+  
+  // XP
+  rank: 30,
+  leaderboard: 30,
+  
+  // Utility
+  pet: 60,
+  trivia: 60,
+  poll: 30,
+  afk: 60,
+  
+  // Fun
+  anime: 30,
+  fanart: 30,
+  
+  // Music
+  play: 5,
+  queue: 5,
+}
+
 export const xpRoleRewardSchema = z.object({
   level: z.number().int().min(0),
   roleId: z.string().min(1),
@@ -474,6 +517,8 @@ export type XpResetInput = z.infer<typeof xpResetSchema>;
 export type GuildAntiRaidConfigInput = z.infer<typeof guildAntiRaidConfigSchema>;
 export type GlobalXpResetInput = z.infer<typeof globalXpResetSchema>;
 export type PaginationInput = z.infer<typeof paginationSchema>;
+export type GuildCommandCooldownInput = z.infer<typeof guildCommandCooldownSchema>;
+export type GuildCommandCooldownsUpsertInput = z.infer<typeof guildCommandCooldownsUpsertSchema>;
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
 export type BadgeUpsertInput = z.infer<typeof badgeUpsertSchema>;

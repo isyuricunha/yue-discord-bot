@@ -46,6 +46,7 @@ model Guild {
   customCommands              CustomCommand[]
   dailyRewardConfig           GuildDailyRewardConfig?
   polls                      Poll[]
+  commandCooldowns           GuildCommandCooldown[]
 
   @@map("guilds")
 }
@@ -1149,4 +1150,32 @@ model UserAfk {
   @@index([guildId])
   @@index([userId])
   @@map("user_afks")
+}
+
+// Command cooldowns per guild
+model GuildCommandCooldown {
+  id          String   @id @default(cuid())
+  guildId     String
+  commandName String
+  cooldownSeconds Int    @default(0) // 0 = no cooldown
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, commandName])
+  @@index([guildId])
+  @@map("guild_command_cooldowns")
+}
+
+// User command cooldown usage tracking
+model UserCommandCooldown {
+  id          String   @id @default(cuid())
+  userId      String
+  guildId     String
+  commandName String
+  usedAt      DateTime @default(now())
+
+  @@index([guildId, userId, commandName])
+  @@index([usedAt])
+  @@map("user_command_cooldowns")
 }

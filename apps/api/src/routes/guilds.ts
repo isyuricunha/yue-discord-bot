@@ -7,6 +7,7 @@ import {
   guildAutomodConfigSchema,
   guildAutoroleConfigSchema,
   guildCommandOverridesUpsertSchema,
+  guildCommandCooldownsUpsertSchema,
   guildGiveawayConfigSchema,
   guildModlogConfigSchema,
   guildSettingsConfigSchema,
@@ -2695,5 +2696,103 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     })
 
     return reply.send({ success: true, config: updated })
+  })
+
+  // Buscar cooldowns de comandos
+  fastify.get('/:guildId/commands-cooldowns', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const cooldowns = await prisma.guildCommandCooldown.findMany({
+      where: { guildId },
+      select: {
+        commandName: true,
+        cooldownSeconds: true,
+      },
+      orderBy: { commandName: 'asc' },
+    })
+
+    return reply.send({ success: true, cooldowns })
+  })
+
+  // Atualizar cooldowns de comandos
+  fastify.put('/:guildId/commands-cooldowns', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const parsed = guildCommandCooldownsUpsertSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const input = parsed.data
+
+    await prisma.$transaction(async (tx) => {
+      // Delete all existing cooldowns for this guild
+      await tx.guildCommandCooldown.deleteMany({ where: { guildId } })
+
+      // Create new cooldowns (only those with cooldownSeconds > 0)
+      const cooldownsToCreate = input.cooldowns
+        .filter((c) => c.cooldownSeconds > 0)
+        .map((c) => ({
+          guildId,
+          commandName: c.commandName,
+          cooldownSeconds: c.cooldownSeconds,
+        }))
+
+      if (cooldownsToCreate.length > 0) {
+        await tx.guildCommandCooldown.createMany({
+          data: cooldownsToCreate,
+        })
+      }
+    })
+
+    const cooldowns = await prisma.guildCommandCooldown.findMany({
+      where: { guildId },
+      select: {
+        commandName: true,
+        cooldownSeconds: true,
+      },
+      orderBy: { commandName: 'asc' },
+    })
+
+    return reply.send({ success: true, cooldowns })
   })
 }

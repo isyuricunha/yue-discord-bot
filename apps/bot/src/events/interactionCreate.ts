@@ -1,4 +1,4 @@
-import type { Interaction } from 'discord.js';
+import type { Interaction, GuildMember } from 'discord.js';
 import { MessageFlags } from 'discord.js'
 import { logger } from '../utils/logger';
 import { EMOJIS } from '@yuebot/shared';
@@ -7,6 +7,7 @@ import { safe_reply_ephemeral, safe_reply_or_edit_ephemeral } from '../utils/int
 import { prisma } from '@yuebot/database'
 import { musicService } from '../services/music.service'
 import { build_queue_embed_and_components } from '../commands/music/queue'
+import { commandCooldownService } from '../services/commandCooldown.service'
 
 type command_type = 'slash' | 'context'
 
@@ -60,6 +61,49 @@ async function run_lavalink_action(action: () => unknown): Promise<void> {
   }
 }
 
+async function check_command_cooldown(
+  guild_id: string,
+  user_id: string,
+  command_name: string,
+  member: GuildMember | null
+): Promise<{ onCooldown: boolean; remainingSeconds: number }> {
+  try {
+    // Check if user is admin (bypass cooldown)
+    if (member) {
+      const is_admin = member.permissions.has(0x8n) // Administrator permission
+      if (is_admin) {
+        return { onCooldown: false, remainingSeconds: 0 }
+      }
+    }
+
+    const remaining_seconds = await commandCooldownService.checkCooldown(guild_id, user_id, command_name)
+    return {
+      onCooldown: remaining_seconds > 0,
+      remainingSeconds: remaining_seconds,
+    }
+  } catch (error) {
+    logger.error({ err: safe_error_details(error), guild_id, user_id, command_name }, 'Erro ao verificar cooldown')
+    // On error, allow the command
+    return { onCooldown: false, remainingSeconds: 0 }
+  }
+}
+
+function format_cooldown_time(seconds: number): string {
+  if (seconds < 60) {
+    return `${seconds} segundo${seconds !== 1 ? 's' : ''}`
+  }
+  const minutes = Math.floor(seconds / 60)
+  if (minutes < 60) {
+    return `${minutes} minuto${minutes !== 1 ? 's' : ''}`
+  }
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) {
+    return `${hours} hora${hours !== 1 ? 's' : ''}`
+  }
+  const days = Math.floor(hours / 24)
+  return `${days} dia${days !== 1 ? 's' : ''}`
+}
+
 export async function handleInteractionCreate(interaction: Interaction) {
   // Handle autocomplete
   if (interaction.isAutocomplete()) {
@@ -111,10 +155,31 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
         return
       }
+
+      // Check cooldown
+      const member = interaction.member as GuildMember | null
+      const cooldown = await check_command_cooldown(guild_id, interaction.user.id, interaction.commandName, member)
+      if (cooldown.onCooldown) {
+        try {
+          await safe_reply_ephemeral(interaction, {
+            content: `${EMOJIS.ERROR} Você está em cooldown. Aguarde **${format_cooldown_time(cooldown.remainingSeconds)}** para usar este comando novamente.`,
+          })
+        } catch (error) {
+          logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao responder cooldown')
+        }
+        return
+      }
     }
 
     try {
       await command.execute(interaction);
+      
+      // Record command usage for cooldown tracking
+      if (guild_id) {
+        await commandCooldownService.recordUsage(guild_id, interaction.user.id, interaction.commandName).catch((err) => {
+          logger.error({ err, guild_id, user_id: interaction.user.id, command: interaction.commandName }, 'Erro ao registrar uso de comando')
+        })
+      }
     } catch (error) {
       logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao executar comando');
 
@@ -149,10 +214,31 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
         return
       }
+
+      // Check cooldown
+      const member = interaction.member as GuildMember | null
+      const cooldown = await check_command_cooldown(guild_id, interaction.user.id, interaction.commandName, member)
+      if (cooldown.onCooldown) {
+        try {
+          await safe_reply_ephemeral(interaction, {
+            content: `${EMOJIS.ERROR} Você está em cooldown. Aguarde **${format_cooldown_time(cooldown.remainingSeconds)}** para usar este comando novamente.`,
+          })
+        } catch (error) {
+          logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao responder cooldown')
+        }
+        return
+      }
     }
 
     try {
       await command.execute(interaction);
+      
+      // Record command usage for cooldown tracking
+      if (guild_id) {
+        await commandCooldownService.recordUsage(guild_id, interaction.user.id, interaction.commandName).catch((err) => {
+          logger.error({ err, guild_id, user_id: interaction.user.id, command: interaction.commandName }, 'Erro ao registrar uso de comando')
+        })
+      }
     } catch (error) {
       logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao executar context menu comando');
 
