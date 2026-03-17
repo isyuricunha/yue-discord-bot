@@ -6,6 +6,7 @@ import { ToastViewport } from '../ui'
 import { Seo } from '../seo/seo'
 import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
+import { CommandPalette } from '../command_palette'
 
 const STORAGE_KEY = 'yuebot-sidebar-collapsed'
 
@@ -50,6 +51,7 @@ export function AppShell() {
       </div>
 
       <ToastViewport />
+      <CommandPalette />
     </div>
   )
 }
