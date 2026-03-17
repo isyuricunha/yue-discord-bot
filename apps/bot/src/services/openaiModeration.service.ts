@@ -218,6 +218,19 @@ class OpenAiModerationService {
       };
     }
 
+    const summarize_scores = (scores: Record<string, number>) => {
+      const entries = Object.entries(scores)
+        .filter(([, score]) => typeof score === 'number' && Number.isFinite(score))
+        .sort((a, b) => b[1] - a[1])
+
+      const max = entries[0]
+      return {
+        max_category: max ? max[0] : null,
+        max_score: max ? max[1] : null,
+        top_categories: entries.slice(0, 3).map(([category, score]) => ({ category, score })),
+      }
+    }
+
     const log_failure = (error: unknown, meta: { attempt: string; input_items: number; has_images: boolean }) => {
       const summary = summarize_openai_moderation_error(error)
       logger.warn(
@@ -235,6 +248,14 @@ class OpenAiModerationService {
     try {
       const result = await this.request_moderation(apiKey, input)
       if (!result) return { flagged: false, triggeredCategories: [], scores: {} };
+      logger.debug(
+        {
+          input_items: input.length,
+          has_images: normalized_images.length > 0,
+          ...summarize_scores(result.category_scores),
+        },
+        '[automod.ai] openai moderation response received',
+      )
       return run_scoring(result)
     
     } catch (error) {
