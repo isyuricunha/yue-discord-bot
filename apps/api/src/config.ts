@@ -62,6 +62,13 @@ export const CONFIG = {
   database: {
     url: process.env.DATABASE_URL!,
   },
+  redis: {
+    url: process.env.REDIS_URL || 'redis://localhost:6379',
+  },
+  rateLimit: {
+    max: parse_int_env(process.env.RATE_LIMIT_MAX, 100),
+    timeWindowMs: parse_int_env(process.env.RATE_LIMIT_TIME_WINDOW, 60 * 1000),
+  },
   environment: process.env.NODE_ENV || 'development',
 } as const;
 
