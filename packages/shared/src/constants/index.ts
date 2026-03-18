@@ -87,4 +87,13 @@ export const EMOJIS = {
   BAN: '🔨',
   KICK: '👢',
   MUTE: '🔇',
+  BANK: '🏦',
+  MONEY: '💰',
+} as const;
+
+// Bank constants
+export const BANK = {
+  DEFAULT_INTEREST_RATE: 0.03, // 3% daily interest
+  MINIMUM_BALANCE_FOR_INTEREST: 100n, // Minimum 100 luazinhas to earn interest
+  INTEREST_INTERVAL_HOURS: 24, // Interest accrues every 24 hours
 } as const;
