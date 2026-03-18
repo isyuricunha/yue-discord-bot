@@ -18,7 +18,7 @@
     "@napi-rs/canvas": "^0.1.88",
     "@yuebot/database": "workspace:*",
     "@yuebot/shared": "workspace:*",
-    "axios": "^1.13.2",
+    "axios": "^1.10.0",
     "bullmq": "^5.70.4",
     "discord.js": "^14.25.1",
     "ioredis": "5.4.1",
