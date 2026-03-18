@@ -6,7 +6,7 @@ import { logger } from '../utils/logger';
  * All category keys returned by omni-moderation-latest.
  * Reference: https://platform.openai.com/docs/api-reference/moderations
  */
-export type OpenAiModerationCategory =
+type OpenAiModerationCategory =
   | 'harassment'
   | 'harassment/threatening'
   | 'hate'

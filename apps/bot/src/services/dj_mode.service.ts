@@ -20,7 +20,7 @@ type dj_config = {
   defaultPlaylistUrl: string | null;
 };
 
-export class DjModeService {
+class DjModeService {
   private readonly client: Client;
   private readonly kazagumo: Kazagumo;
   private readonly enabled_cache = new Map<string, boolean>();

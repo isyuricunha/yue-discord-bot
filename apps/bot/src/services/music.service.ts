@@ -7,7 +7,7 @@ import { getSendableChannel } from '../utils/discord';
 import { djModeService } from './dj_mode.service';
 import { is_lavalink_player_not_found_error } from '../utils/safe_error';
 
-export class MusicService {
+class MusicService {
   public kazagumo: Kazagumo;
   private readonly client: Client;
 

@@ -69,5 +69,3 @@ export function build_ai_moderation_thresholds(
 
   return { thresholds, applied_overrides }
 }
-
-export const OPENAI_MODERATION_CATEGORIES = openai_categories

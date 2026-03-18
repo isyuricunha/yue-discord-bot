@@ -46,13 +46,6 @@ export async function safe_reply_ephemeral(
   await interaction.reply(payload)
 }
 
-export async function safe_edit_reply(
-  interaction: replyable_interaction,
-  options: InteractionEditReplyOptions
-): Promise<void> {
-  await interaction.editReply(options)
-}
-
 export async function safe_reply_or_edit_ephemeral(
   interaction: replyable_interaction,
   options: InteractionReplyOptions
