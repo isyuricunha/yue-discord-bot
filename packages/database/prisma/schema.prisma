@@ -130,6 +130,9 @@ model GuildConfig {
   aiModerationAction                 String   @default("delete")
   aiModerationLevel                  String   @default("medio")
   aiModerationThresholds             Json     @default("{}")
+  birthdayChannelId           String?
+  birthdayRoleId              String?
+  birthdayEnabled             Boolean  @default(true)
   guild                              Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@map("guild_configs")
@@ -1178,4 +1181,18 @@ model UserCommandCooldown {
   @@index([guildId, userId, commandName])
   @@index([usedAt])
   @@map("user_command_cooldowns")
+}
+
+// User birthday (global - not per guild)
+model UserBirthday {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  day         Int      // 1-31
+  month       Int      // 1-12
+  year        Int?     // Optional - can be null for privacy
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([day, month])
+  @@map("user_birthdays")
 }
