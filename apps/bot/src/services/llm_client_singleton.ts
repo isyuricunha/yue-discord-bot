@@ -58,13 +58,15 @@ export function get_llm_client(): LlmClient | null {
 	let groq: GroqClient | null = null;
 
 	try {
-		mistral = MistralClient.from_env();
+		const mistralClient = MistralClient.from_env();
+		if (mistralClient) mistral = mistralClient;
 	} catch {
 		mistral = null;
 	}
 
 	try {
-		groq = GroqClient.from_env();
+		const groqClient = GroqClient.from_env();
+		if (groqClient) groq = groqClient;
 	} catch {
 		groq = null;
 	}

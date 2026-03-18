@@ -72,13 +72,14 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
     const password_from_env = typeof process.env.REDIS_PASSWORD === 'string' ? process.env.REDIS_PASSWORD.trim() : ''
     const password_from_input = typeof input?.redis_password === 'string' ? input.redis_password.trim() : ''
 
-    let url_has_password = false
-    try {
-      const parsed = new URL(this.redis_url)
-      url_has_password = typeof parsed.password === 'string' && parsed.password.length > 0
-    } catch {
-      url_has_password = false
-    }
+    const url_has_password = (() => {
+      try {
+        const parsed = new URL(this.redis_url)
+        return typeof parsed.password === 'string' && parsed.password.length > 0
+      } catch {
+        return false
+      }
+    })()
 
     this.redis_password =
       url_has_password

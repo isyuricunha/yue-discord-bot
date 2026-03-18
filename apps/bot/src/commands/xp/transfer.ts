@@ -84,23 +84,20 @@ export const transferCommand: Command = {
 
     if (!result.success && 'error' in result) {
       const error = result.error;
-      let errorMessage = '';
-      switch (error) {
-        case 'invalid_amount':
-          errorMessage = 'Quantia inválida para transferência.';
-          break;
-        case 'insufficient_funds':
-          errorMessage = 'XP insuficiente para realizar a transferência.';
-          break;
-        case 'same_user':
-          errorMessage = 'Você não pode transferir XP para si mesmo.';
-          break;
-        case 'same_server':
-          errorMessage = 'Ambos os usuários devem estar no mesmo servidor.';
-          break;
-        default:
-          errorMessage = 'Ocorreu um erro ao tentar transferir XP.';
-      }
+      const errorMessage = (() => {
+        switch (error) {
+          case 'invalid_amount':
+            return 'Quantia inválida para transferência.';
+          case 'insufficient_funds':
+            return 'XP insuficiente para realizar a transferência.';
+          case 'same_user':
+            return 'Você não pode transferir XP para si mesmo.';
+          case 'same_server':
+            return 'Ambos os usuários devem estar no mesmo servidor.';
+          default:
+            return 'Ocorreu um erro ao tentar transferir XP.';
+        }
+      })();
 
       await interaction.editReply({ content: `${EMOJIS.ERROR} ${errorMessage}` });
       return;

@@ -322,8 +322,8 @@ class WaifuService {
 
       const quota = await this.consume_roll_use({ tx, guildId: input.guildId, userId: input.userId, now })
       const rollResetAt = quota.rollResetAt
-      let rollsRemaining = 0
-
+      const rollsRemaining = quota.allowed ? quota.rollsRemaining : 0
+      
       if (!quota.allowed) {
         const consumed = await inventoryService.consume_reroll_ticket_if_available({
           tx,
@@ -340,10 +340,6 @@ class WaifuService {
             rollResetAt,
           }
         }
-
-        rollsRemaining = 0
-      } else {
-        rollsRemaining = quota.rollsRemaining
       }
 
       const desiredGender: desired_gender =
@@ -701,7 +697,7 @@ class WaifuService {
 
       const quota = await this.consume_roll_use({ tx, guildId: input.guildId, userId: input.userId, now })
       const rollResetAt = quota.rollResetAt
-      let rollsRemaining = 0
+      const rollsRemaining = quota.allowed ? quota.rollsRemaining : 0
 
       if (!quota.allowed) {
         const consumed = await inventoryService.consume_reroll_ticket_if_available({
@@ -721,9 +717,6 @@ class WaifuService {
         }
 
         // Ticket consumed: allow reroll, but the window quota is still exhausted.
-        rollsRemaining = 0
-      } else {
-        rollsRemaining = quota.rollsRemaining
       }
 
       const desiredGender: desired_gender =

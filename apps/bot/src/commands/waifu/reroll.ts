@@ -37,13 +37,7 @@ async function try_disable_old_roll_message(input: {
   const channel = input.interaction.channel
   if (!channel?.isTextBased()) return
 
-  let message: Message | null = null
-  try {
-    message = await channel.messages.fetch(input.messageId)
-  } catch {
-    return
-  }
-
+  const message = await channel.messages.fetch(input.messageId).catch(() => null)
   if (!message) return
 
   const embed_data = message.embeds?.[0]?.data

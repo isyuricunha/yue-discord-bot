@@ -181,12 +181,14 @@ class AuthenticatedMessageService {
       return { success: false as const, error: 'Imagem inválida (formato não suportado). Use uma imagem PNG gerada pelo bot.' }
     }
 
-    let envelope: string | null = null
-    try {
-      envelope = extract_text_chunk(buffer, chunk_key)
-    } catch {
-      return { success: false as const, error: 'Imagem inválida (não foi possível ler os dados de autenticação).' }
-    }
+    const envelope = (() => {
+      try {
+        return extract_text_chunk(buffer, chunk_key)
+      } catch {
+        return null
+      }
+    })()
+    
     if (!envelope) {
       return { success: false as const, error: 'Esta imagem não contém dados de autenticação.' }
     }

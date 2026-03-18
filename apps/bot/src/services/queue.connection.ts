@@ -2,13 +2,14 @@ import { Redis } from 'ioredis';
 import { CONFIG } from '../config';
 
 export function resolve_redis_password(redis_url: string, redis_password: string | undefined): string | undefined {
-	let url_has_password = false
-	try {
-		const parsed = new URL(redis_url)
-		url_has_password = typeof parsed.password === 'string' && parsed.password.length > 0
-	} catch {
-		url_has_password = false
-	}
+	const url_has_password = (() => {
+		try {
+			const parsed = new URL(redis_url)
+			return typeof parsed.password === 'string' && parsed.password.length > 0
+		} catch {
+			return false
+		}
+	})()
 
 	if (url_has_password) return undefined
 	const trimmed = (redis_password ?? '').trim()
