@@ -172,6 +172,11 @@ type bot_channel_permissions_response = {
   }
 }
 
+type bot_stats_response = {
+  servers: number
+  users: number
+}
+
 type moderate_member_body = {
   moderatorId: string
   userId: string
@@ -260,6 +265,11 @@ async function fetch_with_timeout_ms(url: string, log: FastifyBaseLogger, timeou
 export async function get_internal_health(log: FastifyBaseLogger) {
   const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/health`
   return (await fetch_with_timeout_ms(url, log, 3_000)) as { status: string }
+}
+
+export async function get_bot_stats(log: FastifyBaseLogger): Promise<bot_stats_response> {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/stats`
+  return (await fetch_with_timeout_ms(url, log, 5_000)) as bot_stats_response
 }
 
 async function fetch_json_with_timeout_ms(

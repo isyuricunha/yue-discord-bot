@@ -103,6 +103,11 @@ type internal_commands_response = {
   contextMenuCommands: Array<{ name: string; json: RESTPostAPIApplicationCommandsJSONBody }>
 }
 
+type bot_stats_response = {
+  servers: number
+  users: number
+}
+
 type presence_update_response = {
   presence: {
     presenceEnabled: boolean
@@ -391,6 +396,23 @@ export function start_internal_api(client: Client, options: internal_api_options
 
       if (url.pathname === '/internal/health') {
         return send_json(res, 200, { status: 'ok' });
+      }
+
+      if (req.method === 'GET' && url.pathname === '/internal/stats') {
+        const serverCount = client.guilds.cache.size
+        
+        // Calculate total users by fetching approximate member counts from all guilds
+        let totalUsers = 0
+        for (const guild of client.guilds.cache.values()) {
+          if (typeof guild.approximateMemberCount === 'number') {
+            totalUsers += guild.approximateMemberCount
+          }
+        }
+        
+        return send_json(res, 200, {
+          servers: serverCount,
+          users: totalUsers,
+        } satisfies bot_stats_response)
       }
 
       if (req.method === 'GET' && url.pathname === '/internal/commands') {
