@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
-import { profileUpdateSchema } from '@yuebot/shared'
+import { profileUpdateSchema, userNotificationSettingsSchema } from '@yuebot/shared'
 import { InternalBotApiError, set_user_profile } from '../internal/bot_internal_api'
 import { validation_error_details } from '../utils/validation_error'
 import { is_owner } from '../utils/permissions'
@@ -113,5 +113,71 @@ export async function profileRoutes(fastify: FastifyInstance) {
     }
 
     return reply.send({ success: true, profile, botSynced: bot_synced })
+  })
+
+  // Get user notification settings
+  fastify.get('/profile/me/notifications', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const user_id = request.user.userId
+
+    // Ensure user exists
+    const user = await prisma.user.upsert({
+      where: { id: user_id },
+      update: { username: request.user.username, avatar: request.user.avatar },
+      create: { id: user_id, username: request.user.username, avatar: request.user.avatar },
+      select: {
+        id: true,
+        voiceXpNotificationsEnabled: true,
+      },
+    })
+
+    return reply.send({
+      success: true,
+      notifications: {
+        voiceXpEnabled: user.voiceXpNotificationsEnabled,
+      },
+    })
+  })
+
+  // Update user notification settings
+  fastify.patch('/profile/me/notifications', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const parsed = userNotificationSettingsSchema.safeParse(request.body)
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    const user_id = request.user.userId
+    const { voiceXpNotificationsEnabled } = parsed.data
+
+    // Update user notification settings
+    const user = await prisma.user.upsert({
+      where: { id: user_id },
+      update: {
+        username: request.user.username,
+        avatar: request.user.avatar,
+        voiceXpNotificationsEnabled,
+      },
+      create: {
+        id: user_id,
+        username: request.user.username,
+        avatar: request.user.avatar,
+        voiceXpNotificationsEnabled,
+      },
+      select: {
+        id: true,
+        voiceXpNotificationsEnabled: true,
+      },
+    })
+
+    return reply.send({
+      success: true,
+      notifications: {
+        voiceXpEnabled: user.voiceXpNotificationsEnabled,
+      },
+    })
   })
 }

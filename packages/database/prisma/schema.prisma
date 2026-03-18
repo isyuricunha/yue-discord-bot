@@ -686,6 +686,7 @@ model User {
   avatar                       String?
   createdAt                    DateTime                     @default(now())
   updatedAt                    DateTime                     @updatedAt
+  voiceXpNotificationsEnabled  Boolean                      @default(true)
   aniListNotificationChannels  AniListNotificationChannel[]
   aniListNotificationSettings  AniListNotificationSettings?
   aniListWatchlistItems        AniListWatchlistItem[]

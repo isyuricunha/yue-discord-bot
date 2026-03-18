@@ -430,6 +430,10 @@ export const profileUpdateSchema = z.object({
   bio: z.string().max(300).nullable().optional(),
 });
 
+export const userNotificationSettingsSchema = z.object({
+  voiceXpNotificationsEnabled: z.boolean(),
+});
+
 export const badgeUpsertSchema = z.object({
   id: z.string().min(1).max(64),
   name: z.string().min(1).max(64),
@@ -521,6 +525,7 @@ export type GuildCommandCooldownInput = z.infer<typeof guildCommandCooldownSchem
 export type GuildCommandCooldownsUpsertInput = z.infer<typeof guildCommandCooldownsUpsertSchema>;
 
 export type ProfileUpdateInput = z.infer<typeof profileUpdateSchema>;
+export type UserNotificationSettingsInput = z.infer<typeof userNotificationSettingsSchema>;
 export type BadgeUpsertInput = z.infer<typeof badgeUpsertSchema>;
 export type UserBadgeGrantInput = z.infer<typeof userBadgeGrantSchema>;
 export type UserBadgeRevokeInput = z.infer<typeof userBadgeRevokeSchema>;
