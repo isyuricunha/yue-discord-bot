@@ -54,7 +54,6 @@ function acquireLock() {
         // Wait and retry
         // eslint-disable-next-line no-console
         console.log('Waiting for prisma generate lock...');
-        const sleep = new Promise((resolve) => setTimeout(resolve, LOCK_CHECK_INTERVAL_MS));
         // Use synchronous sleep alternative
         const start = Date.now();
         while (Date.now() - start < LOCK_CHECK_INTERVAL_MS) {
@@ -85,7 +84,8 @@ function releaseLock() {
     if (fs.existsSync(LOCK_FILE_PATH)) {
       fs.unlinkSync(LOCK_FILE_PATH);
     }
-  } catch (err) {
+    // eslint-disable-next-line no-unused-vars
+  } catch (_err) {
     // Ignore errors when releasing lock
   }
 }
