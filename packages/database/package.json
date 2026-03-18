@@ -18,10 +18,10 @@
     "type-check": "pnpm db:generate && tsc --noEmit"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.2.0",
-    "@prisma/client": "^7.2.0",
+    "@prisma/adapter-pg": "^7.5.0",
+    "@prisma/client": "^7.5.0",
     "pg": "^8.17.1",
-    "prisma": "^7.2.0"
+    "prisma": "^7.5.0"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
