@@ -1,18 +1,12 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
-import { KeyRound, Shield, Users, Server, ExternalLink } from 'lucide-react'
+import { Shield, Users, Server, ExternalLink } from 'lucide-react'
 
 import { getApiUrl, getDiscordClientId } from '../env'
 import { Button } from '../components/ui'
 
 const API_URL = getApiUrl()
-
-interface BotStatsResponse {
-  success: boolean
-  servers: number
-  users: number
-}
 
 interface BotStats {
   servers: number
@@ -38,11 +32,19 @@ export default function LoginPage() {
     // Fetch bot stats
     const fetchStats = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/bot/stats`)
+        const apiUrl = getApiUrl() // Get API URL inside useEffect to ensure env is loaded
+        const response = await fetch(`${apiUrl}/api/bot/stats`)
         if (response.ok) {
-          const data: BotStatsResponse = await response.json()
+          const data = await response.json()
           // Extract stats from the API response (which includes 'success' wrapper)
-          setStats({ servers: data.servers, users: data.users })
+          // API returns: { success: true, servers: number, users: number }
+          if (data && typeof data.servers === 'number' && typeof data.users === 'number') {
+            setStats({ servers: data.servers, users: data.users })
+          } else {
+            console.warn('Invalid stats response:', data)
+          }
+        } else {
+          console.warn('Failed to fetch stats:', response.status, response.statusText)
         }
       } catch (error) {
         console.error('Failed to fetch bot stats:', error)
@@ -201,23 +203,10 @@ export default function LoginPage() {
                 </NavLink>
                 .
               </p>
-
-              {/* Dev token login */}
-              {import.meta.env.DEV && (
-                <div className="mt-4 pt-4 border-t border-border/40">
-                  <NavLink
-                    to="/token-login"
-                    className="flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    <KeyRound className="h-3 w-3" />
-                    <span>Login manual (dev)</span>
-                  </NavLink>
-                </div>
-              )}
             </div>
 
             {/* Footer links */}
-            <nav className="mt-6 flex items-center justify-center gap-4 text-xs text-muted-foreground animate-[fadeIn_600ms_ease-out_400ms_both]">
+            <nav className="mt-6 flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs text-muted-foreground animate-[fadeIn_600ms_ease-out_400ms_both]">
               <NavLink
                 to="/extras"
                 className="flex items-center gap-1 hover:text-foreground transition-colors"
@@ -226,13 +215,27 @@ export default function LoginPage() {
                 <span>Ver Extras</span>
               </NavLink>
               <span className="opacity-30">•</span>
-              <span className="opacity-50">FAQ, Placeholders e Guias</span>
+              <NavLink
+                to="/extras"
+                className="hover:text-foreground transition-colors"
+              >
+                FAQ
+              </NavLink>
+              <span className="opacity-30">•</span>
+              <NavLink
+                to="/extras/placeholders"
+                className="hover:text-foreground transition-colors"
+              >
+                Placeholders
+              </NavLink>
+              <span className="opacity-30">•</span>
+              <NavLink
+                to="/extras/comandos"
+                className="hover:text-foreground transition-colors"
+              >
+                Guias
+              </NavLink>
             </nav>
-
-            {/* Brand tagline */}
-            <div className="mt-6 text-center text-xs text-muted-foreground/40 animate-[fadeIn_600ms_ease-out_500ms_both]">
-              True Dark UI • Orange accents
-            </div>
           </div>
         </main>
       </div>
