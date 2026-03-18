@@ -446,6 +446,21 @@ export const configCommand: Command = {
             .setDescription('Definir/limpar template de level up')
             .addStringOption((opt) => opt.setName('template').setDescription('Template (omitido = limpar)').setMaxLength(4000).setRequired(false))
         )
+        .addSubcommand((sub) =>
+          sub
+            .setName('levelrole-add')
+            .setDescription('Adicionar cargo para nível')
+            .addIntegerOption((opt) => opt.setName('nivel').setDescription('Nível necessário').setMinValue(1).setMaxValue(9999).setRequired(true))
+            .addRoleOption((opt) => opt.setName('cargo').setDescription('Cargo a ser dado').setRequired(true))
+        )
+        .addSubcommand((sub) =>
+          sub
+            .setName('levelrole-remove')
+            .setDescription('Remover cargo de nível')
+            .addIntegerOption((opt) => opt.setName('nivel').setDescription('Nível').setMinValue(1).setMaxValue(9999).setRequired(true))
+        )
+        .addSubcommand((sub) => sub.setName('levelrole-list').setDescription('Listar cargos por nível'))
+        .addSubcommand((sub) => sub.setName('levelrole-clear').setDescription('Limpar todos os cargos por nível'))
     )
     .addSubcommandGroup((group) =>
       group
@@ -1131,6 +1146,97 @@ export const configCommand: Command = {
             .setColor(COLORS.SUCCESS)
             .setTitle(`${EMOJIS.SUCCESS} XP level up template atualizado`)
             .setDescription(template ? 'atualizado' : '**(limpo)**')
+          await interaction.editReply({ embeds: [embed] })
+          return
+        }
+
+        // Level role management
+        if (sub === 'levelrole-add') {
+          const nivel = interaction.options.getInteger('nivel', true)
+          const role = interaction.options.getRole('cargo', true)
+          const role_id = role.id
+
+          await prisma.guildLevelRoleReward.upsert({
+            where: {
+              guildId_level: {
+                guildId: guild_id,
+                level: nivel,
+              },
+            },
+            update: { roleId: role_id },
+            create: { guildId: guild_id, level: nivel, roleId: role_id },
+          })
+
+          const embed = new EmbedBuilder()
+            .setColor(COLORS.SUCCESS)
+            .setTitle(`${EMOJIS.SUCCESS} Cargo por nível adicionado`)
+            .setDescription(`Nível **${nivel}** -> <@&${role_id}>`)
+          await interaction.editReply({ embeds: [embed] })
+          return
+        }
+
+        if (sub === 'levelrole-remove') {
+          const nivel = interaction.options.getInteger('nivel', true)
+
+          const deleted = await prisma.guildLevelRoleReward.deleteMany({
+            where: { guildId: guild_id, level: nivel },
+          })
+
+          if (deleted.count === 0) {
+            const embed = new EmbedBuilder()
+              .setColor(COLORS.INFO)
+              .setTitle('ℹ️ Nenhum cargo encontrado')
+              .setDescription(`Não há cargo configurado para o nível **${nivel}**.`)
+            await interaction.editReply({ embeds: [embed] })
+            return
+          }
+
+          const embed = new EmbedBuilder()
+            .setColor(COLORS.SUCCESS)
+            .setTitle(`${EMOJIS.SUCCESS} Cargo por nível removido`)
+            .setDescription(`Nível **${nivel}** removido.`)
+          await interaction.editReply({ embeds: [embed] })
+          return
+        }
+
+        if (sub === 'levelrole-list') {
+          const rewards = await prisma.guildLevelRoleReward.findMany({
+            where: { guildId: guild_id },
+            orderBy: { level: 'asc' },
+          })
+
+          if (rewards.length === 0) {
+            const embed = new EmbedBuilder()
+              .setColor(COLORS.INFO)
+              .setTitle('📄 Cargos por nível')
+              .setDescription('Nenhum cargo por nível configurado.')
+            await interaction.editReply({ embeds: [embed] })
+            return
+          }
+
+          const lines = rewards
+            .slice(0, 25)
+            .map((r) => `- Nível **${r.level}** -> <@&${r.roleId}>`)
+            .join('\n')
+          const more = rewards.length > 25 ? `\n... e mais ${rewards.length - 25}` : ''
+
+          const embed = new EmbedBuilder()
+            .setColor(COLORS.INFO)
+            .setTitle('📄 Cargos por nível')
+            .setDescription(`${lines}${more}`)
+          await interaction.editReply({ embeds: [embed] })
+          return
+        }
+
+        if (sub === 'levelrole-clear') {
+          const deleted = await prisma.guildLevelRoleReward.deleteMany({
+            where: { guildId: guild_id },
+          })
+
+          const embed = new EmbedBuilder()
+            .setColor(COLORS.SUCCESS)
+            .setTitle(`${EMOJIS.SUCCESS} Cargos por nível limpos`)
+            .setDescription(`Removidos **${deleted.count}** cargo(s) por nível.`)
           await interaction.editReply({ embeds: [embed] })
           return
         }
