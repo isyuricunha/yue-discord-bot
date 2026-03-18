@@ -1,7 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database'
 import { economyAdminAdjustSchema, economyTransferSchema } from '@yuebot/shared'
-import { z } from 'zod'
 
 import { validation_error_details } from '../utils/validation_error'
 
