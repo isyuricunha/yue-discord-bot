@@ -6,6 +6,7 @@ import { Settings, Shield, Trophy, Plus } from 'lucide-react'
 import { getApiUrl, getDiscordClientId } from '../env'
 import { Card, CardContent, Skeleton, Button } from '../components/ui'
 import { useAuthStore } from '../store/auth'
+import { UserNotificationSettings } from '../components/user-notification-settings'
 
 const API_URL = getApiUrl()
 
@@ -60,6 +61,8 @@ export default function DashboardPage() {
           <span className="hidden sm:inline">Adicionar servidor</span>
         </Button>
       </div>
+
+      <UserNotificationSettings />
 
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
