@@ -45,7 +45,17 @@ export class PollExpirationScheduler {
       });
 
       for (const poll of expiredPolls) {
-        await this.handlePollExpiration(poll);
+        await this.handlePollExpiration({
+          id: poll.id,
+          channelId: poll.channelId,
+          messageId: poll.messageId,
+          question: poll.question,
+          options: poll.options as poll_option[],
+          multiVote: poll.multiVote,
+          endsAt: poll.endsAt,
+          ended: poll.ended,
+          createdAt: poll.createdAt,
+        });
       }
     } catch (error) {
       logger.error({ err: safe_error_details(error) }, 'Error processing poll expiration scheduler');

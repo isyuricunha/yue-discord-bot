@@ -82,7 +82,7 @@ export const transferCommand: Command = {
       amount,
     });
 
-    if (!result.success) {
+    if (!result.success && 'error' in result) {
       const error = result.error;
       let errorMessage = '';
       switch (error) {

@@ -2,7 +2,7 @@ import { MessageReaction, User, PartialMessageReaction, PartialUser } from 'disc
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
-import { pollService } from '../services/poll.service'
+import { pollService, poll_option } from '../services/poll.service'
 
 function is_expected_reaction_fetch_error(error: unknown): boolean {
   if (!error || typeof error !== 'object') return false
@@ -162,7 +162,7 @@ export async function execute(reaction: MessageReaction | PartialMessageReaction
         reaction.emoji.name || ''
       )
       if (poll) {
-        await pollService.updatePollMessage(poll, reaction.client)
+        await pollService.updatePollMessage(poll as unknown as Parameters<typeof pollService.updatePollMessage>[0], reaction.client as unknown as Parameters<typeof pollService.updatePollMessage>[1])
       }
     } catch (error: unknown) {
       logger.warn({ err: safe_error_details(error) }, 'poll: failed to handle reaction add')

@@ -74,7 +74,7 @@ export const pollCommand: Command = {
     }
 
     if (!canal) {
-      await safe_reply_ephemeral(interaction, '❌ Canal inválido.');
+      await safe_reply_ephemeral(interaction, { content: '❌ Canal inválido.' });
       return;
     }
 
@@ -84,12 +84,12 @@ export const pollCommand: Command = {
       .filter((o) => o.length > 0);
 
     if (opcoes.length < 2) {
-      await safe_reply_ephemeral(interaction, '❌ Você precisa de pelo menos 2 opções.');
+      await safe_reply_ephemeral(interaction, { content: '❌ Você precisa de pelo menos 2 opções.' });
       return;
     }
 
     if (opcoes.length > 10) {
-      await safe_reply_ephemeral(interaction, '❌ Máximo de 10 opções permitidas.');
+      await safe_reply_ephemeral(interaction, { content: '❌ Máximo de 10 opções permitidas.' });
       return;
     }
 
@@ -97,10 +97,7 @@ export const pollCommand: Command = {
     if (duracao) {
       const durationMs = parseDurationMs(duracao);
       if (!durationMs) {
-        await safe_reply_ephemeral(
-          interaction,
-          '❌ Formato de duração inválido. Use: 1h, 30m, 7d, etc.'
-        );
+        await safe_reply_ephemeral(interaction, { content: '❌ Formato de duração inválido. Use: 1h, 30m, 7d, etc.' });
         return;
       }
       endsAt = new Date(Date.now() + durationMs);
@@ -152,13 +149,10 @@ export const pollCommand: Command = {
         createdBy: interaction.user.id,
       });
 
-      await safe_reply_ephemeral(
-        interaction,
-        `✅ Enquete criada com sucesso! \n📊 Mensagem: ${message.url}`
-      );
+      await safe_reply_ephemeral(interaction, { content: `✅ Enquete criada com sucesso! \n📊 Mensagem: ${message.url}` });
     } catch (error) {
       logger.error({ err: safe_error_details(error) }, 'Failed to create poll');
-      await safe_reply_ephemeral(interaction, '❌ Erro ao criar a enquete.');
+      await safe_reply_ephemeral(interaction, { content: '❌ Erro ao criar a enquete.' });
     }
   },
 };

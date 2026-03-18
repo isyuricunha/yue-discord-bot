@@ -274,7 +274,7 @@ export async function sendPollExpirationNotification(
 ): Promise<boolean> {
   try {
     const channel = await client.channels.fetch(pollData.channelId);
-    if (!channel || !('send' in channel)) {
+    if (!channel || typeof channel !== 'object' || !('send' in channel)) {
       logger.warn({ channelId: pollData.channelId }, 'Channel not found or not text-based for poll expiration');
       return false;
     }
@@ -295,9 +295,9 @@ export async function sendPollExpirationNotification(
       winnerText = winners.map(w => `${w.text} (${w.votes} votos)`).join(', ');
     }
 
-    const message = `📊 A enquete "${pollData.question}" acabou!\n🏆 Vencedor: ${winnerText}`;
+    const message = { content: `📊 A enquete "${pollData.question}" acabou!\n🏆 Vencedor: ${winnerText}` };
 
-    await channel.send(message);
+    await (channel as { send: (msg: { content: string }) => Promise<unknown> }).send(message);
     return true;
   } catch (error) {
     logger.error({ err: safe_error_details(error), pollId: pollData.id }, 'Failed to send poll expiration notification');
