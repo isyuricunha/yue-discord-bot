@@ -1,8 +1,8 @@
 import { create } from 'zustand'
 
-export type toast_variant = 'default' | 'success' | 'error'
+type toast_variant = 'default' | 'success' | 'error'
 
-export type toast_item = {
+type toast_item = {
   id: string
   title?: string
   message: string

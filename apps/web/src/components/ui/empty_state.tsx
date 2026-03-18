@@ -3,7 +3,7 @@ import { cn } from '../../lib/cn'
 import { Card, CardContent } from './card'
 import { Button } from './button'
 
-export type empty_state_action = {
+type empty_state_action = {
   label: string
   onClick: () => void
   variant?: 'solid' | 'outline'
@@ -20,12 +20,12 @@ type empty_state_props = {
   compact?: boolean
 }
 
-export function EmptyState({ 
-  title, 
-  description, 
+export function EmptyState({
+  title,
+  description,
   icon,
   iconClassName,
-  className, 
+  className,
   action,
   secondaryAction,
   compact = false
@@ -45,14 +45,14 @@ export function EmptyState({
             {icon}
           </div>
         )}
-        
+
         <div className={cn(
           'font-semibold',
           compact ? 'text-sm' : 'text-base'
         )}>
           {title}
         </div>
-        
+
         {description && (
           <div className={cn(
             'text-muted-foreground',
@@ -68,8 +68,8 @@ export function EmptyState({
             compact ? 'mt-3' : 'mt-4'
           )}>
             {secondaryAction && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size={compact ? 'sm' : 'md'}
                 onClick={secondaryAction.onClick}
               >
@@ -77,7 +77,7 @@ export function EmptyState({
               </Button>
             )}
             {action && (
-              <Button 
+              <Button
                 variant={action.variant || 'solid'}
                 size={compact ? 'sm' : 'md'}
                 onClick={action.onClick}
@@ -91,46 +91,3 @@ export function EmptyState({
     </Card>
   )
 }
-
-// Preset empty states for common scenarios
-export function EmptyStateSearch({ query, onClear }: { query: string; onClear: () => void }) {
-  return (
-    <EmptyState
-      title="Nenhum resultado encontrado"
-      description={`Não encontramos nada para "${query}"`}
-      icon={<span className="text-2xl">🔍</span>}
-      action={{ label: 'Limpar busca', onClick: onClear, variant: 'outline' }}
-    />
-  )
-}
-
-export function EmptyStateError({ 
-  message = 'Algo deu errado. Tente novamente.',
-  onRetry 
-}: { 
-  message?: string
-  onRetry?: () => void 
-}) {
-  return (
-    <EmptyState
-      title="Ops! Algo deu errado"
-      description={message}
-      icon={<span className="text-2xl">⚠️</span>}
-      iconClassName="bg-red-500/10"
-      action={onRetry ? { label: 'Tentar novamente', onClick: onRetry } : undefined}
-    />
-  )
-}
-
-export function EmptyStateLoading() {
-  return (
-    <EmptyState
-      title="Carregando..."
-      description="Aguarde enquanto buscamos os dados"
-      icon={
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent/30 border-t-accent" />
-      }
-    />
-  )
-}
-

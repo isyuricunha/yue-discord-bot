@@ -101,27 +101,3 @@ export function useKeyboardShortcuts() {
     }
   }, [goBack, goToDashboard, goToGuild, location.pathname, guildId])
 }
-
-// Hook para atalhos específicos de uma página
-export function usePageShortcuts(shortcuts: shortcut_map) {
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if meta/ctrl key is pressed
-      if (e.metaKey || e.ctrlKey) return
-      
-      // Ignore if typing in input fields
-      const target = e.target as HTMLElement
-      const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
-      if (isInput) return
-
-      const handler = shortcuts[e.key]
-      if (handler) {
-        e.preventDefault()
-        handler(e)
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [shortcuts])
-}

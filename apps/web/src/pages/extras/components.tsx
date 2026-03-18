@@ -99,22 +99,6 @@ export function InlineCode({ children, className }: InlineCodeProps) {
     return <span className={cn('font-mono text-foreground', className)}>{children}</span>
 }
 
-// Alias for backward compatibility
-export const inline_code = InlineCode
-
-export type code_block_props = {
-    children: ReactNode
-    className?: string
-}
-
-export function code_block({ children, className }: code_block_props) {
-    return (
-        <div className={cn('overflow-x-auto rounded-lg bg-surface/60 p-3 font-mono text-xs', className)}>
-            {children}
-        </div>
-    )
-}
-
 export type back_link_props = {
     to?: string
     label?: string
