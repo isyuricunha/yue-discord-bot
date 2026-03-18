@@ -11,7 +11,7 @@ const pgPool = new Pool({
   connectionString: process.env.DATABASE_URL,
 });
 
-const prismaAdapter = new PrismaPg(pgPool);
+const prismaAdapter = new PrismaPg(pgPool as any);
 
 export const prisma =
   globalForPrisma.prisma ??
