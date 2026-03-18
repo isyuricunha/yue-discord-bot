@@ -1,12 +1,18 @@
 import { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
-import { KeyRound, Shield, Sparkles, Users, Server, ExternalLink } from 'lucide-react'
+import { KeyRound, Shield, Users, Server, ExternalLink } from 'lucide-react'
 
 import { getApiUrl, getDiscordClientId } from '../env'
 import { Button } from '../components/ui'
 
 const API_URL = getApiUrl()
+
+interface BotStatsResponse {
+  success: boolean
+  servers: number
+  users: number
+}
 
 interface BotStats {
   servers: number
@@ -34,8 +40,9 @@ export default function LoginPage() {
       try {
         const response = await fetch(`${API_URL}/api/bot/stats`)
         if (response.ok) {
-          const data = await response.json()
-          setStats(data)
+          const data: BotStatsResponse = await response.json()
+          // Extract stats from the API response (which includes 'success' wrapper)
+          setStats({ servers: data.servers, users: data.users })
         }
       } catch (error) {
         console.error('Failed to fetch bot stats:', error)
@@ -83,7 +90,6 @@ export default function LoginPage() {
         {/* Header - minimal */}
         <header className="flex w-full items-center justify-between px-6 py-5">
           <div className="flex items-center gap-2">
-            <Sparkles className="h-5 w-5 text-accent" />
             <span className="text-sm font-medium text-foreground">Yue Bot</span>
           </div>
         </header>
@@ -93,9 +99,6 @@ export default function LoginPage() {
           <div className="w-full max-w-md">
             {/* Logo/Brand section */}
             <div className="text-center mb-8 animate-[fadeIn_600ms_ease-out]">
-              <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 border border-accent/20">
-                <Sparkles className="h-8 w-8 text-accent" />
-              </div>
               <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-1">
                 Yue Bot
               </h1>
