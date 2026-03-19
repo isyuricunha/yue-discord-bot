@@ -401,11 +401,57 @@ export function start_internal_api(client: Client, options: internal_api_options
       if (req.method === 'GET' && url.pathname === '/internal/stats') {
         const serverCount = client.guilds.cache.size
         
-        // Calculate total users by fetching approximate member counts from all guilds
+        // Calculate total users by getting approximate member counts from Discord API (primary method)
         let totalUsers = 0
-        for (const guild of client.guilds.cache.values()) {
-          if (typeof guild.approximateMemberCount === 'number') {
-            totalUsers += guild.approximateMemberCount
+        try {
+          // Primary method: fetch guilds with counts to get approximate member counts from Discord API
+          const guilds = await Promise.all(
+            client.guilds.cache.map(async (guild) => {
+              try {
+                const fetchedGuild = await client.guilds.fetch({ guild: guild.id, withCounts: true, force: true })
+                return fetchedGuild
+              } catch (error) {
+                log.warn({ err: safe_error_details(error), guildId: guild.id }, 'Failed to fetch guild with counts')
+                return guild // Return cached guild as fallback
+              }
+            })
+          )
+          
+          for (const guild of guilds) {
+            if (typeof guild.approximateMemberCount === 'number') {
+              totalUsers += guild.approximateMemberCount
+            } else {
+              // If approximateMemberCount is not available, try memberCount
+              if (typeof guild.memberCount === 'number') {
+                totalUsers += guild.memberCount
+              }
+            }
+          }
+          
+          log.info({ totalUsers, serverCount }, 'Stats calculated using Discord API')
+        } catch (error) {
+          log.warn({ err: safe_error_details(error) }, 'Failed to fetch guilds with counts, using database fallback')
+          
+          // Fallback: count unique users from database
+          try {
+            const uniqueUsers = await prisma.guildMember.groupBy({
+              by: ['userId'],
+              _count: {
+                userId: true
+              }
+            })
+            totalUsers = uniqueUsers.length
+            log.info({ totalUsers, serverCount }, 'Stats calculated using database fallback')
+          } catch (dbError) {
+            log.error({ err: safe_error_details(dbError) }, 'Failed to count users from database')
+            // Final fallback to cached guilds
+            for (const guild of client.guilds.cache.values()) {
+              if (typeof guild.approximateMemberCount === 'number') {
+                totalUsers += guild.approximateMemberCount
+              } else if (typeof guild.memberCount === 'number') {
+                totalUsers += guild.memberCount
+              }
+            }
           }
         }
         
