@@ -488,11 +488,11 @@ export default function OwnerPage() {
                               onClick={(event) => {
                                 event.preventDefault()
                                 event.stopPropagation()
-                                navigate(`/guild/${g.id}/automod`)
+                                navigate(`/guild/${g.id}/moderation`)
                               }}
                             >
                               <Shield className="h-4 w-4" />
-                              AutoMod
+                              Moderação
                             </Button>
                             <Button
                               type="button"
