@@ -8,6 +8,7 @@ import { getApiUrl } from '../env'
 import { Badge, Button, Input, Select, Switch, Tabs } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
+import { get_api_error_message } from '../lib/api_error'
 import { getModerationCategoryTranslation, getThresholdForLevel, type OpenAiModerationCategory, type AiModerationLevel } from '@yuebot/shared'
 import { 
   getAutomodActionLabel, 
@@ -253,7 +254,7 @@ export default function ModerationPage() {
       toast_success('Configurações salvas com sucesso!')
     },
     onError: (error: any) => {
-      toast_error(error.response?.data?.error || error.message || 'Erro ao salvar configurações')
+      toast_error(get_api_error_message(error, 'Erro ao salvar configurações'))
     },
   })
 
