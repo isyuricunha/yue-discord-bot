@@ -1,15 +1,9 @@
+import { PageLayout } from '../components/design'
 import { Card, CardContent, CardHeader } from '../components/ui'
 
 export default function PrivacyPage() {
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
-      <div>
-        <div className="text-2xl font-semibold tracking-tight">Política de Privacidade</div>
-        <div className="mt-1 text-sm text-muted-foreground">
-          Transparência sobre dados coletados, uso e retenção.
-        </div>
-      </div>
-
+    <PageLayout title="Política de Privacidade" description="Transparência sobre dados coletados, uso e retenção.">
       <Card>
         <CardHeader>
           <div className="text-base font-semibold">Resumo</div>
@@ -199,6 +193,6 @@ export default function PrivacyPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageLayout>
   )
 }
