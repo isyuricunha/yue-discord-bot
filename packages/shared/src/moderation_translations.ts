@@ -17,6 +17,8 @@ export type OpenAiModerationCategory =
   | 'violence'
   | 'violence/graphic'
 
+export type AiModerationLevel = 'permissivo' | 'brando' | 'medio' | 'rigoroso' | 'maximo'
+
 export const moderationCategoryTranslations: Record<OpenAiModerationCategory, string> = {
   'harassment': 'Assédio',
   'harassment/threatening': 'Assédio com Ameaças',
@@ -35,4 +37,44 @@ export const moderationCategoryTranslations: Record<OpenAiModerationCategory, st
 
 export function getModerationCategoryTranslation(category: OpenAiModerationCategory): string {
   return moderationCategoryTranslations[category] || category
+}
+
+export function getThresholdForLevel(level: AiModerationLevel): number {
+  switch (level) {
+    case 'permissivo':
+      return 0.95
+    case 'brando':
+      return 0.85
+    case 'medio':
+      return 0.75
+    case 'rigoroso':
+      return 0.65
+    case 'maximo':
+      return 0.55
+  }
+}
+
+export function getDefaultThresholdsForLevel(level: AiModerationLevel): Record<OpenAiModerationCategory, number> {
+  const threshold = getThresholdForLevel(level)
+  const categories: OpenAiModerationCategory[] = [
+    'harassment',
+    'harassment/threatening',
+    'hate',
+    'hate/threatening',
+    'illicit',
+    'illicit/violent',
+    'self-harm',
+    'self-harm/intent',
+    'self-harm/instructions',
+    'sexual',
+    'sexual/minors',
+    'violence',
+    'violence/graphic',
+  ]
+  
+  const defaults: Record<OpenAiModerationCategory, number> = {} as any
+  for (const category of categories) {
+    defaults[category] = threshold
+  }
+  return defaults
 }

@@ -8,7 +8,7 @@ import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
-import { getModerationCategoryTranslation, type OpenAiModerationCategory } from '@yuebot/shared'
+import { getModerationCategoryTranslation, getThresholdForLevel, type OpenAiModerationCategory, type AiModerationLevel } from '@yuebot/shared'
 
 const API_URL = getApiUrl()
 
@@ -44,7 +44,7 @@ type automod_config_response = {
 }
 
 type automod_action = 'delete' | 'warn' | 'mute' | 'kick' | 'ban'
-type ai_moderation_level = 'permissivo' | 'brando' | 'medio' | 'rigoroso' | 'maximo'
+type ai_moderation_level = AiModerationLevel
 
 const action_label: Record<automod_action, string> = {
   delete: 'Deletar',
@@ -190,6 +190,11 @@ export default function ModerationPage() {
 
   const remove_mute_role = (role_id: string) => {
     set_mute_role_ids((prev) => prev.filter((id) => id !== role_id))
+  }
+
+  const reset_thresholds_to_level = () => {
+    set_ai_thresholds({})
+    toast_success('Valores redefinidos para o nível selecionado')
   }
 
   const saveMutation = useMutation({
@@ -355,7 +360,19 @@ export default function ModerationPage() {
               </div>
 
               <div>
-                <div className="text-sm font-medium">Overrides por categoria (0.00–1.00)</div>
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">Overrides por categoria (0.00–1.00)</div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={reset_thresholds_to_level}
+                    disabled={Object.keys(ai_thresholds).length === 0}
+                    className="text-xs"
+                  >
+                    Redefinir para nível
+                  </Button>
+                </div>
                 <div className="mt-2 text-xs text-muted-foreground">
                   Deixe em branco para usar o valor padrão do nível. Valores são "score" do OpenAI: quanto menor, mais rígido.
                 </div>
@@ -363,10 +380,30 @@ export default function ModerationPage() {
                 <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-2">
                   {openai_categories.map((category) => {
                     const value = ai_thresholds[category]
+                    const defaultValue = getThresholdForLevel(ai_level)
+                    const hasOverride = value !== undefined
+                    
                     return (
-                      <div key={category} className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-                        <div className="text-xs font-medium text-muted-foreground">{getModerationCategoryTranslation(category)}</div>
+                      <div 
+                        key={category} 
+                        className={`rounded-xl border px-4 py-3 ${
+                          hasOverride 
+                            ? 'border-accent/50 bg-accent/5' 
+                            : 'border-border/70 bg-surface/40'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="text-xs font-medium text-muted-foreground">
+                            {getModerationCategoryTranslation(category)}
+                          </div>
+                          {hasOverride && (
+                            <div className="text-xs text-accent font-medium">Override</div>
+                          )}
+                        </div>
                         <div className="mt-1 text-xs text-muted-foreground font-mono opacity-60">{category}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          Padrão: {defaultValue.toFixed(2)}
+                        </div>
                         <div className="mt-2 flex items-center gap-2">
                           <Input
                             type="number"
@@ -374,6 +411,7 @@ export default function ModerationPage() {
                             max={1}
                             step={0.01}
                             value={value === undefined ? '' : String(value)}
+                            placeholder={String(defaultValue)}
                             onChange={(e) => {
                               const raw = e.target.value
                               set_ai_thresholds((prev) => {
@@ -392,6 +430,7 @@ export default function ModerationPage() {
                           <Button
                             type="button"
                             variant="outline"
+                            size="sm"
                             onClick={() =>
                               set_ai_thresholds((prev) => {
                                 const next = { ...prev }
@@ -399,8 +438,10 @@ export default function ModerationPage() {
                                 return next
                               })
                             }
+                            disabled={!hasOverride}
+                            className="text-xs px-2"
                           >
-                            <span>Limpar</span>
+                            <X className="h-3 w-3" />
                           </Button>
                         </div>
                       </div>
