@@ -1288,7 +1288,7 @@ export default function XpLevelsPage() {
                   </div>
 
                   <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
-                    <Input value={reset_user_id} onChange={(e) => setResetUserId(e.target.value)} placeholder="User ID" />
+                    <Input value={reset_user_id} onChange={(e) => setResetUserId(e.target.value)} placeholder="ID do usuário" />
                     <Input value={reset_user_confirm} onChange={(e) => setResetUserConfirm(e.target.value)} placeholder="Digite ZERAR USUARIO" />
                     <Button
                       variant="outline"
@@ -1314,7 +1314,7 @@ export default function XpLevelsPage() {
                     <Input
                       value={reset_global_user_id}
                       onChange={(e) => setResetGlobalUserId(e.target.value)}
-                      placeholder="(Opcional) User ID para zerar somente 1 usuário"
+                      placeholder="(Opcional) ID do usuário para zerar somente 1 usuário"
                     />
                     <Input value={reset_global_confirm} onChange={(e) => setResetGlobalConfirm(e.target.value)} placeholder="Digite ZERAR GLOBAL" />
                     <Button
