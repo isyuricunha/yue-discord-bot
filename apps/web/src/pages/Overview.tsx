@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { ArrowLeft, Users, Shield, Trophy, AlertCircle, Settings, FileText } from 'lucide-react'
+import { ArrowLeft, Users, Shield, Trophy, AlertCircle, Settings, FileText, Copy } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Skeleton } from '../components/ui'
+import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
 
@@ -42,6 +43,15 @@ interface GuildStats {
 export default function OverviewPage() {
   const { guildId } = useParams()
   const navigate = useNavigate()
+
+  const copy_to_clipboard = async (value: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+      toast_success(`${label} copiado`, 'Copiado')
+    } catch {
+      toast_error(`Não foi possível copiar ${label}.`, 'Falha ao copiar')
+    }
+  }
 
   const {
     data: guild,
@@ -337,11 +347,52 @@ export default function OverviewPage() {
                       {action.action}
                     </Badge>
                     <div className="min-w-0">
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Usuário:</span> <span className="font-medium">{action.userId}</span>
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Usuário:</span>
+                          <span className="font-mono font-medium">{action.userId}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void copy_to_clipboard(action.userId, 'ID do usuário')}
+                            className="h-8 px-2"
+                            aria-label="Copiar ID do usuário"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <span className="text-muted-foreground">Mod:</span>
+                          <span className="font-mono font-medium">{action.moderatorId}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void copy_to_clipboard(action.moderatorId, 'ID do moderador')}
+                            className="h-8 px-2"
+                            aria-label="Copiar ID do moderador"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
                       {action.reason && (
-                        <div className="mt-1 wrap-break-word text-sm text-muted-foreground">Razão: {action.reason}</div>
+                        <div className="mt-1 flex items-start gap-2 text-sm text-muted-foreground">
+                          <span className="shrink-0">Razão:</span>
+                          <span className="wrap-break-word">{action.reason}</span>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => void copy_to_clipboard(action.reason ?? '', 'razão')}
+                            className="h-8 px-2"
+                            aria-label="Copiar razão"
+                          >
+                            <Copy className="h-4 w-4" />
+                          </Button>
+                        </div>
                       )}
                     </div>
                   </div>
