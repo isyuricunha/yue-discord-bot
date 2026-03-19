@@ -15,9 +15,6 @@ updates:
     commit-message:
       prefix: "deps"
       include: "scope"
-    labels:
-      - "dependencies"
-      - "automated"
     allow:
       - dependency-type: "all"
     ignore:
