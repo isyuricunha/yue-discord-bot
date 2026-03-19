@@ -16,7 +16,7 @@ import {
   type AutomodAction 
 } from '@yuebot/shared'
 import { PageLayout, PageSection, SkeletonLine } from '../components/design'
-import { AutoModSections, type GuildConfig } from './AutoMod'
+import { AutoModSections, type GuildConfig } from '../components/moderation/automod_sections'
 
 const API_URL = getApiUrl()
 
