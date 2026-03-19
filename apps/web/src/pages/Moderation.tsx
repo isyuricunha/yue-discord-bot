@@ -8,6 +8,7 @@ import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
+import { getModerationCategoryTranslation, type OpenAiModerationCategory } from '@yuebot/shared'
 
 const API_URL = getApiUrl()
 
@@ -61,7 +62,7 @@ const ai_level_label: Record<ai_moderation_level, string> = {
   maximo: 'Máximo',
 }
 
-const openai_categories = [
+const openai_categories: OpenAiModerationCategory[] = [
   'harassment',
   'harassment/threatening',
   'hate',
@@ -75,7 +76,7 @@ const openai_categories = [
   'sexual/minors',
   'violence',
   'violence/graphic',
-] as const
+]
 
 export default function ModerationPage() {
   const { guildId } = useParams()
@@ -364,7 +365,8 @@ export default function ModerationPage() {
                     const value = ai_thresholds[category]
                     return (
                       <div key={category} className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-                        <div className="text-xs font-medium text-muted-foreground">{category}</div>
+                        <div className="text-xs font-medium text-muted-foreground">{getModerationCategoryTranslation(category)}</div>
+                        <div className="mt-1 text-xs text-muted-foreground font-mono opacity-60">{category}</div>
                         <div className="mt-2 flex items-center gap-2">
                           <Input
                             type="number"
