@@ -10,7 +10,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "pnpm --filter database db:generate && pnpm --filter bot deploy-commands && pnpm --filter database db:migrate:safe && pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && pnpm --parallel --stream run dev",
+    "dev": "pnpm --filter database db:generate && pnpm --filter @yuebot/shared build && pnpm --filter bot deploy-commands && pnpm --filter database db:migrate:safe && pnpm --filter @yuebot/database build && pnpm --parallel --stream run dev",
     "dev:bot": "pnpm --filter bot dev",
     "dev:api": "pnpm --filter api dev",
     "dev:web": "pnpm --filter web dev",

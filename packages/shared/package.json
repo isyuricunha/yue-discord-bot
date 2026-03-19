@@ -21,7 +21,7 @@
   },
   "scripts": {
     "dev": "tsc -b -w",
-    "build": "tsc -b --force && tsc -b tsconfig.esm.json --force && node -e \"const fs=require('fs');fs.mkdirSync('dist/esm',{recursive:true});fs.writeFileSync('dist/esm/package.json','{\\\"type\\\":\\\"module\\\"}\\n');\"",
+    "build": "tsc -b --force && tsc -b tsconfig.esm.json --force && node -e \"const fs=require('fs');const path=require('path');const dir=path.join('dist','esm');fs.mkdirSync(dir,{recursive:true});fs.writeFileSync(path.join(dir,'package.json'),'{\\\"type\\\":\\\"module\\\"}\\n','utf8');\"",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "type-check": "tsc --noEmit",
