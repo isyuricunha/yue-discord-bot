@@ -125,7 +125,7 @@ export default function OverviewPage() {
           <div className="text-sm font-medium">Ações rápidas</div>
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             <button
-              onClick={() => navigate(`/guild/${guildId}/automod`)}
+              onClick={() => navigate(`/guild/${guildId}/moderation`)}
               className="flex items-center gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60"
             >
               <div className="grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60">

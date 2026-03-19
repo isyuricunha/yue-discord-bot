@@ -27,7 +27,6 @@ import {
   ExternalLink,
   Music,
   Command,
-  ScanEye,
   Heart,
   TrendingUp,
 } from 'lucide-react'
@@ -129,7 +128,6 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
         items: [
           { to: `/guild/${guildId}/moderation`, label: 'Moderação', icon: <Shield className="h-4 w-4" /> },
           { to: `/guild/${guildId}/antiraid`, label: 'Anti-Raide', icon: <ShieldAlert className="h-4 w-4" /> },
-          { to: `/guild/${guildId}/automod`, label: 'AutoMod', icon: <ScanEye className="h-4 w-4" /> },
           { to: `/guild/${guildId}/modlogs`, label: 'Logs', icon: <FileText className="h-4 w-4" /> },
           { to: `/guild/${guildId}/audit`, label: 'Audit', icon: <ClipboardList className="h-4 w-4" /> },
         ],

@@ -116,7 +116,7 @@ export function CommandPalette() {
         label: 'AutoMod',
         description: 'Moderação automática',
         icon: <Shield className="h-4 w-4" />,
-        to: `/guild/${guildId}/automod`,
+        to: `/guild/${guildId}/moderation`,
         keywords: ['automod', 'moderacao', 'filtros', 'spam', 'raid'],
         requiresGuild: true,
       },

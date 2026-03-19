@@ -64,16 +64,9 @@ function useGuildModules(guildId: string) {
         category: 'essentials',
       },
       {
-        to: `/guild/${guildId}/automod`,
-        label: 'AutoMod',
-        description: 'Moderação automática',
-        icon: <Shield className="h-5 w-5" />,
-        category: 'automation',
-      },
-      {
         to: `/guild/${guildId}/moderation`,
         label: 'Moderação',
-        description: 'Punições e automação',
+        description: 'Filtros e punições',
         icon: <Shield className="h-5 w-5" />,
         category: 'automation',
       },
