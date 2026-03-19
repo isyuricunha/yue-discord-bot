@@ -15,8 +15,8 @@ import {
   getAiLevelDescription,
   type AutomodAction,
   type AiModerationLevel
-} from '@yuebot/shared'
-import { PageLayout, PageSection, useAutoBreadcrumbs } from '../components/design'
+ } from '@yuebot/shared'
+import { PageLayout, PageSection } from '../components/design'
 
 const API_URL = getApiUrl()
 
@@ -47,7 +47,6 @@ interface GuildConfig {
 export default function AutoModPage() {
   const { guildId } = useParams()
   const queryClient = useQueryClient()
-  const breadcrumbs = useAutoBreadcrumbs()
 
   const [newWord, setNewWord] = useState('')
   const [newWordAction, setNewWordAction] = useState<AutomodAction>('warn')
@@ -160,7 +159,6 @@ export default function AutoModPage() {
     <PageLayout
       title="AutoMod"
       description="Moderação automática com filtros inteligentes"
-      breadcrumbs={breadcrumbs}
       hasChanges={has_changes}
       isSaving={mutation.isPending}
       onSave={handleSave}

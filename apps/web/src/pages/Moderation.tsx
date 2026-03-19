@@ -15,7 +15,7 @@ import {
   getAiLevelDescription,
   type AutomodAction 
 } from '@yuebot/shared'
-import { PageLayout, PageSection, useAutoBreadcrumbs, SkeletonLine } from '../components/design'
+import { PageLayout, PageSection, SkeletonLine } from '../components/design'
 
 const API_URL = getApiUrl()
 
@@ -210,13 +210,10 @@ export default function ModerationPage() {
     })
   }
 
-  const breadcrumbs = useAutoBreadcrumbs()
-
   return (
     <PageLayout
       title="Moderação"
       description="Configurações de punição e automação por IA"
-      breadcrumbs={breadcrumbs}
       hasChanges={has_changes}
       isSaving={saveMutation.isPending}
       onSave={handleSave}
