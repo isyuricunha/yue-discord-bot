@@ -62,6 +62,14 @@ const ai_level_label: Record<ai_moderation_level, string> = {
   maximo: 'Máximo',
 }
 
+const ai_level_description: Record<ai_moderation_level, string> = {
+  permissivo: 'Apenas conteúdo extremamente ofensivo será sinalizado (threshold: 0.95)',
+  brando: 'Conteúdo moderadamente ofensivo será sinalizado (threshold: 0.85)',
+  medio: 'Equilíbrio entre falsos positivos e proteção (threshold: 0.75)',
+  rigoroso: 'Mais sensível, detecta conteúdo borderline (threshold: 0.65)',
+  maximo: 'Extremamente sensível, pode gerar mais falsos positivos (threshold: 0.55)',
+}
+
 const openai_categories: OpenAiModerationCategory[] = [
   'harassment',
   'harassment/threatening',
@@ -356,22 +364,30 @@ export default function ModerationPage() {
                       <option value="maximo">{ai_level_label.maximo}</option>
                     </Select>
                   </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    {ai_level_description[ai_level]}
+                  </div>
                 </div>
               </div>
 
               <div>
                 <div className="flex items-center justify-between">
                   <div className="text-sm font-medium">Overrides por categoria (0.00–1.00)</div>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={reset_thresholds_to_level}
-                    disabled={Object.keys(ai_thresholds).length === 0}
-                    className="text-xs"
-                  >
-                    Redefinir para nível
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Badge className={Object.keys(ai_thresholds).length === 0 ? 'bg-muted text-muted-foreground' : ''}>
+                      {Object.keys(ai_thresholds).length} personalizados
+                    </Badge>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={reset_thresholds_to_level}
+                      disabled={Object.keys(ai_thresholds).length === 0}
+                      className="text-xs"
+                    >
+                      Redefinir para nível
+                    </Button>
+                  </div>
                 </div>
                 <div className="mt-2 text-xs text-muted-foreground">
                   Deixe em branco para usar o valor padrão do nível. Valores são "score" do OpenAI: quanto menor, mais rígido.
@@ -426,6 +442,7 @@ export default function ModerationPage() {
                                 return next
                               })
                             }}
+                            className={hasOverride && (value! < 0.1 || value! > 0.9) ? 'border-orange-500 focus:border-orange-500' : ''}
                           />
                           <Button
                             type="button"
@@ -440,10 +457,16 @@ export default function ModerationPage() {
                             }
                             disabled={!hasOverride}
                             className="text-xs px-2"
+                            aria-label={`Limpar override de ${getModerationCategoryTranslation(category)}`}
                           >
                             <X className="h-3 w-3" />
                           </Button>
                         </div>
+                        {hasOverride && (value! < 0.1 || value! > 0.9) && (
+                          <div className="mt-1 text-xs text-orange-600 dark:text-orange-400">
+                            ⚠️ Valor extremo pode gerar muitos falsos {value! < 0.1 ? 'negativos' : 'positivos'}
+                          </div>
+                        )}
                       </div>
                     )
                   })}
