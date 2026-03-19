@@ -926,7 +926,7 @@ export default function XpLevelsPage() {
                             size="sm"
                             onClick={() => setConfig({ ...config, levelUpMessage: '{@user} subiu para o nível {level}!' })}
                           >
-                            Reset
+                            Redefinir
                           </Button>
                         </div>
 
@@ -1256,7 +1256,7 @@ export default function XpLevelsPage() {
           },
           {
             value: 'reset',
-            label: 'Reset',
+            label: 'Redefinição',
             content: (
               <Card>
                 <CardContent className="space-y-5 p-6">

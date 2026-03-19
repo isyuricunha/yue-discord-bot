@@ -518,7 +518,7 @@ export default function OwnerPage() {
                               }}
                             >
                               <Settings className="h-4 w-4" />
-                              Settings
+                              Configurações
                             </Button>
                             <Button
                               type="button"
