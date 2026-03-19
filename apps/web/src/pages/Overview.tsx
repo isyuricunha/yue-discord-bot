@@ -125,10 +125,12 @@ export default function OverviewPage() {
           <div className="text-sm font-medium">Ações rápidas</div>
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             <button
+              type="button"
               onClick={() => navigate(`/guild/${guildId}/moderation`)}
-              className="flex items-center gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60"
+              aria-label="Abrir moderação"
+              className="group flex items-center gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <div className="grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60">
+              <div className="grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60 transition-colors group-hover:bg-accent/10 group-focus-visible:bg-accent/10">
                 <Shield className="h-5 w-5 text-accent" />
               </div>
               <div>
@@ -138,10 +140,12 @@ export default function OverviewPage() {
             </button>
 
             <button
+              type="button"
               onClick={() => navigate(`/guild/${guildId}/modlogs`)}
-              className="flex items-center gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60"
+              aria-label="Abrir logs de moderação"
+              className="group flex items-center gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <div className="grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60">
+              <div className="grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60 transition-colors group-hover:bg-accent/10 group-focus-visible:bg-accent/10">
                 <FileText className="h-5 w-5 text-accent" />
               </div>
               <div>
@@ -151,10 +155,12 @@ export default function OverviewPage() {
             </button>
 
             <button
+              type="button"
               onClick={() => navigate(`/guild/${guildId}/members`)}
-              className="flex items-center gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60"
+              aria-label="Abrir membros"
+              className="group flex items-center gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             >
-              <div className="grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60">
+              <div className="grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60 transition-colors group-hover:bg-accent/10 group-focus-visible:bg-accent/10">
                 <Users className="h-5 w-5 text-accent" />
               </div>
               <div>
