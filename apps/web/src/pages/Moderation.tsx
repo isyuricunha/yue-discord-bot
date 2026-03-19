@@ -9,6 +9,12 @@ import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, 
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
 import { getModerationCategoryTranslation, getThresholdForLevel, type OpenAiModerationCategory, type AiModerationLevel } from '@yuebot/shared'
+import { 
+  getAutomodActionLabel, 
+  getAiLevelLabel, 
+  getAiLevelDescription,
+  type AutomodAction 
+} from '@yuebot/shared'
 
 const API_URL = getApiUrl()
 
@@ -43,32 +49,8 @@ type automod_config_response = {
   }
 }
 
-type automod_action = 'delete' | 'warn' | 'mute' | 'kick' | 'ban'
+type automod_action = AutomodAction
 type ai_moderation_level = AiModerationLevel
-
-const action_label: Record<automod_action, string> = {
-  delete: 'Deletar',
-  warn: 'Avisar',
-  mute: 'Silenciar',
-  kick: 'Expulsar',
-  ban: 'Banir',
-}
-
-const ai_level_label: Record<ai_moderation_level, string> = {
-  permissivo: 'Permissivo',
-  brando: 'Brando',
-  medio: 'Médio',
-  rigoroso: 'Rigoroso',
-  maximo: 'Máximo',
-}
-
-const ai_level_description: Record<ai_moderation_level, string> = {
-  permissivo: 'Apenas conteúdo extremamente ofensivo será sinalizado (threshold: 0.95)',
-  brando: 'Conteúdo moderadamente ofensivo será sinalizado (threshold: 0.85)',
-  medio: 'Equilíbrio entre falsos positivos e proteção (threshold: 0.75)',
-  rigoroso: 'Mais sensível, detecta conteúdo borderline (threshold: 0.65)',
-  maximo: 'Extremamente sensível, pode gerar mais falsos positivos (threshold: 0.55)',
-}
 
 const openai_categories: OpenAiModerationCategory[] = [
   'harassment',
@@ -350,22 +332,22 @@ export default function ModerationPage() {
                       <option value="ban">Banir</option>
                     </Select>
                   </div>
-                  <div className="mt-2 text-xs text-muted-foreground">{action_label[ai_action]}</div>
+                  <div className="mt-2 text-xs text-muted-foreground">{getAutomodActionLabel(ai_action)}</div>
                 </div>
 
                 <div>
                   <div className="text-sm font-medium">Nível</div>
                   <div className="mt-2">
                     <Select value={ai_level} onValueChange={(value) => set_ai_level(value as ai_moderation_level)}>
-                      <option value="permissivo">{ai_level_label.permissivo}</option>
-                      <option value="brando">{ai_level_label.brando}</option>
-                      <option value="medio">{ai_level_label.medio}</option>
-                      <option value="rigoroso">{ai_level_label.rigoroso}</option>
-                      <option value="maximo">{ai_level_label.maximo}</option>
+                      <option value="permissivo">{getAiLevelLabel('permissivo')}</option>
+                      <option value="brando">{getAiLevelLabel('brando')}</option>
+                      <option value="medio">{getAiLevelLabel('medio')}</option>
+                      <option value="rigoroso">{getAiLevelLabel('rigoroso')}</option>
+                      <option value="maximo">{getAiLevelLabel('maximo')}</option>
                     </Select>
                   </div>
                   <div className="mt-2 text-xs text-muted-foreground">
-                    {ai_level_description[ai_level]}
+                    {getAiLevelDescription(ai_level)}
                   </div>
                 </div>
               </div>
