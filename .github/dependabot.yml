@@ -1,13 +1,13 @@
 version: 2
 updates:
-  # Enable version updates for npm - unified configuration
+  # Enable version updates for npm
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "09:00"
-    open-pull-requests-limit: 10
+    open-pull-requests-limit: 5
     reviewers:
       - "isyuricunha"
     assignees:
@@ -45,3 +45,25 @@ updates:
     labels:
       - "github-actions"
       - "automated"
+
+  # Special handling for security updates
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "04:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "isyuricunha"
+    assignees:
+      - "isyuricunha"
+    commit-message:
+      prefix: "security"
+      include: "scope"
+    labels:
+      - "security"
+      - "dependencies"
+      - "automated"
+    allow:
+      # Allow updates for packages with security vulnerabilities
+      - dependency-type: "all"
