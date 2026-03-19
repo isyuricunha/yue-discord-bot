@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import axios from 'axios'
 import {
   BarChart3,
@@ -20,10 +20,11 @@ import {
   ClipboardList,
   TrendingUp,
   Music,
+  Search,
 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Card, CardContent, Skeleton } from '../components/ui'
+import { Card, CardContent, EmptyState, Input, Skeleton } from '../components/ui'
 
 const API_URL = getApiUrl()
 
@@ -189,6 +190,7 @@ export default function GuildPage() {
   const { guildId } = useParams()
   const navigate = useNavigate()
   const modules = useGuildModules(guildId ?? '')
+  const [module_query, set_module_query] = useState('')
 
   const { data: guild, isLoading } = useQuery({
     queryKey: ['guild-summary', guildId],
@@ -199,12 +201,24 @@ export default function GuildPage() {
   })
 
   const groupedModules = useMemo(() => {
+    const query = module_query.trim().toLowerCase()
+    const filtered = !query
+      ? modules
+      : modules.filter((m) => {
+          const haystack = `${m.label} ${m.description} ${category_labels[m.category]}`.toLowerCase()
+          return haystack.includes(query)
+        })
+
     const grouped: Record<string, module_card[]> = {}
     for (const cat of category_order) {
-      grouped[cat] = modules.filter((m: module_card) => m.category === cat)
+      grouped[cat] = filtered.filter((m: module_card) => m.category === cat)
     }
     return grouped
-  }, [modules])
+  }, [modules, module_query])
+
+  const has_any_module = useMemo(() => {
+    return category_order.some((category) => groupedModules[category]?.length > 0)
+  }, [groupedModules])
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -244,7 +258,38 @@ export default function GuildPage() {
         </Card>
       )}
 
+      {!isLoading && guild && (
+        <Card>
+          <CardContent className="p-5">
+            <div className="text-sm font-medium">Módulos</div>
+            <div className="mt-3 flex items-center gap-3">
+              <div className="relative w-full">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={module_query}
+                  onChange={(e) => set_module_query(e.target.value)}
+                  placeholder="Buscar módulos (ex: moderação, logs, setup...)"
+                  className="pl-10"
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && guild && !has_any_module && (
+        <Card>
+          <CardContent className="p-6">
+            <EmptyState
+              title="Nenhum módulo encontrado"
+              description="Tente buscar por outro termo."
+            />
+          </CardContent>
+        </Card>
+      )}
+
       {!isLoading &&
+        has_any_module &&
         category_order.map((category) => {
           const items = groupedModules[category]
           if (!items || items.length === 0) return null
