@@ -27,7 +27,7 @@ function resolve_payload(pathname: string, guild_id?: string): seo_payload {
   if (normalized === '/' || normalized === '/moderation') {
     return {
       title: 'Yue Bot - Painel de Gerenciamento',
-      description: 'Painel de gerenciamento do Yue Bot para configurar moderação, automod, logs e recursos do seu servidor no Discord.',
+      description: 'Painel de gerenciamento do Yue Bot para configurar moderação, logs e recursos do seu servidor no Discord.',
       indexable: false,
     }
   }

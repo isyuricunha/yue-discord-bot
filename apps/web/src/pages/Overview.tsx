@@ -132,8 +132,8 @@ export default function OverviewPage() {
                 <Shield className="h-5 w-5 text-accent" />
               </div>
               <div>
-                <div className="text-sm font-semibold">AutoMod</div>
-                <div className="text-xs text-muted-foreground">Filtros e regras</div>
+                <div className="text-sm font-semibold">Moderação</div>
+                <div className="text-xs text-muted-foreground">Filtros e punições</div>
               </div>
             </button>
 

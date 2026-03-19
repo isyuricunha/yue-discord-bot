@@ -28,7 +28,7 @@ function useBreadcrumbs(guildId: string | undefined, location: { pathname: strin
 
     const segments: Record<string, { label: string; parent?: string }> = {
       overview: { label: 'Visão geral' },
-      automod: { label: 'AutoMod' },
+      automod: { label: 'Moderação' },
       modlogs: { label: 'Logs' },
       moderation: { label: 'Moderação' },
       members: { label: 'Membros' },
