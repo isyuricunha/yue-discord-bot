@@ -18,6 +18,14 @@ updates:
     labels:
       - "dependencies"
       - "automated"
+    allow:
+      - dependency-type: "all"
+    ignore:
+      # Ignore patch updates for stable packages to avoid noise
+      - dependency-name: "typescript"
+        update-types: ["patch"]
+      - dependency-name: "eslint"
+        update-types: ["patch"]
     
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
@@ -59,40 +67,3 @@ updates:
     allow:
       # Allow updates for packages with security vulnerabilities
       - dependency-type: "all"
-    ignore:
-      # Ignore patch updates for stable packages to avoid noise
-      - dependency-name: "typescript"
-        update-types: ["patch"]
-      - dependency-name: "eslint"
-        update-types: ["patch"]
-
-# Configure grouping of PRs
-groups:
-  # Group all production dependency updates
-  production-dependencies:
-    patterns:
-      - "*"
-    dependency-type: "production"
-    
-  # Group all development dependency updates
-  development-dependencies:
-    patterns:
-      - "*"
-    dependency-type: "development"
-    
-  # Group security updates together
-  security-updates:
-    patterns:
-      - "*"
-    dependency-type: "all"
-    update-types: ["major", "minor"]
-
-# Configure pull request settings
-pull-request-branch-name:
-  separator: "/"
-  prefix: "deps"
-
-# Configure commit message
-commit-message:
-  prefix: "deps"
-  include: "scope"
