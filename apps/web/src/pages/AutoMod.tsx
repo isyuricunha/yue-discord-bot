@@ -193,7 +193,7 @@ export default function AutoModPage() {
             </div>
           </div>
 
-          {Boolean(config.wordFilterEnabled) && (
+          {config.wordFilterEnabled && (
             <div className="space-y-3">
               <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_220px_44px]">
                 <Input
@@ -254,7 +254,7 @@ export default function AutoModPage() {
             </div>
           </div>
 
-          {Boolean(config.capsEnabled) && (
+          {config.capsEnabled && (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <div>
                 <div className="text-sm font-medium">Limite de CAPS (%)</div>
@@ -318,7 +318,7 @@ export default function AutoModPage() {
             </div>
           </div>
 
-          {Boolean(config.linkFilterEnabled) && (
+          {config.linkFilterEnabled && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
@@ -342,7 +342,7 @@ export default function AutoModPage() {
                   <div className="text-sm font-medium">Bloquear todos os links?</div>
                   <div className="mt-2">
                     <Switch
-                      checked={Boolean(config.linkBlockAll)}
+                      checked={config.linkBlockAll ?? false}
                       onCheckedChange={(checked) => setConfig({ ...config, linkBlockAll: checked })}
                       label="Bloquear todos os links"
                       disabled={isLoading}
@@ -351,7 +351,7 @@ export default function AutoModPage() {
                 </div>
               </div>
 
-              {!Boolean(config.linkBlockAll) && (
+              {!config.linkBlockAll && (
                 <div className="space-y-3">
                   <div className="text-sm font-medium">Domínios bloqueados</div>
                   <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
@@ -401,7 +401,7 @@ export default function AutoModPage() {
             </div>
           </div>
 
-          {Boolean(config.aiModerationEnabled) && (
+          {config.aiModerationEnabled && (
             <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
