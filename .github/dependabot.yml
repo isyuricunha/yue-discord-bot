@@ -23,9 +23,9 @@ updates:
     ignore:
       # Ignore patch updates for stable packages to avoid noise
       - dependency-name: "typescript"
-        update-types: ["version-update:semver-patch"]
+        update-types: ["patch"]
       - dependency-name: "eslint"
-        update-types: ["version-update:semver-patch"]
+        update-types: ["patch"]
     
   # Enable version updates for GitHub Actions
   - package-ecosystem: "github-actions"
