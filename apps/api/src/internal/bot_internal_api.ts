@@ -239,6 +239,8 @@ async function fetch_with_timeout_ms(url: string, log: FastifyBaseLogger, timeou
   const timeout = setTimeout(() => controller.abort(), timeout_ms);
 
   try {
+    log.info({ url, timeout_ms }, 'Attempting to fetch from internal bot API');
+    
     const res = await fetch(url, {
       method: 'GET',
       headers: {
@@ -246,6 +248,8 @@ async function fetch_with_timeout_ms(url: string, log: FastifyBaseLogger, timeou
       },
       signal: controller.signal,
     });
+
+    log.info({ url, status: res.status, ok: res.ok }, 'Internal bot API response received');
 
     if (!res.ok) {
       const body = await res.json().catch(() => null)
@@ -256,7 +260,12 @@ async function fetch_with_timeout_ms(url: string, log: FastifyBaseLogger, timeou
       throw new InternalBotApiError(`Internal bot API returned ${res.status}`, res.status, body)
     }
 
-    return (await res.json()) as unknown;
+    const data = await res.json();
+    log.info({ url, dataType: typeof data }, 'Internal bot API data parsed successfully');
+    return data as unknown;
+  } catch (error) {
+    log.error({ err: safe_error_details(error), url, timeout_ms }, 'Failed to fetch from internal bot API');
+    throw error;
   } finally {
     clearTimeout(timeout);
   }
