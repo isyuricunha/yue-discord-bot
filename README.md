@@ -104,43 +104,6 @@ Required:
 - `INTERNAL_API_SECRET` - Internal API secret
 - `DISCORD_REDIRECT_URI` - OAuth callback URL
 
-## 🔒 Security
-
-We take security seriously and have implemented comprehensive measures to protect the bot and its users.
-
-### Security Features
-
-- **🔍 Automated Security Audits**: Daily vulnerability scanning with `pnpm audit`
-- **🚨 CI/CD Integration**: Security checks in all pull requests
-- **📦 Dependency Management**: Automated updates with Dependabot
-- **🛡️ Secure Defaults**: Secure configuration out of the box
-- **🔐 Encryption**: All sensitive data encrypted at rest and in transit
-
-### Reporting Security Issues
-
-Found a vulnerability? Please report it responsibly:
-
-- 📋 [Security Vulnerability Report](.github/ISSUE_TEMPLATE/security_vulnerability.md)
-- 📧 Email: security@yuebot.dev
-- 🔒 Confidential handling guaranteed
-
-### Security Policy
-
-Read our complete [Security Policy](SECURITY.md) for:
-- Supported versions and update timelines
-- Vulnerability disclosure process
-- Security best practices
-- Contact information
-
-### Current Security Status
-
-✅ **Last Audit**: March 2025  
-✅ **Critical Vulnerabilities**: 0  
-⚠️ **Moderate Vulnerabilities**: 20 (in indirect dependencies)  
-📊 **Security Score**: A-
-
-*Security audits run automatically on every commit and daily schedule.*
-
 ## License
 
 AGPL-3.0 - See LICENSE file.
