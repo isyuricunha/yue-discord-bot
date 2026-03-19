@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Plus, Save, Sparkles, Trash2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
+import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch, Tabs } from '../components/ui'
 import { MessageVariantEditor } from '../components/message_variant_editor'
 import { PlaceholderInlineList } from '../components/template_placeholders'
 import { UserNotificationSettings } from '../components/user-notification-settings'
@@ -111,6 +111,8 @@ export default function XpLevelsPage() {
   const queryClient = useQueryClient()
 
   const has_initialized = useRef(false)
+
+  const [active_tab, set_active_tab] = useState<'overview' | 'config' | 'messages' | 'multipliers' | 'rewards' | 'reset'>('overview')
 
   const { data: channels_data, isLoading: is_channels_loading } = useQuery({
     queryKey: ['channels', guildId],
@@ -492,806 +494,851 @@ export default function XpLevelsPage() {
         />
       )}
 
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <div>
-            <div className="text-sm font-semibold">Como o XP e os níveis funcionam</div>
-            <div className="mt-1 text-sm text-muted-foreground">
-              Em resumo: você ganha XP ao conversar, e o XP vira nível automaticamente.
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
-              <div className="text-sm font-medium">Nível</div>
-              <div className="mt-2 grid gap-2 text-sm text-muted-foreground">
-                <div>
-                  A cada <span className="font-semibold text-foreground">{xp_per_level} XP</span> você sobe 1 nível.
-                </div>
-                <div>
-                  Exemplo: 0–999 XP = nível 0, 1000–1999 XP = nível 1, 2000–2999 XP = nível 2…
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-2">
-                {level_table.map((row) => (
-                  <div key={row.level} className="flex items-center justify-between text-sm">
-                    <span className="text-muted-foreground">Nível {row.level}</span>
-                    <span className="font-semibold">{row.totalXp} XP total</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
-              <div className="text-sm font-medium">Quanto XP eu ganho por mensagem?</div>
-              <div className="mt-2 grid gap-2 text-sm text-muted-foreground">
-                <div>
-                  Depende do tamanho da mensagem (sem repetição tipo “kkkkkkkk” vira “k”), e existe um limite (cap).
-                </div>
-                <div>
-                  O preview abaixo te dá uma noção do <span className="font-semibold text-foreground">mínimo e máximo</span> que pode sair.
-                </div>
-              </div>
-
-              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px]">
-                <div className="text-sm">
-                  <div className="font-medium">Tamanho (sem repetição)</div>
-                  <div className="text-xs text-muted-foreground">
-                    Use isso para estimar o range de XP para uma mensagem típica.
-                  </div>
-                </div>
-                <Input
-                  value={preview_unique_length}
-                  onChange={(e) => setPreviewUniqueLength(e.target.value)}
-                  placeholder="12"
-                />
-              </div>
-
-              {!config || !preview_gain ? (
-                <Skeleton className="mt-4 h-16 w-full" />
-              ) : (
-                <div className="mt-4 grid gap-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Range estimado</span>
-                    <span className="font-semibold">
-                      {preview_gain.min}–{preview_gain.max} XP
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-muted-foreground">Cap</span>
-                    <span className="font-semibold">{Math.max(1, config.xpCap)} XP</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Multiplicadores por cargo podem aumentar o ganho, mas também aumentam o cap efetivo.
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
-          <CardContent className="space-y-3 p-6">
-            <div className="text-sm font-semibold">Seu progresso (local)</div>
-            {!my_xp ? (
-              <Skeleton className="h-20 w-full" />
-            ) : (
-              <div className="grid gap-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Nível</span>
-                  <span className="font-semibold">{my_xp.level}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">XP</span>
-                  <span className="font-semibold">{my_xp.xp}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Colocação</span>
-                  <span className="font-semibold">{my_xp.position ? `#${my_xp.position}` : '—'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Próximo nível</span>
-                  <span className="font-semibold">{1000 - (my_xp.xp % 1000)} XP</span>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-1">
-          <CardContent className="space-y-3 p-6">
-            <div className="text-sm font-semibold">Seu progresso (global)</div>
-            {!my_global_xp ? (
-              <Skeleton className="h-20 w-full" />
-            ) : (
-              <div className="grid gap-2 text-sm">
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Nível</span>
-                  <span className="font-semibold">{my_global_xp.level}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">XP</span>
-                  <span className="font-semibold">{my_global_xp.xp}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Colocação</span>
-                  <span className="font-semibold">{my_global_xp.position ? `#${my_global_xp.position}` : '—'}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-muted-foreground">Próximo nível</span>
-                  <span className="font-semibold">{1000 - (my_global_xp.xp % 1000)} XP</span>
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="space-y-5 p-6">
-            <div>
-              <div className="text-sm font-semibold text-red-500">Zerar XP (guild)</div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                Remove o XP/level de todos os usuários desta guild. Esta ação não pode ser desfeita.
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
-              <Input
-                value={reset_confirm}
-                onChange={(e) => setResetConfirm(e.target.value)}
-                placeholder="Digite ZERAR para confirmar"
-              />
-              <Button
-                variant="outline"
-                isLoading={reset_mutation.isPending}
-                disabled={reset_confirm !== 'ZERAR'}
-                onClick={() => reset_mutation.mutate()}
-                className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
-              >
-                <span>Zerar XP da guild</span>
-              </Button>
-            </div>
-
-            <div className="h-px w-full bg-border/60" />
-
-            <div>
-              <div className="text-sm font-semibold text-red-500">Zerar XP (usuário na guild)</div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                Informe o ID do usuário para remover o XP apenas dele neste servidor.
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
-              <Input value={reset_user_id} onChange={(e) => setResetUserId(e.target.value)} placeholder="User ID" />
-              <Input
-                value={reset_user_confirm}
-                onChange={(e) => setResetUserConfirm(e.target.value)}
-                placeholder="Digite ZERAR USUARIO"
-              />
-              <Button
-                variant="outline"
-                isLoading={reset_user_mutation.isPending}
-                disabled={!reset_user_id || reset_user_confirm !== 'ZERAR USUARIO'}
-                onClick={() => reset_user_mutation.mutate({ userId: reset_user_id })}
-                className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
-              >
-                <span>Zerar usuário</span>
-              </Button>
-            </div>
-
-            <div className="h-px w-full bg-border/60" />
-
-            <div>
-              <div className="text-sm font-semibold text-red-500">Zerar XP global</div>
-              <div className="mt-1 text-xs text-muted-foreground">
-                Restrito (allowlist). Se você não estiver autorizado, o servidor retornará Forbidden.
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
-              <Input
-                value={reset_global_user_id}
-                onChange={(e) => setResetGlobalUserId(e.target.value)}
-                placeholder="(Opcional) User ID para zerar somente 1 usuário"
-              />
-              <Input
-                value={reset_global_confirm}
-                onChange={(e) => setResetGlobalConfirm(e.target.value)}
-                placeholder="Digite ZERAR GLOBAL"
-              />
-              <Button
-                variant="outline"
-                isLoading={reset_global_mutation.isPending}
-                disabled={reset_global_confirm !== 'ZERAR GLOBAL'}
-                onClick={() =>
-                  reset_global_mutation.mutate(
-                    reset_global_user_id
-                      ? { scope: 'user', userId: reset_global_user_id }
-                      : { scope: 'global' }
-                  )
-                }
-                className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
-              >
-                <span>Zerar global</span>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="lg:col-span-1">
-          <CardContent className="space-y-3 p-6">
-            <div className="text-sm font-semibold">Top 10 (XP local)</div>
-            {!leaderboard ? (
-              <Skeleton className="h-24 w-full" />
-            ) : leaderboard.leaderboard.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Nenhum dado de XP ainda.</div>
-            ) : (
-              <div className="space-y-2">
-                {leaderboard.leaderboard.map((row) => (
-                  <div
-                    key={row.userId}
-                    className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      {render_avatar(row.userId, row.avatar)}
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold">#{row.position} {row.username}</div>
-                        <div className="text-xs text-muted-foreground">Nível {row.level} • {row.xp} XP</div>
+      <Tabs
+        value={active_tab}
+        onValueChange={(next) => set_active_tab(next as typeof active_tab)}
+        items={[
+          {
+            value: 'overview',
+            label: 'Visão geral',
+            content: (
+              <div className="space-y-6">
+                <Card>
+                  <CardContent className="space-y-4 p-6">
+                    <div>
+                      <div className="text-sm font-semibold">Como o XP e os níveis funcionam</div>
+                      <div className="mt-1 text-sm text-muted-foreground">
+                        Em resumo: você ganha XP ao conversar, e o XP vira nível automaticamente.
                       </div>
                     </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
 
-        <Card className="lg:col-span-1">
-          <CardContent className="space-y-3 p-6">
-            <div className="text-sm font-semibold">Top 10 (XP global)</div>
-            {!global_leaderboard ? (
-              <Skeleton className="h-24 w-full" />
-            ) : global_leaderboard.leaderboard.length === 0 ? (
-              <div className="text-sm text-muted-foreground">Nenhum dado de XP global ainda.</div>
-            ) : (
-              <div className="space-y-2">
-                {global_leaderboard.leaderboard.map((row) => (
-                  <div
-                    key={row.userId}
-                    className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
-                  >
-                    <div className="flex min-w-0 items-center gap-3">
-                      {render_avatar(row.userId, row.avatar)}
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold">#{row.position} {row.username}</div>
-                        <div className="text-xs text-muted-foreground">Nível {row.level} • {row.xp} XP</div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4 border-b border-border/50 pb-4 mb-4">
-            <div>
-              <div className="text-sm font-semibold">Ativar XP (Chat)</div>
-              <div className="text-xs text-muted-foreground">Recompense usuários ativos com experiência ao conversar através de texto.</div>
-            </div>
-
-            <Switch
-              checked={Boolean(config?.enabled)}
-              onCheckedChange={(checked) => config && setConfig({ ...config, enabled: checked })}
-              label="XP em Texto habilitado"
-              disabled={is_xp_loading}
-            />
-          </div>
-
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <div className="text-sm font-semibold text-accent">Ativar Voice XP (Voz)</div>
-              <div className="text-xs text-muted-foreground">Recompense usuários baseados no tempo em que estiverem conectados em canais de voz não-mutados.</div>
-            </div>
-
-            <Switch
-              checked={Boolean(config?.voiceXpEnabled)}
-              onCheckedChange={(checked) => config && setConfig({ ...config, voiceXpEnabled: checked })}
-              label="Voice XP habilitado"
-              disabled={is_xp_loading}
-            />
-          </div>
-
-          {config?.voiceXpEnabled && (
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 bg-surface/30 p-4 rounded-xl border border-border/70">
-              <div>
-                <div className="text-sm font-medium">Pontos a cada 10 minutos (Voice Rate)</div>
-                <div className="mt-2 text-xs text-muted-foreground mb-3">
-                  Base de XP recompensada em parcelas de 10 minutos num chat de voz.
-                </div>
-                <Input
-                  value={String(config.voiceXpRate)}
-                  onChange={(e) => setConfig({ ...config, voiceXpRate: Number.parseInt(e.target.value || '10', 10) || 10 })}
-                />
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="text-sm font-semibold">Mensagens ao subir de nível</div>
-
-          {is_xp_loading || !config ? (
-            <Skeleton className="h-24 w-full" />
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div>
-                <div className="text-sm font-medium">Canal de anúncio</div>
-                <div className="mt-2">
-                  {is_channels_loading ? (
-                    <Skeleton className="h-11 w-full" />
-                  ) : (
-                    <Select
-                      value={config.levelUpChannelId ?? ''}
-                      onValueChange={(value) => setConfig({ ...config, levelUpChannelId: value || null })}
-                    >
-                      <option value="">Desativado</option>
-                      {(channels_data?.channels ?? []).map((ch) => (
-                        <option key={ch.id} value={ch.id}>
-                          {channel_label(ch)}
-                        </option>
-                      ))}
-                    </Select>
-                  )}
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">Se desativado, não envia mensagem ao subir de nível.</div>
-              </div>
-
-              <div>
-                <div className="text-sm font-medium">Mensagem</div>
-                <div className="mt-2">
-                  <MessageVariantEditor
-                    label=""
-                    value={config.levelUpMessage ?? ''}
-                    onChange={(value) => setConfig({ ...config, levelUpMessage: value || null })}
-                    placeholder="{@user} subiu para o nível {level}!"
-                    rows={3}
-                    description="Suporta múltiplas mensagens (o bot escolhe uma aleatória). Cada item pode ser texto simples ou JSON (content + embed)."
-                  />
-                </div>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {level_up_message_presets.map((preset) => (
-                    <Button
-                      key={preset.label}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        const current = config.levelUpMessage ?? ''
-                        const trimmed = current.trim()
-
-                        if (!trimmed) {
-                          setConfig({ ...config, levelUpMessage: preset.template })
-                          return
-                        }
-
-                        if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
-                          try {
-                            const parsed = JSON.parse(trimmed) as unknown
-                            if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')) {
-                              const next = JSON.stringify([...parsed, preset.template])
-                              setConfig({ ...config, levelUpMessage: next })
-                              return
-                            }
-                          } catch {
-                            // ignore
-                          }
-                        }
-
-                        const next = JSON.stringify([current, preset.template])
-                        setConfig({ ...config, levelUpMessage: next })
-                      }}
-                    >
-                      {preset.label}
-                    </Button>
-                  ))}
-
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setConfig({ ...config, levelUpMessage: '{@user} subiu para o nível {level}!' })}
-                  >
-                    Reset
-                  </Button>
-                </div>
-
-                <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                  <div>
-                    Dica: você pode adicionar quantas mensagens quiser. O bot escolhe uma aleatória a cada level-up.
-                  </div>
-                  <div>
-                    Variáveis úteis:
-                    <PlaceholderInlineList placeholders={template_placeholders.xp_template_placeholders} />
-                  </div>
-                </div>
-
-                <div className="mt-4 rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
-                  <div className="text-sm font-semibold text-foreground">Exemplos</div>
-                  <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
-                      <div className="text-xs font-semibold text-foreground">Texto simples</div>
-                      <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
-                        {'🎉 {@user} → nível {level} ({xp} XP)! Você está em #{experience.ranking}.'}
-                      </pre>
-                    </div>
-                    <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
-                      <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
-                      <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
-                        {JSON.stringify(
-                          {
-                            content: '{@user}',
-                            embed: {
-                              title: 'Level up!',
-                              description: '{user.tag} virou nível {level} (#{experience.ranking})',
-                              color: 16742144,
-                              fields: [
-                                { name: 'XP', value: '{xp}', inline: true },
-                                { name: 'Próximo nível', value: '{experience.next-level}', inline: true },
-                              ],
-                            },
-                          },
-                          null,
-                          2
-                        )}</pre>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="text-sm font-semibold">Estilo de recompensas por cargo</div>
-
-          {is_xp_loading || !config ? (
-            <Skeleton className="h-16 w-full" />
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="text-sm font-semibold">Empilhar recompensas anteriores</div>
-                    <div className="mt-1 text-xs text-muted-foreground">Mantém todos os cargos de recompensa já recebidos.</div>
-                  </div>
-                  <Switch
-                    checked={config.rewardMode === 'stack'}
-                    onCheckedChange={(checked) => setConfig({ ...config, rewardMode: checked ? 'stack' : 'highest' })}
-                    label=""
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="text-sm font-semibold">Remover recompensas anteriores</div>
-                    <div className="mt-1 text-xs text-muted-foreground">Mantém apenas o cargo da maior recompensa atingida.</div>
-                  </div>
-                  <Switch
-                    checked={config.rewardMode === 'highest'}
-                    onCheckedChange={(checked) => setConfig({ ...config, rewardMode: checked ? 'highest' : 'stack' })}
-                    label=""
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="text-sm font-semibold">Cargos que ganham mais/menos XP</div>
-
-          {is_xp_loading || !config ? (
-            <Skeleton className="h-20 w-full" />
-          ) : (
-            <>
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_180px_44px]">
-                <Select value={new_multiplier_role} onValueChange={(value) => setNewMultiplierRole(value)}>
-                  <option value="">Selecione um cargo</option>
-                  {(roles_data?.roles ?? []).filter((r) => !r.managed).map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </Select>
-                <Input
-                  value={new_multiplier_value}
-                  onChange={(e) => setNewMultiplierValue(e.target.value)}
-                  placeholder="1.0"
-                />
-                <Button variant="outline" onClick={add_multiplier} className="px-0" aria-label="Adicionar multiplicador">
-                  <Plus className="h-5 w-5" />
-                </Button>
-              </div>
-
-              <div className="space-y-2">
-                {Object.entries(config.roleXpMultipliers).length === 0 ? (
-                  <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
-                    Nenhum multiplicador configurado
-                  </div>
-                ) : (
-                  Object.entries(config.roleXpMultipliers)
-                    .sort((a, b) => (role_by_id.get(b[0])?.position ?? 0) - (role_by_id.get(a[0])?.position ?? 0))
-                    .map(([role_id, value]) => (
-                      <div
-                        key={role_id}
-                        className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
-                      >
-                        <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold">{role_by_id.get(role_id)?.name ?? role_id}</div>
-                          <div className="text-xs text-muted-foreground">{value}x XP</div>
+                    <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                      <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+                        <div className="text-sm font-medium">Nível</div>
+                        <div className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                          <div>
+                            A cada <span className="font-semibold text-foreground">{xp_per_level} XP</span> você sobe 1 nível.
+                          </div>
+                          <div>
+                            Exemplo: 0–999 XP = nível 0, 1000–1999 XP = nível 1, 2000–2999 XP = nível 2…
+                          </div>
                         </div>
-                        <Button variant="ghost" size="sm" onClick={() => remove_multiplier(role_id)} aria-label="Remover multiplicador">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+
+                        <div className="mt-4 grid gap-2">
+                          {level_table.map((row) => (
+                            <div key={row.level} className="flex items-center justify-between text-sm">
+                              <span className="text-muted-foreground">Nível {row.level}</span>
+                              <span className="font-semibold">{row.totalXp} XP total</span>
+                            </div>
+                          ))}
+                        </div>
                       </div>
-                    ))
-                )}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
 
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="text-sm font-semibold">Cargos que não irão receber experiência</div>
+                      <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+                        <div className="text-sm font-medium">Quanto XP eu ganho por mensagem?</div>
+                        <div className="mt-2 grid gap-2 text-sm text-muted-foreground">
+                          <div>
+                            Depende do tamanho da mensagem (sem repetição tipo “kkkkkkkk” vira “k”), e existe um limite (cap).
+                          </div>
+                          <div>
+                            O preview abaixo te dá uma noção do <span className="font-semibold text-foreground">mínimo e máximo</span> que pode sair.
+                          </div>
+                        </div>
 
-            {is_xp_loading || !config ? (
-              <Skeleton className="h-20 w-full" />
-            ) : (
-              <>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
-                  <Select value={new_ignored_role} onValueChange={(value) => setNewIgnoredRole(value)}>
-                    <option value="">Selecione um cargo</option>
-                    {(roles_data?.roles ?? []).filter((r) => !r.managed).map((r) => (
-                      <option key={r.id} value={r.id}>
-                        {r.name}
-                      </option>
-                    ))}
-                  </Select>
-                  <Button variant="outline" onClick={add_ignored_role} className="px-0" aria-label="Adicionar cargo ignorado">
-                    <Plus className="h-5 w-5" />
-                  </Button>
-                </div>
+                        <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px]">
+                          <div className="text-sm">
+                            <div className="font-medium">Tamanho (sem repetição)</div>
+                            <div className="text-xs text-muted-foreground">
+                              Use isso para estimar o range de XP para uma mensagem típica.
+                            </div>
+                          </div>
+                          <Input value={preview_unique_length} onChange={(e) => setPreviewUniqueLength(e.target.value)} placeholder="12" />
+                        </div>
 
-                <div className="space-y-2">
-                  {config.ignoredRoleIds.length === 0 ? (
-                    <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
-                      Nenhum cargo ignorado
+                        {!config || !preview_gain ? (
+                          <Skeleton className="mt-4 h-16 w-full" />
+                        ) : (
+                          <div className="mt-4 grid gap-2 text-sm">
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Range estimado</span>
+                              <span className="font-semibold">
+                                {preview_gain.min}–{preview_gain.max} XP
+                              </span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <span className="text-muted-foreground">Cap</span>
+                              <span className="font-semibold">{Math.max(1, config.xpCap)} XP</span>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              Multiplicadores por cargo podem aumentar o ganho, mas também aumentam o cap efetivo.
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                  ) : (
-                    config.ignoredRoleIds.map((role_id) => (
-                      <div
-                        key={role_id}
-                        className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
-                      >
-                        <div className="truncate text-sm font-semibold">{role_by_id.get(role_id)?.name ?? role_id}</div>
-                        <Button variant="ghost" size="sm" onClick={() => remove_ignored_role(role_id)} aria-label="Remover cargo ignorado">
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))
-                  )}
+                  </CardContent>
+                </Card>
+
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <Card>
+                    <CardContent className="space-y-3 p-6">
+                      <div className="text-sm font-semibold">Seu progresso (local)</div>
+                      {!my_xp ? (
+                        <Skeleton className="h-20 w-full" />
+                      ) : (
+                        <div className="grid gap-2 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Nível</span>
+                            <span className="font-semibold">{my_xp.level}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">XP</span>
+                            <span className="font-semibold">{my_xp.xp}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Colocação</span>
+                            <span className="font-semibold">{my_xp.position ? `#${my_xp.position}` : '—'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Próximo nível</span>
+                            <span className="font-semibold">{1000 - (my_xp.xp % 1000)} XP</span>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="space-y-3 p-6">
+                      <div className="text-sm font-semibold">Seu progresso (global)</div>
+                      {!my_global_xp ? (
+                        <Skeleton className="h-20 w-full" />
+                      ) : (
+                        <div className="grid gap-2 text-sm">
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Nível</span>
+                            <span className="font-semibold">{my_global_xp.level}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">XP</span>
+                            <span className="font-semibold">{my_global_xp.xp}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Colocação</span>
+                            <span className="font-semibold">{my_global_xp.position ? `#${my_global_xp.position}` : '—'}</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-muted-foreground">Próximo nível</span>
+                            <span className="font-semibold">{1000 - (my_global_xp.xp % 1000)} XP</span>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
 
-        <Card>
-          <CardContent className="space-y-4 p-6">
-            <div className="text-sm font-semibold">Canais que não irão dar experiência</div>
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <Card>
+                    <CardContent className="space-y-3 p-6">
+                      <div className="text-sm font-semibold">Top 10 (XP local)</div>
+                      {!leaderboard ? (
+                        <Skeleton className="h-24 w-full" />
+                      ) : leaderboard.leaderboard.length === 0 ? (
+                        <div className="text-sm text-muted-foreground">Nenhum dado de XP ainda.</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {leaderboard.leaderboard.map((row) => (
+                            <div
+                              key={row.userId}
+                              className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                {render_avatar(row.userId, row.avatar)}
+                                <div className="min-w-0">
+                                  <div className="truncate text-sm font-semibold">#{row.position} {row.username}</div>
+                                  <div className="text-xs text-muted-foreground">Nível {row.level} • {row.xp} XP</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
 
-            {is_xp_loading || !config ? (
-              <Skeleton className="h-20 w-full" />
-            ) : (
-              <>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
-                  <Select value={new_ignored_channel} onValueChange={(value) => setNewIgnoredChannel(value)}>
-                    <option value="">Selecione um canal</option>
-                    {(channels_data?.channels ?? []).map((ch) => (
-                      <option key={ch.id} value={ch.id}>
-                        {channel_label(ch)}
-                      </option>
-                    ))}
-                  </Select>
-                  <Button
-                    variant="outline"
-                    onClick={add_ignored_channel}
-                    className="px-0"
-                    aria-label="Adicionar canal ignorado"
-                  >
-                    <Plus className="h-5 w-5" />
-                  </Button>
+                  <Card>
+                    <CardContent className="space-y-3 p-6">
+                      <div className="text-sm font-semibold">Top 10 (XP global)</div>
+                      {!global_leaderboard ? (
+                        <Skeleton className="h-24 w-full" />
+                      ) : global_leaderboard.leaderboard.length === 0 ? (
+                        <div className="text-sm text-muted-foreground">Nenhum dado de XP global ainda.</div>
+                      ) : (
+                        <div className="space-y-2">
+                          {global_leaderboard.leaderboard.map((row) => (
+                            <div
+                              key={row.userId}
+                              className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
+                            >
+                              <div className="flex min-w-0 items-center gap-3">
+                                {render_avatar(row.userId, row.avatar)}
+                                <div className="min-w-0">
+                                  <div className="truncate text-sm font-semibold">#{row.position} {row.username}</div>
+                                  <div className="text-xs text-muted-foreground">Nível {row.level} • {row.xp} XP</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
                 </div>
-
-                <div className="space-y-2">
-                  {config.ignoredChannelIds.length === 0 ? (
-                    <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
-                      Nenhum canal ignorado
-                    </div>
-                  ) : (
-                    config.ignoredChannelIds.map((channel_id) => (
-                      <div
-                        key={channel_id}
-                        className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
-                      >
-                        <div className="truncate text-sm font-semibold">{channel_by_id.get(channel_id)?.name ? `#${channel_by_id.get(channel_id)!.name}` : channel_id}</div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => remove_ignored_channel(channel_id)}
-                          aria-label="Remover canal ignorado"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))
-                  )}
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="text-sm font-semibold">Recompensas ao subir de nível</div>
-              <div className="mt-1 text-xs text-muted-foreground">Máximo de 15 cargos por experiência.</div>
-            </div>
-            <div className="text-xs text-muted-foreground">{rewards.length}/15</div>
-          </div>
-
-          {is_xp_loading || !config ? (
-            <Skeleton className="h-20 w-full" />
-          ) : (
-            <>
-              <div className="grid grid-cols-1 gap-2 md:grid-cols-[140px_1fr_44px]">
-                <Input
-                  value={new_reward_level}
-                  onChange={(e) => setNewRewardLevel(e.target.value)}
-                  placeholder="Nível"
-                />
-                <Select value={new_reward_role} onValueChange={(value) => setNewRewardRole(value)}>
-                  <option value="">Selecione um cargo</option>
-                  {(roles_data?.roles ?? []).filter((r) => !r.managed).map((r) => (
-                    <option key={r.id} value={r.id}>
-                      {r.name}
-                    </option>
-                  ))}
-                </Select>
-                <Button variant="outline" onClick={add_reward} className="px-0" aria-label="Adicionar recompensa">
-                  <Plus className="h-5 w-5" />
-                </Button>
               </div>
+            ),
+          },
+          {
+            value: 'config',
+            label: 'Configuração',
+            content: (
+              <div className="space-y-6">
+                <Card>
+                  <CardContent className="space-y-4 p-6">
+                    <div className="flex items-center justify-between gap-4 border-b border-border/50 pb-4 mb-4">
+                      <div>
+                        <div className="text-sm font-semibold">Ativar XP (Chat)</div>
+                        <div className="text-xs text-muted-foreground">Recompense usuários ativos com experiência ao conversar através de texto.</div>
+                      </div>
 
-              <div className="space-y-2">
-                {rewards.length === 0 ? (
-                  <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
-                    Nenhuma recompensa configurada
+                      <Switch
+                        checked={Boolean(config?.enabled)}
+                        onCheckedChange={(checked) => config && setConfig({ ...config, enabled: checked })}
+                        label="XP em Texto habilitado"
+                        disabled={is_xp_loading}
+                      />
+                    </div>
+
+                    <div className="flex items-center justify-between gap-4">
+                      <div>
+                        <div className="text-sm font-semibold text-accent">Ativar Voice XP (Voz)</div>
+                        <div className="text-xs text-muted-foreground">Recompense usuários baseados no tempo em que estiverem conectados em canais de voz não-mutados.</div>
+                      </div>
+
+                      <Switch
+                        checked={Boolean(config?.voiceXpEnabled)}
+                        onCheckedChange={(checked) => config && setConfig({ ...config, voiceXpEnabled: checked })}
+                        label="Voice XP habilitado"
+                        disabled={is_xp_loading}
+                      />
+                    </div>
+
+                    {config?.voiceXpEnabled && (
+                      <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 bg-surface/30 p-4 rounded-xl border border-border/70">
+                        <div>
+                          <div className="text-sm font-medium">Pontos a cada 10 minutos (Voice Rate)</div>
+                          <div className="mt-2 text-xs text-muted-foreground mb-3">
+                            Base de XP recompensada em parcelas de 10 minutos num chat de voz.
+                          </div>
+                          <Input
+                            value={String(config.voiceXpRate)}
+                            onChange={(e) =>
+                              setConfig({ ...config, voiceXpRate: Number.parseInt(e.target.value || '10', 10) || 10 })
+                            }
+                          />
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="space-y-4 p-6">
+                    <div className="text-sm font-semibold">Regras (avançado)</div>
+                    <div className="text-xs text-muted-foreground">Ajuste os parâmetros do ganho de XP conforme a sua preferência.</div>
+
+                    {is_xp_loading || !config ? (
+                      <Skeleton className="h-24 w-full" />
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+                        <div>
+                          <div className="text-sm font-medium">Mínimo de caracteres</div>
+                          <div className="mt-2">
+                            <Input
+                              value={String(config.minMessageLength)}
+                              onChange={(e) =>
+                                setConfig({ ...config, minMessageLength: Number.parseInt(e.target.value || '0', 10) || 0 })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-medium">Mínimo (sem repetição)</div>
+                          <div className="mt-2">
+                            <Input
+                              value={String(config.minUniqueLength)}
+                              onChange={(e) =>
+                                setConfig({ ...config, minUniqueLength: Number.parseInt(e.target.value || '0', 10) || 0 })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-medium">Chars/seg (typing)</div>
+                          <div className="mt-2">
+                            <Input
+                              value={String(config.typingCps)}
+                              onChange={(e) =>
+                                setConfig({ ...config, typingCps: Number.parseInt(e.target.value || '1', 10) || 1 })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-medium">Divisor mínimo</div>
+                          <div className="mt-2">
+                            <Input
+                              value={String(config.xpDivisorMin)}
+                              onChange={(e) =>
+                                setConfig({ ...config, xpDivisorMin: Number.parseInt(e.target.value || '1', 10) || 1 })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-medium">Divisor máximo</div>
+                          <div className="mt-2">
+                            <Input
+                              value={String(config.xpDivisorMax)}
+                              onChange={(e) =>
+                                setConfig({ ...config, xpDivisorMax: Number.parseInt(e.target.value || '1', 10) || 1 })
+                              }
+                            />
+                          </div>
+                        </div>
+
+                        <div>
+                          <div className="text-sm font-medium">Cap de XP</div>
+                          <div className="mt-2">
+                            <Input
+                              value={String(config.xpCap)}
+                              onChange={(e) =>
+                                setConfig({ ...config, xpCap: Number.parseInt(e.target.value || '1', 10) || 1 })
+                              }
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            ),
+          },
+          {
+            value: 'messages',
+            label: 'Mensagens',
+            content: (
+              <Card>
+                <CardContent className="space-y-4 p-6">
+                  <div className="text-sm font-semibold">Mensagens ao subir de nível</div>
+
+                  {is_xp_loading || !config ? (
+                    <Skeleton className="h-24 w-full" />
+                  ) : (
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                      <div>
+                        <div className="text-sm font-medium">Canal de anúncio</div>
+                        <div className="mt-2">
+                          {is_channels_loading ? (
+                            <Skeleton className="h-11 w-full" />
+                          ) : (
+                            <Select
+                              value={config.levelUpChannelId ?? ''}
+                              onValueChange={(value) => setConfig({ ...config, levelUpChannelId: value || null })}
+                            >
+                              <option value="">Desativado</option>
+                              {(channels_data?.channels ?? []).map((ch) => (
+                                <option key={ch.id} value={ch.id}>
+                                  {channel_label(ch)}
+                                </option>
+                              ))}
+                            </Select>
+                          )}
+                        </div>
+                        <div className="mt-2 text-xs text-muted-foreground">Se desativado, não envia mensagem ao subir de nível.</div>
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-medium">Mensagem</div>
+                        <div className="mt-2">
+                          <MessageVariantEditor
+                            label=""
+                            value={config.levelUpMessage ?? ''}
+                            onChange={(value) => setConfig({ ...config, levelUpMessage: value || null })}
+                            placeholder="{@user} subiu para o nível {level}!"
+                            rows={3}
+                            description="Suporta múltiplas mensagens (o bot escolhe uma aleatória). Cada item pode ser texto simples ou JSON (content + embed)."
+                          />
+                        </div>
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          {level_up_message_presets.map((preset) => (
+                            <Button
+                              key={preset.label}
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                const current = config.levelUpMessage ?? ''
+                                const trimmed = current.trim()
+
+                                if (!trimmed) {
+                                  setConfig({ ...config, levelUpMessage: preset.template })
+                                  return
+                                }
+
+                                if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+                                  try {
+                                    const parsed = JSON.parse(trimmed) as unknown
+                                    if (Array.isArray(parsed) && parsed.every((v) => typeof v === 'string')) {
+                                      const next = JSON.stringify([...parsed, preset.template])
+                                      setConfig({ ...config, levelUpMessage: next })
+                                      return
+                                    }
+                                  } catch {
+                                    // ignore
+                                  }
+                                }
+
+                                const next = JSON.stringify([current, preset.template])
+                                setConfig({ ...config, levelUpMessage: next })
+                              }}
+                            >
+                              {preset.label}
+                            </Button>
+                          ))}
+
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setConfig({ ...config, levelUpMessage: '{@user} subiu para o nível {level}!' })}
+                          >
+                            Reset
+                          </Button>
+                        </div>
+
+                        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                          <div>Dica: você pode adicionar quantas mensagens quiser. O bot escolhe uma aleatória a cada level-up.</div>
+                          <div>
+                            Variáveis úteis:
+                            <PlaceholderInlineList placeholders={template_placeholders.xp_template_placeholders} />
+                          </div>
+                        </div>
+
+                        <div className="mt-4 rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
+                          <div className="text-sm font-semibold text-foreground">Exemplos</div>
+                          <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
+                            <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                              <div className="text-xs font-semibold text-foreground">Texto simples</div>
+                              <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
+                                {'🎉 {@user} → nível {level} ({xp} XP)! Você está em #{experience.ranking}.'}
+                              </pre>
+                            </div>
+                            <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                              <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
+                              <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
+                                {JSON.stringify(
+                                  {
+                                    content: '{@user}',
+                                    embed: {
+                                      title: 'Level up!',
+                                      description: '{user.tag} virou nível {level} (#{experience.ranking})',
+                                      color: 16742144,
+                                      fields: [
+                                        { name: 'XP', value: '{xp}', inline: true },
+                                        { name: 'Próximo nível', value: '{experience.next-level}', inline: true },
+                                      ],
+                                    },
+                                  },
+                                  null,
+                                  2
+                                )}
+                              </pre>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ),
+          },
+          {
+            value: 'multipliers',
+            label: 'Multiplicadores',
+            content: (
+              <div className="space-y-6">
+                <Card>
+                  <CardContent className="space-y-4 p-6">
+                    <div className="text-sm font-semibold">Estilo de recompensas por cargo</div>
+
+                    {is_xp_loading || !config ? (
+                      <Skeleton className="h-16 w-full" />
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                        <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <div className="text-sm font-semibold">Empilhar recompensas anteriores</div>
+                              <div className="mt-1 text-xs text-muted-foreground">Mantém todos os cargos de recompensa já recebidos.</div>
+                            </div>
+                            <Switch
+                              checked={config.rewardMode === 'stack'}
+                              onCheckedChange={(checked) => setConfig({ ...config, rewardMode: checked ? 'stack' : 'highest' })}
+                              label=""
+                            />
+                          </div>
+                        </div>
+
+                        <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4">
+                          <div className="flex items-center justify-between gap-4">
+                            <div>
+                              <div className="text-sm font-semibold">Remover recompensas anteriores</div>
+                              <div className="mt-1 text-xs text-muted-foreground">Mantém apenas o cargo da maior recompensa atingida.</div>
+                            </div>
+                            <Switch
+                              checked={config.rewardMode === 'highest'}
+                              onCheckedChange={(checked) => setConfig({ ...config, rewardMode: checked ? 'highest' : 'stack' })}
+                              label=""
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <Card>
+                  <CardContent className="space-y-4 p-6">
+                    <div className="text-sm font-semibold">Cargos que ganham mais/menos XP</div>
+
+                    {is_xp_loading || !config ? (
+                      <Skeleton className="h-20 w-full" />
+                    ) : (
+                      <>
+                        <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_180px_44px]">
+                          <Select value={new_multiplier_role} onValueChange={(value) => setNewMultiplierRole(value)}>
+                            <option value="">Selecione um cargo</option>
+                            {(roles_data?.roles ?? []).filter((r) => !r.managed).map((r) => (
+                              <option key={r.id} value={r.id}>
+                                {r.name}
+                              </option>
+                            ))}
+                          </Select>
+                          <Input
+                            value={new_multiplier_value}
+                            onChange={(e) => setNewMultiplierValue(e.target.value)}
+                            placeholder="1.0"
+                          />
+                          <Button variant="outline" onClick={add_multiplier} className="px-0" aria-label="Adicionar multiplicador">
+                            <Plus className="h-5 w-5" />
+                          </Button>
+                        </div>
+
+                        <div className="space-y-2">
+                          {Object.entries(config.roleXpMultipliers).length === 0 ? (
+                            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                              Nenhum multiplicador configurado
+                            </div>
+                          ) : (
+                            Object.entries(config.roleXpMultipliers)
+                              .sort((a, b) => (role_by_id.get(b[0])?.position ?? 0) - (role_by_id.get(a[0])?.position ?? 0))
+                              .map(([role_id, value]) => (
+                                <div
+                                  key={role_id}
+                                  className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
+                                >
+                                  <div className="min-w-0">
+                                    <div className="truncate text-sm font-semibold">{role_by_id.get(role_id)?.name ?? role_id}</div>
+                                    <div className="text-xs text-muted-foreground">{value}x XP</div>
+                                  </div>
+                                  <Button variant="ghost" size="sm" onClick={() => remove_multiplier(role_id)} aria-label="Remover multiplicador">
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </CardContent>
+                </Card>
+
+                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                  <Card>
+                    <CardContent className="space-y-4 p-6">
+                      <div className="text-sm font-semibold">Cargos que não irão receber experiência</div>
+
+                      {is_xp_loading || !config ? (
+                        <Skeleton className="h-20 w-full" />
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
+                            <Select value={new_ignored_role} onValueChange={(value) => setNewIgnoredRole(value)}>
+                              <option value="">Selecione um cargo</option>
+                              {(roles_data?.roles ?? []).filter((r) => !r.managed).map((r) => (
+                                <option key={r.id} value={r.id}>
+                                  {r.name}
+                                </option>
+                              ))}
+                            </Select>
+                            <Button variant="outline" onClick={add_ignored_role} className="px-0" aria-label="Adicionar cargo ignorado">
+                              <Plus className="h-5 w-5" />
+                            </Button>
+                          </div>
+
+                          <div className="space-y-2">
+                            {config.ignoredRoleIds.length === 0 ? (
+                              <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                                Nenhum cargo ignorado
+                              </div>
+                            ) : (
+                              config.ignoredRoleIds.map((role_id) => (
+                                <div
+                                  key={role_id}
+                                  className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
+                                >
+                                  <div className="truncate text-sm font-semibold">{role_by_id.get(role_id)?.name ?? role_id}</div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => remove_ignored_role(role_id)}
+                                    aria-label="Remover cargo ignorado"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="space-y-4 p-6">
+                      <div className="text-sm font-semibold">Canais que não irão dar experiência</div>
+
+                      {is_xp_loading || !config ? (
+                        <Skeleton className="h-20 w-full" />
+                      ) : (
+                        <>
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
+                            <Select value={new_ignored_channel} onValueChange={(value) => setNewIgnoredChannel(value)}>
+                              <option value="">Selecione um canal</option>
+                              {(channels_data?.channels ?? []).map((ch) => (
+                                <option key={ch.id} value={ch.id}>
+                                  {channel_label(ch)}
+                                </option>
+                              ))}
+                            </Select>
+                            <Button
+                              variant="outline"
+                              onClick={add_ignored_channel}
+                              className="px-0"
+                              aria-label="Adicionar canal ignorado"
+                            >
+                              <Plus className="h-5 w-5" />
+                            </Button>
+                          </div>
+
+                          <div className="space-y-2">
+                            {config.ignoredChannelIds.length === 0 ? (
+                              <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                                Nenhum canal ignorado
+                              </div>
+                            ) : (
+                              config.ignoredChannelIds.map((channel_id) => (
+                                <div
+                                  key={channel_id}
+                                  className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
+                                >
+                                  <div className="truncate text-sm font-semibold">
+                                    {channel_by_id.get(channel_id)?.name ? `#${channel_by_id.get(channel_id)!.name}` : channel_id}
+                                  </div>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => remove_ignored_channel(channel_id)}
+                                    aria-label="Remover canal ignorado"
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))
+                            )}
+                          </div>
+                        </>
+                      )}
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            ),
+          },
+          {
+            value: 'rewards',
+            label: 'Recompensas',
+            content: (
+              <Card>
+                <CardContent className="space-y-4 p-6">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-sm font-semibold">Recompensas ao subir de nível</div>
+                      <div className="mt-1 text-xs text-muted-foreground">Máximo de 15 cargos por experiência.</div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{rewards.length}/15</div>
                   </div>
-                ) : (
-                  rewards.map((reward) => (
-                    <div
-                      key={reward.level}
-                      className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
-                    >
-                      <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold">Ao chegar no nível {reward.level}</div>
-                        <div className="text-xs text-muted-foreground">Dar o cargo {role_by_id.get(reward.roleId)?.name ?? reward.roleId}</div>
+
+                  {is_xp_loading || !config ? (
+                    <Skeleton className="h-20 w-full" />
+                  ) : (
+                    <>
+                      <div className="grid grid-cols-1 gap-2 md:grid-cols-[140px_1fr_44px]">
+                        <Input value={new_reward_level} onChange={(e) => setNewRewardLevel(e.target.value)} placeholder="Nível" />
+                        <Select value={new_reward_role} onValueChange={(value) => setNewRewardRole(value)}>
+                          <option value="">Selecione um cargo</option>
+                          {(roles_data?.roles ?? []).filter((r) => !r.managed).map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {r.name}
+                            </option>
+                          ))}
+                        </Select>
+                        <Button variant="outline" onClick={add_reward} className="px-0" aria-label="Adicionar recompensa">
+                          <Plus className="h-5 w-5" />
+                        </Button>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => remove_reward(reward.level)} aria-label="Remover recompensa">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+
+                      <div className="space-y-2">
+                        {rewards.length === 0 ? (
+                          <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                            Nenhuma recompensa configurada
+                          </div>
+                        ) : (
+                          rewards.map((reward) => (
+                            <div
+                              key={reward.level}
+                              className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
+                            >
+                              <div className="min-w-0">
+                                <div className="truncate text-sm font-semibold">Ao chegar no nível {reward.level}</div>
+                                <div className="text-xs text-muted-foreground">
+                                  Dar o cargo {role_by_id.get(reward.roleId)?.name ?? reward.roleId}
+                                </div>
+                              </div>
+                              <Button variant="ghost" size="sm" onClick={() => remove_reward(reward.level)} aria-label="Remover recompensa">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    </>
+                  )}
+                </CardContent>
+              </Card>
+            ),
+          },
+          {
+            value: 'reset',
+            label: 'Reset',
+            content: (
+              <Card>
+                <CardContent className="space-y-5 p-6">
+                  <div>
+                    <div className="text-sm font-semibold text-red-500">Zerar XP (guild)</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      Remove o XP/level de todos os usuários desta guild. Esta ação não pode ser desfeita.
                     </div>
-                  ))
-                )}
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+                  </div>
 
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="text-sm font-semibold">Regras (avançado)</div>
-          <div className="text-xs text-muted-foreground">Ajuste os parâmetros do ganho de XP conforme a sua preferência.</div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
+                    <Input value={reset_confirm} onChange={(e) => setResetConfirm(e.target.value)} placeholder="Digite ZERAR para confirmar" />
+                    <Button
+                      variant="outline"
+                      isLoading={reset_mutation.isPending}
+                      disabled={reset_confirm !== 'ZERAR'}
+                      onClick={() => reset_mutation.mutate()}
+                      className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+                    >
+                      <span>Zerar XP da guild</span>
+                    </Button>
+                  </div>
 
-          {is_xp_loading || !config ? (
-            <Skeleton className="h-24 w-full" />
-          ) : (
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div>
-                <div className="text-sm font-medium">Mínimo de caracteres</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.minMessageLength)}
-                    onChange={(e) => setConfig({ ...config, minMessageLength: Number.parseInt(e.target.value || '0', 10) || 0 })}
-                  />
-                </div>
-              </div>
+                  <div className="h-px w-full bg-border/60" />
 
-              <div>
-                <div className="text-sm font-medium">Mínimo (sem repetição)</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.minUniqueLength)}
-                    onChange={(e) => setConfig({ ...config, minUniqueLength: Number.parseInt(e.target.value || '0', 10) || 0 })}
-                  />
-                </div>
-              </div>
+                  <div>
+                    <div className="text-sm font-semibold text-red-500">Zerar XP (usuário na guild)</div>
+                    <div className="mt-1 text-xs text-muted-foreground">Informe o ID do usuário para remover o XP apenas dele neste servidor.</div>
+                  </div>
 
-              <div>
-                <div className="text-sm font-medium">Chars/seg (typing)</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.typingCps)}
-                    onChange={(e) => setConfig({ ...config, typingCps: Number.parseInt(e.target.value || '1', 10) || 1 })}
-                  />
-                </div>
-              </div>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
+                    <Input value={reset_user_id} onChange={(e) => setResetUserId(e.target.value)} placeholder="User ID" />
+                    <Input value={reset_user_confirm} onChange={(e) => setResetUserConfirm(e.target.value)} placeholder="Digite ZERAR USUARIO" />
+                    <Button
+                      variant="outline"
+                      isLoading={reset_user_mutation.isPending}
+                      disabled={!reset_user_id || reset_user_confirm !== 'ZERAR USUARIO'}
+                      onClick={() => reset_user_mutation.mutate({ userId: reset_user_id })}
+                      className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+                    >
+                      <span>Zerar usuário</span>
+                    </Button>
+                  </div>
 
-              <div>
-                <div className="text-sm font-medium">Divisor mínimo</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.xpDivisorMin)}
-                    onChange={(e) => setConfig({ ...config, xpDivisorMin: Number.parseInt(e.target.value || '1', 10) || 1 })}
-                  />
-                </div>
-              </div>
+                  <div className="h-px w-full bg-border/60" />
 
-              <div>
-                <div className="text-sm font-medium">Divisor máximo</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.xpDivisorMax)}
-                    onChange={(e) => setConfig({ ...config, xpDivisorMax: Number.parseInt(e.target.value || '1', 10) || 1 })}
-                  />
-                </div>
-              </div>
+                  <div>
+                    <div className="text-sm font-semibold text-red-500">Zerar XP global</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      Restrito (allowlist). Se você não estiver autorizado, o servidor retornará Forbidden.
+                    </div>
+                  </div>
 
-              <div>
-                <div className="text-sm font-medium">Cap de XP</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.xpCap)}
-                    onChange={(e) => setConfig({ ...config, xpCap: Number.parseInt(e.target.value || '1', 10) || 1 })}
-                  />
-                </div>
-              </div>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
+                    <Input
+                      value={reset_global_user_id}
+                      onChange={(e) => setResetGlobalUserId(e.target.value)}
+                      placeholder="(Opcional) User ID para zerar somente 1 usuário"
+                    />
+                    <Input value={reset_global_confirm} onChange={(e) => setResetGlobalConfirm(e.target.value)} placeholder="Digite ZERAR GLOBAL" />
+                    <Button
+                      variant="outline"
+                      isLoading={reset_global_mutation.isPending}
+                      disabled={reset_global_confirm !== 'ZERAR GLOBAL'}
+                      onClick={() =>
+                        reset_global_mutation.mutate(
+                          reset_global_user_id
+                            ? { scope: 'user', userId: reset_global_user_id }
+                            : { scope: 'global' }
+                        )
+                      }
+                      className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+                    >
+                      <span>Zerar global</span>
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ),
+          },
+        ]}
+      />
 
       {(is_channels_loading || is_roles_loading) && (
         <div className="text-xs text-muted-foreground">
