@@ -96,7 +96,7 @@ export default function OverviewPage() {
             )}
             <div className="min-w-0">
               <div className="truncate text-xl font-semibold tracking-tight">
-                {is_loading ? <Skeleton className="h-6 w-52" /> : guild?.name || 'Guild'}
+                {is_loading ? <Skeleton className="h-6 w-52" /> : guild?.name || 'Servidor'}
               </div>
               <div className="mt-1 text-sm text-muted-foreground">Visão geral</div>
             </div>

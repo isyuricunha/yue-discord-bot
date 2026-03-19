@@ -231,7 +231,7 @@ export default function GuildPage() {
 
           <div className="min-w-0 flex-1">
             <div className="text-base font-semibold tracking-tight">
-              {isLoading ? <Skeleton className="h-4 w-40" /> : guild?.name ?? 'Guild'}
+              {isLoading ? <Skeleton className="h-4 w-40" /> : guild?.name ?? 'Servidor'}
             </div>
             <div className="mt-1 text-sm text-muted-foreground">
               {isLoading ? <Skeleton className="h-3 w-56" /> : 'Painel de gerenciamento do servidor'}
@@ -244,7 +244,7 @@ export default function GuildPage() {
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-base font-semibold">Servidor não encontrado</div>
-            <div className="mt-2 text-sm text-muted-foreground">Verifique se você tem acesso a esta guild.</div>
+            <div className="mt-2 text-sm text-muted-foreground">Verifique se você tem acesso a este servidor.</div>
           </CardContent>
         </Card>
       )}

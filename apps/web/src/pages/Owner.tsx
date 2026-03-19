@@ -227,7 +227,7 @@ export default function OwnerPage() {
       return response.data as { success: boolean; guild: guild }
     },
     onSuccess: (data) => {
-      toast_success(`Guild sincronizada: ${data.guild.name}`, 'Sync')
+      toast_success(`Servidor sincronizado: ${data.guild.name}`, 'Sync')
       queryClient.invalidateQueries({ queryKey: ['owner', 'guilds'] })
     },
     onError: (error: any) => {
@@ -236,15 +236,15 @@ export default function OwnerPage() {
 
       if (status === 404 && payload?.error === 'Guild not found') {
         if (payload.removed) {
-          toast_success('Guild removida do painel (bot não está mais no servidor).', 'Sync')
+          toast_success('Servidor removido do painel (bot não está mais no servidor).', 'Sync')
         } else {
-          toast_error('Guild não encontrada (provavelmente já foi removida).', 'Sync falhou')
+          toast_error('Servidor não encontrado (provavelmente já foi removido).', 'Sync falhou')
         }
         queryClient.invalidateQueries({ queryKey: ['owner', 'guilds'] })
         return
       }
 
-      toast_error(payload?.error || error.message || 'Erro ao sincronizar guild', 'Sync falhou')
+      toast_error(payload?.error || error.message || 'Erro ao sincronizar servidor', 'Sync falhou')
     },
   })
 
