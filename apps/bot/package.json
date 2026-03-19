@@ -14,7 +14,7 @@
     "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && tsc --noEmit"
   },
   "dependencies": {
-    "@mistralai/mistralai": "^2.0.0",
+    "@mistralai/mistralai": "^1.15.1",
     "@napi-rs/canvas": "^0.1.88",
     "@yuebot/database": "workspace:*",
     "@yuebot/shared": "workspace:*",
