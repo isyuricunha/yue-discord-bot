@@ -168,27 +168,6 @@ export default function GiveawayDetailsPage() {
             <div className="text-sm text-muted-foreground">Detalhes</div>
           </div>
         </div>
-
-        {giveaway && (
-          <div className="flex items-center gap-2">
-            <a
-              href={`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/export?format=json`}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
-              download
-            >
-              <Download className="h-4 w-4" />
-              JSON
-            </a>
-            <a
-              href={`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/export?format=csv`}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
-              download
-            >
-              <Download className="h-4 w-4" />
-              CSV
-            </a>
-          </div>
-        )}
       </div>
 
       {isError ? (
@@ -224,25 +203,47 @@ export default function GiveawayDetailsPage() {
         <div className="space-y-6">
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between md:gap-6">
                 <div className="min-w-0">
                   <div className="text-2xl font-semibold tracking-tight">{giveaway.title}</div>
                   <div className="mt-2 text-sm text-muted-foreground">{giveaway.description}</div>
                 </div>
-                <div className="shrink-0">
-                  {giveaway.ended || giveaway.cancelled ? (
-                    <span className="inline-flex items-center rounded-full border border-border/70 bg-surface/60 px-3 py-1 text-xs text-muted-foreground">
-                      {giveaway.cancelled ? 'Cancelado' : 'Finalizado'}
-                    </span>
-                  ) : giveaway.suspended ? (
-                    <span className="inline-flex items-center rounded-full border border-border/70 bg-surface/60 px-3 py-1 text-xs text-yellow-300">
-                      Suspenso
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs text-accent">
-                      Ativo
-                    </span>
-                  )}
+
+                <div className="flex shrink-0 flex-col items-start gap-3 md:items-end">
+                  <div>
+                    {giveaway.ended || giveaway.cancelled ? (
+                      <span className="inline-flex items-center rounded-full border border-border/70 bg-surface/60 px-3 py-1 text-xs text-muted-foreground">
+                        {giveaway.cancelled ? 'Cancelado' : 'Finalizado'}
+                      </span>
+                    ) : giveaway.suspended ? (
+                      <span className="inline-flex items-center rounded-full border border-border/70 bg-surface/60 px-3 py-1 text-xs text-yellow-300">
+                        Suspenso
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center rounded-full border border-accent/30 bg-accent/10 px-3 py-1 text-xs text-accent">
+                        Ativo
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="flex flex-wrap items-center gap-2">
+                    <a
+                      href={`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/export?format=json`}
+                      className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+                      download
+                    >
+                      <Download className="h-4 w-4" />
+                      JSON
+                    </a>
+                    <a
+                      href={`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/export?format=csv`}
+                      className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+                      download
+                    >
+                      <Download className="h-4 w-4" />
+                      CSV
+                    </a>
+                  </div>
                 </div>
               </div>
 
