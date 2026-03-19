@@ -2,10 +2,10 @@ import { useMemo, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { Save, Plus, Trash2, Shield, AlertTriangle, Link as LinkIcon, BrainCircuit } from 'lucide-react'
+import { Plus, Trash2, AlertTriangle, Link as LinkIcon, BrainCircuit } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
+import { Button, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
 import { 
@@ -16,6 +16,7 @@ import {
   type AutomodAction,
   type AiModerationLevel
 } from '@yuebot/shared'
+import { PageLayout, PageSection, useAutoBreadcrumbs } from '../components/design'
 
 const API_URL = getApiUrl()
 
@@ -46,6 +47,7 @@ interface GuildConfig {
 export default function AutoModPage() {
   const { guildId } = useParams()
   const queryClient = useQueryClient()
+  const breadcrumbs = useAutoBreadcrumbs()
 
   const [newWord, setNewWord] = useState('')
   const [newWordAction, setNewWordAction] = useState<AutomodAction>('warn')
@@ -61,7 +63,6 @@ export default function AutoModPage() {
   const {
     isLoading,
     isError,
-    refetch,
   } = useQuery({
     queryKey: ['automod-config', guildId],
     queryFn: async () => {
@@ -156,43 +157,18 @@ export default function AutoModPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-            <Shield className="h-5 w-5" />
-          </span>
-          <div>
-            <div className="text-xl font-semibold tracking-tight">AutoMod</div>
-            <div className="text-sm text-muted-foreground">Moderação automática</div>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {has_changes && <Badge>Alterações pendentes</Badge>}
-          <Button
-            onClick={handleSave}
-            isLoading={mutation.isPending}
-            disabled={is_disabled || !has_changes}
-            className="shrink-0"
-          >
-            <Save className="h-4 w-4" />
-            <span>Salvar</span>
-          </Button>
-        </div>
-      </div>
-
-      {isError && (
-        <ErrorState
-          title="Falha ao carregar AutoMod"
-          description="Não foi possível carregar as configurações da guild."
-          onAction={() => refetch()}
-        />
-      )}
-
-      <Card>
-        <CardContent className="space-y-3 p-6">
-          <div className="text-sm font-semibold">O que significa cada ação?</div>
+    <PageLayout
+      title="AutoMod"
+      description="Moderação automática com filtros inteligentes"
+      breadcrumbs={breadcrumbs}
+      hasChanges={has_changes}
+      isSaving={mutation.isPending}
+      onSave={handleSave}
+      saveDisabled={is_disabled || !has_changes}
+      loading={isLoading}
+    >
+      <PageSection title="O que significa cada ação?">
+        <div className="space-y-3">
           <div className="text-sm text-muted-foreground">
             Em todas as ações abaixo, o AutoMod <span className="font-semibold text-foreground">sempre deleta a mensagem</span> primeiro.
             Depois, ele aplica a punição escolhida.
@@ -206,26 +182,17 @@ export default function AutoModPage() {
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </PageSection>
 
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-5 w-5 text-accent" />
-              <div>
-                <div className="text-sm font-semibold">Filtro de palavras</div>
-                <div className="text-xs text-muted-foreground">Punir mensagens contendo palavras proibidas</div>
-              </div>
+      <PageSection title="Filtro de palavras">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <AlertTriangle className="h-5 w-5 text-accent" />
+            <div>
+              <div className="text-sm font-semibold">Filtro de palavras</div>
+              <div className="text-xs text-muted-foreground">Punir mensagens contendo palavras proibidas</div>
             </div>
-
-            <Switch
-              checked={Boolean(config.wordFilterEnabled)}
-              onCheckedChange={(checked) => setConfig({ ...config, wordFilterEnabled: checked })}
-              label="Habilitar filtro de palavras"
-              disabled={isLoading}
-            />
           </div>
 
           {Boolean(config.wordFilterEnabled) && (
@@ -276,26 +243,17 @@ export default function AutoModPage() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </PageSection>
 
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">🔠</span>
-              <div>
-                <div className="text-sm font-semibold">Anti-CAPS</div>
-                <div className="text-xs text-muted-foreground">Punir mensagens com excesso de letras maiúsculas</div>
-              </div>
+      <PageSection title="Anti-CAPS">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">🔠</span>
+            <div>
+              <div className="text-sm font-semibold">Anti-CAPS</div>
+              <div className="text-xs text-muted-foreground">Punir mensagens com excesso de letras maiúsculas</div>
             </div>
-
-            <Switch
-              checked={Boolean(config.capsEnabled)}
-              onCheckedChange={(checked) => setConfig({ ...config, capsEnabled: checked })}
-              label="Habilitar Anti-CAPS"
-              disabled={isLoading}
-            />
           </div>
 
           {Boolean(config.capsEnabled) && (
@@ -349,46 +307,24 @@ export default function AutoModPage() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </PageSection>
 
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <LinkIcon className="h-5 w-5 text-accent" />
-              <div>
-                <div className="text-sm font-semibold">Filtro de links</div>
-                <div className="text-xs text-muted-foreground">Bloquear ou punir mensagens com links</div>
-              </div>
+      <PageSection title="Filtro de links">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <LinkIcon className="h-5 w-5 text-accent" />
+            <div>
+              <div className="text-sm font-semibold">Filtro de links</div>
+              <div className="text-xs text-muted-foreground">Controlar o compartilhamento de links no servidor</div>
             </div>
-
-            <Switch
-              checked={Boolean(config.linkFilterEnabled)}
-              onCheckedChange={(checked) => setConfig({ ...config, linkFilterEnabled: checked })}
-              label="Habilitar filtro de links"
-              disabled={isLoading}
-            />
           </div>
 
           {Boolean(config.linkFilterEnabled) && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4 rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-                <div className="text-sm">
-                  <div className="font-medium">Bloquear todos os links</div>
-                  <div className="text-xs text-muted-foreground">Exceto domínios permitidos</div>
-                </div>
-                <Switch
-                  checked={Boolean(config.linkBlockAll)}
-                  onCheckedChange={(checked) => setConfig({ ...config, linkBlockAll: checked })}
-                  label="Bloquear todos os links"
-                  disabled={isLoading}
-                />
-              </div>
-
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <div className="text-sm font-medium">Ação ao detectar link</div>
+                  <div className="text-sm font-medium">Ação</div>
                   <div className="mt-2">
                     <Select
                       value={link_action}
@@ -403,74 +339,75 @@ export default function AutoModPage() {
                     <div className="mt-2 text-xs text-muted-foreground">{getAutomodActionDescription(link_action)}</div>
                   </div>
                 </div>
-              </div>
 
-              <div className="space-y-3">
-                <div className="text-sm font-medium">Domínios bloqueados</div>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
-                  <Input
-                    value={newDomain}
-                    onChange={(e) => setNewDomain(e.target.value)}
-                    placeholder="exemplo.com"
-                    onKeyDown={(e) => e.key === 'Enter' && addDomain()}
-                  />
-                  <Button variant="outline" onClick={addDomain} className="px-0" aria-label="Adicionar domínio">
-                    <Plus className="h-5 w-5" />
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  {(config.bannedDomains || []).map((domain, index) => (
-                    <div key={index} className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-                      <span className="truncate font-mono text-sm">{domain}</span>
-                      <Button variant="ghost" size="sm" onClick={() => removeDomain(index)} aria-label="Remover domínio">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-
-                  {!isLoading && (config.bannedDomains || []).length === 0 && (
-                    <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
-                      Nenhum domínio bloqueado
-                    </div>
-                  )}
-
-                  {isLoading && <Skeleton className="h-12 w-full" />}
+                <div>
+                  <div className="text-sm font-medium">Bloquear todos os links?</div>
+                  <div className="mt-2">
+                    <Switch
+                      checked={Boolean(config.linkBlockAll)}
+                      onCheckedChange={(checked) => setConfig({ ...config, linkBlockAll: checked })}
+                      label="Bloquear todos os links"
+                      disabled={isLoading}
+                    />
+                  </div>
                 </div>
               </div>
+
+              {!Boolean(config.linkBlockAll) && (
+                <div className="space-y-3">
+                  <div className="text-sm font-medium">Domínios bloqueados</div>
+                  <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
+                    <Input
+                      value={newDomain}
+                      onChange={(e) => setNewDomain(e.target.value)}
+                      placeholder="Digite um domínio..."
+                      onKeyDown={(e) => e.key === 'Enter' && addDomain()}
+                    />
+                    <Button variant="outline" onClick={addDomain} className="px-0" aria-label="Adicionar domínio">
+                      <Plus className="h-5 w-5" />
+                    </Button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {(config.bannedDomains || []).map((domain, index) => (
+                      <div key={index} className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+                        <span className="truncate font-mono text-sm">{domain}</span>
+                        <Button variant="ghost" size="sm" onClick={() => removeDomain(index)} aria-label="Remover domínio">
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+
+                    {!isLoading && (config.bannedDomains || []).length === 0 && (
+                      <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                        Nenhum domínio adicionado
+                      </div>
+                    )}
+
+                    {isLoading && <Skeleton className="h-12 w-full" />}
+                  </div>
+                </div>
+              )}
             </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </PageSection>
 
-      {/* ── OpenAI AI Moderation ── */}
-      <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <BrainCircuit className="h-5 w-5 text-accent" />
-              <div>
-                <div className="text-sm font-semibold">Moderação por IA</div>
-                <div className="text-xs text-muted-foreground">
-                  Analisa texto e imagens automaticamente e remove conteúdo impróprio.
-                </div>
-              </div>
+      <PageSection title="Moderação por IA">
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <BrainCircuit className="h-5 w-5 text-accent" />
+            <div>
+              <div className="text-sm font-semibold">Moderação por IA</div>
+              <div className="text-xs text-muted-foreground">Analisa texto e imagens automaticamente</div>
             </div>
-
-            <Switch
-              checked={Boolean(config.aiModerationEnabled)}
-              onCheckedChange={(checked) => setConfig({ ...config, aiModerationEnabled: checked })}
-              label="Habilitar moderação por IA"
-              disabled={isLoading}
-            />
           </div>
 
           {Boolean(config.aiModerationEnabled) && (
-            <div className="space-y-5">
-              {/* Action */}
+            <div className="space-y-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>
-                  <div className="text-sm font-medium">Ação ao detectar conteúdo impróprio</div>
+                  <div className="text-sm font-medium">Ação</div>
                   <div className="mt-2">
                     <Select
                       value={ai_action}
@@ -485,17 +422,10 @@ export default function AutoModPage() {
                     <div className="mt-2 text-xs text-muted-foreground">{getAutomodActionDescription(ai_action)}</div>
                   </div>
                 </div>
-              </div>
 
-              {/* Per-category thresholds */}
-              <div>
-                <div className="mb-3 text-sm font-medium">Nível de detecção</div>
-                <div className="mb-3 text-xs text-muted-foreground">
-                  Quanto mais alto o nível, mais restritivo (mais conteúdo será punido).
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
+                <div>
+                  <div className="text-sm font-medium">Nível de detecção</div>
+                  <div className="mt-2">
                     <Select
                       value={ai_level}
                       onValueChange={(value) => setConfig({ ...config, aiModerationLevel: value as AiModerationLevel })}
@@ -512,8 +442,8 @@ export default function AutoModPage() {
               </div>
             </div>
           )}
-        </CardContent>
-      </Card>
-    </div>
+        </div>
+      </PageSection>
+    </PageLayout>
   )
 }
