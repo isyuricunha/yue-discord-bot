@@ -8,54 +8,20 @@ import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
+import { 
+  getAutomodActionLabel, 
+  getAutomodActionDescription,
+  getAiLevelLabel,
+  getAiLevelDescription,
+  type AutomodAction,
+  type AiModerationLevel
+} from '@yuebot/shared'
 
 const API_URL = getApiUrl()
-
-type automod_action = 'delete' | 'warn' | 'mute' | 'kick' | 'ban'
-
-const action_label: Record<automod_action, string> = {
-  delete: 'Deletar',
-  warn: 'Avisar',
-  mute: 'Silenciar',
-  kick: 'Expulsar',
-  ban: 'Banir',
-}
-
-const action_description: Record<automod_action, string> = {
-  delete: 'Remove a mensagem. Não aplica punição ao usuário.',
-  warn: 'Remove a mensagem e registra 1 warn no usuário (pode contar para thresholds).',
-  mute: 'Remove a mensagem e aplica timeout de 5 minutos no usuário.',
-  kick: 'Remove a mensagem e expulsa o usuário do servidor.',
-  ban: 'Remove a mensagem e bane o usuário do servidor.',
-}
-
-function describe_action(value: unknown) {
-  const key = value as automod_action
-  if (!key || !(key in action_description)) return ''
-  return action_description[key]
-}
 
 interface BannedWord {
   word: string
   action: string
-}
-
-type ai_moderation_level = 'permissivo' | 'brando' | 'medio' | 'rigoroso' | 'maximo'
-
-const ai_level_label: Record<ai_moderation_level, string> = {
-  permissivo: 'Permissivo',
-  brando: 'Brando',
-  medio: 'Médio',
-  rigoroso: 'Rigoroso',
-  maximo: 'Máximo',
-}
-
-const ai_level_description: Record<ai_moderation_level, string> = {
-  permissivo: 'Quase tudo passa. Só conteúdo bem explícito será punido.',
-  brando: 'Mais permissivo que o padrão, mas ainda barra casos evidentes.',
-  medio: 'Equilíbrio (recomendado).',
-  rigoroso: 'Mais restritivo. Penaliza com mais frequência.',
-  maximo: 'Quase nada passa. Use apenas se você quiser tolerância mínima.',
 }
 
 interface GuildConfig {
@@ -74,7 +40,7 @@ interface GuildConfig {
   linkAction: string
   aiModerationEnabled: boolean
   aiModerationAction: string
-  aiModerationLevel: ai_moderation_level
+  aiModerationLevel: AiModerationLevel
 }
 
 export default function AutoModPage() {
@@ -82,15 +48,15 @@ export default function AutoModPage() {
   const queryClient = useQueryClient()
 
   const [newWord, setNewWord] = useState('')
-  const [newWordAction, setNewWordAction] = useState('warn')
+  const [newWordAction, setNewWordAction] = useState<AutomodAction>('warn')
   const [newDomain, setNewDomain] = useState('')
   const [config, setConfig] = useState<Partial<GuildConfig>>({})
   const initial_config_ref = useRef<Partial<GuildConfig> | null>(null)
 
-  const caps_action = String(config.capsAction ?? 'warn')
-  const link_action = String(config.linkAction ?? 'delete')
-  const ai_action = String(config.aiModerationAction ?? 'delete')
-  const ai_level = (config.aiModerationLevel ?? 'medio') as ai_moderation_level
+  const caps_action = String(config.capsAction ?? 'warn') as AutomodAction
+  const link_action = String(config.linkAction ?? 'delete') as AutomodAction
+  const ai_action = String(config.aiModerationAction ?? 'delete') as AutomodAction
+  const ai_level = (config.aiModerationLevel ?? 'medio') as AiModerationLevel
 
   const {
     isLoading,
@@ -159,10 +125,15 @@ export default function AutoModPage() {
   const is_disabled = isLoading || isError || mutation.isPending
 
   const addWord = () => {
-    if (!newWord.trim()) return
-    const bannedWords = [...(config.bannedWords || []), { word: newWord, action: newWordAction }]
-    setConfig({ ...config, bannedWords })
+    const trimmed = newWord.trim()
+    if (!trimmed) return
+    
+    setConfig((prev) => ({
+      ...prev,
+      bannedWords: [...(prev.bannedWords || []), { word: trimmed, action: newWordAction }]
+    }))
     setNewWord('')
+    setNewWordAction('warn')
   }
 
   const removeWord = (index: number) => {
@@ -228,10 +199,10 @@ export default function AutoModPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
-            {(Object.keys(action_label) as automod_action[]).map((key) => (
+            {(Object.keys(getAutomodActionLabel) as AutomodAction[]).map((key) => (
               <div key={key} className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-                <div className="text-sm font-medium">{action_label[key]}</div>
-                <div className="mt-1 text-xs text-muted-foreground">{action_description[key]}</div>
+                <div className="text-sm font-medium">{getAutomodActionLabel(key)}</div>
+                <div className="mt-1 text-xs text-muted-foreground">{getAutomodActionDescription(key)}</div>
               </div>
             ))}
           </div>
@@ -266,7 +237,7 @@ export default function AutoModPage() {
                   placeholder="Digite uma palavra..."
                   onKeyDown={(e) => e.key === 'Enter' && addWord()}
                 />
-                <Select value={newWordAction} onValueChange={(value) => setNewWordAction(value)}>
+                <Select value={newWordAction} onValueChange={(value) => setNewWordAction(value as AutomodAction)}>
                   <option value="delete">Deletar</option>
                   <option value="warn">Avisar</option>
                   <option value="mute">Silenciar</option>
@@ -278,7 +249,7 @@ export default function AutoModPage() {
                 </Button>
               </div>
 
-              <div className="text-xs text-muted-foreground">{describe_action(newWordAction)}</div>
+              <div className="text-xs text-muted-foreground">{getAutomodActionDescription(newWordAction)}</div>
 
               <div className="space-y-2">
                 {(config.bannedWords || []).map((item, index) => (
@@ -286,7 +257,7 @@ export default function AutoModPage() {
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="truncate font-mono text-sm">{item.word}</span>
                       <span className="rounded-full border border-border/70 bg-surface/70 px-2.5 py-1 text-xs text-muted-foreground">
-                        {action_label[(item.action as automod_action) ?? 'warn'] ?? item.action}
+                        {getAutomodActionLabel((item.action as AutomodAction) ?? 'warn') ?? item.action}
                       </span>
                     </div>
                     <Button variant="ghost" size="sm" onClick={() => removeWord(index)} aria-label="Remover palavra">
@@ -373,7 +344,7 @@ export default function AutoModPage() {
                     <option value="kick">Expulsar</option>
                     <option value="ban">Banir</option>
                   </Select>
-                  <div className="mt-2 text-xs text-muted-foreground">{describe_action(caps_action)}</div>
+                  <div className="mt-2 text-xs text-muted-foreground">{getAutomodActionDescription(caps_action)}</div>
                 </div>
               </div>
             </div>
@@ -429,7 +400,7 @@ export default function AutoModPage() {
                       <option value="kick">Expulsar</option>
                       <option value="ban">Banir</option>
                     </Select>
-                    <div className="mt-2 text-xs text-muted-foreground">{describe_action(link_action)}</div>
+                    <div className="mt-2 text-xs text-muted-foreground">{getAutomodActionDescription(link_action)}</div>
                   </div>
                 </div>
               </div>
@@ -511,7 +482,7 @@ export default function AutoModPage() {
                       <option value="kick">Expulsar</option>
                       <option value="ban">Banir</option>
                     </Select>
-                    <div className="mt-2 text-xs text-muted-foreground">{describe_action(ai_action as automod_action)}</div>
+                    <div className="mt-2 text-xs text-muted-foreground">{getAutomodActionDescription(ai_action)}</div>
                   </div>
                 </div>
               </div>
@@ -527,15 +498,15 @@ export default function AutoModPage() {
                   <div>
                     <Select
                       value={ai_level}
-                      onValueChange={(value) => setConfig({ ...config, aiModerationLevel: value as ai_moderation_level })}
+                      onValueChange={(value) => setConfig({ ...config, aiModerationLevel: value as AiModerationLevel })}
                     >
-                      <option value="permissivo">{ai_level_label.permissivo}</option>
-                      <option value="brando">{ai_level_label.brando}</option>
-                      <option value="medio">{ai_level_label.medio}</option>
-                      <option value="rigoroso">{ai_level_label.rigoroso}</option>
-                      <option value="maximo">{ai_level_label.maximo}</option>
+                      <option value="permissivo">{getAiLevelLabel('permissivo')}</option>
+                      <option value="brando">{getAiLevelLabel('brando')}</option>
+                      <option value="medio">{getAiLevelLabel('medio')}</option>
+                      <option value="rigoroso">{getAiLevelLabel('rigoroso')}</option>
+                      <option value="maximo">{getAiLevelLabel('maximo')}</option>
                     </Select>
-                    <div className="mt-2 text-xs text-muted-foreground">{ai_level_description[ai_level]}</div>
+                    <div className="mt-2 text-xs text-muted-foreground">{getAiLevelDescription(ai_level, true)}</div>
                   </div>
                 </div>
               </div>
