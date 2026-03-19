@@ -252,25 +252,6 @@ export default function ModLogsPage() {
             <div className="mt-1 text-sm text-muted-foreground">Histórico de ações de moderação</div>
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <a
-            href={`${API_URL}/api/guilds/${guildId}/modlogs/export?format=json&action=all`}
-            download
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
-          >
-            <Download className="h-4 w-4" />
-            JSON
-          </a>
-          <a
-            href={`${API_URL}/api/guilds/${guildId}/modlogs/export?format=csv&action=all`}
-            download
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
-          >
-            <Download className="h-4 w-4" />
-            CSV
-          </a>
-        </div>
       </div>
 
       {isError && (
@@ -442,14 +423,36 @@ export default function ModLogsPage() {
                           className="pl-10"
                         />
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {searchTerm || actionFilter !== 'all' ? (
-                          <span>
-                            {filteredLogs.length} resultado{filteredLogs.length !== 1 ? 's' : ''}
-                          </span>
-                        ) : (
-                          <span>{logs.length} logs</span>
-                        )}
+
+                      <div className="flex flex-col items-start justify-between gap-2 text-sm text-muted-foreground md:items-end">
+                        <div>
+                          {searchTerm || actionFilter !== 'all' ? (
+                            <span>
+                              {filteredLogs.length} resultado{filteredLogs.length !== 1 ? 's' : ''}
+                            </span>
+                          ) : (
+                            <span>{logs.length} logs</span>
+                          )}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                          <a
+                            href={`${API_URL}/api/guilds/${guildId}/modlogs/export?format=json&action=all`}
+                            download
+                            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+                          >
+                            <Download className="h-4 w-4" />
+                            JSON
+                          </a>
+                          <a
+                            href={`${API_URL}/api/guilds/${guildId}/modlogs/export?format=csv&action=all`}
+                            download
+                            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+                          >
+                            <Download className="h-4 w-4" />
+                            CSV
+                          </a>
+                        </div>
                       </div>
                     </div>
 
