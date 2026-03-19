@@ -18,6 +18,8 @@ import {
   Star,
   TerminalSquare,
   ClipboardList,
+  TrendingUp,
+  Music,
 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
@@ -44,7 +46,7 @@ function useGuildModules(guildId: string) {
     const modules: module_card[] = [
       {
         to: `/guild/${guildId}/setup`,
-        label: 'Setup Wizard',
+        label: 'Setup',
         description: 'Configuração guiada inicial',
         icon: <Wand2 className="h-5 w-5" />,
         category: 'essentials',
@@ -88,12 +90,12 @@ function useGuildModules(guildId: string) {
         to: `/guild/${guildId}/xp`,
         label: 'XP & Níveis',
         description: 'Sistema de ranking',
-        icon: <Sparkles className="h-5 w-5" />,
+        icon: <TrendingUp className="h-5 w-5" />,
         category: 'engagement',
       },
       {
         to: `/guild/${guildId}/reaction-roles`,
-        label: 'Reaction Roles',
+        label: 'Cargos por reação',
         description: 'Painéis de cargos',
         icon: <MousePointerClick className="h-5 w-5" />,
         category: 'engagement',
@@ -114,8 +116,8 @@ function useGuildModules(guildId: string) {
       },
       {
         to: `/guild/${guildId}/custom-commands`,
-        label: 'Custom Commands',
-        description: 'Comandos personalizados',
+        label: 'Comandos personalizados',
+        description: 'Respostas e automações',
         icon: <TerminalSquare className="h-5 w-5" />,
         category: 'engagement',
       },
@@ -123,7 +125,7 @@ function useGuildModules(guildId: string) {
         to: `/guild/${guildId}/music`,
         label: 'Música',
         description: 'Player e playlists',
-        icon: <TerminalSquare className="h-5 w-5" />,
+        icon: <Music className="h-5 w-5" />,
         category: 'engagement',
       },
       {
@@ -163,7 +165,7 @@ function useGuildModules(guildId: string) {
       },
       {
         to: `/guild/${guildId}/audit`,
-        label: 'Audit',
+        label: 'Auditoria',
         description: 'Eventos importantes',
         icon: <ClipboardList className="h-5 w-5" />,
         category: 'admin',
