@@ -104,8 +104,8 @@ importers:
   apps/bot:
     dependencies:
       '@mistralai/mistralai':
-        specifier: ^1.15.1
-        version: 1.15.1
+        specifier: ^2.0.0
+        version: 2.0.0
       '@napi-rs/canvas':
         specifier: ^0.1.88
         version: 0.1.97
@@ -673,8 +673,8 @@ packages:
     resolution: {integrity: sha512-9I2Zn6+NJLfaGoz9jN3lpwDgAYvfGeNYdbAIjJOqzs4Tpc+VU3Jqq4IofSUBKajiDS8k9fZIg18/z13mpk1bsA==}
     engines: {node: '>=8'}
 
-  '@mistralai/mistralai@1.15.1':
-    resolution: {integrity: sha512-fb995eiz3r0KsBGtRjFV+/iLbX+UpfalxpF+YitT3R6ukrPD4PN+FGwwmYcRFhNAzVzDUtTVxQYnjQWEnwV5nw==}
+  '@mistralai/mistralai@2.0.0':
+    resolution: {integrity: sha512-F39E/pXQqtnR1fuLWB5oQF7/dWi4bgki8wEfAobhZDrhOvZfDtSrM31or/KI1IORQerYoRxgt6ke5QnnSKIQwA==}
 
   '@mrleebo/prisma-ast@0.13.1':
     resolution: {integrity: sha512-XyroGQXcHrZdvmrGJvsA9KNeOOgGMg1Vg9OlheUsBOSKznLMDl+YChxbkboRHvtFYJEMRYmlV3uoo/njCw05iw==}
@@ -4614,7 +4614,7 @@ snapshots:
 
   '@lukeed/ms@2.0.2': {}
 
-  '@mistralai/mistralai@1.15.1':
+  '@mistralai/mistralai@2.0.0':
     dependencies:
       ws: 8.19.0
       zod: 4.3.6

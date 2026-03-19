@@ -2,7 +2,15 @@
   "name": "@yuebot/bot",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
   "scripts": {
     "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && tsx watch src/index.ts",
     "build": "tsup",
@@ -14,7 +22,7 @@
     "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && tsc --noEmit"
   },
   "dependencies": {
-    "@mistralai/mistralai": "^1.15.1",
+    "@mistralai/mistralai": "^2.0.0",
     "@napi-rs/canvas": "^0.1.88",
     "@yuebot/database": "workspace:*",
     "@yuebot/shared": "workspace:*",
