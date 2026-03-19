@@ -8,7 +8,6 @@ import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
 import { CommandPalette } from '../command_palette'
 import { useKeyboardShortcuts } from '../../hooks/use_keyboard'
-import { Breadcrumb, generateBreadcrumbs } from '../design/Breadcrumb'
 
 const STORAGE_KEY = 'yuebot-sidebar-collapsed'
 
@@ -32,12 +31,6 @@ export function AppShell() {
   }
 
   const content_key = useMemo(() => location.pathname, [location.pathname])
-  
-  const breadcrumbs = useMemo(() => {
-    // Only show breadcrumbs for guild pages
-    if (!location.pathname.startsWith('/guild/')) return []
-    return generateBreadcrumbs(location.pathname)
-  }, [location.pathname])
 
   return (
     <div className="h-screen overflow-hidden bg-background text-foreground">
@@ -53,11 +46,6 @@ export function AppShell() {
         <div className="min-w-0 flex flex-1 flex-col">
           <div className="scrollbar-yue min-h-0 flex-1 overflow-y-auto">
             <Topbar />
-            {breadcrumbs.length > 0 && (
-              <div className="px-5 py-3 border-b border-border/50">
-                <Breadcrumb items={breadcrumbs} />
-              </div>
-            )}
             <main className={cn('px-5 py-6', 'animate-fadeIn')} key={content_key}>
               <Outlet />
             </main>
