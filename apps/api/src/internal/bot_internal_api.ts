@@ -1,5 +1,6 @@
 import { CONFIG } from '../config';
 import type { FastifyBaseLogger } from 'fastify';
+import { safe_error_details } from '../utils/safe_error';
 
 export class InternalBotApiError extends Error {
   constructor(
