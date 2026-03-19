@@ -33,33 +33,28 @@ export async function membersRoutes(fastify: FastifyInstance) {
         return reply.code(404).send({ error: 'Guild not found' })
       }
 
-      const existing_count = await prisma.guildMember.count({ where: { guildId } })
+      // Always fetch fresh member data from Discord API
+      // This ensures we have the complete member list, not just those with warnings
+      const data = await get_guild_members(guildId, request.log)
 
-      if (existing_count === 0) {
-        const data = await get_guild_members(guildId, request.log)
-
-        if (data.members.length > 0) {
-          await prisma.guildMember.createMany({
-            data: data.members
-              .filter((m) => Boolean(m.joinedAt))
-              .map((m) => ({
-                guildId,
-                userId: m.userId,
-                username: m.username,
-                avatar: m.avatar,
-                joinedAt: new Date(m.joinedAt as string),
-              })),
-            skipDuplicates: true,
-          })
-        }
+      // Update database with fresh data (upsert to handle new/updated members)
+      if (data.members.length > 0) {
+        await prisma.guildMember.createMany({
+          data: data.members
+            .filter((m) => Boolean(m.joinedAt))
+            .map((m) => ({
+              guildId,
+              userId: m.userId,
+              username: m.username,
+              avatar: m.avatar,
+              joinedAt: new Date(m.joinedAt as string),
+            })),
+          skipDuplicates: true,
+        })
       }
 
-      const members = await prisma.guildMember.findMany({
-        where: { guildId },
-        orderBy: { joinedAt: 'desc' },
-      })
-
-      return reply.send({ success: true, members })
+      // Return fresh data from Discord API, not stale database data
+      return reply.send({ success: true, members: data.members })
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to list guild members')
       return reply.code(500).send({ error: 'Internal server error' })
