@@ -2,7 +2,7 @@
   "name": "@yuebot/shared",
   "version": "1.0.0",
   "private": true,
-  "type": "module",
+  "type": "commonjs",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -21,11 +21,11 @@
   },
   "scripts": {
     "dev": "tsc -b -w",
-    "build": "tsc -b --force && tsc -b tsconfig.esm.json --force",
+    "build": "tsc -b --force && tsc -b tsconfig.esm.json --force && node -e \"const fs=require('fs');fs.mkdirSync('dist/esm',{recursive:true});fs.writeFileSync('dist/esm/package.json','{\\\"type\\\":\\\"module\\\"}\\n');\"",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "type-check": "tsc --noEmit",
-    "test": "pnpm build && node --test dist"
+    "test": "pnpm build && node -e \"const fs=require('fs');const path=require('path');const cp=require('child_process');const dir=path.join('dist','__tests__');const files=fs.existsSync(dir)?fs.readdirSync(dir).filter((f)=>f.endsWith('.test.js')).map((f)=>path.join(dir,f)):[];if(!files.length){console.error('No compiled test files found in '+dir);process.exit(1);}const r=cp.spawnSync(process.execPath,['--test',...files],{stdio:'inherit'});process.exit(r.status??1);\""
   },
   "dependencies": {
     "dotenv": "^17.2.3",
