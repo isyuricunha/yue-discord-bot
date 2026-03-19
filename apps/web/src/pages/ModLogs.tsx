@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { ArrowLeft, Shield, AlertTriangle, Ban, Volume2, FileWarning, Download, Search } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton } from '../components/ui'
+import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Tabs } from '../components/ui'
 import { get_modlog_action_label, normalize_modlog_action } from '../lib/modlog'
 import { validate_extended_template_variants } from '../lib/message_template'
 import { toast_error, toast_success } from '../store/toast'
@@ -94,6 +94,8 @@ export default function ModLogsPage() {
   const { guildId } = useParams()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
+
+  const [active_tab, set_active_tab] = useState<'config' | 'logs'>('config')
 
   const {
     data: config_data,
@@ -279,112 +281,120 @@ export default function ModLogsPage() {
         />
       )}
 
-      <Card>
-        <CardContent className="space-y-6 p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="min-w-0">
-              <div className="text-sm font-semibold">Configuração</div>
-              <div className="mt-1 text-xs text-muted-foreground">Configure onde o bot enviará os logs e o template padrão.</div>
-            </div>
+      <Tabs
+        value={active_tab}
+        onValueChange={(next) => set_active_tab(next as 'config' | 'logs')}
+        items={[
+          {
+            value: 'config',
+            label: 'Configuração',
+            content: (
+              <Card>
+                <CardContent className="space-y-6 p-6">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="min-w-0">
+                      <div className="text-sm font-semibold">Configuração</div>
+                      <div className="mt-1 text-xs text-muted-foreground">Configure onde o bot enviará os logs e o template padrão.</div>
+                    </div>
 
-            <Button
-              onClick={() => saveMutation.mutate()}
-              isLoading={saveMutation.isPending}
-              disabled={
-                Boolean(message_validation) ||
-                is_config_loading ||
-                is_config_error ||
-                is_announcement_loading ||
-                is_announcement_error ||
-                is_channels_loading
-              }
-              className="shrink-0"
-            >
-              Salvar
-            </Button>
-          </div>
+                    <Button
+                      onClick={() => saveMutation.mutate()}
+                      isLoading={saveMutation.isPending}
+                      disabled={
+                        Boolean(message_validation) ||
+                        is_config_loading ||
+                        is_config_error ||
+                        is_announcement_loading ||
+                        is_announcement_error ||
+                        is_channels_loading
+                      }
+                      className="shrink-0"
+                    >
+                      Salvar
+                    </Button>
+                  </div>
 
-          {(is_config_error || is_announcement_error) && (
-            <ErrorState
-              title="Falha ao carregar configurações"
-              description="Não foi possível carregar os dados do servidor."
-              onAction={() => void Promise.all([refetch_config(), refetch_announcement()])}
-            />
-          )}
+                  {(is_config_error || is_announcement_error) && (
+                    <ErrorState
+                      title="Falha ao carregar configurações"
+                      description="Não foi possível carregar os dados do servidor."
+                      onAction={() => void Promise.all([refetch_config(), refetch_announcement()])}
+                    />
+                  )}
 
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div>
-              <div className="text-sm font-medium">Canal de logs de moderação</div>
-              <div className="mt-2">
-                {is_channels_loading ? (
-                  <Skeleton className="h-11 w-full" />
-                ) : (
-                  <Select value={modlog_channel_id} onValueChange={(value) => set_modlog_channel_id(value)}>
-                    <option value="">Desativado</option>
-                    {available_channels.map((ch) => (
-                      <option key={ch.id} value={ch.id}>
-                        {channel_label(ch)}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">Usado para registrar ações de moderação e eventos do AutoMod.</div>
-            </div>
+                  <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                    <div>
+                      <div className="text-sm font-medium">Canal de logs de moderação</div>
+                      <div className="mt-2">
+                        {is_channels_loading ? (
+                          <Skeleton className="h-11 w-full" />
+                        ) : (
+                          <Select value={modlog_channel_id} onValueChange={(value) => set_modlog_channel_id(value)}>
+                            <option value="">Desativado</option>
+                            {available_channels.map((ch) => (
+                              <option key={ch.id} value={ch.id}>
+                                {channel_label(ch)}
+                              </option>
+                            ))}
+                          </Select>
+                        )}
+                      </div>
+                      <div className="mt-2 text-xs text-muted-foreground">Usado para registrar ações de moderação e eventos do AutoMod.</div>
+                    </div>
 
-            <div>
-              <div className="text-sm font-medium">Canal de anúncios do bot (opcional)</div>
-              <div className="mt-2">
-                {is_channels_loading ? (
-                  <Skeleton className="h-11 w-full" />
-                ) : (
-                  <Select value={announcement_channel_id} onValueChange={(value) => set_announcement_channel_id(value)}>
-                    <option value="">Automático (usar canais do Discord)</option>
-                    {available_channels.map((ch) => (
-                      <option key={ch.id} value={ch.id}>
-                        {channel_label(ch)}
-                      </option>
-                    ))}
-                  </Select>
-                )}
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">
-                Se não configurado, o bot tenta usar os canais nativos do Discord (Community) como fallback.
-              </div>
-            </div>
-          </div>
+                    <div>
+                      <div className="text-sm font-medium">Canal de anúncios do bot (opcional)</div>
+                      <div className="mt-2">
+                        {is_channels_loading ? (
+                          <Skeleton className="h-11 w-full" />
+                        ) : (
+                          <Select value={announcement_channel_id} onValueChange={(value) => set_announcement_channel_id(value)}>
+                            <option value="">Automático (usar canais do Discord)</option>
+                            {available_channels.map((ch) => (
+                              <option key={ch.id} value={ch.id}>
+                                {channel_label(ch)}
+                              </option>
+                            ))}
+                          </Select>
+                        )}
+                      </div>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Se não configurado, o bot tenta usar os canais nativos do Discord (Community) como fallback.
+                      </div>
+                    </div>
+                  </div>
 
-          <div>
-            <div className="text-sm font-medium">Template do Mod Log</div>
-            <div className="mt-2">
-              {is_config_loading ? (
-                <Skeleton className="h-32 w-full" />
-              ) : (
-                <MessageVariantEditor
-                  label="Template da mensagem"
-                  description="Você pode criar vários templates (o bot escolhe um aleatório). Cada item pode ser texto simples ou JSON (content + embed)."
-                  value={modLogMessage}
-                  onChange={setModLogMessage}
-                  placeholder="JSON (content + embed)"
-                  rows={6}
-                />
-              )}
-            </div>
+                  <div>
+                    <div className="text-sm font-medium">Template do Mod Log</div>
+                    <div className="mt-2">
+                      {is_config_loading ? (
+                        <Skeleton className="h-32 w-full" />
+                      ) : (
+                        <MessageVariantEditor
+                          label="Template da mensagem"
+                          description="Você pode criar vários templates (o bot escolhe um aleatório). Cada item pode ser texto simples ou JSON (content + embed)."
+                          value={modLogMessage}
+                          onChange={setModLogMessage}
+                          placeholder="JSON (content + embed)"
+                          rows={6}
+                        />
+                      )}
+                    </div>
 
-            {message_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {message_validation}</div>}
-            <div className="mt-2 text-xs text-muted-foreground">Suporta placeholders e JSON com embed.</div>
+                    {message_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {message_validation}</div>}
+                    <div className="mt-2 text-xs text-muted-foreground">Suporta placeholders e JSON com embed.</div>
 
-            <div className="mt-4 rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
-              <div className="text-sm font-semibold text-foreground">Exemplos</div>
-              <div className="mt-2 space-y-3">
-                <div>
-                  <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placeholders</div>
-                  <PlaceholderChips placeholders={template_placeholders.modlog_template_placeholders} />
-                </div>
+                    <div className="mt-4 rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
+                      <div className="text-sm font-semibold text-foreground">Exemplos</div>
+                      <div className="mt-2 space-y-3">
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Placeholders</div>
+                          <PlaceholderChips placeholders={template_placeholders.modlog_template_placeholders} />
+                        </div>
 
-                <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
-                  <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
-                  <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
+                        <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                          <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
+                          <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
 {JSON.stringify(
   {
     content: '',
@@ -402,223 +412,254 @@ export default function ModLogsPage() {
   null,
   2
 )}</pre>
-                </div>
+                        </div>
 
-                <div className="text-xs">Dica: você pode criar vários templates (o bot escolhe um aleatório).</div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent className="p-6">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => {
-                  setSearchTerm(e.target.value)
-                  setPage(1)
-                }}
-                placeholder="Buscar por ação, moderador, usuário, razão..."
-                className="pl-10"
-              />
-            </div>
-            <div className="text-sm text-muted-foreground">
-              {searchTerm || actionFilter !== 'all' ? (
-                <span>
-                  {filteredLogs.length} resultado{filteredLogs.length !== 1 ? 's' : ''}
-                </span>
-              ) : (
-                <span>{logs.length} logs</span>
-              )}
-            </div>
-          </div>
-
-          <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">
-            <Select
-              value={actionFilter}
-              onValueChange={(value) => {
-                setActionFilter(value)
-                setPage(1)
-              }}
-            >
-              <option value="all">Todas as ações</option>
-              <option value="ban">Ban</option>
-              <option value="kick">Kick</option>
-              <option value="mute">Mute</option>
-              <option value="warn">Warn</option>
-            </Select>
-
-            {(searchTerm || actionFilter !== 'all') && (
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setSearchTerm('')
-                  setActionFilter('all')
-                  setPage(1)
-                }}
-                className="h-10"
-              >
-                Limpar
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-
-      {isLoading ? (
-        <div className="space-y-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <Card key={i}>
-              <CardContent className="p-6">
-                <div className="flex items-start gap-4">
-                  <Skeleton className="h-10 w-10 rounded-xl" />
-                  <div className="flex-1">
-                    <Skeleton className="h-4 w-1/3" />
-                    <Skeleton className="mt-3 h-4 w-2/3" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      ) : filteredLogs.length === 0 ? (
-        <EmptyState
-          title={searchTerm ? 'Nenhum resultado encontrado' : 'Nenhum log de moderação encontrado'}
-          description={searchTerm ? 'Tente usar termos diferentes.' : 'As ações de moderação aparecerão aqui.'}
-        />
-      ) : (
-        <>
-          <div className="space-y-3">
-            {paginatedLogs.map((log: ModLog) => {
-              const normalized_action = normalize_modlog_action(log.action)
-              const action_label = get_modlog_action_label(log.action)
-              const Icon = actionIcons[normalized_action as keyof typeof actionIcons] || Shield
-              const color = actionColors[normalized_action as keyof typeof actionColors] || 'text-muted-foreground'
-
-              const moderatorLabel = log.moderatorName || log.moderatorId || 'AutoMod'
-              const targetLabel = log.targetName || log.targetId || log.userId || '—'
-
-              const meta = log.metadata as any
-              const messageMeta = meta?.message
-              const actionMeta = meta?.action
-              const ruleMeta = meta?.rule
-              const detailsMeta = meta?.details
-
-              return (
-                <Card key={log.id}>
-                  <CardContent className="p-6">
-                    <div className="flex items-start gap-4">
-                      <div className={`grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60 ${color}`}>
-                        <Icon className="h-5 w-5" />
+                        <div className="text-xs">Dica: você pode criar vários templates (o bot escolhe um aleatório).</div>
                       </div>
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <Badge variant={getActionBadgeVariant(log.action)} className="uppercase">
-                            {action_label}
-                          </Badge>
-                          <span className="text-sm text-muted-foreground">{new Date(log.createdAt).toLocaleString('pt-BR')}</span>
-                        </div>
-
-                        <div className="mt-2 text-sm">
-                          <span className="text-muted-foreground">Moderador:</span>{' '}
-                          <span className="font-medium">{moderatorLabel}</span>
-                          <span className="text-muted-foreground">{' → '}</span>
-                          <span className="text-muted-foreground">Alvo:</span>{' '}
-                          <span className="font-medium">{targetLabel}</span>
-                        </div>
-
-                        {log.reason && (
-                          <div className="mt-3 rounded-xl border border-border/70 bg-surface/50 px-4 py-3">
-                            <div className="text-sm text-muted-foreground">
-                              <span className="font-medium">Motivo:</span> {log.reason}
-                            </div>
-                          </div>
-                        )}
-
-                        {(log.duration || messageMeta?.channelId || messageMeta?.excerpt || ruleMeta || detailsMeta || actionMeta) && (
-                          <div className="mt-3 rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-                            <div className="grid gap-1 text-xs text-muted-foreground">
-                              {typeof actionMeta === 'string' && <div><span className="font-medium">Ação aplicada:</span> {String(actionMeta).toUpperCase()}</div>}
-                              {typeof ruleMeta === 'string' && <div><span className="font-medium">Regra:</span> {ruleMeta}</div>}
-                              {log.duration && <div><span className="font-medium">Duração:</span> {log.duration}</div>}
-                              {messageMeta?.channelId && <div><span className="font-medium">Canal:</span> {messageMeta.channelId}</div>}
-                              {messageMeta?.excerpt && <div><span className="font-medium">Mensagem:</span> {messageMeta.excerpt}</div>}
-                              {detailsMeta?.capsPercentage !== undefined && detailsMeta?.capsThreshold !== undefined && (
-                                <div>
-                                  <span className="font-medium">CAPS:</span> {detailsMeta.capsPercentage}% (threshold {detailsMeta.capsThreshold}%)
-                                </div>
-                              )}
-                            </div>
-                          </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ),
+          },
+          {
+            value: 'logs',
+            label: 'Logs',
+            content: (
+              <div className="space-y-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                      <div className="relative">
+                        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                        <Input
+                          value={searchTerm}
+                          onChange={(e) => {
+                            setSearchTerm(e.target.value)
+                            setPage(1)
+                          }}
+                          placeholder="Buscar por ação, moderador, usuário, razão..."
+                          className="pl-10"
+                        />
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {searchTerm || actionFilter !== 'all' ? (
+                          <span>
+                            {filteredLogs.length} resultado{filteredLogs.length !== 1 ? 's' : ''}
+                          </span>
+                        ) : (
+                          <span>{logs.length} logs</span>
                         )}
                       </div>
                     </div>
+
+                    <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">
+                      <Select
+                        value={actionFilter}
+                        onValueChange={(value) => {
+                          setActionFilter(value)
+                          setPage(1)
+                        }}
+                      >
+                        <option value="all">Todas as ações</option>
+                        <option value="ban">Ban</option>
+                        <option value="kick">Kick</option>
+                        <option value="mute">Mute</option>
+                        <option value="warn">Warn</option>
+                      </Select>
+
+                      {(searchTerm || actionFilter !== 'all') && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => {
+                            setSearchTerm('')
+                            setActionFilter('all')
+                            setPage(1)
+                          }}
+                          className="h-10"
+                        >
+                          Limpar
+                        </Button>
+                      )}
+                    </div>
                   </CardContent>
                 </Card>
-              )
-            })}
-          </div>
 
-          {totalPages > 1 && (
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <div className="text-sm text-muted-foreground">
-                    Página {page} de {totalPages} • {filteredLogs.length} resultados
+                {isLoading ? (
+                  <div className="space-y-3">
+                    {Array.from({ length: 6 }).map((_, i) => (
+                      <Card key={i}>
+                        <CardContent className="p-6">
+                          <div className="flex items-start gap-4">
+                            <Skeleton className="h-10 w-10 rounded-xl" />
+                            <div className="flex-1">
+                              <Skeleton className="h-4 w-1/3" />
+                              <Skeleton className="mt-3 h-4 w-2/3" />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
                   </div>
+                ) : filteredLogs.length === 0 ? (
+                  <EmptyState
+                    title={searchTerm ? 'Nenhum resultado encontrado' : 'Nenhum log de moderação encontrado'}
+                    description={searchTerm ? 'Tente usar termos diferentes.' : 'As ações de moderação aparecerão aqui.'}
+                  />
+                ) : (
+                  <>
+                    <div className="space-y-3">
+                      {paginatedLogs.map((log: ModLog) => {
+                        const normalized_action = normalize_modlog_action(log.action)
+                        const action_label = get_modlog_action_label(log.action)
+                        const Icon = actionIcons[normalized_action as keyof typeof actionIcons] || Shield
+                        const color = actionColors[normalized_action as keyof typeof actionColors] || 'text-muted-foreground'
 
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
-                      Anterior
-                    </Button>
+                        const moderatorLabel = log.moderatorName || log.moderatorId || 'AutoMod'
+                        const targetLabel = log.targetName || log.targetId || log.userId || '—'
 
-                    <div className="flex gap-1">
-                      {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                        let pageNum
-                        if (totalPages <= 5) {
-                          pageNum = i + 1
-                        } else if (page <= 3) {
-                          pageNum = i + 1
-                        } else if (page >= totalPages - 2) {
-                          pageNum = totalPages - 4 + i
-                        } else {
-                          pageNum = page - 2 + i
-                        }
+                        const meta = log.metadata as any
+                        const messageMeta = meta?.message
+                        const actionMeta = meta?.action
+                        const ruleMeta = meta?.rule
+                        const detailsMeta = meta?.details
 
                         return (
-                          <Button
-                            key={pageNum}
-                            size="sm"
-                            variant={page === pageNum ? 'solid' : 'outline'}
-                            onClick={() => setPage(pageNum)}
-                            className="w-10 px-0"
-                          >
-                            {pageNum}
-                          </Button>
+                          <Card key={log.id}>
+                            <CardContent className="p-6">
+                              <div className="flex items-start gap-4">
+                                <div className={`grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60 ${color}`}>
+                                  <Icon className="h-5 w-5" />
+                                </div>
+                                <div className="flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <Badge variant={getActionBadgeVariant(log.action)} className="uppercase">
+                                      {action_label}
+                                    </Badge>
+                                    <span className="text-sm text-muted-foreground">{new Date(log.createdAt).toLocaleString('pt-BR')}</span>
+                                  </div>
+
+                                  <div className="mt-2 text-sm">
+                                    <span className="text-muted-foreground">Moderador:</span>{' '}
+                                    <span className="font-medium">{moderatorLabel}</span>
+                                    <span className="text-muted-foreground">{' → '}</span>
+                                    <span className="text-muted-foreground">Alvo:</span>{' '}
+                                    <span className="font-medium">{targetLabel}</span>
+                                  </div>
+
+                                  {log.reason && (
+                                    <div className="mt-3 rounded-xl border border-border/70 bg-surface/50 px-4 py-3">
+                                      <div className="text-sm text-muted-foreground">
+                                        <span className="font-medium">Motivo:</span> {log.reason}
+                                      </div>
+                                    </div>
+                                  )}
+
+                                  {(log.duration || messageMeta?.channelId || messageMeta?.excerpt || ruleMeta || detailsMeta || actionMeta) && (
+                                    <div className="mt-3 rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+                                      <div className="grid gap-1 text-xs text-muted-foreground">
+                                        {typeof actionMeta === 'string' && (
+                                          <div>
+                                            <span className="font-medium">Ação aplicada:</span> {String(actionMeta).toUpperCase()}
+                                          </div>
+                                        )}
+                                        {typeof ruleMeta === 'string' && (
+                                          <div>
+                                            <span className="font-medium">Regra:</span> {ruleMeta}
+                                          </div>
+                                        )}
+                                        {log.duration && (
+                                          <div>
+                                            <span className="font-medium">Duração:</span> {log.duration}
+                                          </div>
+                                        )}
+                                        {messageMeta?.channelId && (
+                                          <div>
+                                            <span className="font-medium">Canal:</span> {messageMeta.channelId}
+                                          </div>
+                                        )}
+                                        {messageMeta?.excerpt && (
+                                          <div>
+                                            <span className="font-medium">Mensagem:</span> {messageMeta.excerpt}
+                                          </div>
+                                        )}
+                                        {detailsMeta?.capsPercentage !== undefined && detailsMeta?.capsThreshold !== undefined && (
+                                          <div>
+                                            <span className="font-medium">CAPS:</span> {detailsMeta.capsPercentage}% (threshold {detailsMeta.capsThreshold}%)
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
                         )
                       })}
                     </div>
 
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      disabled={page === totalPages}
-                    >
-                      Próxima
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-        </>
-      )}
+                    {totalPages > 1 && (
+                      <Card>
+                        <CardContent className="p-6">
+                          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                            <div className="text-sm text-muted-foreground">
+                              Página {page} de {totalPages} • {filteredLogs.length} resultados
+                            </div>
+
+                            <div className="flex flex-wrap items-center gap-2">
+                              <Button size="sm" variant="outline" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+                                Anterior
+                              </Button>
+
+                              <div className="flex gap-1">
+                                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                                  let pageNum
+                                  if (totalPages <= 5) {
+                                    pageNum = i + 1
+                                  } else if (page <= 3) {
+                                    pageNum = i + 1
+                                  } else if (page >= totalPages - 2) {
+                                    pageNum = totalPages - 4 + i
+                                  } else {
+                                    pageNum = page - 2 + i
+                                  }
+
+                                  return (
+                                    <Button
+                                      key={pageNum}
+                                      size="sm"
+                                      variant={page === pageNum ? 'solid' : 'outline'}
+                                      onClick={() => setPage(pageNum)}
+                                      className="w-10 px-0"
+                                    >
+                                      {pageNum}
+                                    </Button>
+                                  )
+                                })}
+                              </div>
+
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                              >
+                                Próxima
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )}
+                  </>
+                )}
+              </div>
+            ),
+          },
+        ]}
+      />
     </div>
   )
 }
