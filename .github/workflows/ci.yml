@@ -77,6 +77,12 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Security Audit
+        run: |
+          echo "Running security audit..."
+          pnpm audit --audit-level moderate
+          echo "Security audit completed successfully!"
+
       - name: Lint
         run: pnpm lint
 

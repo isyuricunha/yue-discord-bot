@@ -1,0 +1,98 @@
+version: 2
+updates:
+  # Enable version updates for npm
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "isyuricunha"
+    assignees:
+      - "isyuricunha"
+    commit-message:
+      prefix: "deps"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "automated"
+    
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 3
+    reviewers:
+      - "isyuricunha"
+    assignees:
+      - "isyuricunha"
+    commit-message:
+      prefix: "ci"
+      include: "scope"
+    labels:
+      - "github-actions"
+      - "automated"
+
+  # Special handling for security updates
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "daily"
+      time: "04:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "isyuricunha"
+    assignees:
+      - "isyuricunha"
+    commit-message:
+      prefix: "security"
+      include: "scope"
+    labels:
+      - "security"
+      - "dependencies"
+      - "automated"
+    allow:
+      # Allow updates for packages with security vulnerabilities
+      - dependency-type: "all"
+    ignore:
+      # Ignore patch updates for stable packages to avoid noise
+      - dependency-name: "typescript"
+        update-types: ["patch"]
+      - dependency-name: "eslint"
+        update-types: ["patch"]
+
+# Configure grouping of PRs
+groups:
+  # Group all production dependency updates
+  production-dependencies:
+    patterns:
+      - "*"
+    dependency-type: "production"
+    
+  # Group all development dependency updates
+  development-dependencies:
+    patterns:
+      - "*"
+    dependency-type: "development"
+    
+  # Group security updates together
+  security-updates:
+    patterns:
+      - "*"
+    dependency-type: "all"
+    update-types: ["major", "minor"]
+
+# Configure pull request settings
+pull-request-branch-name:
+  separator: "/"
+  prefix: "deps"
+
+# Configure commit message
+commit-message:
+  prefix: "deps"
+  include: "scope"

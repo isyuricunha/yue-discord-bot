@@ -1,0 +1,132 @@
+name: Security Audit
+
+on:
+  schedule:
+    # Run security audit daily at 2 AM UTC
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    # Allow manual trigger
+  push:
+    branches: ["main"]
+    paths:
+      - "**/package.json"
+      - "**/pnpm-lock.yaml"
+  pull_request:
+    branches: ["main"]
+    paths:
+      - "**/package.json"
+      - "**/pnpm-lock.yaml"
+
+jobs:
+  security-audit:
+    name: Security Vulnerability Audit
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Check out repo
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run Security Audit
+        run: |
+          echo "🔍 Running comprehensive security audit..."
+          echo "=================================="
+          
+          # Check for moderate and high vulnerabilities
+          echo "📊 Checking for moderate and high vulnerabilities..."
+          if pnpm audit --audit-level moderate; then
+            echo "✅ No moderate or high vulnerabilities found!"
+          else
+            echo "⚠️ Moderate or high vulnerabilities detected!"
+            echo "Run 'pnpm audit --audit-level moderate' locally for details."
+            exit 1
+          fi
+          
+          echo "=================================="
+          echo "🔍 Checking for all vulnerabilities (including low)..."
+          
+          # Show full audit report
+          pnpm audit --json > audit-report.json || true
+          
+          # Count vulnerabilities by severity
+          HIGH=$(cat audit-report.json | jq -r '.vulnerabilities | map(select(.severity == "high")) | length' || echo "0")
+          MODERATE=$(cat audit-report.json | jq -r '.vulnerabilities | map(select(.severity == "moderate")) | length' || echo "0")
+          LOW=$(cat audit-report.json | jq -r '.vulnerabilities | map(select(.severity == "low")) | length' || echo "0")
+          
+          echo "📈 Vulnerability Summary:"
+          echo "  🔴 High: $HIGH"
+          echo "  🟡 Moderate: $MODERATE"
+          echo "  🟢 Low: $LOW"
+          echo "  📊 Total: $((HIGH + MODERATE + LOW))"
+          
+          # Create summary for PR/commit
+          if [ "$HIGH" -gt 0 ] || [ "$MODERATE" -gt 0 ]; then
+            echo "⚠️ Security issues require attention!"
+            echo ""
+            echo "To fix vulnerabilities:"
+            echo "1. Run 'pnpm audit fix' for automatic fixes"
+            echo "2. Update vulnerable packages manually"
+            echo "3. Review security advisories for details"
+            exit 1
+          fi
+          
+          echo "=================================="
+          echo "✅ Security audit completed successfully!"
+
+      - name: Upload Audit Report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: security-audit-report
+          path: audit-report.json
+          retention-days: 30
+
+      - name: Comment on PR (if applicable)
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            
+            try {
+              const auditReport = JSON.parse(fs.readFileSync('audit-report.json', 'utf8'));
+              const highVulns = auditReport.vulnerabilities?.filter(v => v.severity === 'high')?.length || 0;
+              const moderateVulns = auditReport.vulnerabilities?.filter(v => v.severity === 'moderate')?.length || 0;
+              
+              if (highVulns > 0 || moderateVulns > 0) {
+                const comment = `## 🔒 Security Audit Results
+                
+                ⚠️ **Security vulnerabilities detected!**
+                
+                **Summary:**
+                - 🔴 High: ${highVulns}
+                - 🟡 Moderate: ${moderateVulns}
+                
+                **Next Steps:**
+                1. Run \`pnpm audit fix\` locally
+                2. Update vulnerable packages
+                3. Review security advisories
+                
+                Please address these vulnerabilities before merging.`;
+                
+                github.rest.issues.createComment({
+                  issue_number: context.issue.number,
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  body: comment
+                });
+              }
+            } catch (error) {
+              console.log('Could not read audit report:', error.message);
+            }
