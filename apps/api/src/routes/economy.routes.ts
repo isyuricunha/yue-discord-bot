@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database'
 import { economyAdminAdjustSchema, economyTransferSchema } from '@yuebot/shared'
+import { is_guild_admin } from '../internal/bot_internal_api'
 
 import { validation_error_details } from '../utils/validation_error'
 
@@ -312,6 +313,14 @@ export async function economyRoutes(fastify: FastifyInstance) {
 
     if (!member) {
       return reply.code(403).send({ error: 'Not a member of this guild' })
+    }
+
+    // Bot owners can modify any guild's daily reward config
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Insufficient permissions' })
+      }
     }
 
     const body = request.body as {
