@@ -110,22 +110,24 @@ export async function economyRoutes(fastify: FastifyInstance) {
       await tx.user.upsert({ where: { id: user.userId }, update: {}, create: { id: user.userId } })
       await tx.user.upsert({ where: { id: input.toUserId }, update: {}, create: { id: input.toUserId } })
 
-      const from_wallet = await tx.wallet.upsert({
-        where: { userId: user.userId },
-        update: {},
-        create: { userId: user.userId, balance: 0n },
-        select: { balance: true },
-      })
-
-      if (from_wallet.balance < amount) {
-        return { success: false as const, error: 'insufficient_funds' }
-      }
-
+      // Ensure destination wallet exists
       await tx.wallet.upsert({
         where: { userId: input.toUserId },
         update: {},
         create: { userId: input.toUserId, balance: 0n },
       })
+
+      // Use SELECT FOR UPDATE to acquire row-level locks, preventing race conditions
+      // Using type assertion as Prisma types may not fully recognize the 'for' option
+      const from_wallet = await (tx.wallet.findFirst as any)({
+        where: { userId: user.userId },
+        select: { balance: true },
+        for: 'update',
+      })
+
+      if ((from_wallet?.balance ?? 0n) < amount) {
+        return { success: false as const, error: 'insufficient_funds' }
+      }
 
       const updated_from = await tx.wallet.update({
         where: { userId: user.userId },
