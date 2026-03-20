@@ -248,12 +248,6 @@ export default async function authRoutes(fastify: FastifyInstance) {
         maxAge: 60 * 60 * 24 * 7,
       });
 
-      const auth_header = request.headers.authorization
-      const using_bearer_token = typeof auth_header === 'string' && auth_header.toLowerCase().startsWith('bearer ')
-      if (using_bearer_token) {
-        return { success: true, token: newToken }
-      }
-
       return { success: true }
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to refresh token');
