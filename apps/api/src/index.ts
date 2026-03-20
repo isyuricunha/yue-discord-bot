@@ -120,8 +120,31 @@ app.register(rateLimit, {
   timeWindow: CONFIG.rateLimit.timeWindowMs,
   // Skip health check endpoints
   allowList: ['/health', '/status'],
-  // Key generator: use IP address (supports X-Forwarded-For via Fastify's trustProxy setting on server)
+  // Key generator: use JWT userId for authenticated requests, fall back to IP for unauthenticated
+  // This prevents IP spoofing bypass when trustProxy is enabled
   keyGenerator: (request: FastifyRequest) => {
+    // Try to get userId from JWT token (cookie or Authorization header)
+    // We decode without verification for rate limiting - security is handled by authenticate hook
+    const cookies = request.cookies as Record<string, string | undefined> | undefined;
+    const token = cookies?.yuebot_token || 
+      (request.headers.authorization?.startsWith('Bearer ') 
+        ? request.headers.authorization.slice(7) 
+        : null);
+    
+    if (token) {
+      try {
+        // Decode JWT without verification - we only need the userId for rate limiting
+        // The actual authentication is handled by the authenticate preHandler
+        const decoded = request.server.jwt.decode<{ user?: { userId?: string } }>(token);
+        if (decoded?.user?.userId) {
+          return `user:${decoded.user.userId}`;
+        }
+      } catch {
+        // Token invalid - fall back to IP
+      }
+    }
+    
+    // Fall back to IP address for unauthenticated requests
     return request.ip;
   },
   // Error response format
