@@ -182,9 +182,12 @@ export async function membersRoutes(fastify: FastifyInstance) {
       return reply.code(401).send({ error: 'Unauthorized' })
     }
 
+    // Security: Explicitly verify admin privileges for moderation actions
+    // Bot owners can bypass this check, but regular users must be guild admins
     if (!user.isOwner) {
-      const { isAdmin } = await is_guild_admin(guildId, moderator_id, request.log)
-      if (!isAdmin) {
+      const adminCheck = await is_guild_admin(guildId, moderator_id, request.log)
+      if (!adminCheck || adminCheck.isAdmin !== true) {
+        request.log.warn({ guildId, moderatorId: moderator_id }, 'Non-admin user attempted moderation action')
         return reply.code(403).send({ error: 'Forbidden' })
       }
     }
