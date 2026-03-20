@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Ban, Crown, ExternalLink, LogOut, RefreshCw, Search, Send, Settings, Shield, Users } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, Input, Select, Skeleton, Switch, Tabs, Textarea } from '../components/ui'
+import { Badge, Button, Card, CardContent, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -64,9 +64,6 @@ type blocked_guilds_response = {
 export default function OwnerPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-
-  const [active_tab, set_active_tab] = useState<'diagnostics' | 'bot' | 'announcements' | 'guilds'>('guilds')
-
   const [query, setQuery] = useState('')
   const [sort, setSort] = useState<'name_asc' | 'name_desc' | 'added_desc' | 'added_asc'>('name_asc')
   const [added_from, setAddedFrom] = useState('')
@@ -227,7 +224,7 @@ export default function OwnerPage() {
       return response.data as { success: boolean; guild: guild }
     },
     onSuccess: (data) => {
-      toast_success(`Servidor sincronizado: ${data.guild.name}`, 'Sync')
+      toast_success(`Guild sincronizada: ${data.guild.name}`, 'Sync')
       queryClient.invalidateQueries({ queryKey: ['owner', 'guilds'] })
     },
     onError: (error: any) => {
@@ -236,15 +233,15 @@ export default function OwnerPage() {
 
       if (status === 404 && payload?.error === 'Guild not found') {
         if (payload.removed) {
-          toast_success('Servidor removido do painel (bot não está mais no servidor).', 'Sync')
+          toast_success('Guild removida do painel (bot não está mais no servidor).', 'Sync')
         } else {
-          toast_error('Servidor não encontrado (provavelmente já foi removido).', 'Sync falhou')
+          toast_error('Guild não encontrada (provavelmente já foi removida).', 'Sync falhou')
         }
         queryClient.invalidateQueries({ queryKey: ['owner', 'guilds'] })
         return
       }
 
-      toast_error(payload?.error || error.message || 'Erro ao sincronizar servidor', 'Sync falhou')
+      toast_error(payload?.error || error.message || 'Erro ao sincronizar guild', 'Sync falhou')
     },
   })
 
@@ -368,514 +365,489 @@ export default function OwnerPage() {
         </div>
       </div>
 
-      <Tabs
-        value={active_tab}
-        onValueChange={(next) => set_active_tab(next as typeof active_tab)}
-        items={[
-          {
-            value: 'guilds',
-            label: 'Servidores',
-            content: (
-              <div className="space-y-6">
-                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <div className="relative w-full sm:max-w-md">
-                    <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                    <Input
-                      value={query}
-                      onChange={(e) => setQuery(e.target.value)}
-                      placeholder="Buscar por nome, ID da guild ou ownerId"
-                      className="pl-10"
-                    />
-                  </div>
+      <Card className="border-accent/20">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-base font-semibold">Diagnósticos</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                Saúde do internal bot API e inconsistências comuns de configuração.
+              </div>
+            </div>
+            <Button type="button" variant="outline" onClick={() => refetchDiagnostics()} isLoading={isDiagnosticsLoading}>
+              <RefreshCw className="h-4 w-4" />
+              Atualizar
+            </Button>
+          </div>
 
-                  <div className="w-full sm:w-56">
-                    <Select value={sort} onValueChange={(value) => setSort(value as typeof sort)}>
-                      <option value="name_asc">Nome (A-Z)</option>
-                      <option value="name_desc">Nome (Z-A)</option>
-                      <option value="added_desc">Mais recentes</option>
-                      <option value="added_asc">Mais antigas</option>
-                    </Select>
-                  </div>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <div className="rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
+              <div className="text-xs text-muted-foreground">Internal bot API</div>
+              <div className="mt-1 text-sm font-semibold">
+                {diagnostics_data?.internalBotApi?.status === 'down' ? 'Indisponível' : 'OK'}
+              </div>
+              {diagnostics_data?.internalBotApi?.status === 'down' && diagnostics_data.internalBotApi.error ? (
+                <div className="mt-1 text-xs text-muted-foreground">{diagnostics_data.internalBotApi.error}</div>
+              ) : null}
+            </div>
 
-                  <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
-                    <Input
-                      type="date"
-                      value={added_from}
-                      onChange={(e) => setAddedFrom(e.target.value)}
-                      aria-label="Filtrar por data de instalação (início)"
-                    />
-                    <Input
-                      type="date"
-                      value={added_to}
-                      onChange={(e) => setAddedTo(e.target.value)}
-                      aria-label="Filtrar por data de instalação (fim)"
-                    />
-                  </div>
+            <div className="rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
+              <div className="text-xs text-muted-foreground">Issues</div>
+              <div className="mt-1 text-sm font-semibold">
+                {(() => {
+                  const total = diagnostics_data?.guilds?.reduce((acc, g) => acc + (g.issues?.length ?? 0), 0) ?? 0
+                  return total
+                })()}
+              </div>
+              <div className="mt-1 text-xs text-muted-foreground">Somatório de inconsistências encontradas.</div>
+            </div>
+          </div>
 
-                  <div className="text-sm text-muted-foreground">
-                    {isLoading ? 'Carregando…' : `${filtered.length} servidor(es)`}
+          {diagnostics_data?.guilds?.length ? (
+            <div className="space-y-3">
+              {diagnostics_data.guilds
+                .filter((g) => (g.issues?.length ?? 0) > 0)
+                .slice(0, 20)
+                .map((g) => (
+                  <div key={g.guildId} className="rounded-2xl border border-border/80 bg-surface/30 px-4 py-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="text-sm font-semibold">{g.guildName}</div>
+                      <div className="text-xs text-muted-foreground">{g.issues.length} issue(s)</div>
+                    </div>
+                    <div className="mt-2 space-y-1">
+                      {g.issues.slice(0, 6).map((issue, idx) => (
+                        <div key={idx} className="text-xs text-muted-foreground">
+                          {issue.message}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              {diagnostics_data.guilds.filter((g) => (g.issues?.length ?? 0) > 0).length > 20 ? (
+                <div className="text-xs text-muted-foreground">Mostrando apenas as 20 primeiras guilds com issues.</div>
+              ) : null}
+            </div>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card className="border-accent/20">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-base font-semibold">Rich Presence</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                Configuração global do status do bot (aplica imediatamente).
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => savePresenceMutation.mutate()}
+              isLoading={savePresenceMutation.isPending}
+              disabled={isPresenceLoading}
+            >
+              Salvar
+            </Button>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div className="flex items-center justify-between rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
+              <div>
+                <div className="text-sm font-semibold">Ativar presence</div>
+                <div className="text-xs text-muted-foreground">Liga/desliga atividades e status</div>
+              </div>
+              <Switch checked={presence_enabled} onCheckedChange={set_presence_enabled} disabled={isPresenceLoading} />
+            </div>
+
+            <div>
+              <div className="mb-2 text-xs text-muted-foreground">Status</div>
+              <Select
+                value={presence_status}
+                onValueChange={(value) => set_presence_status(value as bot_presence_settings['presenceStatus'])}
+                disabled={isPresenceLoading}
+              >
+                <option value="online">Online</option>
+                <option value="idle">Idle</option>
+                <option value="dnd">DND</option>
+                <option value="invisible">Invisible</option>
+              </Select>
+            </div>
+
+            <div>
+              <div className="mb-2 text-xs text-muted-foreground">Activity type</div>
+              <Select
+                value={activity_type ?? ''}
+                onValueChange={(value) => set_activity_type((value || null) as bot_presence_settings['activityType'])}
+                disabled={isPresenceLoading}
+                placeholder="Nenhuma"
+              >
+                <option value="">Nenhuma</option>
+                <option value="playing">Playing</option>
+                <option value="listening">Listening</option>
+                <option value="watching">Watching</option>
+                <option value="competing">Competing</option>
+                <option value="streaming">Streaming</option>
+              </Select>
+            </div>
+
+            <div>
+              <div className="mb-2 text-xs text-muted-foreground">Activity name</div>
+              <Input
+                value={activity_name}
+                onChange={(e) => set_activity_name(e.target.value)}
+                placeholder="Ex: /help"
+                disabled={isPresenceLoading}
+              />
+            </div>
+
+            <div className="md:col-span-2">
+              <div className="mb-2 text-xs text-muted-foreground">Activity URL (apenas streaming)</div>
+              <Input
+                value={activity_url}
+                onChange={(e) => set_activity_url(e.target.value)}
+                placeholder="https://twitch.tv/..."
+                disabled={isPresenceLoading}
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-accent/20">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-base font-semibold">Bio do bot (Discord)</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                Atualiza o “Sobre mim” do perfil do bot no Discord.
+              </div>
+            </div>
+            <Button
+              type="button"
+              onClick={() => saveAppDescriptionMutation.mutate()}
+              isLoading={saveAppDescriptionMutation.isPending}
+              disabled={isAppDescriptionLoading}
+            >
+              Salvar
+            </Button>
+          </div>
+
+          <Textarea
+            value={app_description}
+            onChange={(e) => set_app_description(e.target.value)}
+            placeholder="Escreva a bio do bot (máx 4000 caracteres)."
+            maxLength={4000}
+            disabled={isAppDescriptionLoading}
+          />
+
+          <div className="text-xs text-muted-foreground">{app_description.trim().length}/4000</div>
+        </CardContent>
+      </Card>
+
+      <Card className="border-accent/20">
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-base font-semibold">Anúncio global</div>
+              <div className="mt-1 text-sm text-muted-foreground">
+                Envia uma mensagem para as guilds filtradas. Preview é obrigatório.
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => previewAnnouncementMutation.mutate()}
+                isLoading={previewAnnouncementMutation.isPending}
+                disabled={!announcement_content.trim()}
+              >
+                Preview
+              </Button>
+              <Button
+                type="button"
+                onClick={() => executeAnnouncementMutation.mutate()}
+                isLoading={executeAnnouncementMutation.isPending}
+                disabled={!announcement_preview_id || announcement_confirm !== 'CONFIRMAR'}
+              >
+                <Send className="h-4 w-4" />
+                Enviar
+              </Button>
+            </div>
+          </div>
+
+          <Textarea
+            value={announcement_content}
+            onChange={(e) => set_announcement_content(e.target.value)}
+            placeholder="Escreva o anúncio (máx 2000 caracteres)."
+          />
+
+          <Input
+            value={announcement_image_url}
+            onChange={(e) => set_announcement_image_url(e.target.value)}
+            placeholder="URL da imagem (opcional)"
+          />
+
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">
+            <Input
+              value={announcement_confirm}
+              onChange={(e) => set_announcement_confirm(e.target.value)}
+              placeholder="Digite CONFIRMAR para habilitar o envio"
+            />
+            <div className="text-sm text-muted-foreground">
+              Usa os filtros acima (busca e datas) para selecionar os alvos.
+            </div>
+          </div>
+
+          {announcement_preview && (
+            <div className="rounded-2xl border border-border/80 bg-surface/40 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge>{announcement_preview.total ?? 0} total</Badge>
+                <Badge>{announcement_preview.sendable ?? 0} enviáveis</Badge>
+                <Badge>{announcement_preview.skipped ?? 0} puladas</Badge>
+              </div>
+              <div className="mt-3 text-xs text-muted-foreground">
+                Preview ID: <span className="font-mono">{announcement_preview_id}</span>
+              </div>
+            </div>
+          )}
+
+          {announcement_result && (
+            <div className="rounded-2xl border border-border/80 bg-surface/40 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge>{announcement_result.total ?? 0} processadas</Badge>
+                <Badge>{announcement_result.sent ?? 0} enviadas</Badge>
+                <Badge>{announcement_result.failed ?? 0} falharam</Badge>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+        <div className="relative w-full sm:max-w-md">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Buscar por nome, ID da guild ou ownerId"
+            className="pl-10"
+          />
+        </div>
+
+        <div className="w-full sm:w-56">
+          <Select value={sort} onValueChange={(value) => setSort(value as typeof sort)}>
+            <option value="name_asc">Nome (A-Z)</option>
+            <option value="name_desc">Nome (Z-A)</option>
+            <option value="added_desc">Mais recentes</option>
+            <option value="added_asc">Mais antigas</option>
+          </Select>
+        </div>
+
+        <div className="grid w-full grid-cols-1 gap-2 sm:w-auto sm:grid-cols-2">
+          <Input
+            type="date"
+            value={added_from}
+            onChange={(e) => setAddedFrom(e.target.value)}
+            aria-label="Filtrar por data de instalação (início)"
+          />
+          <Input
+            type="date"
+            value={added_to}
+            onChange={(e) => setAddedTo(e.target.value)}
+            aria-label="Filtrar por data de instalação (fim)"
+          />
+        </div>
+
+        <div className="text-sm text-muted-foreground">
+          {isLoading ? 'Carregando…' : `${filtered.length} servidor(es)`}
+        </div>
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {Array.from({ length: 9 }).map((_, i) => (
+            <Card key={i} className="overflow-hidden">
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-14 w-14 rounded-2xl" />
+                  <div className="min-w-0 flex-1">
+                    <Skeleton className="h-4 w-3/4" />
+                    <Skeleton className="mt-2 h-3 w-1/2" />
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {filtered.map((g) => (
+            <Card
+              key={g.id}
+              className="group cursor-pointer transition-colors hover:border-accent/40"
+              onClick={() => navigate(`/guild/${g.id}`)}
+            >
+              <CardContent className="p-5">
+                <div className="flex items-center gap-4">
+                  {g.icon ? (
+                    <img
+                      src={`https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png`}
+                      alt={g.name}
+                      className="h-14 w-14 rounded-2xl"
+                    />
+                  ) : (
+                    <div className="grid h-14 w-14 place-items-center rounded-2xl border border-border/80 bg-surface/70 text-lg font-semibold">
+                      <span className="text-accent">{g.name.charAt(0)}</span>
+                    </div>
+                  )}
+
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-base font-semibold tracking-tight group-hover:text-foreground">
+                      {g.name}
+                    </div>
+                    <div className="mt-1 truncate text-xs text-muted-foreground">{g.id}</div>
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                      {g.ownerId ? <span className="truncate">owner: {g.ownerId}</span> : null}
+                      {format_added_at(g.addedAt) ? <span>added: {format_added_at(g.addedAt)}</span> : null}
+                    </div>
                   </div>
                 </div>
 
-                {isLoading ? (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {Array.from({ length: 9 }).map((_, i) => (
-                      <Card key={i} className="overflow-hidden">
-                        <CardContent className="p-5">
-                          <div className="flex items-center gap-4">
-                            <Skeleton className="h-14 w-14 rounded-2xl" />
-                            <div className="min-w-0 flex-1">
-                              <Skeleton className="h-4 w-3/4" />
-                              <Skeleton className="mt-2 h-3 w-1/2" />
-                            </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-                    {filtered.map((g) => (
-                      <Card
-                        key={g.id}
-                        className="group cursor-pointer transition-colors hover:border-accent/40"
-                        onClick={() => navigate(`/guild/${g.id}`)}
-                      >
-                        <CardContent className="p-5">
-                          <div className="flex items-center gap-4">
-                            {g.icon ? (
-                              <img
-                                src={`https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png`}
-                                alt={g.name}
-                                className="h-14 w-14 rounded-2xl"
-                              />
-                            ) : (
-                              <div className="grid h-14 w-14 place-items-center rounded-2xl border border-border/80 bg-surface/70 text-lg font-semibold">
-                                <span className="text-accent">{g.name.charAt(0)}</span>
-                              </div>
-                            )}
+                <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      navigate(`/guild/${g.id}/overview`)
+                    }}
+                  >
+                    <ExternalLink className="h-4 w-4" />
+                    Abrir
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      navigate(`/guild/${g.id}/automod`)
+                    }}
+                  >
+                    <Shield className="h-4 w-4" />
+                    AutoMod
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      navigate(`/guild/${g.id}/members`)
+                    }}
+                  >
+                    <Users className="h-4 w-4" />
+                    Membros
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      navigate(`/guild/${g.id}/settings`)
+                    }}
+                  >
+                    <Settings className="h-4 w-4" />
+                    Settings
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      syncMutation.mutate(g.id)
+                    }}
+                    isLoading={syncMutation.isPending}
+                  >
+                    <RefreshCw className="h-4 w-4" />
+                    Sync
+                  </Button>
 
-                            <div className="min-w-0 flex-1">
-                              <div className="truncate text-base font-semibold tracking-tight group-hover:text-foreground">
-                                {g.name}
-                              </div>
-                              <div className="mt-1 truncate text-xs text-muted-foreground">{g.id}</div>
-                              <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                                {g.ownerId ? <span className="truncate">owner: {g.ownerId}</span> : null}
-                                {format_added_at(g.addedAt) ? <span>added: {format_added_at(g.addedAt)}</span> : null}
-                              </div>
-                            </div>
-                          </div>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant={blocked_set.has(g.id) ? 'outline' : 'outline'}
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      const currently_blocked = blocked_set.has(g.id)
+                      toggleBlockedMutation.mutate({ guildId: g.id, blocked: !currently_blocked })
+                    }}
+                    isLoading={toggleBlockedMutation.isPending}
+                  >
+                    <Ban className="h-4 w-4" />
+                    {blocked_set.has(g.id) ? 'Desbloquear' : 'Bloquear'}
+                  </Button>
 
-                          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={(event) => {
-                                event.preventDefault()
-                                event.stopPropagation()
-                                navigate(`/guild/${g.id}/overview`)
-                              }}
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                              Abrir
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={(event) => {
-                                event.preventDefault()
-                                event.stopPropagation()
-                                navigate(`/guild/${g.id}/moderation`)
-                              }}
-                            >
-                              <Shield className="h-4 w-4" />
-                              Moderação
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={(event) => {
-                                event.preventDefault()
-                                event.stopPropagation()
-                                navigate(`/guild/${g.id}/members`)
-                              }}
-                            >
-                              <Users className="h-4 w-4" />
-                              Membros
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={(event) => {
-                                event.preventDefault()
-                                event.stopPropagation()
-                                navigate(`/guild/${g.id}/settings`)
-                              }}
-                            >
-                              <Settings className="h-4 w-4" />
-                              Configurações
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={(event) => {
-                                event.preventDefault()
-                                event.stopPropagation()
-                                syncMutation.mutate(g.id)
-                              }}
-                              isLoading={syncMutation.isPending}
-                            >
-                              <RefreshCw className="h-4 w-4" />
-                              Sync
-                            </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      leaveGuildMutation.mutate(g.id)
+                    }}
+                    isLoading={leaveGuildMutation.isPending}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Sair
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={(event) => {
+                      event.preventDefault()
+                      event.stopPropagation()
+                      navigator.clipboard
+                        .writeText(g.id)
+                        .then(() => {
+                          toast_success(`ID copiado: ${g.id}`, 'Copiado')
+                        })
+                        .catch(() => {
+                          toast_error('Não foi possível copiar o ID. Verifique as permissões do navegador.', 'Falha ao copiar')
+                        })
+                    }}
+                  >
+                    <Crown className="h-4 w-4" />
+                    Copiar ID
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant={blocked_set.has(g.id) ? 'outline' : 'outline'}
-                              onClick={(event) => {
-                                event.preventDefault()
-                                event.stopPropagation()
-                                const currently_blocked = blocked_set.has(g.id)
-                                toggleBlockedMutation.mutate({ guildId: g.id, blocked: !currently_blocked })
-                              }}
-                              isLoading={toggleBlockedMutation.isPending}
-                            >
-                              <Ban className="h-4 w-4" />
-                              {blocked_set.has(g.id) ? 'Desbloquear' : 'Bloquear'}
-                            </Button>
-
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="outline"
-                              onClick={(event) => {
-                                event.preventDefault()
-                                event.stopPropagation()
-                                leaveGuildMutation.mutate(g.id)
-                              }}
-                              isLoading={leaveGuildMutation.isPending}
-                            >
-                              <LogOut className="h-4 w-4" />
-                              Sair
-                            </Button>
-                            <Button
-                              type="button"
-                              size="sm"
-                              variant="ghost"
-                              onClick={(event) => {
-                                event.preventDefault()
-                                event.stopPropagation()
-                                navigator.clipboard
-                                  .writeText(g.id)
-                                  .then(() => {
-                                    toast_success(`ID copiado: ${g.id}`, 'Copiado')
-                                  })
-                                  .catch(() => {
-                                    toast_error('Não foi possível copiar o ID. Verifique as permissões do navegador.', 'Falha ao copiar')
-                                  })
-                              }}
-                            >
-                              <Crown className="h-4 w-4" />
-                              Copiar ID
-                            </Button>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-
-                {!isLoading && filtered.length === 0 && (
-                  <Card>
-                    <CardContent className="p-6 text-center">
-                      <div className="text-base font-semibold">Nenhum servidor encontrado</div>
-                      <div className="mt-2 text-sm text-muted-foreground">
-                        Ajuste o filtro de busca ou verifique se o bot já sincronizou os servidores no banco.
-                      </div>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
-            ),
-          },
-          {
-            value: 'diagnostics',
-            label: 'Diagnósticos',
-            content: (
-              <Card className="border-accent/20">
-                <CardContent className="space-y-4 p-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <div className="text-base font-semibold">Diagnósticos</div>
-                      <div className="mt-1 text-sm text-muted-foreground">
-                        Saúde do internal bot API e inconsistências comuns de configuração.
-                      </div>
-                    </div>
-                    <Button type="button" variant="outline" onClick={() => refetchDiagnostics()} isLoading={isDiagnosticsLoading}>
-                      <RefreshCw className="h-4 w-4" />
-                      Atualizar
-                    </Button>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
-                      <div className="text-xs text-muted-foreground">Internal bot API</div>
-                      <div className="mt-1 text-sm font-semibold">
-                        {diagnostics_data?.internalBotApi?.status === 'down' ? 'Indisponível' : 'OK'}
-                      </div>
-                      {diagnostics_data?.internalBotApi?.status === 'down' && diagnostics_data.internalBotApi.error ? (
-                        <div className="mt-1 text-xs text-muted-foreground">{diagnostics_data.internalBotApi.error}</div>
-                      ) : null}
-                    </div>
-
-                    <div className="rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
-                      <div className="text-xs text-muted-foreground">Issues</div>
-                      <div className="mt-1 text-sm font-semibold">
-                        {(() => {
-                          const total = diagnostics_data?.guilds?.reduce((acc, g) => acc + (g.issues?.length ?? 0), 0) ?? 0
-                          return total
-                        })()}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">Somatório de inconsistências encontradas.</div>
-                    </div>
-                  </div>
-
-                  {diagnostics_data?.guilds?.length ? (
-                    <div className="space-y-3">
-                      {diagnostics_data.guilds
-                        .filter((g) => (g.issues?.length ?? 0) > 0)
-                        .slice(0, 20)
-                        .map((g) => (
-                          <div key={g.guildId} className="rounded-2xl border border-border/80 bg-surface/30 px-4 py-3">
-                            <div className="flex items-center justify-between gap-4">
-                              <div className="text-sm font-semibold">{g.guildName}</div>
-                              <div className="text-xs text-muted-foreground">{g.issues.length} issue(s)</div>
-                            </div>
-                            <div className="mt-2 space-y-1">
-                              {g.issues.slice(0, 6).map((issue, idx) => (
-                                <div key={idx} className="text-xs text-muted-foreground">
-                                  {issue.message}
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      {diagnostics_data.guilds.filter((g) => (g.issues?.length ?? 0) > 0).length > 20 ? (
-                        <div className="text-xs text-muted-foreground">Mostrando apenas as 20 primeiras guilds com issues.</div>
-                      ) : null}
-                    </div>
-                  ) : null}
-                </CardContent>
-              </Card>
-            ),
-          },
-          {
-            value: 'bot',
-            label: 'Bot',
-            content: (
-              <div className="space-y-6">
-                <Card className="border-accent/20">
-                  <CardContent className="space-y-4 p-6">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <div className="text-base font-semibold">Rich Presence</div>
-                        <div className="mt-1 text-sm text-muted-foreground">
-                          Configuração global do status do bot (aplica imediatamente).
-                        </div>
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={() => savePresenceMutation.mutate()}
-                        isLoading={savePresenceMutation.isPending}
-                        disabled={isPresenceLoading}
-                      >
-                        Salvar
-                      </Button>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                      <div className="flex items-center justify-between rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
-                        <div>
-                          <div className="text-sm font-semibold">Ativar presence</div>
-                          <div className="text-xs text-muted-foreground">Liga/desliga atividades e status</div>
-                        </div>
-                        <Switch checked={presence_enabled} onCheckedChange={set_presence_enabled} disabled={isPresenceLoading} />
-                      </div>
-
-                      <div>
-                        <div className="mb-2 text-xs text-muted-foreground">Status</div>
-                        <Select
-                          value={presence_status}
-                          onValueChange={(value) => set_presence_status(value as bot_presence_settings['presenceStatus'])}
-                          disabled={isPresenceLoading}
-                        >
-                          <option value="online">Online</option>
-                          <option value="idle">Idle</option>
-                          <option value="dnd">DND</option>
-                          <option value="invisible">Invisible</option>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <div className="mb-2 text-xs text-muted-foreground">Activity type</div>
-                        <Select
-                          value={activity_type ?? ''}
-                          onValueChange={(value) => set_activity_type((value || null) as bot_presence_settings['activityType'])}
-                          disabled={isPresenceLoading}
-                          placeholder="Nenhuma"
-                        >
-                          <option value="">Nenhuma</option>
-                          <option value="playing">Playing</option>
-                          <option value="listening">Listening</option>
-                          <option value="watching">Watching</option>
-                          <option value="competing">Competing</option>
-                          <option value="streaming">Streaming</option>
-                        </Select>
-                      </div>
-
-                      <div>
-                        <div className="mb-2 text-xs text-muted-foreground">Activity name</div>
-                        <Input
-                          value={activity_name}
-                          onChange={(e) => set_activity_name(e.target.value)}
-                          placeholder="Ex: /help"
-                          disabled={isPresenceLoading}
-                        />
-                      </div>
-
-                      <div className="md:col-span-2">
-                        <div className="mb-2 text-xs text-muted-foreground">Activity URL (apenas streaming)</div>
-                        <Input
-                          value={activity_url}
-                          onChange={(e) => set_activity_url(e.target.value)}
-                          placeholder="https://twitch.tv/..."
-                          disabled={isPresenceLoading}
-                        />
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                <Card className="border-accent/20">
-                  <CardContent className="space-y-4 p-6">
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <div className="text-base font-semibold">Bio do bot (Discord)</div>
-                        <div className="mt-1 text-sm text-muted-foreground">Atualiza o “Sobre mim” do perfil do bot no Discord.</div>
-                      </div>
-                      <Button
-                        type="button"
-                        onClick={() => saveAppDescriptionMutation.mutate()}
-                        isLoading={saveAppDescriptionMutation.isPending}
-                        disabled={isAppDescriptionLoading}
-                      >
-                        Salvar
-                      </Button>
-                    </div>
-
-                    <Textarea
-                      value={app_description}
-                      onChange={(e) => set_app_description(e.target.value)}
-                      placeholder="Escreva a bio do bot (máx 4000 caracteres)."
-                      maxLength={4000}
-                      disabled={isAppDescriptionLoading}
-                    />
-
-                    <div className="text-xs text-muted-foreground">{app_description.trim().length}/4000</div>
-                  </CardContent>
-                </Card>
-              </div>
-            ),
-          },
-          {
-            value: 'announcements',
-            label: 'Anúncio global',
-            content: (
-              <Card className="border-accent/20">
-                <CardContent className="space-y-4 p-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <div className="text-base font-semibold">Anúncio global</div>
-                      <div className="mt-1 text-sm text-muted-foreground">Envia uma mensagem para as guilds filtradas. Preview é obrigatório.</div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={() => previewAnnouncementMutation.mutate()}
-                        isLoading={previewAnnouncementMutation.isPending}
-                        disabled={!announcement_content.trim()}
-                      >
-                        Preview
-                      </Button>
-                      <Button
-                        type="button"
-                        onClick={() => executeAnnouncementMutation.mutate()}
-                        isLoading={executeAnnouncementMutation.isPending}
-                        disabled={!announcement_preview_id || announcement_confirm !== 'CONFIRMAR'}
-                      >
-                        <Send className="h-4 w-4" />
-                        Enviar
-                      </Button>
-                    </div>
-                  </div>
-
-                  <Textarea
-                    value={announcement_content}
-                    onChange={(e) => set_announcement_content(e.target.value)}
-                    placeholder="Escreva o anúncio (máx 2000 caracteres)."
-                  />
-
-                  <Input
-                    value={announcement_image_url}
-                    onChange={(e) => set_announcement_image_url(e.target.value)}
-                    placeholder="URL da imagem (opcional)"
-                  />
-
-                  <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">
-                    <Input
-                      value={announcement_confirm}
-                      onChange={(e) => set_announcement_confirm(e.target.value)}
-                      placeholder="Digite CONFIRMAR para habilitar o envio"
-                    />
-                    <div className="text-sm text-muted-foreground">Usa os filtros da aba “Servidores” para selecionar os alvos.</div>
-                  </div>
-
-                  {announcement_preview && (
-                    <div className="rounded-2xl border border-border/80 bg-surface/40 p-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge>{announcement_preview.total ?? 0} total</Badge>
-                        <Badge>{announcement_preview.sendable ?? 0} enviáveis</Badge>
-                        <Badge>{announcement_preview.skipped ?? 0} puladas</Badge>
-                      </div>
-                      <div className="mt-3 text-xs text-muted-foreground">
-                        Preview ID: <span className="font-mono">{announcement_preview_id}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  {announcement_result && (
-                    <div className="rounded-2xl border border-border/80 bg-surface/40 p-4">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge>{announcement_result.total ?? 0} processadas</Badge>
-                        <Badge>{announcement_result.sent ?? 0} enviadas</Badge>
-                        <Badge>{announcement_result.failed ?? 0} falharam</Badge>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
-            ),
-          },
-        ]}
-      />
+      {!isLoading && filtered.length === 0 && (
+        <Card>
+          <CardContent className="p-6 text-center">
+            <div className="text-base font-semibold">Nenhum servidor encontrado</div>
+            <div className="mt-2 text-sm text-muted-foreground">
+              Ajuste o filtro de busca ou verifique se o bot já sincronizou os servidores no banco.
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }

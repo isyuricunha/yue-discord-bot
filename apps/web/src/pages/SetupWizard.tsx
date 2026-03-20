@@ -372,11 +372,11 @@ export default function SetupWizardPage() {
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['modlog-config', guildId] })
       await queryClient.invalidateQueries({ queryKey: ['automod-config', guildId] })
-      toast_success('Moderação configurada!')
+      toast_success('AutoMod configurado!')
       setStep(4)
     },
     onError: (error: any) => {
-      const message = error.response?.data?.error || error.message || 'Erro ao salvar moderação'
+      const message = error.response?.data?.error || error.message || 'Erro ao salvar AutoMod'
       toast_error(message)
     },
   })
@@ -785,12 +785,12 @@ export default function SetupWizardPage() {
       {step === 3 && (
         <Card>
           <CardContent className="space-y-6 p-6">
-            <div className="flex items-center gap-4">
-              <span className="grid h-12 w-12 place-items-center rounded-2xl border border-border/80 bg-surface/50 text-accent">
+            <div className="flex items-center gap-3">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
                 <Shield className="h-5 w-5" />
               </span>
               <div>
-                <div className="text-base font-semibold">Moderação (básico)</div>
+                <div className="text-base font-semibold">AutoMod (básico)</div>
                 <div className="text-xs text-muted-foreground">Logs e filtro de links</div>
               </div>
             </div>
@@ -827,7 +827,7 @@ export default function SetupWizardPage() {
                   <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
                     <div>
                       <div className="text-sm font-medium">Bloquear todos os links</div>
-                      <div className="mt-1 text-xs text-muted-foreground">Quando desativado, você pode permitir domínios na página de Moderação.</div>
+                      <div className="mt-1 text-xs text-muted-foreground">Quando desativado, você pode permitir domínios na página de AutoMod.</div>
                     </div>
                     <Switch checked={automod_link_block_all} onCheckedChange={set_automod_link_block_all} label="Bloquear" />
                   </div>
@@ -859,7 +859,7 @@ export default function SetupWizardPage() {
                 disabled={!can_proceed_step_3()}
               >
                 <Check className="h-4 w-4" />
-                Concluir moderação
+                Concluir AutoMod
               </Button>
             </div>
           </CardContent>
@@ -1068,7 +1068,7 @@ export default function SetupWizardPage() {
               <div className="mt-1">Painel: {ticket_panel_channel_id ? <span className="font-mono">{ticket_panel_channel_id}</span> : '—'}</div>
               <div className="mt-1">Mensagem do painel: {published_message_id ? <span className="font-mono">{published_message_id}</span> : '—'}</div>
               <div className="mt-2">Boas-vindas: {welcome_channel_id ? <span className="font-mono">{welcome_channel_id}</span> : '—'}</div>
-              <div className="mt-1">Moderação: {automod_link_enabled ? `Links ${automod_link_block_all ? '(block all)' : ''}` : 'Links off'}</div>
+              <div className="mt-1">AutoMod: {automod_link_enabled ? `Links ${automod_link_block_all ? '(block all)' : ''}` : 'Links off'}</div>
               <div className="mt-1">Autorole: {autorole_enabled ? `Ativo (${autorole_role_ids.length} cargos)` : 'Desativado'}</div>
               <div className="mt-1">XP: {xp_enabled ? 'Ativo' : 'Desativado'}</div>
             </div>

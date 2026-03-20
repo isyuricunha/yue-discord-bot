@@ -112,12 +112,21 @@ export function CommandPalette() {
         requiresGuild: true,
       },
       {
+        id: 'guild-automod',
+        label: 'AutoMod',
+        description: 'Moderação automática',
+        icon: <Shield className="h-4 w-4" />,
+        to: `/guild/${guildId}/automod`,
+        keywords: ['automod', 'moderacao', 'filtros', 'spam', 'raid'],
+        requiresGuild: true,
+      },
+      {
         id: 'guild-moderation',
         label: 'Moderação',
         description: 'Configurações de punição',
         icon: <Shield className="h-4 w-4" />,
         to: `/guild/${guildId}/moderation`,
-        keywords: ['automod', 'mod', 'moderacao', 'ban', 'kick', 'mute', 'warn', 'punicao', 'filtros', 'spam', 'raid'],
+        keywords: ['mod', 'ban', 'kick', 'mute', 'warn', 'punicao'],
         requiresGuild: true,
       },
       {

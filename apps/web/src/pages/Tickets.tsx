@@ -5,7 +5,7 @@ import axios from 'axios'
 import { LifeBuoy, Save, Trash2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch, Tabs } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -56,8 +56,6 @@ export default function TicketsPage() {
   const { guildId } = useParams()
   const queryClient = useQueryClient()
   const has_initialized = useRef(false)
-
-  const [active_tab, set_active_tab] = useState<'config' | 'list'>('config')
 
   const [config, setConfig] = useState<ticket_config | null>(null)
   const [new_support_role_id, set_new_support_role_id] = useState('')
@@ -256,242 +254,206 @@ export default function TicketsPage() {
         </CardContent>
       </Card>
 
-      <Tabs
-        value={active_tab}
-        onValueChange={(next) => set_active_tab(next as 'config' | 'list')}
-        items={[
-          {
-            value: 'config',
-            label: 'Configuração',
-            content: (
-              <Card>
-                <CardContent className="space-y-4 p-6">
-                  <div className="flex items-center justify-between gap-4">
-                    <div>
-                      <div className="text-sm font-semibold">Ativar tickets</div>
-                      <div className="text-xs text-muted-foreground">Permite que usuários abram tickets pelo painel.</div>
-                    </div>
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-sm font-semibold">Ativar tickets</div>
+              <div className="text-xs text-muted-foreground">Permite que usuários abram tickets pelo painel.</div>
+            </div>
 
-                    <Switch
-                      checked={Boolean(config?.enabled)}
-                      onCheckedChange={(checked) => config && setConfig({ ...config, enabled: checked })}
-                      label="Tickets habilitado"
-                      disabled={is_loading}
-                    />
+            <Switch
+              checked={Boolean(config?.enabled)}
+              onCheckedChange={(checked) => config && setConfig({ ...config, enabled: checked })}
+              label="Tickets habilitado"
+              disabled={is_loading}
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <div className="text-sm font-medium">Categoria dos tickets</div>
+              <div className="mt-1 text-xs text-muted-foreground">Onde os canais de ticket serão criados (opcional).</div>
+              <div className="mt-2">
+                {is_loading || !config ? (
+                  <Skeleton className="h-11 w-full" />
+                ) : (
+                  <Select
+                    value={config.categoryId ?? ''}
+                    onValueChange={(value) => setConfig({ ...config, categoryId: value || null })}
+                  >
+                    <option value="">Sem categoria</option>
+                    {category_channels.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {channel_label(c)}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-sm font-medium">Canal de logs</div>
+              <div className="mt-1 text-xs text-muted-foreground">Onde registrar abertura/fechamento de tickets (opcional).</div>
+              <div className="mt-2">
+                {is_loading || !config ? (
+                  <Skeleton className="h-11 w-full" />
+                ) : (
+                  <Select value={config.logChannelId ?? ''} onValueChange={(value) => setConfig({ ...config, logChannelId: value || null })}>
+                    <option value="">Sem logs</option>
+                    {text_channels.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {channel_label(c)}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            <div>
+              <div className="text-sm font-medium">Painel</div>
+              <div className="mt-1 text-xs text-muted-foreground">Criado pelo bot via /ticket setup.</div>
+              <div className="mt-2 rounded-2xl border border-border/70 bg-surface/30 p-4 text-sm">
+                <div>
+                  Canal: {config?.panelChannelId ? <span className="font-mono">{config.panelChannelId}</span> : '—'}
+                </div>
+                <div className="mt-1">
+                  Mensagem: {config?.panelMessageId ? <span className="font-mono">{config.panelMessageId}</span> : '—'}
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div className="text-sm font-medium">Cargo(s) de suporte</div>
+              <div className="mt-1 text-xs text-muted-foreground">Cargos com acesso aos canais de ticket (até 20).</div>
+
+              {is_loading || !config ? (
+                <Skeleton className="mt-2 h-24 w-full" />
+              ) : (
+                <div className="mt-2 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Select value={new_support_role_id} onValueChange={set_new_support_role_id}>
+                      <option value="">Selecione um cargo</option>
+                      {available_roles.map((r) => (
+                        <option key={r.id} value={r.id}>
+                          {r.name}
+                        </option>
+                      ))}
+                    </Select>
+
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={add_support_role}
+                      disabled={!new_support_role_id || config.supportRoleIds.length >= 20}
+                      className="shrink-0"
+                    >
+                      <span>Adicionar</span>
+                    </Button>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                      <div className="text-sm font-medium">Categoria dos tickets</div>
-                      <div className="mt-1 text-xs text-muted-foreground">Onde os canais de ticket serão criados (opcional).</div>
-                      <div className="mt-2">
-                        {is_loading || !config ? (
-                          <Skeleton className="h-11 w-full" />
-                        ) : (
-                          <Select
-                            value={config.categoryId ?? ''}
-                            onValueChange={(value) => setConfig({ ...config, categoryId: value || null })}
-                          >
-                            <option value="">Sem categoria</option>
-                            {category_channels.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {channel_label(c)}
-                              </option>
-                            ))}
-                          </Select>
-                        )}
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-sm font-medium">Canal de logs</div>
-                      <div className="mt-1 text-xs text-muted-foreground">Onde registrar abertura/fechamento de tickets (opcional).</div>
-                      <div className="mt-2">
-                        {is_loading || !config ? (
-                          <Skeleton className="h-11 w-full" />
-                        ) : (
-                          <Select
-                            value={config.logChannelId ?? ''}
-                            onValueChange={(value) => setConfig({ ...config, logChannelId: value || null })}
-                          >
-                            <option value="">Sem logs</option>
-                            {text_channels.map((c) => (
-                              <option key={c.id} value={c.id}>
-                                {channel_label(c)}
-                              </option>
-                            ))}
-                          </Select>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                    <div>
-                      <div className="text-sm font-medium">Painel</div>
-                      <div className="mt-1 text-xs text-muted-foreground">Criado pelo bot via /ticket setup.</div>
-                      <div className="mt-2 rounded-2xl border border-border/70 bg-surface/30 p-4 text-sm">
-                        <div>
-                          Canal: {config?.panelChannelId ? <span className="font-mono">{config.panelChannelId}</span> : '—'}
-                        </div>
-                        <div className="mt-1">
-                          Mensagem: {config?.panelMessageId ? <span className="font-mono">{config.panelMessageId}</span> : '—'}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div>
-                      <div className="text-sm font-medium">Cargo(s) de suporte</div>
-                      <div className="mt-1 text-xs text-muted-foreground">Cargos com acesso aos canais de ticket (até 20).</div>
-
-                      {is_loading || !config ? (
-                        <Skeleton className="mt-2 h-24 w-full" />
-                      ) : (
-                        <div className="mt-2 space-y-3">
-                          <div className="flex items-center gap-2">
-                            <Select value={new_support_role_id} onValueChange={set_new_support_role_id}>
-                              <option value="">Selecione um cargo</option>
-                              {available_roles.map((r) => (
-                                <option key={r.id} value={r.id}>
-                                  {r.name}
-                                </option>
-                              ))}
-                            </Select>
-
-                            <Button
-                              type="button"
-                              variant="outline"
-                              onClick={add_support_role}
-                              disabled={!new_support_role_id || config.supportRoleIds.length >= 20}
-                              className="shrink-0"
-                            >
-                              <span>Adicionar</span>
-                            </Button>
-                          </div>
-
-                          {config.supportRoleIds.length === 0 ? (
-                            <div className="text-xs text-muted-foreground">Nenhum cargo configurado.</div>
-                          ) : (
-                            <div className="space-y-2">
-                              {config.supportRoleIds.map((id) => {
-                                const role = role_by_id.get(id)
-                                return (
-                                  <div
-                                    key={id}
-                                    className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/30 px-4 py-3"
-                                  >
-                                    <div className="min-w-0">
-                                      <div className="truncate text-sm font-medium">{role?.name ?? id}</div>
-                                      <div className="mt-1 text-xs text-muted-foreground font-mono">{id}</div>
-                                    </div>
-
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      size="sm"
-                                      onClick={() => remove_support_role(id)}
-                                      className="shrink-0"
-                                    >
-                                      <Trash2 className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                )
-                              })}
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ),
-          },
-          {
-            value: 'list',
-            label: 'Lista',
-            content: (
-              <Card>
-                <CardContent className="space-y-4 p-6">
-                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                    <div>
-                      <div className="text-sm font-semibold">Tickets</div>
-                      <div className="mt-1 text-xs text-muted-foreground">Lista de tickets (abertos/fechados).</div>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <Select value={status_filter} onValueChange={(v) => set_status_filter(v as any)}>
-                        <option value="open">Abertos</option>
-                        <option value="closed">Fechados</option>
-                        <option value="all">Todos</option>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {tickets_query.isLoading ? (
-                    <Skeleton className="h-28 w-full" />
-                  ) : tickets_query.isError ? (
-                    <ErrorState
-                      title="Erro ao carregar tickets"
-                      description="Não foi possível buscar a lista de tickets."
-                      actionLabel="Tentar novamente"
-                      onAction={() => tickets_query.refetch()}
-                    />
-                  ) : all_tickets.length === 0 ? (
-                    <EmptyState
-                      title="Nenhum ticket encontrado"
-                      description={
-                        status_filter === 'closed'
-                          ? 'Ainda não há tickets fechados.'
-                          : status_filter === 'all'
-                            ? 'Ainda não há tickets.'
-                            : 'Ainda não há tickets abertos.'
-                      }
-                    />
+                  {config.supportRoleIds.length === 0 ? (
+                    <div className="text-xs text-muted-foreground">Nenhum cargo configurado.</div>
                   ) : (
                     <div className="space-y-2">
-                      {all_tickets.map((t) => (
-                        <div key={t.id} className="rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
-                          <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                      {config.supportRoleIds.map((id) => {
+                        const role = role_by_id.get(id)
+                        return (
+                          <div key={id} className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
                             <div className="min-w-0">
-                              <div className="truncate text-sm font-medium">#{t.channelId}</div>
-                              <div className="mt-1 text-xs text-muted-foreground">
-                                Usuário: <span className="font-mono">{t.userId}</span> • Status:{' '}
-                                <span className="font-mono">{t.status}</span>
-                              </div>
+                              <div className="truncate text-sm font-medium">{role?.name ?? id}</div>
+                              <div className="mt-1 text-xs text-muted-foreground font-mono">{id}</div>
                             </div>
-                            <div className="text-xs text-muted-foreground">{new Date(t.createdAt).toLocaleString()}</div>
+
+                            <Button type="button" variant="ghost" size="sm" onClick={() => remove_support_role(id)} className="shrink-0">
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
                           </div>
-
-                          {t.status === 'closed' && (t.closeReason || t.closedAt) && (
-                            <div className="mt-2 text-xs text-muted-foreground">
-                              Fechado em: {t.closedAt ? new Date(t.closedAt).toLocaleString() : '—'}
-                              {t.closeReason ? ` • Motivo: ${t.closeReason}` : ''}
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      {tickets_query.hasNextPage && (
-                        <div className="pt-2">
-                          <Button
-                            type="button"
-                            variant="outline"
-                            onClick={() => tickets_query.fetchNextPage()}
-                            isLoading={tickets_query.isFetchingNextPage}
-                          >
-                            <span>Carregar mais</span>
-                          </Button>
-                        </div>
-                      )}
+                        )
+                      })}
                     </div>
                   )}
-                </CardContent>
-              </Card>
-            ),
-          },
-        ]}
-      />
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <div className="text-sm font-semibold">Tickets</div>
+              <div className="mt-1 text-xs text-muted-foreground">Lista de tickets (abertos/fechados).</div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <Select value={status_filter} onValueChange={(v) => set_status_filter(v as any)}>
+                <option value="open">Abertos</option>
+                <option value="closed">Fechados</option>
+                <option value="all">Todos</option>
+              </Select>
+            </div>
+          </div>
+
+          {tickets_query.isLoading ? (
+            <Skeleton className="h-28 w-full" />
+          ) : tickets_query.isError ? (
+            <ErrorState
+              title="Erro ao carregar tickets"
+              description="Não foi possível buscar a lista de tickets."
+              actionLabel="Tentar novamente"
+              onAction={() => tickets_query.refetch()}
+            />
+          ) : all_tickets.length === 0 ? (
+            <EmptyState
+              title="Nenhum ticket encontrado"
+              description={status_filter === 'closed' ? 'Ainda não há tickets fechados.' : status_filter === 'all' ? 'Ainda não há tickets.' : 'Ainda não há tickets abertos.'}
+            />
+          ) : (
+            <div className="space-y-2">
+              {all_tickets.map((t) => (
+                <div key={t.id} className="rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
+                  <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">#{t.channelId}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        Usuário: <span className="font-mono">{t.userId}</span> • Status: <span className="font-mono">{t.status}</span>
+                      </div>
+                    </div>
+                    <div className="text-xs text-muted-foreground">{new Date(t.createdAt).toLocaleString()}</div>
+                  </div>
+
+                  {t.status === 'closed' && (t.closeReason || t.closedAt) && (
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      Fechado em: {t.closedAt ? new Date(t.closedAt).toLocaleString() : '—'}
+                      {t.closeReason ? ` • Motivo: ${t.closeReason}` : ''}
+                    </div>
+                  )}
+                </div>
+              ))}
+
+              {tickets_query.hasNextPage && (
+                <div className="pt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => tickets_query.fetchNextPage()}
+                    isLoading={tickets_query.isFetchingNextPage}
+                  >
+                    <span>Carregar mais</span>
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

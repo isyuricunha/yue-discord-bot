@@ -7,7 +7,6 @@ import { Save, Trash2, Wand2 } from 'lucide-react'
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
-import { get_api_error_message } from '../lib/api_error'
 
 const API_URL = getApiUrl()
 
@@ -207,7 +206,7 @@ export default function ReactionRolesPage() {
       toast_success('Painel criado!')
     },
     onError: (error: any) => {
-      toast_error(get_api_error_message(error, 'Erro ao criar painel'))
+      toast_error(error.response?.data?.error || error.message || 'Erro ao criar painel')
     },
   })
 
@@ -229,7 +228,7 @@ export default function ReactionRolesPage() {
       toast_success('Painel salvo!')
     },
     onError: (error: any) => {
-      toast_error(get_api_error_message(error, 'Erro ao salvar painel'))
+      toast_error(error.response?.data?.error || error.message || 'Erro ao salvar painel')
     },
   })
 
@@ -246,7 +245,7 @@ export default function ReactionRolesPage() {
       toast_success('Painel removido!')
     },
     onError: (error: any) => {
-      toast_error(get_api_error_message(error, 'Erro ao remover painel'))
+      toast_error(error.response?.data?.error || error.message || 'Erro ao remover painel')
     },
   })
 
@@ -264,7 +263,7 @@ export default function ReactionRolesPage() {
       toast_success('Painel publicado!')
     },
     onError: (error: any) => {
-      toast_error(get_api_error_message(error, 'Erro ao publicar painel'))
+      toast_error(error.response?.data?.error || error.message || 'Erro ao publicar painel')
     },
   })
 

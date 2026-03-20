@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import axios from 'axios'
 import {
   BarChart3,
@@ -18,13 +18,10 @@ import {
   Star,
   TerminalSquare,
   ClipboardList,
-  TrendingUp,
-  Music,
-  Search,
 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Card, CardContent, EmptyState, Input, Skeleton } from '../components/ui'
+import { Card, CardContent, Skeleton } from '../components/ui'
 
 const API_URL = getApiUrl()
 
@@ -47,7 +44,7 @@ function useGuildModules(guildId: string) {
     const modules: module_card[] = [
       {
         to: `/guild/${guildId}/setup`,
-        label: 'Setup',
+        label: 'Setup Wizard',
         description: 'Configuração guiada inicial',
         icon: <Wand2 className="h-5 w-5" />,
         category: 'essentials',
@@ -67,9 +64,16 @@ function useGuildModules(guildId: string) {
         category: 'essentials',
       },
       {
+        to: `/guild/${guildId}/automod`,
+        label: 'AutoMod',
+        description: 'Moderação automática',
+        icon: <Shield className="h-5 w-5" />,
+        category: 'automation',
+      },
+      {
         to: `/guild/${guildId}/moderation`,
         label: 'Moderação',
-        description: 'Filtros e punições',
+        description: 'Punições e automação',
         icon: <Shield className="h-5 w-5" />,
         category: 'automation',
       },
@@ -91,12 +95,12 @@ function useGuildModules(guildId: string) {
         to: `/guild/${guildId}/xp`,
         label: 'XP & Níveis',
         description: 'Sistema de ranking',
-        icon: <TrendingUp className="h-5 w-5" />,
+        icon: <Sparkles className="h-5 w-5" />,
         category: 'engagement',
       },
       {
         to: `/guild/${guildId}/reaction-roles`,
-        label: 'Cargos por reação',
+        label: 'Reaction Roles',
         description: 'Painéis de cargos',
         icon: <MousePointerClick className="h-5 w-5" />,
         category: 'engagement',
@@ -117,8 +121,8 @@ function useGuildModules(guildId: string) {
       },
       {
         to: `/guild/${guildId}/custom-commands`,
-        label: 'Comandos personalizados',
-        description: 'Respostas e automações',
+        label: 'Custom Commands',
+        description: 'Comandos personalizados',
         icon: <TerminalSquare className="h-5 w-5" />,
         category: 'engagement',
       },
@@ -126,7 +130,7 @@ function useGuildModules(guildId: string) {
         to: `/guild/${guildId}/music`,
         label: 'Música',
         description: 'Player e playlists',
-        icon: <Music className="h-5 w-5" />,
+        icon: <TerminalSquare className="h-5 w-5" />,
         category: 'engagement',
       },
       {
@@ -166,7 +170,7 @@ function useGuildModules(guildId: string) {
       },
       {
         to: `/guild/${guildId}/audit`,
-        label: 'Auditoria',
+        label: 'Audit',
         description: 'Eventos importantes',
         icon: <ClipboardList className="h-5 w-5" />,
         category: 'admin',
@@ -190,7 +194,6 @@ export default function GuildPage() {
   const { guildId } = useParams()
   const navigate = useNavigate()
   const modules = useGuildModules(guildId ?? '')
-  const [module_query, set_module_query] = useState('')
 
   const { data: guild, isLoading } = useQuery({
     queryKey: ['guild-summary', guildId],
@@ -201,24 +204,12 @@ export default function GuildPage() {
   })
 
   const groupedModules = useMemo(() => {
-    const query = module_query.trim().toLowerCase()
-    const filtered = !query
-      ? modules
-      : modules.filter((m) => {
-          const haystack = `${m.label} ${m.description} ${category_labels[m.category]}`.toLowerCase()
-          return haystack.includes(query)
-        })
-
     const grouped: Record<string, module_card[]> = {}
     for (const cat of category_order) {
-      grouped[cat] = filtered.filter((m: module_card) => m.category === cat)
+      grouped[cat] = modules.filter((m: module_card) => m.category === cat)
     }
     return grouped
-  }, [modules, module_query])
-
-  const has_any_module = useMemo(() => {
-    return category_order.some((category) => groupedModules[category]?.length > 0)
-  }, [groupedModules])
+  }, [modules])
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -240,7 +231,7 @@ export default function GuildPage() {
 
           <div className="min-w-0 flex-1">
             <div className="text-base font-semibold tracking-tight">
-              {isLoading ? <Skeleton className="h-4 w-40" /> : guild?.name ?? 'Servidor'}
+              {isLoading ? <Skeleton className="h-4 w-40" /> : guild?.name ?? 'Guild'}
             </div>
             <div className="mt-1 text-sm text-muted-foreground">
               {isLoading ? <Skeleton className="h-3 w-56" /> : 'Painel de gerenciamento do servidor'}
@@ -253,43 +244,12 @@ export default function GuildPage() {
         <Card>
           <CardContent className="p-6 text-center">
             <div className="text-base font-semibold">Servidor não encontrado</div>
-            <div className="mt-2 text-sm text-muted-foreground">Verifique se você tem acesso a este servidor.</div>
-          </CardContent>
-        </Card>
-      )}
-
-      {!isLoading && guild && (
-        <Card>
-          <CardContent className="p-5">
-            <div className="text-sm font-medium">Módulos</div>
-            <div className="mt-3 flex items-center gap-3">
-              <div className="relative w-full">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  value={module_query}
-                  onChange={(e) => set_module_query(e.target.value)}
-                  placeholder="Buscar módulos (ex: moderação, logs, setup...)"
-                  className="pl-10"
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {!isLoading && guild && !has_any_module && (
-        <Card>
-          <CardContent className="p-6">
-            <EmptyState
-              title="Nenhum módulo encontrado"
-              description="Tente buscar por outro termo."
-            />
+            <div className="mt-2 text-sm text-muted-foreground">Verifique se você tem acesso a esta guild.</div>
           </CardContent>
         </Card>
       )}
 
       {!isLoading &&
-        has_any_module &&
         category_order.map((category) => {
           const items = groupedModules[category]
           if (!items || items.length === 0) return null

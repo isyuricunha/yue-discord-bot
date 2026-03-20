@@ -10,7 +10,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "pnpm --filter database db:generate && pnpm --filter @yuebot/shared build && pnpm --filter bot deploy-commands && pnpm --filter database db:migrate:safe && pnpm --filter @yuebot/database build && pnpm --parallel --stream run dev",
+    "dev": "pnpm --filter database db:generate && pnpm --filter bot deploy-commands && pnpm --filter database db:migrate:safe && pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && pnpm --parallel --stream run dev",
     "dev:bot": "pnpm --filter bot dev",
     "dev:api": "pnpm --filter api dev",
     "dev:web": "pnpm --filter web dev",
@@ -34,11 +34,11 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/github": "^12.0.6",
+    "@semantic-release/github": "^11.0.0",
     "@semantic-release/release-notes-generator": "^14.1.0",
     "@typescript-eslint/eslint-plugin": "^8.57.1",
     "@typescript-eslint/parser": "^8.57.1",
-    "conventional-changelog-conventionalcommits": "^9.3.0",
+    "conventional-changelog-conventionalcommits": "^8.0.0",
     "eslint": "^10.0.3",
     "globals": "^17.4.0",
     "knip": "^5.88.0",

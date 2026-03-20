@@ -1,9 +1,15 @@
-import { PageLayout } from '../components/design'
 import { Card, CardContent, CardHeader } from '../components/ui'
 
 export default function TermsPage() {
   return (
-    <PageLayout title="Termos de Uso" description="Regras e condições para usar a Yue (bot e painel).">
+    <div className="mx-auto w-full max-w-4xl space-y-6">
+      <div>
+        <div className="text-2xl font-semibold tracking-tight">Termos de Uso</div>
+        <div className="mt-1 text-sm text-muted-foreground">
+          Regras e condições para usar a Yue (bot e painel).
+        </div>
+      </div>
+
       <Card>
         <CardHeader>
           <div className="text-base font-semibold">Resumo</div>
@@ -146,6 +152,6 @@ export default function TermsPage() {
           </div>
         </CardContent>
       </Card>
-    </PageLayout>
+    </div>
   )
 }

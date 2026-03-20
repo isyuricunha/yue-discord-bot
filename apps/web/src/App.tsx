@@ -26,6 +26,7 @@ import CreateGiveawayPage from './pages/CreateGiveaway'
 import GiveawayEntryEditPage from './pages/GiveawayEntryEdit'
 import SettingsPage from './pages/Settings'
 import ModerationPage from './pages/Moderation'
+import AutoModPage from './pages/AutoMod'
 import AntiRaidPage from './pages/AntiRaid'
 import WelcomePage from './pages/Welcome'
 import XpLevelsPage from './pages/XpLevels'
@@ -147,7 +148,7 @@ function App() {
           <Route path="/moderation" element={<Navigate to="/" replace />} />
           <Route path="/guild/:guildId" element={<GuildPage />} />
           <Route path="/guild/:guildId/overview" element={<OverviewPage />} />
-          <Route path="/guild/:guildId/automod" element={<Navigate to="../moderation" replace />} />
+          <Route path="/guild/:guildId/automod" element={<AutoModPage />} />
           <Route path="/guild/:guildId/antiraid" element={<AntiRaidPage />} />
           <Route path="/guild/:guildId/modlogs" element={<ModLogsPage />} />
           <Route path="/guild/:guildId/music" element={<MusicPage />} />

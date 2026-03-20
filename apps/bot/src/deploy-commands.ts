@@ -237,6 +237,6 @@ export async function deployCommands() {
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (require.main === module) {
   void deployCommands();
 }

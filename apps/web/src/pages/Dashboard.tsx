@@ -115,7 +115,7 @@ export default function DashboardPage() {
                 <div className="mt-4 grid grid-cols-3 gap-2">
                   <div className="rounded-xl border border-border/70 bg-surface/50 p-3 text-center">
                     <Shield className="mx-auto h-4 w-4 text-accent" />
-                    <div className="mt-1 text-[11px] text-muted-foreground">Moderação</div>
+                    <div className="mt-1 text-[11px] text-muted-foreground">AutoMod</div>
                   </div>
                   <div className="rounded-xl border border-border/70 bg-surface/50 p-3 text-center">
                     <Trophy className="mx-auto h-4 w-4 text-accent" />
@@ -123,7 +123,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="rounded-xl border border-border/70 bg-surface/50 p-3 text-center">
                     <Settings className="mx-auto h-4 w-4 text-accent" />
-                    <div className="mt-1 text-[11px] text-muted-foreground">Configurações</div>
+                    <div className="mt-1 text-[11px] text-muted-foreground">Config</div>
                   </div>
                 </div>
               </CardContent>

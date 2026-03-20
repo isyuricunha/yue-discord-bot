@@ -7,7 +7,6 @@ import { Save, Settings as SettingsIcon } from 'lucide-react'
 import { getApiUrl } from '../env'
 import { Card, CardContent, ErrorState, Input, Select, Skeleton, Button } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
-import { get_api_error_message } from '../lib/api_error'
 
 const API_URL = getApiUrl()
 
@@ -68,7 +67,7 @@ export default function SettingsPage() {
       toast_success('Configurações salvas com sucesso!')
     },
     onError: (error: any) => {
-      toast_error(get_api_error_message(error, 'Erro ao salvar configurações'))
+      toast_error(error.response?.data?.error || error.message || 'Erro ao salvar configurações')
     },
   })
 

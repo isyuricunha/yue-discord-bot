@@ -1,7 +1,7 @@
 // Export all shared types and utilities
-export * from './types/index.js';
-export * from './constants/index.js';
-export * from './validators/index.js';
+export * from './types';
+export * from './constants';
+export * from './validators';
 export * from './env';
 export * from './message_templates';
 export * from './template_placeholders';
@@ -12,5 +12,3 @@ export * from './public_id'
 export * from './suggestion_timeframes'
 export * from './duration'
 export * from './coinflip_fairness'
-export * from './moderation_translations'
-export * from './moderation'
