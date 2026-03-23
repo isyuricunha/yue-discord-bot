@@ -3,6 +3,9 @@ import {
   PermissionFlagsBits,
   ChannelType,
   EmbedBuilder,
+  ActionRowBuilder,
+  ButtonBuilder,
+  ButtonStyle,
 } from 'discord.js'
 import type { ChatInputCommandInteraction } from 'discord.js'
 
@@ -135,14 +138,16 @@ function createGiveawayEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
   const typeEmoji = getTypeEmoji(giveaway.type)
   const typeName = getTypeName(giveaway.type)
 
+  const url = getGiveawayUrl(giveaway)
+
   const embed = new EmbedBuilder()
     .setColor(getEmbedColorByType(giveaway.type))
     .setTitle(`${typeEmoji} ${giveaway.title}`)
-    .setURL(getGiveawayUrl(giveaway))
+    .setURL(url)
     .setDescription(
-      giveaway.description.length > 300
-        ? giveaway.description.substring(0, 297) + '...'
-        : giveaway.description
+      (giveaway.description.length > 250
+        ? giveaway.description.substring(0, 247) + '...'
+        : giveaway.description) + `\n\n🔗 **[Acessar a Página do Jogo](${url})**`
     )
     .addFields(
       {
@@ -161,7 +166,7 @@ function createGiveawayEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
         inline: false,
       }
     )
-    .setThumbnail(giveaway.thumbnail)
+    .setImage(giveaway.image)
     .setFooter({
       text: `ID: ${giveaway.id} • Ends: ${formatDate(giveaway.end_date)}`,
     })
@@ -755,7 +760,9 @@ Tipos: ${formatTypes(tipos)}`,
   }
 
   const roleIds = extractStringArray(config.roleIds)
-  const roleMention = roleIds.length > 0 ? roleIds.map((id) => `<@&${id}>`).join(' ') : null
+  const roleMention = roleIds.length > 0 
+    ? roleIds.map((id) => (id === config.guildId || id === 'everyone' || id === '@everyone') ? '@everyone' : `<@&${id}>`).join(' ') 
+    : null
 
   // Embed de resumo
   const summaryEmbed = new EmbedBuilder()
@@ -786,11 +793,19 @@ Tipos: ${formatTypes(tipos)}`,
   let sentCount = 0
   for (const giveaway of limitedGiveaways) {
     try {
-      const embed = createNotificationEmbed(giveaway)
+      const embed = createGiveawayEmbed(giveaway)
+      
+      const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+        new ButtonBuilder()
+          .setLabel('Pegar Agora')
+          .setStyle(ButtonStyle.Link)
+          .setURL(getGiveawayUrl(giveaway))
+      )
 
       await channel.send({
         content: roleMention || undefined,
         embeds: [embed],
+        components: [row],
         allowedMentions: roleIds.length > 0 ? { roles: roleIds } : undefined,
       })
 

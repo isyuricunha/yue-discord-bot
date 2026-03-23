@@ -1,4 +1,4 @@
-import { Client, EmbedBuilder } from 'discord.js'
+import { Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
 
 import { prisma } from '@yuebot/database'
 import { COLORS, EMOJIS } from '@yuebot/shared'
@@ -167,14 +167,16 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
   const typeEmoji = getTypeEmoji(giveaway.type)
   const typeName = getTypeName(giveaway.type)
 
+  const url = getGiveawayUrl(giveaway)
+
   const embed = new EmbedBuilder()
     .setColor(getEmbedColorByType(giveaway.type))
     .setTitle(`${typeEmoji} ${giveaway.title}`)
-    .setURL(getGiveawayUrl(giveaway))
+    .setURL(url)
     .setDescription(
-      giveaway.description.length > 300
-        ? giveaway.description.substring(0, 297) + '...'
-        : giveaway.description
+      (giveaway.description.length > 250
+        ? giveaway.description.substring(0, 247) + '...'
+        : giveaway.description) + `\n\n🔗 **[Acessar a Página do Jogo](${url})**`
     )
     .addFields(
       {
@@ -198,10 +200,7 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
         inline: true,
       }
     )
-    .setThumbnail(giveaway.thumbnail)
-    .setFooter({
-      text: `🔗 Pegar agora: ${getGiveawayUrl(giveaway)}`,
-    })
+    .setImage(giveaway.image)
     .setTimestamp()
 
   return embed
@@ -379,7 +378,9 @@ export class FreeGameScheduler {
 
     // Obter cargo(s) para mencionar
     const roleIds = Array.isArray(config.roleIds) ? config.roleIds : []
-    const roleMention = roleIds.length > 0 ? roleIds.map((id) => `<@&${id}>`).join(' ') : null
+    const roleMention = roleIds.length > 0 
+      ? roleIds.map((id) => (id === config.guildId || id === 'everyone' || id === '@everyone') ? '@everyone' : `<@&${id}>`).join(' ') 
+      : null
 
     // Limitar a 3 notificações por execução para evitar spam
     const giveawaysToNotify = newGiveaways.slice(0, 3)
@@ -388,10 +389,18 @@ export class FreeGameScheduler {
     for (const giveaway of giveawaysToNotify) {
       try {
         const embed = createNotificationEmbed(giveaway)
+        
+        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+          new ButtonBuilder()
+            .setLabel('Pegar Agora')
+            .setStyle(ButtonStyle.Link)
+            .setURL(getGiveawayUrl(giveaway))
+        )
 
         await sendableChannel.send({
           content: roleMention || undefined,
           embeds: [embed],
+          components: [row],
           allowedMentions: roleIds.length > 0 ? { roles: roleIds } : undefined,
         })
 
