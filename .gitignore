@@ -51,3 +51,4 @@ knip-report.txt
 # Compose
 docker-compose.yaml
 docker-compose.yml
+packages/database/.prisma-generate.lock
