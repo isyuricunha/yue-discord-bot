@@ -12,11 +12,16 @@ const ALLOWED_DOMAINS = [
   'i.imgur.com',
   'cdn.discordapp.com',
   'media.discordapp.net',
+  'youtube.com',
+  'youtu.be',
+  'spotify.com',
+  'open.spotify.com',
 ]
 
 const ALLOWED_EXTENSIONS = ['gif', 'png', 'jpg', 'jpeg', 'webp', 'mp4']
 
-export function validate_media_url(raw: string): boolean {
+export function validate_media_url(raw: string | null | undefined): boolean {
+  if (!raw) return false
   let url: URL
   try {
     url = new URL(raw)

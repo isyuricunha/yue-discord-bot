@@ -11,10 +11,15 @@ const ALLOWED_DOMAINS = [
   'i.imgur.com',
   'cdn.discordapp.com',
   'media.discordapp.net',
+  'youtube.com',
+  'youtu.be',
+  'spotify.com',
+  'open.spotify.com',
 ]
 const ALLOWED_EXTENSIONS = ['gif', 'png', 'jpg', 'jpeg', 'webp', 'mp4']
 
-function validate_media_url(raw: string): boolean {
+function validate_media_url(raw: string | null | undefined): boolean {
+  if (!raw) return true // Se for nulo/vazio, é considerado válido (não bloqueia)
   let url: URL
   try {
     url = new URL(raw)
@@ -38,7 +43,7 @@ const paramsSchema = z.object({ guildId: z.string() })
 
 const createTriggerSchema = z.object({
   keyword: z.string().min(1).max(100),
-  mediaUrl: z.string().url().optional().nullable(),
+  mediaUrl: z.union([z.string().url(), z.null(), z.undefined()]),
   content: z.string().max(2000).optional().nullable(),
   channelId: z.string().optional().nullable(),
   replyToUser: z.boolean().optional().default(true),
@@ -85,10 +90,10 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
 
       const body = createTriggerSchema.parse(request.body)
 
-      if (!validate_media_url(body.mediaUrl)) {
+      if (body.mediaUrl && !validate_media_url(body.mediaUrl)) {
         return reply.code(400).send({
           error:
-            'URL inválida. Aceito apenas URLs https de domínios confiáveis (tenor.com, giphy.com, imgur.com, i.imgur.com, cdn.discordapp.com, media.discordapp.net) ou URLs com extensão de mídia conhecida no final do caminho.',
+            'URL inválida ou do domínio não permitido. Aceito apenas URLs https de domínios confiáveis ou com extensão de mídia conhecida.',
         })
       }
 
