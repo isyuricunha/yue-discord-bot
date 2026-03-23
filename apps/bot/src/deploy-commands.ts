@@ -34,6 +34,7 @@ async function loadCommandsForDeploy(): Promise<Command[]> {
   const { pollCommand } = await import('./commands/utility/poll');
   const { afkCommand, volteiCommand } = await import('./commands/utility/afk');
   const { aniversarioCommand } = await import('./commands/utility/aniversario');
+  const { jogosGratisCommand } = await import('./commands/utility/freegames');
 
   // Import giveaway commands
   const giveawayCommand = await import('./commands/giveaway');
@@ -128,6 +129,7 @@ async function loadCommandsForDeploy(): Promise<Command[]> {
   commands.push(afkCommand);
   commands.push(volteiCommand);
   commands.push(aniversarioCommand);
+  commands.push(jogosGratisCommand);
   commands.push({ data: giveawayCommand.data, execute: giveawayCommand.execute });
   commands.push({ data: giveawayListaCommand.data, execute: giveawayListaCommand.execute });
   commands.push({ data: giveawayWizardCommand.data, execute: giveawayWizardCommand.execute });
