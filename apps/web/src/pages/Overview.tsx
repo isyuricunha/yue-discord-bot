@@ -1,11 +1,13 @@
+import { useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { ArrowLeft, Users, Shield, Trophy, AlertCircle, Settings, FileText } from 'lucide-react'
+import { ArrowLeft, Users, Shield, Trophy, AlertCircle, Settings, FileText, User } from 'lucide-react'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Skeleton } from '../components/ui'
+import { get_modlog_action_label } from '../lib/modlog'
 
 const API_URL = getApiUrl()
 
@@ -70,6 +72,29 @@ export default function OverviewPage() {
       return response.data as GuildStats
     },
   })
+
+  const {
+    data: members_data,
+  } = useQuery({
+    queryKey: ['members', guildId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/members`)
+      return (response.data as { success: boolean; members: { userId: string; username: string; avatar: string | null }[] }).members
+    },
+  })
+
+  const member_by_id = useMemo(() => {
+    const map = new Map<string, string>()
+    for (const m of members_data ?? []) {
+      map.set(m.userId, m.username)
+    }
+    return map
+  }, [members_data])
+
+  function resolve_user(userId: string): string {
+    const name = member_by_id.get(userId)
+    return name ? `@${name}` : `#${userId.slice(-5)}`
+  }
 
   const is_loading = guildLoading || statsLoading
   const is_error = isGuildError || isStatsError
@@ -297,7 +322,7 @@ export default function OverviewPage() {
                   return (
                     <div key={action} className="space-y-2">
                       <div className="flex items-center justify-between text-sm">
-                        <span className="font-medium uppercase text-muted-foreground">{action}</span>
+                        <span className="font-medium capitalize text-muted-foreground">{get_modlog_action_label(action)}</span>
                         <span className="font-semibold">{count}</span>
                       </div>
                       <div className="h-2 w-full overflow-hidden rounded-full bg-surface/70">
@@ -327,12 +352,16 @@ export default function OverviewPage() {
                   className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-surface/40 p-4 transition-colors hover:bg-surface/60 md:flex-row md:items-center md:justify-between"
                 >
                   <div className="flex min-w-0 items-start gap-3">
-                    <Badge variant="neutral" className="uppercase">
-                      {action.action}
+                    <Badge variant="neutral">
+                      {get_modlog_action_label(action.action)}
                     </Badge>
                     <div className="min-w-0">
                       <div className="text-sm">
-                        <span className="text-muted-foreground">Usuário:</span> <span className="font-medium">{action.userId}</span>
+                        <span className="text-muted-foreground">Usuário:</span>{' '}
+                        <span className="inline-flex items-center gap-1 font-medium">
+                          <User className="h-3 w-3 text-muted-foreground" />
+                          {resolve_user(action.userId)}
+                        </span>
                       </div>
                       {action.reason && (
                         <div className="mt-1 wrap-break-word text-sm text-muted-foreground">Razão: {action.reason}</div>
