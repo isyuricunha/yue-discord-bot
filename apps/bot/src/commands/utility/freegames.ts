@@ -214,8 +214,10 @@ function getTypeEmoji(typeId: string): string {
  * @returns Data formatada
  */
 function formatDate(dateString: string): string {
+  if (!dateString || dateString === 'N/A' || dateString === 'Indefinido') return 'Indefinido'
   try {
     const date = new Date(dateString)
+    if (isNaN(date.getTime())) return dateString
     return date.toLocaleDateString('pt-BR')
   } catch {
     return dateString
