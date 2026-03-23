@@ -95,9 +95,21 @@ export const GAMERPOWER_TYPES = [
 // Service - GamerPower API Service
 // ============================================
 
-const GAMERPOWER_API_BASE = 'https://www.gamerpower.com/api'
+const GAMERPOWER_API_BASE = 'https://gamerpower.com/api'
 
-class GamerPowerService {
+type http_get = <T>(url: string, options: { timeout: number; headers: { Accept: string } }) => Promise<{ data: T }>
+
+/**
+ * Serviço para interagir com a API da GamerPower.
+ * Service to interact with the GamerPower API.
+ */
+export class GamerPowerService {
+  private readonly http_get: http_get
+
+  constructor(options?: { http_get?: http_get }) {
+    this.http_get = options?.http_get ?? (axios.get as unknown as http_get)
+  }
+
   /**
    * Obtém todos os giveaways ativos, com opções de filtro.
    * Fetch all active giveaways with optional filtering.
@@ -107,35 +119,36 @@ class GamerPowerService {
    */
   async getAllGiveaways(options?: GetAllGiveawaysOptions): Promise<GamerPowerGiveaway[]> {
     try {
-      const params = new URLSearchParams()
-
-      // Add platform filters
-      if (options?.platforms && options.platforms.length > 0) {
-        params.append('platform', options.platforms.join(','))
-      }
-
-      // Add type filters
-      if (options?.types && options.types.length > 0) {
-        params.append('type', options.types.join(','))
-      }
-
-      // Add sortBy
-      if (options?.sortBy) {
-        params.append('sort-by', options.sortBy)
-      }
-
-      const queryString = params.toString()
-      const url = queryString ? `${GAMERPOWER_API_BASE}/giveaways?${queryString}` : `${GAMERPOWER_API_BASE}/giveaways`
-
-      const response = await axios.get<GamerPowerGiveaway[]>(url, {
+      const primary_url = this.build_giveaways_url(options)
+      const response = await this.http_get<GamerPowerGiveaway[]>(primary_url, {
         timeout: 15_000,
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
       })
 
       return response.data ?? []
     } catch (error) {
+      const maybe_status = this.get_http_status(error)
+
+      if (maybe_status === 404) {
+        const fallback_urls = this.build_giveaways_fallback_urls(options)
+
+        for (const url of fallback_urls) {
+          try {
+            const response = await this.http_get<GamerPowerGiveaway[]>(url, {
+              timeout: 15_000,
+              headers: {
+                Accept: 'application/json',
+              },
+            })
+            return response.data ?? []
+          } catch {
+            continue
+          }
+        }
+      }
+
       console.error('GamerPowerService.getAllGiveaways: erro na requisição', error)
       return []
     }
@@ -150,10 +163,10 @@ class GamerPowerService {
    */
   async getGiveawayById(id: number): Promise<GamerPowerGiveaway | null> {
     try {
-      const response = await axios.get<GamerPowerGiveaway>(`${GAMERPOWER_API_BASE}/giveaway/${id}`, {
+      const response = await this.http_get<GamerPowerGiveaway>(`${GAMERPOWER_API_BASE}/giveaway?id=${id}`, {
         timeout: 15_000,
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
       })
 
@@ -172,10 +185,10 @@ class GamerPowerService {
    */
   async getTotalWorth(): Promise<string> {
     try {
-      const response = await axios.get<{ worth: string }>(`${GAMERPOWER_API_BASE}/worth`, {
+      const response = await this.http_get<{ worth: string }>(`${GAMERPOWER_API_BASE}/worth`, {
         timeout: 15_000,
         headers: {
-          'Accept': 'application/json',
+          Accept: 'application/json',
         },
       })
 
@@ -184,6 +197,58 @@ class GamerPowerService {
       console.error('GamerPowerService.getTotalWorth: erro na requisição', error)
       return '$0'
     }
+  }
+
+  private build_giveaways_url(options?: GetAllGiveawaysOptions): string {
+    const params = new URLSearchParams()
+
+    // Add platform filters
+    if (options?.platforms && options.platforms.length > 0) {
+      params.append('platform', options.platforms.join(','))
+    }
+
+    // Add type filters
+    // GamerPower API expects a single type value. Passing multiple values may return 404.
+    if (options?.types && options.types.length === 1 && options.types[0]) {
+      params.append('type', options.types[0])
+    }
+
+    // Add sortBy
+    if (options?.sortBy) {
+      params.append('sort-by', options.sortBy)
+    }
+
+    const query_string = params.toString()
+    return query_string ? `${GAMERPOWER_API_BASE}/giveaways?${query_string}` : `${GAMERPOWER_API_BASE}/giveaways`
+  }
+
+  private build_giveaways_fallback_urls(options?: GetAllGiveawaysOptions): string[] {
+    const urls: string[] = []
+
+    // Retry without type (in case API doesn't accept our type filter)
+    if (options?.types && options.types.length > 0) {
+      urls.push(this.build_giveaways_url({ ...options, types: undefined }))
+    }
+
+    // Retry without platform
+    if (options?.platforms && options.platforms.length > 0) {
+      urls.push(this.build_giveaways_url({ ...options, platforms: undefined }))
+    }
+
+    // Retry without any filters (but keep sortBy)
+    urls.push(this.build_giveaways_url({ sortBy: options?.sortBy }))
+
+    // Retry plain endpoint
+    urls.push(`${GAMERPOWER_API_BASE}/giveaways`)
+
+    return Array.from(new Set(urls))
+  }
+
+  private get_http_status(error: unknown): number | null {
+    if (axios.isAxiosError(error)) {
+      return (error.response?.status ?? null) as number | null
+    }
+    return null
   }
 }
 
