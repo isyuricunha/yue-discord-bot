@@ -13,7 +13,7 @@ type button_props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const base =
-  'relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-medium transition-all duration-200 text-center leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:pointer-events-none disabled:opacity-60'
+  'relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-medium transition-all duration-200 text-center leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:pointer-events-none disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98]'
 
 const variants: Record<button_variant, string> = {
   solid:

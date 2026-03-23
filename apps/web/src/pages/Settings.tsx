@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { Save, Settings as SettingsIcon } from 'lucide-react'
+import { Save, Settings as SettingsIcon, Globe, Clock } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Card, CardContent, ErrorState, Select, Skeleton, Button } from '../components/ui'
@@ -106,14 +106,17 @@ export default function SettingsPage() {
         />
       )}
 
-      <Card>
+      <Card className="border-border/80 bg-surface/40 backdrop-blur-md shadow-sm">
         <CardContent className="space-y-6 p-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
-              <div className="text-sm font-medium">Idioma</div>
-              <div className="mt-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Globe className="h-4 w-4 text-accent" />
+                Idioma
+              </div>
+              <div className="mt-3">
                 {is_config_loading ? (
-                  <Skeleton className="h-11 w-full" />
+                  <Skeleton className="h-11 w-full rounded-xl" />
                 ) : (
                   <Select value={locale} onValueChange={setLocale}>
                     <option value="pt-BR">Português (Brasil)</option>
@@ -125,10 +128,13 @@ export default function SettingsPage() {
             </div>
 
             <div>
-              <div className="text-sm font-medium">Fuso horário</div>
-              <div className="mt-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Clock className="h-4 w-4 text-accent" />
+                Fuso horário
+              </div>
+              <div className="mt-3">
                 {is_config_loading ? (
-                  <Skeleton className="h-11 w-full" />
+                  <Skeleton className="h-11 w-full rounded-xl" />
                 ) : (
                   <Select value={timezone} onValueChange={setTimezone}>
                     <option value="America/Sao_Paulo">São Paulo (BRT)</option>

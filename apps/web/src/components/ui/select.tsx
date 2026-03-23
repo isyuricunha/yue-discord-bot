@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Check, ChevronDown } from 'lucide-react'
+import { Check, ChevronDown, Search } from 'lucide-react'
 import { createPortal } from 'react-dom'
 
 import { cn } from '../../lib/cn'
@@ -213,11 +213,12 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
               style={{ left: menu_style.left, width: menu_style.width, top: menu_style.top, bottom: menu_style.bottom }}
             >
               {options.length > 5 && (
-                <div className="p-2 border-b border-border/40">
+                <div className="relative p-2 border-b border-border/40">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <input
                     type="text"
                     placeholder="Pesquisar..."
-                    className="w-full bg-surface/40 rounded-lg border border-border/50 px-3 py-1.5 text-sm outline-none focus:border-accent/50 transition-colors"
+                    className="w-full bg-surface/40 rounded-lg border border-border/50 pl-9 pr-3 py-1.5 text-sm outline-none focus:border-accent/50 transition-colors"
                     value={search_query}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onClick={(e) => e.stopPropagation()}
