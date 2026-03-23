@@ -94,6 +94,7 @@ model GuildConfig {
   id                          String   @id @default(cuid())
   guildId                     String   @unique
   modLogChannelId             String?
+  auditLogChannelId           String?
   reportChannelId             String?
   giveawayChannelId           String?
   welcomeChannelId            String?

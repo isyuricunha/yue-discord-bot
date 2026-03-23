@@ -185,6 +185,7 @@ export const guildSettingsConfigSchema = z.object({
   prefix: z.string().min(1).optional(),
   locale: z.string().min(1).optional(),
   timezone: z.string().min(1).optional(),
+  auditLogChannelId: z.string().nullable().optional(),
 })
 
 export const guildModlogConfigSchema = z.object({

@@ -698,6 +698,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
           prefix: true,
           locale: true,
           timezone: true,
+          auditLogChannelId: true,
         },
       })) ??
       (await prisma.guildConfig.create({ data: { guildId } }))
@@ -708,6 +709,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         prefix: config.prefix ?? '/',
         locale: config.locale ?? 'pt-BR',
         timezone: config.timezone ?? 'America/Sao_Paulo',
+        auditLogChannelId: config.auditLogChannelId,
       },
     })
   })
@@ -748,17 +750,20 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         ...(typeof input.prefix === 'string' ? { prefix: input.prefix } : {}),
         ...(typeof input.locale === 'string' ? { locale: input.locale } : {}),
         ...(typeof input.timezone === 'string' ? { timezone: input.timezone } : {}),
+        ...(input.auditLogChannelId !== undefined ? { auditLogChannelId: input.auditLogChannelId } : {}),
       },
       create: {
         guildId,
         prefix: input.prefix ?? '/',
         locale: input.locale ?? 'pt-BR',
         timezone: input.timezone ?? 'America/Sao_Paulo',
+        auditLogChannelId: input.auditLogChannelId ?? null,
       },
       select: {
         prefix: true,
         locale: true,
         timezone: true,
+        auditLogChannelId: true,
       },
     })
 
@@ -768,6 +773,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         prefix: updated.prefix ?? '/',
         locale: updated.locale ?? 'pt-BR',
         timezone: updated.timezone ?? 'America/Sao_Paulo',
+        auditLogChannelId: updated.auditLogChannelId,
       },
     })
   })

@@ -14,6 +14,7 @@ interface GuildConfig {
   prefix: string
   locale: string
   timezone: string
+  auditLogChannelId?: string | null
 }
 
 type settings_config_response = {
@@ -38,8 +39,18 @@ export default function SettingsPage() {
     },
   })
 
+  const { data: channelsRes } = useQuery({
+    queryKey: ['channels', guildId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`, { withCredentials: true })
+      return response.data as { channels: any[] }
+    },
+    staleTime: 60000,
+  })
+
   const [locale, setLocale] = useState('pt-BR')
   const [timezone, setTimezone] = useState('America/Sao_Paulo')
+  const [auditLogChannelId, setAuditLogChannelId] = useState('none')
 
   const has_initialized = useRef(false)
 
@@ -53,6 +64,7 @@ export default function SettingsPage() {
 
     setLocale(config.locale || 'pt-BR')
     setTimezone(config.timezone || 'America/Sao_Paulo')
+    setAuditLogChannelId(config.auditLogChannelId || 'none')
   }, [config])
 
   const updateMutation = useMutation({
@@ -73,6 +85,7 @@ export default function SettingsPage() {
     updateMutation.mutate({
       locale,
       timezone,
+      auditLogChannelId: auditLogChannelId === 'none' ? null : auditLogChannelId,
     })
   }
 
@@ -132,6 +145,30 @@ export default function SettingsPage() {
                     <option value="America/New_York">New York (EST)</option>
                     <option value="Europe/London">London (GMT)</option>
                     <option value="Asia/Tokyo">Tokyo (JST)</option>
+                  </Select>
+                )}
+              </div>
+            </div>
+
+            <div className="md:col-span-2 mt-2">
+              <div className="text-sm font-medium flex items-center justify-between">
+                Canal de Auditoria (Audit Logs)
+                {config && config.auditLogChannelId && (
+                  <span className="text-[10px] uppercase font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded">Ativo</span>
+                )}
+              </div>
+              <div className="text-[11px] text-muted-foreground/80 mt-1 mb-2">Selecione o canal onde o Bot enviará os logs da plataforma (edições, deleções, apelidos, etc).</div>
+              <div className="mt-2">
+                {is_config_loading ? (
+                  <Skeleton className="h-11 w-full" />
+                ) : (
+                  <Select value={auditLogChannelId} onValueChange={setAuditLogChannelId}>
+                    <option value="none">Nenhum (Apenas web)</option>
+                    {channelsRes?.channels?.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.type === 0 ? '#' : c.type === 2 ? '🔊' : '📁'} {c.name}
+                      </option>
+                    ))}
                   </Select>
                 )}
               </div>
