@@ -514,7 +514,15 @@ export default function ReactionRolesPage() {
                       return (
                         <div key={`${it.roleId}-${idx}`} className="grid grid-cols-1 gap-2 rounded-2xl border border-border/70 bg-surface/30 p-4 md:grid-cols-12 md:items-center">
                           <div className="md:col-span-5">
-                            <div className="text-xs text-muted-foreground">Cargo</div>
+                            <div className="text-xs text-muted-foreground flex items-center justify-between">
+                              <span>Cargo do Discord</span>
+                              {role && (
+                                <span 
+                                  className="w-2.5 h-2.5 rounded-full inline-block" 
+                                  style={{ backgroundColor: `#${role.color.toString(16).padStart(6, '0')}` }} 
+                                />
+                              )}
+                            </div>
                             <Select value={it.roleId} onValueChange={(v) => update_item(idx, { roleId: v })}>
                               <option value="">Selecione um cargo</option>
                               {available_roles.map((r) => (
@@ -523,7 +531,7 @@ export default function ReactionRolesPage() {
                                 </option>
                               ))}
                             </Select>
-                            <div className="mt-1 text-xs text-muted-foreground font-mono">{role?.id ?? it.roleId}</div>
+                            <div className="mt-1 text-xs text-muted-foreground font-mono truncate">{role?.id ?? it.roleId}</div>
                           </div>
 
                           <div className="md:col-span-4">

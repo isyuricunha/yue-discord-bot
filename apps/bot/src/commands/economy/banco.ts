@@ -139,7 +139,8 @@ export const bancoCommand: Command = {
 
       const embed = new EmbedBuilder()
         .setColor(COLORS.INFO)
-        .setTitle(`${BANK_EMOJI} Banco de ${user.username}`)
+        .setAuthor({ name: `Banco Central de ${user.username}`, iconURL: user.displayAvatarURL() })
+        .setThumbnail(user.displayAvatarURL({ size: 256 }))
         .addFields(
           {
             name: `${MONEY_EMOJI} Carteira`,
@@ -216,6 +217,7 @@ export const bancoCommand: Command = {
 
       const embed = new EmbedBuilder()
         .setColor(COLORS.SUCCESS)
+        .setAuthor({ name: interaction.user.username, iconURL: interaction.user.displayAvatarURL() })
         .setTitle(`${EMOJIS.SUCCESS} Depósito realizado`)
         .setDescription(`Você depositou **${format_amount(amount)}** luazinhas no banco.`)
         .addFields(
@@ -277,6 +279,7 @@ export const bancoCommand: Command = {
 
       const embed = new EmbedBuilder()
         .setColor(COLORS.SUCCESS)
+        .setAuthor({ name: interaction.user.username, iconURL: interaction.user.displayAvatarURL() })
         .setTitle(`${EMOJIS.SUCCESS} Saque realizado`)
         .setDescription(`Você sacou **${format_amount(amount)}** luazinhas do banco.`)
         .addFields(

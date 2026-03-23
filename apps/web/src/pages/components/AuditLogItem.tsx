@@ -176,7 +176,6 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
                 <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Anexos Vinculados ({data.attachments.length})</div>
                 <div className="flex flex-wrap gap-2">
                   {data.attachments.map((url: string, i: number) => (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img key={i} src={url} alt={`Anexo ${i + 1}`} className="max-h-32 sm:max-h-48 rounded-lg border border-border/50 object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(url, '_blank')} />
                   ))}
                 </div>
@@ -205,7 +204,6 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
                 <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Anexos Vinculados ({data.attachments.length})</div>
                 <div className="flex flex-wrap gap-2">
                   {data.attachments.map((url: string, i: number) => (
-                    // eslint-disable-next-line @next/next/no-img-element
                     <img key={i} src={url} alt={`Anexo ${i + 1}`} className="max-h-32 sm:max-h-48 rounded-lg border border-border/50 object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(url, '_blank')} />
                   ))}
                 </div>

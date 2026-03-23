@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 import { ArrowLeft, Search } from 'lucide-react'
 
@@ -8,8 +8,16 @@ import { getApiUrl } from '../env'
 import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton } from '../components/ui'
 
 import { AuditLogItem, getActionFormat } from './components/AuditLogItem'
+import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
+
+interface GuildConfig {
+  prefix: string
+  locale: string
+  timezone: string
+  auditLogChannelId?: string | null
+}
 
 export type audit_row = {
   id: string
@@ -35,9 +43,39 @@ type audit_logs_response = {
 export default function AuditLogsPage() {
   const { guildId } = useParams()
   const navigate = useNavigate()
+  const queryClient = useQueryClient()
 
   const [actionFilter, setActionFilter] = useState('')
   const [search, setSearch] = useState('')
+
+  const {
+    data: config_data,
+    isLoading: is_config_loading,
+  } = useQuery({
+    queryKey: ['settings-config', guildId],
+    queryFn: async () => {
+      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/settings-config`, { withCredentials: true })
+      return response.data as { config: GuildConfig }
+    },
+  })
+
+  const updateConfigMutation = useMutation({
+    mutationFn: async (data: Partial<GuildConfig>) => {
+      const response = await axios.put(`${API_URL}/api/guilds/${guildId}/settings-config`, data, { withCredentials: true })
+      return response.data
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['settings-config', guildId] })
+      toast_success('Canal de auditoria salvo!')
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao salvar canal')
+    },
+  })
+
+  const handleSaveAuditChannel = (val: string) => {
+    updateConfigMutation.mutate({ auditLogChannelId: val === 'none' ? null : val })
+  }
 
   const {
     data,
@@ -154,8 +192,28 @@ export default function AuditLogsPage() {
       )}
 
       <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+        <CardContent className="p-4 sm:p-6 space-y-4">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-xl border border-accent/20 bg-card">
+            <div>
+              <div className="font-semibold flex items-center gap-2">Canal de Auditoria {config_data?.config?.auditLogChannelId && <span className="text-[10px] uppercase font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded">Ativo</span>}</div>
+              <div className="text-sm text-muted-foreground mt-1">Selecione o canal onde o Bot enviará os logs da plataforma (edições, deleções, apelidos, cargos).</div>
+            </div>
+            <div className="w-full md:w-64 shrink-0">
+                <Select 
+                  value={config_data?.config?.auditLogChannelId || 'none'} 
+                  onValueChange={(val) => handleSaveAuditChannel(val)}
+                  disabled={is_config_loading || updateConfigMutation.isPending}
+                >
+                  <option value="none">Nenhum (Apenas web)</option>
+                  {channelsRes?.channels?.map((c: any) => (
+                    <option key={c.id} value={c.id}>
+                      {c.type === 0 ? '#' : c.type === 2 ? '🔊' : '📁'} {c.name}
+                    </option>
+                  ))}
+                </Select>
+            </div>
+          </div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
             <div className="md:col-span-1">
               <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ação</div>
               <Select value={actionFilter} onValueChange={setActionFilter}>
