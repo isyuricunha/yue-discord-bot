@@ -47,6 +47,8 @@ model Guild {
   dailyRewardConfig           GuildDailyRewardConfig?
   polls                      Poll[]
   commandCooldowns           GuildCommandCooldown[]
+  freeGameNotifications      FreeGameNotification[]
+  freeGameGiveaways          FreeGameGiveaway[]
 
   @@map("guilds")
 }
@@ -1201,4 +1203,37 @@ model UserBirthday {
 
   @@index([day, month])
   @@map("user_birthdays")
+}
+
+// Free game notification preferences per guild
+model FreeGameNotification {
+  id            String    @id @default(cuid())
+  guildId       String
+  channelId     String?
+  roleIds       Json      @default("[]")
+  platforms     Json      @default("[]")
+  giveawayTypes Json      @default("[]")
+  isEnabled     Boolean   @default(true)
+  lastCheckedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  guild         Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId])
+  @@index([guildId])
+  @@map("free_game_notifications")
+}
+
+// Tracks which giveaways have been announced to which guilds
+model FreeGameGiveaway {
+  id          String   @id @default(cuid())
+  giveawayId  String
+  announcedAt DateTime @default(now())
+  guildId     String
+  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([giveawayId, guildId])
+  @@index([giveawayId])
+  @@index([guildId])
+  @@map("free_game_giveaways")
 }

@@ -30,6 +30,7 @@ import {
   ScanEye,
   Heart,
   TrendingUp,
+  Gift,
 } from 'lucide-react'
 
 import { cn } from '../../lib/cn'
@@ -150,6 +151,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
           { to: `/guild/${guildId}/reaction-roles`, label: 'Reaction Roles', icon: <MousePointerClick className="h-4 w-4" /> },
           { to: `/guild/${guildId}/starboard`, label: 'Starboard', icon: <Star className="h-4 w-4" /> },
           { to: `/guild/${guildId}/suggestions`, label: 'Sugestões', icon: <Lightbulb className="h-4 w-4" /> },
+          { to: `/guild/${guildId}/free-games`, label: 'Jogos Grátis', icon: <Gift className="h-4 w-4" /> },
         ],
       },
       {

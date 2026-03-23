@@ -3,6 +3,7 @@ import { assert_bot_runtime_env, CONFIG } from "./config";
 import { logger } from "./utils/logger";
 import { prisma } from "@yuebot/database";
 import { GiveawayScheduler } from "./services/giveawayScheduler";
+import { FreeGameScheduler } from "./services/freeGameScheduler";
 import { WarnExpirationService } from "./services/warnExpirationService";
 import { AutoroleScheduler } from "./services/autoroleScheduler";
 import { ScheduledEventScheduler } from "./services/scheduledEventScheduler";
@@ -24,6 +25,7 @@ let internal_server: ReturnType<typeof start_internal_api> | null = null;
 let giveawayScheduler: GiveawayScheduler | null = null;
 let aniListWatchlistScheduler: AniListWatchlistScheduler | null = null;
 let pollExpirationScheduler: PollExpirationScheduler | null = null;
+let freeGameScheduler: FreeGameScheduler | null = null;
 
 // Extend Client to include commands collection
 declare module "discord.js" {
@@ -196,6 +198,10 @@ client.once("clientReady", async () => {
 	// Iniciar scheduler de expiração de enquetes
 	pollExpirationScheduler = new PollExpirationScheduler(client);
 	pollExpirationScheduler.start();
+
+	// Iniciar scheduler de jogos grátis
+	freeGameScheduler = new FreeGameScheduler(client);
+	freeGameScheduler.start();
 });
 
 // Event: Guild create (bot joins server)
@@ -370,6 +376,7 @@ process.on("SIGINT", async () => {
   await giveawayScheduler?.stop();
   await aniListWatchlistScheduler?.stop();
   pollExpirationScheduler?.stop();
+  await freeGameScheduler?.stop();
 	client.destroy();
 	await prisma.$disconnect();
 	process.exit(0);
@@ -381,6 +388,7 @@ process.on("SIGTERM", async () => {
   await giveawayScheduler?.stop();
   await aniListWatchlistScheduler?.stop();
   pollExpirationScheduler?.stop();
+  await freeGameScheduler?.stop();
 	client.destroy();
 	await prisma.$disconnect();
 	process.exit(0);

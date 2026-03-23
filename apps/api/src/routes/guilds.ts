@@ -2795,4 +2795,124 @@ export default async function guildRoutes(fastify: FastifyInstance) {
 
     return reply.send({ success: true, cooldowns })
   })
+
+  // ============================================
+  // Free Games Notification Configuration
+  // ============================================
+
+  // Buscar configuração de jogos grátis
+  fastify.get('/:guildId/free-games-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const config = await prisma.freeGameNotification.findUnique({
+      where: { guildId },
+      select: {
+        id: true,
+        channelId: true,
+        roleIds: true,
+        platforms: true,
+        giveawayTypes: true,
+        isEnabled: true,
+        lastCheckedAt: true,
+        createdAt: true,
+        updatedAt: true,
+      },
+    })
+
+    return reply.send({
+      success: true,
+      config: {
+        channelId: config?.channelId ?? null,
+        roleIds: Array.isArray(config?.roleIds) ? (config.roleIds as string[]) : [],
+        platforms: Array.isArray(config?.platforms) ? (config.platforms as string[]) : [],
+        giveawayTypes: Array.isArray(config?.giveawayTypes) ? (config.giveawayTypes as string[]) : [],
+        isEnabled: config?.isEnabled ?? true,
+        lastCheckedAt: config?.lastCheckedAt ?? null,
+      },
+    })
+  })
+
+  // Atualizar configuração de jogos grátis
+  fastify.put('/:guildId/free-games-config', {
+    preHandler: [fastify.authenticate],
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const user = request.user
+    const body = request.body as {
+      channelId?: string | null
+      roleIds?: string[]
+      platforms?: string[]
+      giveawayTypes?: string[]
+      isEnabled?: boolean
+    }
+
+    if (!can_access_guild(user, guildId)) {
+      return reply.code(403).send({ error: 'Forbidden' })
+    }
+
+    if (!user.isOwner) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!isAdmin) {
+        return reply.code(403).send({ error: 'Forbidden' })
+      }
+    }
+
+    const installed = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
+    if (!installed) {
+      return reply.code(404).send({ error: 'Guild not found' })
+    }
+
+    const updated = await prisma.freeGameNotification.upsert({
+      where: { guildId },
+      update: {
+        ...(body.channelId !== undefined ? { channelId: body.channelId ?? null } : {}),
+        ...(body.roleIds !== undefined ? { roleIds: body.roleIds } : {}),
+        ...(body.platforms !== undefined ? { platforms: body.platforms } : {}),
+        ...(body.giveawayTypes !== undefined ? { giveawayTypes: body.giveawayTypes } : {}),
+        ...(body.isEnabled !== undefined ? { isEnabled: body.isEnabled } : {}),
+      },
+      create: {
+        guildId,
+        channelId: body.channelId ?? null,
+        roleIds: body.roleIds ?? [],
+        platforms: body.platforms ?? [],
+        giveawayTypes: body.giveawayTypes ?? [],
+        isEnabled: body.isEnabled ?? true,
+      },
+      select: {
+        id: true,
+        channelId: true,
+        roleIds: true,
+        platforms: true,
+        giveawayTypes: true,
+        isEnabled: true,
+        lastCheckedAt: true,
+        updatedAt: true,
+      },
+    })
+
+    return reply.send({
+      success: true,
+      config: {
+        channelId: updated.channelId,
+        roleIds: Array.isArray(updated.roleIds) ? (updated.roleIds as string[]) : [],
+        platforms: Array.isArray(updated.platforms) ? (updated.platforms as string[]) : [],
+        giveawayTypes: Array.isArray(updated.giveawayTypes) ? (updated.giveawayTypes as string[]) : [],
+        isEnabled: updated.isEnabled,
+        lastCheckedAt: updated.lastCheckedAt,
+      },
+    })
+  })
 }

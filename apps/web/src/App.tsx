@@ -43,6 +43,7 @@ import CoinflipPage from './pages/Coinflip'
 import OwnerPage from './pages/Owner'
 import MusicPage from './pages/Music'
 import CustomCommandsPage from './pages/CustomCommands'
+import FreeGamesPage from './pages/FreeGames'
 import { AppShell, PublicShell, RequireAuth, RequireOwner } from './components/layout'
 import { getApiUrl } from './env'
 import axios from 'axios'
@@ -167,6 +168,7 @@ function App() {
           <Route path="/guild/:guildId/suggestions" element={<SuggestionsPage />} />
           <Route path="/guild/:guildId/reaction-roles" element={<ReactionRolesPage />} />
           <Route path="/guild/:guildId/starboard" element={<StarboardPage />} />
+          <Route path="/guild/:guildId/free-games" element={<FreeGamesPage />} />
           <Route path="/guild/:guildId/setup" element={<SetupWizardPage />} />
           <Route path="/guild/:guildId/moderation" element={<ModerationPage />} />
           <Route path="/guild/:guildId/welcome" element={<WelcomePage />} />
