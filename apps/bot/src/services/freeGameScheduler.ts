@@ -10,6 +10,7 @@ import {
   gamerPowerService,
   GAMERPOWER_PLATFORMS,
   GAMERPOWER_TYPES,
+  getGiveawayUrl,
   type GamerPowerGiveaway,
 } from './gamerpower.service'
 import { Queue, Worker, Job } from 'bullmq'
@@ -26,6 +27,37 @@ function extractStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.filter((item): item is string => typeof item === 'string')
   }
+  return []
+}
+
+/**
+ * Normalizes the platforms field from GamerPower API response.
+ * Handles cases where platforms might be a string, array, or null/undefined.
+ * @param platforms - The platforms field from API response
+ * @returns Normalized array of platform strings
+ */
+function normalizePlatforms(platforms: unknown): string[] {
+  // If it's already a valid array, return filtered string array
+  if (Array.isArray(platforms)) {
+    return platforms.filter(
+      (p): p is string => typeof p === 'string'
+    )
+  }
+  // If it's a string, try to parse as JSON or treat as comma-separated
+  if (typeof platforms === 'string') {
+    try {
+      const parsed = JSON.parse(platforms)
+      if (Array.isArray(parsed)) {
+        return parsed.filter(
+          (p): p is string => typeof p === 'string'
+        )
+      }
+    } catch {
+      // Treat as comma-separated list
+      return platforms.split(',').map((s) => s.trim()).filter(Boolean)
+    }
+  }
+  // Return empty array for null, undefined, or other types
   return []
 }
 
@@ -128,7 +160,7 @@ function formatDate(dateString: string): string {
  * @returns Embed formatado
  */
 function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
-  const platforms = giveaway.platforms
+  const platforms = normalizePlatforms(giveaway.platforms)
     .map((p) => `${getPlatformEmoji(p)} ${getPlatformName(p)}`)
     .join(' | ')
 
@@ -138,7 +170,7 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
   const embed = new EmbedBuilder()
     .setColor(getEmbedColorByType(giveaway.type))
     .setTitle(`${typeEmoji} ${giveaway.title}`)
-    .setURL(giveaway.giveaway_url)
+    .setURL(getGiveawayUrl(giveaway))
     .setDescription(
       giveaway.description.length > 300
         ? giveaway.description.substring(0, 297) + '...'
@@ -168,7 +200,7 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
     )
     .setThumbnail(giveaway.thumbnail)
     .setFooter({
-      text: `🔗 Pegar agora: ${giveaway.giveaway_url}`,
+      text: `🔗 Pegar agora: ${getGiveawayUrl(giveaway)}`,
     })
     .setTimestamp()
 

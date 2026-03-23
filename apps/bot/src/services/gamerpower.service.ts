@@ -23,8 +23,10 @@ export interface GamerPowerGiveaway {
   description: string
   /** Instruções de como reivindicar o giveaway */
   instructions: string
-  /** URL do giveaway na GamerPower */
-  giveaway_url: string
+  /** URL do giveaway na GamerPower (deprecated, use open_giveaway_url ou gamerpower_url) */
+  giveaway_url?: string
+  /** URL do giveaway na GamerPower (abre na página de detalhes) */
+  open_giveaway_url?: string
   /** Plataformas onde o giveaway está disponível (array de strings) */
   platforms: string[]
   /** Tipo de giveaway (game, loot, beta) */
@@ -254,3 +256,13 @@ export class GamerPowerService {
 
 // Export singleton instance
 export const gamerPowerService = new GamerPowerService()
+
+/**
+ * Obtém a URL do giveaway com fallback para campos alternativos.
+ * Prioriza: open_giveaway_url > gamerpower_url > giveaway_url
+ * @param giveaway - Giveaway da GamerPower
+ * @returns URL do giveaway ou string vazia se não disponível
+ */
+export function getGiveawayUrl(giveaway: GamerPowerGiveaway): string {
+  return giveaway.open_giveaway_url ?? giveaway.gamerpower_url ?? giveaway.giveaway_url ?? ''
+}
