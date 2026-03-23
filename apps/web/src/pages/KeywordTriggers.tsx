@@ -192,6 +192,22 @@ export default function KeywordTriggersPage() {
               />
             </div>
 
+            <div>
+              <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+                Canal (opcional)
+              </div>
+              {is_channels_loading ? (
+                <Skeleton className="h-11 w-full" />
+              ) : (
+                <Select value={channelId} onValueChange={setChannelId}>
+                  <option value="">Todos os canais</option>
+                  {text_channels.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      #{c.name}
+                    </option>
+                  ))}
+                </Select>
+              )}
             </div>
           </div>
 
@@ -335,6 +351,7 @@ export default function KeywordTriggersPage() {
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
                           {t.replyToUser ? 'Responde' : 'Envia'}
                         </span>
+                        )}
                       </div>
                       <div className="mt-1 flex flex-col gap-0.5">
                         {t.content && (
