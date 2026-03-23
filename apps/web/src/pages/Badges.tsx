@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
-import { Award, Save, Trash2, UserPlus, UserMinus } from 'lucide-react'
+import { Award, RefreshCw, Save, Trash2, UserPlus, UserMinus } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Badge as UiBadge, Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton } from '../components/ui'
@@ -160,7 +160,8 @@ export default function BadgesPage() {
           </div>
         </div>
 
-        <Button variant="ghost" size="sm" onClick={() => refetch()} className="h-10">
+        <Button variant="outline" size="sm" onClick={() => refetch()} className="h-10">
+          <RefreshCw className="h-4 w-4" />
           Atualizar
         </Button>
       </div>
@@ -174,7 +175,7 @@ export default function BadgesPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="border-accent/20 lg:col-span-2">
           <CardContent className="space-y-4 pt-6">
             <div className="text-sm font-medium">Catálogo</div>
 
@@ -210,7 +211,12 @@ export default function BadgesPage() {
                         <button
                           key={b.id}
                           type="button"
-                          className="flex items-start justify-between gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3 text-left hover:bg-surface/60"
+                        className={[
+                          'flex items-start justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-colors',
+                          editing?.id === b.id
+                            ? 'border-accent/60 bg-accent/10'
+                            : 'border-border/80 bg-surface/40 hover:bg-surface/60',
+                        ].join(' ')}
                           onClick={() => setEditing(b)}
                         >
                           <div className="min-w-0">
@@ -236,10 +242,10 @@ export default function BadgesPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="border-accent/20">
             <CardContent className="space-y-4 pt-6">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-medium">Criar/Editar</div>
+                <div className="text-sm font-semibold">Criar / Editar</div>
                 <div className="flex items-center gap-2">
                   <Button
                     variant="outline"
@@ -358,9 +364,9 @@ export default function BadgesPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-accent/20">
             <CardContent className="space-y-4 pt-6">
-              <div className="text-sm font-medium">Conceder</div>
+              <div className="text-sm font-semibold">Conceder badge</div>
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">User ID</div>
                 <Input value={grant_user_id} onChange={(e) => setGrantUserId(e.target.value)} />
@@ -386,9 +392,9 @@ export default function BadgesPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-accent/20">
             <CardContent className="space-y-4 pt-6">
-              <div className="text-sm font-medium">Remover</div>
+              <div className="text-sm font-semibold">Remover badge</div>
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">User ID</div>
                 <Input value={revoke_user_id} onChange={(e) => setRevokeUserId(e.target.value)} />
@@ -415,9 +421,9 @@ export default function BadgesPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-accent/20">
             <CardContent className="space-y-4 pt-6">
-              <div className="text-sm font-medium">Quem tem a badge (admin)</div>
+              <div className="text-sm font-semibold">Portadores (admin)</div>
 
               <div className="space-y-2">
                 <div className="text-xs text-muted-foreground">Badge ID</div>

@@ -102,9 +102,14 @@ export default function GiveawaysPage() {
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="text-xl font-semibold tracking-tight">Sorteios</div>
-          <div className="mt-1 text-sm text-muted-foreground">Gerencie sorteios do servidor</div>
+        <div className="flex items-center gap-3">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+            <Trophy className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="text-xl font-semibold tracking-tight">Sorteios</div>
+            <div className="mt-1 text-sm text-muted-foreground">Gerencie sorteios do servidor</div>
+          </div>
         </div>
 
         <Button onClick={() => navigate(`/guild/${guildId}/giveaways/create`)}>
@@ -119,7 +124,7 @@ export default function GiveawaysPage() {
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-accent/20">
         <CardContent className="p-6">
           <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div className="min-w-0">
@@ -271,17 +276,15 @@ function GiveawayCard({ giveaway, guildId }: { giveaway: Giveaway; guildId: stri
         <div className="mt-4 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-surface/50 px-3 py-2">
             <Users className="h-4 w-4" />
-            <span>{giveaway._count.entries}</span>
+            <span title="Participantes">{giveaway._count.entries}</span>
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-surface/50 px-3 py-2">
             <Trophy className="h-4 w-4" />
-            <span>
-              {giveaway._count.winners}/{giveaway.maxWinners}
-            </span>
+            <span title="Vencedores / Máximo">{giveaway._count.winners}/{giveaway.maxWinners}</span>
           </div>
           <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-surface/50 px-3 py-2">
             <Calendar className="h-4 w-4" />
-            <span>{endsAt.toLocaleDateString('pt-BR')}</span>
+            <span title="Data de encerramento">{endsAt.toLocaleDateString('pt-BR')}</span>
           </div>
         </div>
       </CardContent>

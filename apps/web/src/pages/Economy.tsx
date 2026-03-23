@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { ArrowRightLeft, Coins, Shield } from 'lucide-react'
+import { ArrowRightLeft, Coins, RefreshCw, Shield } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, CardHeader, EmptyState, ErrorState, Input, Skeleton } from '../components/ui'
@@ -118,33 +118,36 @@ export default function EconomyPage() {
           <div className="mt-1 text-sm text-muted-foreground">Saldo e transações (luazinhas)</div>
         </div>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className="h-10"
-          onClick={() => {
-            void refetch_me()
-            void refetch_txs()
-          }}
-        >
-          Atualizar
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-10"
+            onClick={() => {
+              void refetch_me()
+              void refetch_txs()
+            }}
+          >
+            <RefreshCw className="h-4 w-4" />
+            Atualizar
+          </Button>
 
-        <Card className="min-w-[220px]">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-                <Coins className="h-5 w-5" />
-              </span>
-              <div>
-                <div className="text-xs text-muted-foreground">Seu saldo</div>
-                <div className="text-lg font-semibold">
-                  {is_me_loading ? <Skeleton className="h-5 w-24" /> : `${balance_label} luazinhas`}
+          <Card className="border-accent/20 min-w-[220px]">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+                  <Coins className="h-5 w-5" />
+                </span>
+                <div>
+                  <div className="text-xs text-muted-foreground">Seu saldo</div>
+                  <div className="text-lg font-semibold">
+                    {is_me_loading ? <Skeleton className="h-5 w-24" /> : `${balance_label} luazinhas`}
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {(is_me_error || is_tx_error) && (
@@ -238,15 +241,18 @@ export default function EconomyPage() {
                     <div>
                       <div className="text-sm font-semibold uppercase">{tx.type}</div>
                       <div className="text-xs text-muted-foreground truncate">
-                        {tx.fromUserId ? `De: ${tx.fromUserId}` : ''}
-                        {tx.fromUserId && tx.toUserId ? ' • ' : ''}
-                        {tx.toUserId ? `Para: ${tx.toUserId}` : ''}
+                        {tx.fromUserId ? `De: @...${tx.fromUserId.slice(-5)}` : ''}
+                        {tx.fromUserId && tx.toUserId ? ' → ' : ''}
+                        {tx.toUserId ? `Para: @...${tx.toUserId.slice(-5)}` : ''}
                         {tx.reason ? ` • ${tx.reason}` : ''}
                       </div>
                     </div>
                   </div>
-                  <div className="shrink-0 text-sm font-bold text-accent">
-                    {tx.type === 'remove' ? '-' : '+'}{format_luazinhas(tx.amount)}
+                  <div className={[
+                    'shrink-0 text-sm font-bold',
+                    tx.type === 'remove' ? 'text-red-400' : 'text-emerald-400',
+                  ].join(' ')}>
+                    {tx.type === 'remove' ? '-' : '+'}{format_luazinhas(tx.amount)} 🌙
                   </div>
                 </div>
               ))}

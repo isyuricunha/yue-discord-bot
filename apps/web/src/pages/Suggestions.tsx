@@ -317,7 +317,7 @@ export default function SuggestionsPage() {
                         </Badge>
                       </div>
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>Autor: <span className="font-mono text-foreground/80">{s.userId}</span></span>
+                        <span>Autor: <span className="font-mono text-foreground/80">@...{s.userId.slice(-5)}</span></span>
                         <span>•</span>
                         <span className="font-mono">👍 {s.upvotes} / 👎 {s.downvotes}</span>
                       </div>
@@ -327,8 +327,8 @@ export default function SuggestionsPage() {
 
                   {s.status !== 'pending' && (s.decidedAt || s.decidedByUserId || s.decisionNote) && (
                     <div className="mt-2 text-xs text-muted-foreground">
-                      Decidido em: {s.decidedAt ? new Date(s.decidedAt).toLocaleString() : '—'}
-                      {s.decidedByUserId ? ` • Por: ${s.decidedByUserId}` : ''}
+                      Decidido em: {s.decidedAt ? new Date(s.decidedAt).toLocaleString('pt-BR') : '—'}
+                      {s.decidedByUserId ? ` • Por: @...${s.decidedByUserId.slice(-5)}` : ''}
                       {s.decisionNote ? ` • Nota: ${s.decisionNote}` : ''}
                     </div>
                   )}

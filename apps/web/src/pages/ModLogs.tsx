@@ -446,10 +446,10 @@ export default function ModLogsPage() {
               }}
             >
               <option value="all">Todas as ações</option>
-              <option value="ban">Ban</option>
-              <option value="kick">Kick</option>
-              <option value="mute">Mute</option>
-              <option value="warn">Warn</option>
+              <option value="ban">Banimento</option>
+              <option value="kick">Expulsão</option>
+              <option value="mute">Timeout</option>
+              <option value="warn">Aviso</option>
             </Select>
 
             {(searchTerm || actionFilter !== 'all') && (

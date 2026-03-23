@@ -90,7 +90,7 @@ export default function CustomCommandsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <Card className="lg:col-span-2 h-fit">
+        <Card className="border-accent/20 lg:col-span-2 h-fit">
           <CardContent className="space-y-4 p-6">
             <div>
               <div className="text-sm font-semibold">Novo Comando</div>
@@ -137,7 +137,7 @@ export default function CustomCommandsPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-3">
+        <Card className="border-accent/20 lg:col-span-3">
           <CardContent className="space-y-4 p-6">
             <div>
               <div className="text-sm font-semibold">Comandos Ativos</div>
@@ -145,7 +145,11 @@ export default function CustomCommandsPage() {
             </div>
 
             {isLoading ? (
-               <Skeleton className="h-[200px] w-full" />
+               <div className="space-y-3">
+                 {Array.from({ length: 4 }).map((_, i) => (
+                   <Skeleton key={i} className="h-20 w-full rounded-2xl" />
+                 ))}
+               </div>
             ) : !commands?.length ? (
                <EmptyState title="Nenhum comando criado" description="Adicione seu primeiro comando ao lado." />
             ) : (
