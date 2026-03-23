@@ -2,14 +2,16 @@ import { useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { ArrowLeft, FileText, Search } from 'lucide-react'
+import { ArrowLeft, Search } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton } from '../components/ui'
 
+import { AuditLogItem } from './components/AuditLogItem'
+
 const API_URL = getApiUrl()
 
-type audit_row = {
+export type audit_row = {
   id: string
   guildId: string
   action: string
@@ -29,11 +31,6 @@ type audit_logs_response = {
   offset?: number
 }
 
-function format_ts_iso(iso: string) {
-  const d = new Date(iso)
-  if (Number.isNaN(d.getTime())) return iso
-  return d.toLocaleString('pt-BR')
-}
 
 export default function AuditLogsPage() {
   const { guildId } = useParams()
@@ -150,33 +147,9 @@ export default function AuditLogsPage() {
               Nenhum evento encontrado.
             </div>
           ) : (
-            <div className="space-y-2">
+            <div className="space-y-4">
               {filtered.slice(0, 100).map((l) => (
-                <div key={l.id} className="rounded-2xl border border-border/70 bg-surface/40 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-accent" />
-                        <div className="truncate text-sm font-semibold">{l.action}</div>
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">{format_ts_iso(l.createdAt)}</div>
-                    </div>
-                    <div className="text-right text-xs text-muted-foreground">{l.id}</div>
-                  </div>
-
-                  <div className="mt-3 grid grid-cols-1 gap-2 text-xs text-muted-foreground md:grid-cols-2">
-                    <div>actorUserId: {l.actorUserId ?? '—'}</div>
-                    <div>targetUserId: {l.targetUserId ?? '—'}</div>
-                    <div>targetChannelId: {l.targetChannelId ?? '—'}</div>
-                    <div>targetMessageId: {l.targetMessageId ?? '—'}</div>
-                  </div>
-
-                  {l.data ? (
-                    <pre className="mt-3 whitespace-pre-wrap wrap-break-word rounded-xl border border-border/60 bg-surface/60 p-3 text-xs text-foreground">
-                      {JSON.stringify(l.data, null, 2)}
-                    </pre>
-                  ) : null}
-                </div>
+                <AuditLogItem key={l.id} log={l} />
               ))}
 
               {filtered.length > 100 ? (
