@@ -40,6 +40,7 @@ const createTriggerSchema = z.object({
   keyword: z.string().min(1).max(100),
   mediaUrl: z.string().url(),
   channelId: z.string().optional().nullable(),
+  replyToUser: z.boolean().optional().default(true),
 })
 
 export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
@@ -107,6 +108,7 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
           mediaUrl: body.mediaUrl,
           channelId: body.channelId ?? null,
           createdBy: user.userId,
+          replyToUser: body.replyToUser,
         },
       })
 

@@ -42,6 +42,12 @@ export const gatilhoCommand: Command = {
             .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
             .setRequired(false)
         )
+        .addBooleanOption((opt) =>
+          opt
+            .setName('responder')
+            .setDescription('Se o bot deve responder à mensagem (padrão: sim)')
+            .setRequired(false)
+        )
     )
     .addSubcommand((sub) =>
       sub
@@ -85,6 +91,7 @@ export const gatilhoCommand: Command = {
       const keyword = interaction.options.getString('palavra', true).trim()
       const raw_url = interaction.options.getString('url', true).trim()
       const channel = interaction.options.getChannel('canal')
+      const responder = interaction.options.getBoolean('responder') ?? true
 
       if (!keywordTriggerService.validate_media_url(raw_url)) {
         await safe_reply_ephemeral(interaction, {
@@ -104,7 +111,8 @@ export const gatilhoCommand: Command = {
           keyword,
           raw_url,
           channel?.id ?? null,
-          interaction.user.id
+          interaction.user.id,
+          responder
         )
       } catch (error: any) {
         // Unique constraint violation — keyword already exists

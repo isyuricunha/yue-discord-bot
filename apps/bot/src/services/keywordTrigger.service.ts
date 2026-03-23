@@ -50,7 +50,8 @@ async function add_trigger(
   keyword: string,
   media_url: string,
   channel_id: string | null,
-  created_by: string
+  created_by: string,
+  reply_to_user: boolean = true
 ) {
   return prisma.keywordTrigger.create({
     data: {
@@ -59,6 +60,7 @@ async function add_trigger(
       mediaUrl: media_url,
       channelId: channel_id ?? null,
       createdBy: created_by,
+      replyToUser: reply_to_user,
     },
   })
 }
@@ -99,7 +101,12 @@ async function handle_message(message: Message): Promise<boolean> {
       .setColor(COLORS.INFO)
       .setImage(match.mediaUrl)
 
-    await message.reply({ embeds: [embed] }).catch(() => null)
+    const payload = { embeds: [embed] }
+    if (match.replyToUser) {
+      await message.reply(payload).catch(() => null)
+    } else if (message.channel && 'send' in message.channel) {
+      await (message.channel as any).send(payload).catch(() => null)
+    }
   } catch (error) {
     logger.error({ err: safe_error_details(error) }, 'KeywordTrigger: failed to send reply')
   }

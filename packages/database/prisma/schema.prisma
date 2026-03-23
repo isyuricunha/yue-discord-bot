@@ -1246,8 +1246,9 @@ model KeywordTrigger {
   keyword   String
   mediaUrl  String
   channelId String?
-  createdBy String
-  createdAt DateTime @default(now())
+  createdBy   String
+  createdAt   DateTime @default(now())
+  replyToUser Boolean  @default(true)
   guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@unique([guildId, keyword])

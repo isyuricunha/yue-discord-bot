@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Plus, Radio, Trash2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -50,6 +50,7 @@ type keyword_trigger = {
   mediaUrl: string
   channelId: string | null
   createdBy: string
+  replyToUser: boolean
   createdAt: string
 }
 
@@ -63,6 +64,7 @@ export default function KeywordTriggersPage() {
   const [keyword, setKeyword] = useState('')
   const [url, setUrl] = useState('')
   const [channelId, setChannelId] = useState('')
+  const [replyToUser, setReplyToUser] = useState(true)
   const [url_error, set_url_error] = useState<string | null>(null)
 
   const { data: channels_data, isLoading: is_channels_loading } = useQuery({
@@ -98,6 +100,7 @@ export default function KeywordTriggersPage() {
         keyword: keyword.trim(),
         mediaUrl: url.trim(),
         channelId: channelId || null,
+        replyToUser,
       })
     },
     onSuccess: () => {
@@ -105,6 +108,7 @@ export default function KeywordTriggersPage() {
       setKeyword('')
       setUrl('')
       setChannelId('')
+      setReplyToUser(true)
       set_url_error(null)
       void queryClient.invalidateQueries({ queryKey: ['triggers', guildId] })
     },
@@ -215,6 +219,16 @@ export default function KeywordTriggersPage() {
             </div>
           </div>
 
+          <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface/20 p-3">
+            <div className="space-y-0.5">
+              <div className="text-sm font-medium">Responder à mensagem</div>
+              <div className="text-xs text-muted-foreground">
+                Menciona quem ativou o gatilho ao enviar a mídia
+              </div>
+            </div>
+            <Switch checked={replyToUser} onCheckedChange={setReplyToUser} />
+          </div>
+
           {/* Preview */}
           {url && !url_error && (
             <div className="rounded-2xl border border-accent/20 bg-surface/40 p-4">
@@ -311,6 +325,10 @@ export default function KeywordTriggersPage() {
                         ) : (
                           <span className="text-xs text-muted-foreground">Todos os canais</span>
                         )}
+                        <span className="mx-1 text-muted-foreground/30">•</span>
+                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                          {t.replyToUser ? 'Responde' : 'Envia'}
+                        </span>
                       </div>
                       <div className="mt-1 truncate text-xs text-muted-foreground">
                         {t.mediaUrl.length > 70 ? `${t.mediaUrl.slice(0, 67)}…` : t.mediaUrl}
