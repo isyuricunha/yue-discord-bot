@@ -5,7 +5,7 @@ import axios from 'axios'
 import { LifeBuoy, Save, Trash2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch } from '../components/ui'
+import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -364,9 +364,17 @@ export default function TicketsPage() {
                         const role = role_by_id.get(id)
                         return (
                           <div key={id} className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
-                            <div className="min-w-0">
-                              <div className="truncate text-sm font-medium">{role?.name ?? id}</div>
-                              <div className="mt-1 text-xs text-muted-foreground font-mono">{id}</div>
+                            <div className="min-w-0 flex items-center gap-3">
+                              {role && (
+                                <span
+                                  className="w-3 h-3 rounded-full shrink-0"
+                                  style={{ backgroundColor: `#${role.color.toString(16).padStart(6, '0')}` }}
+                                />
+                              )}
+                              <div>
+                                <div className="truncate text-sm font-medium">{role?.name ?? id}</div>
+                                <div className="mt-1 text-[11px] text-muted-foreground font-mono">{id}</div>
+                              </div>
                             </div>
 
                             <Button type="button" variant="ghost" size="sm" onClick={() => remove_support_role(id)} className="shrink-0">
@@ -419,14 +427,21 @@ export default function TicketsPage() {
             <div className="space-y-2">
               {all_tickets.map((t) => (
                 <div key={t.id} className="rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
-                  <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                  <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">#{t.channelId}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Usuário: <span className="font-mono">{t.userId}</span> • Status: <span className="font-mono">{t.status}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="truncate text-sm font-semibold">Tíquete</div>
+                        <Badge variant={t.status === 'open' ? 'accent' : 'neutral'} className="uppercase text-[10px]">
+                          {t.status === 'open' ? 'Aberto' : 'Fechado'}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+                        <span>Usuário: <span className="font-mono text-foreground/80">{t.userId}</span></span>
+                        <span>•</span>
+                        <span>Canal: <span className="font-mono text-foreground/80">{t.channelId}</span></span>
                       </div>
                     </div>
-                    <div className="text-xs text-muted-foreground">{new Date(t.createdAt).toLocaleString()}</div>
+                    <div className="text-[11px] text-muted-foreground font-medium">{new Date(t.createdAt).toLocaleString('pt-BR')}</div>
                   </div>
 
                   {t.status === 'closed' && (t.closeReason || t.closedAt) && (

@@ -546,7 +546,7 @@ export default function ModLogsPage() {
                               {typeof actionMeta === 'string' && <div><span className="font-medium">Ação aplicada:</span> {String(actionMeta).toUpperCase()}</div>}
                               {typeof ruleMeta === 'string' && <div><span className="font-medium">Regra:</span> {ruleMeta}</div>}
                               {log.duration && <div><span className="font-medium">Duração:</span> {log.duration}</div>}
-                              {messageMeta?.channelId && <div><span className="font-medium">Canal:</span> {messageMeta.channelId}</div>}
+                              {messageMeta?.channelId && <div><span className="font-medium">Canal:</span> {available_channels.find(c => c.id === messageMeta.channelId)?.name ? `#${available_channels.find(c => c.id === messageMeta.channelId)?.name}` : messageMeta.channelId}</div>}
                               {messageMeta?.excerpt && <div><span className="font-medium">Mensagem:</span> {messageMeta.excerpt}</div>}
                               {detailsMeta?.capsPercentage !== undefined && detailsMeta?.capsThreshold !== undefined && (
                                 <div>

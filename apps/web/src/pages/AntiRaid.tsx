@@ -8,6 +8,7 @@ import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
+import { Hash, X } from 'lucide-react'
 
 const API_URL = getApiUrl()
 
@@ -79,6 +80,25 @@ export default function AntiRaidPage() {
         },
     })
 
+    const { data: channelsRes } = useQuery({
+        queryKey: ['channels', guildId],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`)
+            return response.data
+        },
+    })
+
+    const { data: rolesRes } = useQuery({
+        queryKey: ['roles', guildId],
+        queryFn: async () => {
+            const response = await axios.get(`${API_URL}/api/guilds/${guildId}/roles`)
+            return response.data
+        },
+    })
+
+    const channels = channelsRes?.channels || []
+    const roles = rolesRes?.roles || []
+
     const has_changes = useMemo(() => {
         const initial = initial_config_ref.current
         if (!initial) return false
@@ -135,6 +155,40 @@ export default function AntiRaidPage() {
         const parsed = Number.parseInt(value, 10)
         setConfig({ ...config, cooldown: Number.isNaN(parsed) ? 300 : parsed })
     }
+
+    const toggleExemptRole = (roleId: string) => {
+        if (!roleId) return
+        const current = config.exemptRoles || []
+        if (current.includes(roleId)) {
+            setConfig({ ...config, exemptRoles: current.filter((id) => id !== roleId) })
+        } else {
+            setConfig({ ...config, exemptRoles: [...current, roleId] })
+        }
+    }
+
+    const toggleExemptChannel = (channelId: string) => {
+        if (!channelId) return
+        const current = config.exemptChannels || []
+        if (current.includes(channelId)) {
+            setConfig({ ...config, exemptChannels: current.filter((id) => id !== channelId) })
+        } else {
+            setConfig({ ...config, exemptChannels: [...current, channelId] })
+        }
+    }
+
+    const getRoleMap = () => {
+        const map: Record<string, any> = {}
+        for (const r of roles) map[r.id] = r
+        return map
+    }
+    const getChannelMap = () => {
+        const map: Record<string, any> = {}
+        for (const c of channels) map[c.id] = c
+        return map
+    }
+
+    const roleMap = getRoleMap()
+    const channelMap = getChannelMap()
 
     return (
         <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -352,17 +406,21 @@ export default function AntiRaidPage() {
                             </div>
 
                             <div className="text-sm text-muted-foreground">
-                                Configure um canal para receber notificações quando um raide for detectado.
-                                (Em breve - necessidade de selecionar canal)
+                                Selecione um canal de texto para o bot reportar detecções de raide.
                             </div>
 
-                            {config.notificationChannelId && (
-                                <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-                                    <div className="text-sm">
-                                        Canal de notificação: <span className="font-mono">{config.notificationChannelId}</span>
-                                    </div>
-                                </div>
-                            )}
+                            <Select
+                                value={config.notificationChannelId || ''}
+                                onValueChange={(v) => setConfig({ ...config, notificationChannelId: v || null })}
+                                disabled={isLoading}
+                            >
+                                <option value="">Nenhum / Desativado</option>
+                                {channels.map((c: any) => (
+                                    <option key={c.id} value={c.id}>
+                                        #{c.name}
+                                    </option>
+                                ))}
+                            </Select>
                         </CardContent>
                     </Card>
 
@@ -374,22 +432,74 @@ export default function AntiRaidPage() {
                             </div>
 
                             <div className="text-sm text-muted-foreground">
-                                Configure cargos e canais isentos da proteção anti-raide.
-                                (Em breve - necessidade de selecionar roles/canais)
+                                Configure cargos e canais específicos que nunca sofrerão ações do sistema Anti-Raide.
                             </div>
 
-                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                                <div>
-                                    <div className="text-sm font-medium">Cargos isentos</div>
-                                    <div className="mt-2 text-xs text-muted-foreground">
-                                        {(config.exemptRoles as string[])?.length || 0} cargos configurados
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                                <div className="space-y-3">
+                                    <div className="text-sm font-medium">Cargos Isentos</div>
+                                    <Select value="" onValueChange={toggleExemptRole} disabled={isLoading}>
+                                        <option value="">Adicionar cargo...</option>
+                                        {roles.map((r: any) => (
+                                            <option key={r.id} value={r.id}>
+                                                {r.name}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {(config.exemptRoles || []).map((roleId) => {
+                                            const role = roleMap[roleId]
+                                            return (
+                                                <Badge
+                                                    key={roleId}
+                                                    className="flex items-center gap-1.5 cursor-pointer hover:bg-destructive/20 hover:text-destructive hover:border-destructive transition-colors"
+                                                    onClick={() => toggleExemptRole(roleId)}
+                                                >
+                                                    {role && (
+                                                        <span
+                                                            className="w-2 h-2 rounded-full"
+                                                            style={{ backgroundColor: `#${role.color.toString(16).padStart(6, '0')}` }}
+                                                        />
+                                                    )}
+                                                    {role ? role.name : roleId}
+                                                    <X className="w-3 h-3 ml-1 opacity-50" />
+                                                </Badge>
+                                            )
+                                        })}
+                                        {!(config.exemptRoles?.length) && (
+                                            <span className="text-xs text-muted-foreground italic">Nenhum cargo isento</span>
+                                        )}
                                     </div>
                                 </div>
 
-                                <div>
-                                    <div className="text-sm font-medium">Canais isentos</div>
-                                    <div className="mt-2 text-xs text-muted-foreground">
-                                        {(config.exemptChannels as string[])?.length || 0} canais configurados
+                                <div className="space-y-3">
+                                    <div className="text-sm font-medium">Canais Isentos</div>
+                                    <Select value="" onValueChange={toggleExemptChannel} disabled={isLoading}>
+                                        <option value="">Adicionar canal...</option>
+                                        {channels.map((c: any) => (
+                                            <option key={c.id} value={c.id}>
+                                                #{c.name}
+                                            </option>
+                                        ))}
+                                    </Select>
+                                    <div className="flex flex-wrap gap-2 mt-2">
+                                        {(config.exemptChannels || []).map((channelId) => {
+                                            const channel = channelMap[channelId]
+                                            return (
+                                                <Badge
+                                                    key={channelId}
+                                                    className="flex items-center gap-1.5 cursor-pointer hover:bg-destructive/20 hover:text-destructive hover:border-destructive transition-colors"
+                                                    onClick={() => toggleExemptChannel(channelId)}
+                                                >
+                                                    <Hash className="w-3 h-3 opacity-50" />
+                                                    {channel ? channel.name : channelId}
+                                                    <X className="w-3 h-3 ml-1 opacity-50" />
+                                                </Badge>
+                                            )
+                                        })}
+                                        {!(config.exemptChannels?.length) && (
+                                            <span className="text-xs text-muted-foreground italic">Nenhum canal isento</span>
+                                        )}
                                     </div>
                                 </div>
                             </div>

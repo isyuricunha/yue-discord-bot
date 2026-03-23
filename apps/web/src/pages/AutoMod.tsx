@@ -8,6 +8,15 @@ import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
+import { Ban, FileWarning, MicOff, Trash2 as TrashIcon } from 'lucide-react'
+
+const ActionIcon = ({ action }: { action: string }) => {
+  if (action === 'delete') return <TrashIcon className="w-3 h-3" />
+  if (action === 'warn') return <FileWarning className="w-3 h-3" />
+  if (action === 'mute') return <MicOff className="w-3 h-3" />
+  if (action === 'ban') return <Ban className="w-3 h-3" />
+  return <AlertTriangle className="w-3 h-3" />
+}
 
 const API_URL = getApiUrl()
 
@@ -285,7 +294,8 @@ export default function AutoModPage() {
                   <div key={index} className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="truncate font-mono text-sm">{item.word}</span>
-                      <span className="rounded-full border border-border/70 bg-surface/70 px-2.5 py-1 text-xs text-muted-foreground">
+                      <span className="flex items-center gap-1.5 rounded-full border border-border/70 bg-surface/70 px-2.5 py-1.5 text-xs text-muted-foreground font-medium">
+                        <ActionIcon action={item.action} />
                         {action_label[(item.action as automod_action) ?? 'warn'] ?? item.action}
                       </span>
                     </div>

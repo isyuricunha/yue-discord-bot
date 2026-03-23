@@ -231,16 +231,23 @@ export default function EconomyPage() {
             <div className="space-y-2">
               {tx_data.transactions.map((tx) => (
                 <div key={tx.id} className="flex items-center justify-between gap-4 rounded-xl border border-border/70 bg-surface/40 px-3 py-2">
-                  <div className="min-w-0">
-                    <div className="text-sm font-medium">{tx.type}</div>
-                    <div className="text-xs text-muted-foreground truncate">
-                      {tx.fromUserId ? `from ${tx.fromUserId}` : ''}
-                      {tx.toUserId ? ` to ${tx.toUserId}` : ''}
-                      {tx.guildId ? ` • guild ${tx.guildId}` : ''}
-                      {tx.reason ? ` • ${tx.reason}` : ''}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
+                       <ArrowRightLeft className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <div className="text-sm font-semibold uppercase">{tx.type}</div>
+                      <div className="text-xs text-muted-foreground truncate">
+                        {tx.fromUserId ? `De: ${tx.fromUserId}` : ''}
+                        {tx.fromUserId && tx.toUserId ? ' • ' : ''}
+                        {tx.toUserId ? `Para: ${tx.toUserId}` : ''}
+                        {tx.reason ? ` • ${tx.reason}` : ''}
+                      </div>
                     </div>
                   </div>
-                  <div className="shrink-0 text-sm font-semibold">{format_luazinhas(tx.amount)} </div>
+                  <div className="shrink-0 text-sm font-bold text-accent">
+                    {tx.type === 'remove' ? '-' : '+'}{format_luazinhas(tx.amount)}
+                  </div>
                 </div>
               ))}
             </div>

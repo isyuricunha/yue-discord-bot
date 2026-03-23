@@ -1041,8 +1041,16 @@ export default function XpLevelsPage() {
                         className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
                       >
                         <div className="min-w-0">
-                          <div className="truncate text-sm font-semibold">{role_by_id.get(role_id)?.name ?? role_id}</div>
-                          <div className="text-xs text-muted-foreground">{value}x XP</div>
+                          <div className="flex items-center gap-2">
+                            {role_by_id.get(role_id) && (
+                              <span
+                                className="w-3 h-3 rounded-full shrink-0"
+                                style={{ backgroundColor: `#${role_by_id.get(role_id)!.color.toString(16).padStart(6, '0')}` }}
+                              />
+                            )}
+                            <div className="truncate text-sm font-semibold">{role_by_id.get(role_id)?.name ?? role_id}</div>
+                          </div>
+                          <div className="mt-1 text-xs text-muted-foreground">{value}x XP</div>
                         </div>
                         <Button variant="ghost" size="sm" onClick={() => remove_multiplier(role_id)} aria-label="Remover multiplicador">
                           <Trash2 className="h-4 w-4" />
@@ -1090,7 +1098,15 @@ export default function XpLevelsPage() {
                         key={role_id}
                         className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
                       >
-                        <div className="truncate text-sm font-semibold">{role_by_id.get(role_id)?.name ?? role_id}</div>
+                        <div className="flex items-center gap-2 min-w-0">
+                          {role_by_id.get(role_id) && (
+                            <span
+                              className="w-3 h-3 rounded-full shrink-0"
+                              style={{ backgroundColor: `#${role_by_id.get(role_id)!.color.toString(16).padStart(6, '0')}` }}
+                            />
+                          )}
+                          <div className="truncate text-sm font-semibold">{role_by_id.get(role_id)?.name ?? role_id}</div>
+                        </div>
                         <Button variant="ghost" size="sm" onClick={() => remove_ignored_role(role_id)} aria-label="Remover cargo ignorado">
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -1206,7 +1222,16 @@ export default function XpLevelsPage() {
                     >
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold">Ao chegar no nível {reward.level}</div>
-                        <div className="text-xs text-muted-foreground">Dar o cargo {role_by_id.get(reward.roleId)?.name ?? reward.roleId}</div>
+                        <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                          Dar o cargo: 
+                          {role_by_id.get(reward.roleId) && (
+                            <span
+                              className="w-2.5 h-2.5 rounded-full shrink-0"
+                              style={{ backgroundColor: `#${role_by_id.get(reward.roleId)!.color.toString(16).padStart(6, '0')}` }}
+                            />
+                          )}
+                          <span className="font-medium text-foreground">{role_by_id.get(reward.roleId)?.name ?? reward.roleId}</span>
+                        </div>
                       </div>
                       <Button variant="ghost" size="sm" onClick={() => remove_reward(reward.level)} aria-label="Remover recompensa">
                         <Trash2 className="h-4 w-4" />

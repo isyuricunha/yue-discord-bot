@@ -8,7 +8,7 @@ import type { suggestion_timeframe } from '@yuebot/shared'
 import { suggestion_timeframe_label } from '@yuebot/shared'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch } from '../components/ui'
+import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -310,9 +310,16 @@ export default function SuggestionsPage() {
                 <div key={s.id} className="rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
                   <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">{s.content}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Autor: <span className="font-mono">{s.userId}</span> • Status: <span className="font-mono">{s.status}</span> • Votos: <span className="font-mono">👍 {s.upvotes} / 👎 {s.downvotes}</span>
+                      <div className="flex items-center gap-2">
+                        <div className="truncate text-sm font-medium">{s.content}</div>
+                        <Badge variant={s.status === 'accepted' ? 'accent' : 'neutral'} className="uppercase text-[10px]">
+                          {s.status === 'accepted' ? 'Aceita' : s.status === 'denied' ? 'Negada' : 'Pendente'}
+                        </Badge>
+                      </div>
+                      <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>Autor: <span className="font-mono text-foreground/80">{s.userId}</span></span>
+                        <span>•</span>
+                        <span className="font-mono">👍 {s.upvotes} / 👎 {s.downvotes}</span>
                       </div>
                     </div>
                     <div className="text-xs text-muted-foreground">{new Date(s.createdAt).toLocaleString()}</div>

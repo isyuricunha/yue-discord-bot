@@ -259,9 +259,17 @@ export default function AutorolePage() {
                           key={role_id}
                           className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
                         >
-                          <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold">{role?.name ?? `Cargo ${role_id}`}</div>
-                            <div className="text-xs text-muted-foreground">{role_id}</div>
+                          <div className="min-w-0 flex items-center gap-3">
+                            {role && (
+                              <span
+                                className="w-3 h-3 rounded-full shrink-0"
+                                style={{ backgroundColor: `#${role.color.toString(16).padStart(6, '0')}` }}
+                              />
+                            )}
+                            <div>
+                              <div className="truncate text-sm font-semibold">{role?.name ?? `Cargo ${role_id}`}</div>
+                              <div className="text-[11px] text-muted-foreground font-mono mt-0.5">{role_id}</div>
+                            </div>
                           </div>
 
                           <Button variant="outline" size="sm" className="h-9 w-9 px-0" onClick={() => remove_role(role_id)}>

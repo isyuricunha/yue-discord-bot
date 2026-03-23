@@ -257,6 +257,10 @@ export default function ModerationPage() {
                       ) : (
                         mute_roles.map((role) => (
                           <Badge key={role.id} className="flex items-center gap-2">
+                            <span
+                              className="w-2 h-2 rounded-full"
+                              style={{ backgroundColor: `#${role.color.toString(16).padStart(6, '0')}` }}
+                            />
                             <span>{role.name}</span>
                             <button
                               type="button"

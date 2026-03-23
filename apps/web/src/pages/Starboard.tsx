@@ -294,18 +294,24 @@ export default function StarboardPage() {
                 <div key={p.id} className="rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
                   <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
-                      <div className="truncate text-sm font-medium">
-                        <span className="font-mono">{p.sourceMessageId}</span>
-                        <span className="text-muted-foreground"> • </span>
-                        <span className="font-mono">{p.starCount}</span>
-                        <span className="text-muted-foreground"> estrelas</span>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 font-medium">
+                        <Star className="h-4 w-4 text-accent fill-accent" />
+                        <span className="text-sm font-semibold">{p.starCount}</span>
+                        <span className="text-muted-foreground text-sm">estrelas</span>
+                        <span className="mx-2 text-border/50">•</span>
+                        <span className="font-mono text-xs max-w-[120px] truncate">{p.sourceMessageId}</span>
                       </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Autor: <span className="font-mono">{p.authorId}</span> • Canal: <span className="font-mono">{p.sourceChannelId}</span>
+                      <div className="mt-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span>Autor: <span className="font-mono text-foreground/80">{p.authorId}</span></span>
+                        <span>•</span>
+                        <span>Canal: <span className="font-mono text-foreground/80">{p.sourceChannelId}</span></span>
                       </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        Starboard msg: <span className="font-mono">{p.starboardMessageId}</span>
+                      <div className="mt-1 flex items-center gap-1 text-[11px] text-muted-foreground">
+                        <span>Mensagem no starboard:</span>
+                        <span className="font-mono text-foreground/70">{p.starboardMessageId}</span>
                       </div>
+                    </div>
                     </div>
                     <div className="text-xs text-muted-foreground">{new Date(p.createdAt).toLocaleString()}</div>
                   </div>
