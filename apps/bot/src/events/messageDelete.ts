@@ -16,6 +16,7 @@ export async function handleMessageDelete(message: Message | PartialMessage) {
     data: {
       content: resolved?.content ?? null,
       authorTag: resolved?.author?.tag ?? null,
+      attachments: resolved ? resolved.attachments.map((a: any) => a.proxyURL || a.url) : [],
     },
   })
 }

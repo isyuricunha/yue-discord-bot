@@ -39,10 +39,11 @@ import { useMutation } from '@tanstack/react-query'
 import axios from 'axios'
 import { getApiUrl } from '../../env'
 import { toast } from 'sonner'
+import { ExternalLink } from 'lucide-react'
 
 const API_URL = getApiUrl()
 
-export function AuditLogItem({ log, membersMap, rolesMap }: { log: audit_row, membersMap: Map<string, any>, rolesMap: Map<string, any> }) {
+export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: audit_row, membersMap: Map<string, any>, rolesMap: Map<string, any>, channelsMap: Map<string, any> }) {
   const act = getActionFormat(log.action)
   const data = log.data as any
 
@@ -78,21 +79,23 @@ export function AuditLogItem({ log, membersMap, rolesMap }: { log: audit_row, me
           <span className="font-semibold text-foreground/80">{user?.username || `${userId.slice(-6)}`}</span>
         </Badge>
         {isTarget && (
-          <div className="absolute left-0 top-full mt-1 hidden group-hover:flex z-50 bg-background/90 backdrop-blur border border-border/50 rounded-lg p-1.5 flex-row gap-1.5 shadow-xl">
-            <button 
-              onClick={() => modMutation.mutate({ action: 'timeout', targetId: userId })}
-              disabled={modMutation.isPending}
-              className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
-            >
-              Mutar (1h)
-            </button>
-            <button 
-              onClick={() => modMutation.mutate({ action: 'ban', targetId: userId })}
-              disabled={modMutation.isPending}
-              className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
-            >
-              Banir
-            </button>
+          <div className="absolute left-0 top-full pt-1.5 hidden group-hover:block z-50">
+            <div className="bg-background/95 backdrop-blur border border-border/50 rounded-lg p-1.5 flex flex-row gap-1.5 shadow-xl">
+              <button 
+                onClick={() => modMutation.mutate({ action: 'timeout', targetId: userId })}
+                disabled={modMutation.isPending}
+                className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
+              >
+                Mutar (1h)
+              </button>
+              <button 
+                onClick={() => modMutation.mutate({ action: 'ban', targetId: userId })}
+                disabled={modMutation.isPending}
+                className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
+              >
+                Banir
+              </button>
+            </div>
           </div>
         )}
       </div>
@@ -129,14 +132,30 @@ export function AuditLogItem({ log, membersMap, rolesMap }: { log: audit_row, me
         </div>
       </div>
 
-      <div className="mt-4 pl-0 sm:pl-[42px] flex flex-wrap gap-2 text-xs">
+      <div className="mt-4 pl-0 sm:pl-[42px] flex flex-wrap gap-2 text-xs items-center">
         {renderUserBadge(log.actorUserId, 'Autor')}
         {renderUserBadge(log.targetUserId, 'Alvo')}
+        
         {log.targetChannelId && (
           <Badge className="bg-background/80 border-border/50 text-muted-foreground backdrop-blur-sm font-medium py-1">
             <Hash className="mr-1.5 h-3 w-3" />
-            <span className="opacity-70 mr-1">Canal:</span> <span className="font-mono text-[10px]">{log.targetChannelId}</span>
+            <span className="opacity-70 mr-1">Canal:</span> 
+            <span className="font-semibold text-foreground/80">
+              {channelsMap.get(log.targetChannelId)?.name || log.targetChannelId.slice(-6)}
+            </span>
           </Badge>
+        )}
+
+        {log.targetMessageId && log.targetChannelId && (
+          <a
+            href={`https://discord.com/channels/${log.guildId}/${log.targetChannelId}/${log.targetMessageId}`}
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 px-2 py-1 rounded transition-colors"
+          >
+            <ExternalLink className="w-3 h-3" />
+            Ver Mensagem
+          </a>
         )}
       </div>
 
@@ -151,6 +170,17 @@ export function AuditLogItem({ log, membersMap, rolesMap }: { log: audit_row, me
             <div className="text-sm text-foreground/90 italic break-words bg-background/50 p-3 rounded-lg border border-red-500/10">
               {data.content || <span className="opacity-50">(Sem conteúdo em texto)</span>}
             </div>
+            {Array.isArray(data.attachments) && data.attachments.length > 0 && (
+              <div className="mt-3">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Anexos Vinculados ({data.attachments.length})</div>
+                <div className="flex flex-wrap gap-2">
+                  {data.attachments.map((url: string, i: number) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={i} src={url} alt={`Anexo ${i + 1}`} className="max-h-32 sm:max-h-48 rounded-lg border border-border/50 object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(url, '_blank')} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : log.action === 'message_update' && data ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
@@ -168,6 +198,18 @@ export function AuditLogItem({ log, membersMap, rolesMap }: { log: audit_row, me
               </div>
               {data.authorTag && <div className="mt-2.5 text-[11px] text-muted-foreground/80 font-medium relative z-10">Editado por: <span className="text-foreground/80">{data.authorTag}</span></div>}
             </div>
+            
+            {Array.isArray(data.attachments) && data.attachments.length > 0 && (
+              <div className="mt-3 col-span-1 lg:col-span-2">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Anexos Vinculados ({data.attachments.length})</div>
+                <div className="flex flex-wrap gap-2">
+                  {data.attachments.map((url: string, i: number) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img key={i} src={url} alt={`Anexo ${i + 1}`} className="max-h-32 sm:max-h-48 rounded-lg border border-border/50 object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(url, '_blank')} />
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         ) : log.action === 'member_roles_update' && data ? (
           <div className="rounded-xl border border-yellow-500/10 bg-yellow-500/5 p-3.5 shadow-sm">

@@ -22,6 +22,7 @@ export async function handleMessageUpdate(old_message: Message | PartialMessage,
       oldContent: old_content,
       newContent: new_content,
       authorTag: new_resolved?.author?.tag ?? null,
+      attachments: new_resolved ? new_resolved.attachments.map((a: any) => a.proxyURL || a.url) : [],
     },
   })
 }

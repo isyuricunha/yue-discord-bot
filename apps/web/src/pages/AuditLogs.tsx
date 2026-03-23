@@ -75,6 +75,15 @@ export default function AuditLogsPage() {
     staleTime: 60000,
   })
 
+  const { data: channelsRes } = useQuery({
+    queryKey: ['channels', guildId],
+    queryFn: async () => {
+      const res = await axios.get(`${API_URL}/api/guilds/${guildId}/channels`, { withCredentials: true })
+      return res.data as { channels: any[] }
+    },
+    staleTime: 60000,
+  })
+
   const membersMap = useMemo(() => {
     const map = new Map<string, any>()
     membersRes?.members?.forEach(m => map.set(m.userId, m))
@@ -86,6 +95,12 @@ export default function AuditLogsPage() {
     rolesRes?.roles?.forEach(r => map.set(r.id, r))
     return map
   }, [rolesRes])
+
+  const channelsMap = useMemo(() => {
+    const map = new Map<string, any>()
+    channelsRes?.channels?.forEach((c: any) => map.set(c.id, c))
+    return map
+  }, [channelsRes])
 
   const logs = data?.logs ?? []
 
@@ -180,7 +195,7 @@ export default function AuditLogsPage() {
           ) : (
             <div className="space-y-4">
               {filtered.slice(0, 100).map((l) => (
-                <AuditLogItem key={l.id} log={l} membersMap={membersMap} rolesMap={rolesMap} />
+                <AuditLogItem key={l.id} log={l} membersMap={membersMap} rolesMap={rolesMap} channelsMap={channelsMap} />
               ))}
 
               {filtered.length > 100 ? (
