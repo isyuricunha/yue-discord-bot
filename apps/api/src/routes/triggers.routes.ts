@@ -38,7 +38,8 @@ const paramsSchema = z.object({ guildId: z.string() })
 
 const createTriggerSchema = z.object({
   keyword: z.string().min(1).max(100),
-  mediaUrl: z.string().url(),
+  mediaUrl: z.string().url().optional().nullable(),
+  content: z.string().max(2000).optional().nullable(),
   channelId: z.string().optional().nullable(),
   replyToUser: z.boolean().optional().default(true),
 })
@@ -101,11 +102,16 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(409).send({ error: `Já existe um gatilho com a palavra "${keyword}".` })
       }
 
+      if (!body.mediaUrl && !body.content) {
+        return reply.code(400).send({ error: 'Você precisa informar pelo menos uma URL ou um Texto.' })
+      }
+
       const trigger = await prisma.keywordTrigger.create({
         data: {
           guildId,
           keyword,
-          mediaUrl: body.mediaUrl,
+          mediaUrl: body.mediaUrl || null,
+          content: body.content || null,
           channelId: body.channelId ?? null,
           createdBy: user.userId,
           replyToUser: body.replyToUser,

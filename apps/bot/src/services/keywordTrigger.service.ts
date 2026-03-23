@@ -48,8 +48,9 @@ async function get_triggers(guild_id: string) {
 async function add_trigger(
   guild_id: string,
   keyword: string,
-  media_url: string,
-  channel_id: string | null,
+  media_url: string | null = null,
+  content: string | null = null,
+  channel_id: string | null = null,
   created_by: string,
   reply_to_user: boolean = true
 ) {
@@ -57,7 +58,8 @@ async function add_trigger(
     data: {
       guildId: guild_id,
       keyword: keyword.toLowerCase().trim(),
-      mediaUrl: media_url,
+      mediaUrl: media_url || null,
+      content: content || null,
       channelId: channel_id ?? null,
       createdBy: created_by,
       replyToUser: reply_to_user,
@@ -97,11 +99,24 @@ async function handle_message(message: Message): Promise<boolean> {
   if (!match) return false
 
   try {
-    const embed = new EmbedBuilder()
-      .setColor(COLORS.INFO)
-      .setImage(match.mediaUrl)
+    const is_image = match.mediaUrl ? validate_media_url(match.mediaUrl) : false
+    const embeds: EmbedBuilder[] = []
+    let final_content = match.content ?? ''
 
-    const payload = { embeds: [embed] }
+    if (match.mediaUrl) {
+      if (is_image) {
+        embeds.push(new EmbedBuilder().setColor(COLORS.INFO).setImage(match.mediaUrl))
+      } else {
+        // For YouTube, Spotify, etc. — append to content so Discord unfurls them
+        final_content = final_content ? `${final_content}\n${match.mediaUrl}` : match.mediaUrl
+      }
+    }
+
+    const payload = {
+      content: final_content || undefined,
+      embeds: embeds.length > 0 ? embeds : undefined,
+    }
+
     if (match.replyToUser) {
       await message.reply(payload).catch(() => null)
     } else if (message.channel && 'send' in message.channel) {

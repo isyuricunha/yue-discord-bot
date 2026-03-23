@@ -1243,9 +1243,10 @@ model FreeGameGiveaway {
 model KeywordTrigger {
   id        String   @id @default(cuid())
   guildId   String
-  keyword   String
-  mediaUrl  String
-  channelId String?
+  keyword     String
+  mediaUrl    String?
+  content     String?
+  channelId   String?
   createdBy   String
   createdAt   DateTime @default(now())
   replyToUser Boolean  @default(true)

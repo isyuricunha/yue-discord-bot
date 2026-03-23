@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Plus, Radio, Trash2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -50,6 +50,7 @@ type keyword_trigger = {
   mediaUrl: string
   channelId: string | null
   createdBy: string
+  content: string | null
   replyToUser: boolean
   createdAt: string
 }
@@ -62,6 +63,7 @@ export default function KeywordTriggersPage() {
   const queryClient = useQueryClient()
 
   const [keyword, setKeyword] = useState('')
+  const [content, setContent] = useState('')
   const [url, setUrl] = useState('')
   const [channelId, setChannelId] = useState('')
   const [replyToUser, setReplyToUser] = useState(true)
@@ -98,7 +100,8 @@ export default function KeywordTriggersPage() {
     mutationFn: async () => {
       await axios.post(`${API_URL}/api/guilds/${guildId}/triggers`, {
         keyword: keyword.trim(),
-        mediaUrl: url.trim(),
+        mediaUrl: url.trim() || null,
+        content: content.trim() || null,
         channelId: channelId || null,
         replyToUser,
       })
@@ -106,6 +109,7 @@ export default function KeywordTriggersPage() {
     onSuccess: () => {
       toast_success('Gatilho adicionado com sucesso!')
       setKeyword('')
+      setContent('')
       setUrl('')
       setChannelId('')
       setReplyToUser(true)
@@ -144,7 +148,11 @@ export default function KeywordTriggersPage() {
       toast_error('Informe a palavra-chave.')
       return
     }
-    const err = validate_media_url(url.trim())
+    if (!url.trim() && !content.trim()) {
+      toast_error('Informe pelo menos uma URL ou uma Mensagem.')
+      return
+    }
+    const err = url.trim() ? validate_media_url(url.trim()) : null
     if (err) {
       set_url_error(err)
       return
@@ -184,27 +192,22 @@ export default function KeywordTriggersPage() {
               />
             </div>
 
-            <div>
-              <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-                Canal (opcional)
-              </div>
-              {is_channels_loading ? (
-                <Skeleton className="h-11 w-full" />
-              ) : (
-                <Select value={channelId} onValueChange={setChannelId}>
-                  <option value="">Todos os canais</option>
-                  {text_channels.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      #{c.name}
-                    </option>
-                  ))}
-                </Select>
-              )}
             </div>
           </div>
 
           <div>
-            <div className="mb-1.5 text-xs font-medium text-muted-foreground">URL da mídia</div>
+            <div className="mb-1.5 text-xs font-medium text-muted-foreground">Mensagem (Texto)</div>
+            <Textarea
+              value={content}
+              onChange={(e) => setContent(e.target.value)}
+              placeholder="O que o bot deve dizer..."
+              className="resize-none"
+              rows={3}
+            />
+          </div>
+
+          <div>
+            <div className="mb-1.5 text-xs font-medium text-muted-foreground">URL da mídia (opcional)</div>
             <Input
               value={url}
               onChange={(e) => handle_url_change(e.target.value)}
@@ -250,7 +253,7 @@ export default function KeywordTriggersPage() {
             <Button
               onClick={handle_submit}
               isLoading={create_mutation.isPending}
-              disabled={!keyword.trim() || !url.trim() || !!url_error}
+              disabled={!keyword.trim() || (!url.trim() && !content.trim()) || !!url_error}
             >
               <Plus className="h-4 w-4" />
               <span>Adicionar</span>
@@ -302,14 +305,20 @@ export default function KeywordTriggersPage() {
                   >
                     {/* Thumbnail preview */}
                     <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-border/50 bg-surface/80">
-                      <img
-                        src={t.mediaUrl}
-                        alt={t.keyword}
-                        className="h-full w-full object-cover"
-                        onError={(e) => {
-                          ;(e.target as HTMLImageElement).style.display = 'none'
-                        }}
-                      />
+                      {t.mediaUrl ? (
+                        <img
+                          src={t.mediaUrl}
+                          alt={t.keyword}
+                          className="h-full w-full object-cover"
+                          onError={(e) => {
+                            ;(e.target as HTMLImageElement).style.display = 'none'
+                          }}
+                        />
+                      ) : (
+                        <div className="flex h-full w-full items-center justify-center text-muted-foreground/30">
+                          <Radio className="h-4 w-4" />
+                        </div>
+                      )}
                     </div>
 
                     {/* Content */}
@@ -323,15 +332,23 @@ export default function KeywordTriggersPage() {
                             #{channel.name}
                           </span>
                         ) : (
-                          <span className="text-xs text-muted-foreground">Todos os canais</span>
-                        )}
-                        <span className="mx-1 text-muted-foreground/30">•</span>
-                        <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
                           {t.replyToUser ? 'Responde' : 'Envia'}
                         </span>
                       </div>
-                      <div className="mt-1 truncate text-xs text-muted-foreground">
-                        {t.mediaUrl.length > 70 ? `${t.mediaUrl.slice(0, 67)}…` : t.mediaUrl}
+                      <div className="mt-1 flex flex-col gap-0.5">
+                        {t.content && (
+                          <div className="truncate text-xs text-foreground/80 line-clamp-1">
+                            {t.content}
+                          </div>
+                        )}
+                        <div className="truncate text-[10px] text-muted-foreground/60 italic">
+                          {t.mediaUrl ? (
+                            t.mediaUrl.length > 60 ? `${t.mediaUrl.slice(0, 57)}…` : t.mediaUrl
+                          ) : (
+                            'Apenas texto'
+                          )}
+                        </div>
                       </div>
                     </div>
 
