@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Save, Settings as SettingsIcon } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Card, CardContent, ErrorState, Input, Select, Skeleton, Button } from '../components/ui'
+import { Card, CardContent, ErrorState, Select, Skeleton, Button } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -38,7 +38,6 @@ export default function SettingsPage() {
     },
   })
 
-  const [prefix, setPrefix] = useState('')
   const [locale, setLocale] = useState('pt-BR')
   const [timezone, setTimezone] = useState('America/Sao_Paulo')
 
@@ -52,7 +51,6 @@ export default function SettingsPage() {
     if (has_initialized.current) return
     has_initialized.current = true
 
-    setPrefix(config.prefix || '/')
     setLocale(config.locale || 'pt-BR')
     setTimezone(config.timezone || 'America/Sao_Paulo')
   }, [config])
@@ -73,7 +71,6 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     updateMutation.mutate({
-      prefix,
       locale,
       timezone,
     })
@@ -109,23 +106,6 @@ export default function SettingsPage() {
       <Card>
         <CardContent className="space-y-6 p-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div>
-              <div className="text-sm font-medium">Prefixo dos comandos</div>
-              <div className="mt-2">
-                {is_config_loading ? (
-                  <Skeleton className="h-11 w-full" />
-                ) : (
-                  <Input
-                    value={prefix}
-                    onChange={(e) => setPrefix(e.target.value)}
-                    maxLength={5}
-                    placeholder="/"
-                  />
-                )}
-              </div>
-              <div className="mt-2 text-xs text-muted-foreground">Prefixo usado para comandos do bot.</div>
-            </div>
-
             <div>
               <div className="text-sm font-medium">Idioma</div>
               <div className="mt-2">
