@@ -267,6 +267,26 @@ export const jogosGratisCommand: Command = {
             .setMinValue(1)
             .setMaxValue(10)
         )
+    )
+    .addSubcommand((sub) =>
+      sub
+        .setName('reenviar')
+        .setDescription('Reenviar jogos grátis para o canal de notificações')
+        .addIntegerOption((opt) =>
+          opt
+            .setName('limite')
+            .setDescription('Número de jogos para enviar (padrão: 5, máximo: 10)')
+            .setMinValue(1)
+            .setMaxValue(10)
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName('plataformas')
+            .setDescription('Filtrar por plataformas (ex: steam,epic-games-store)')
+        )
+        .addStringOption((opt) =>
+          opt.setName('tipos').setDescription('Filtrar por tipos (ex: game,loot)')
+        )
     ),
 
   async execute(interaction: ChatInputCommandInteraction) {
@@ -295,6 +315,11 @@ export const jogosGratisCommand: Command = {
 
       if (sub === 'listar') {
         await handleListar(interaction)
+        return
+      }
+
+      if (sub === 'reenviar') {
+        await handleReenviar(interaction, guildId)
         return
       }
 
@@ -577,4 +602,250 @@ async function handleListar(
   await interaction.editReply({
     embeds: [summaryEmbed, ...embeds],
   })
+}
+
+/**
+ * Handler para o subcomando reenviar
+ * Reenvia jogos grátis para o canal de notificações configurado
+ */
+async function handleReenviar(
+  interaction: ChatInputCommandInteraction,
+  guildId: string
+): Promise<void> {
+  const plataformasStr = interaction.options.getString('plataformas')
+  const tiposStr = interaction.options.getString('tipos')
+  const limite = interaction.options.getInteger('limite') || 5
+
+  // Validar plataformas
+  const plataformas = parseCommaSeparatedString(plataformasStr)
+  const invalidPlatforms = plataformas.filter((p) => !isValidPlatform(p))
+  if (invalidPlatforms.length > 0) {
+    const validPlatforms = GAMERPOWER_PLATFORMS.map((p) => p.id).join(', ')
+    await interaction.editReply({
+      content: `${EMOJIS.ERROR} Plataforma(s) inválida(s): ${invalidPlatforms.join(', ')}. Plataformas válidas: ${validPlatforms}`,
+    })
+    return
+  }
+
+  // Validar tipos
+  const tipos = parseCommaSeparatedString(tiposStr)
+  const invalidTypes = tipos.filter((t) => !isValidType(t))
+  if (invalidTypes.length > 0) {
+    const validTypes = GAMERPOWER_TYPES.map((t) => t.id).join(', ')
+    await interaction.editReply({
+      content: `${EMOJIS.ERROR} Tipo(s) inválido(s): ${invalidTypes.join(', ')}. Tipos válidos: ${validTypes}`,
+    })
+    return
+  }
+
+  // Buscar configuração de notificação
+  const config = await prisma.freeGameNotification.findUnique({
+    where: { guildId },
+  })
+
+  // Verificar se há configuração
+  if (!config || !config.channelId || !config.isEnabled) {
+    const embed = new EmbedBuilder()
+      .setColor(COLORS.WARNING)
+      .setTitle('⚠️ Nenhuma configuração encontrada')
+      .setDescription(
+        'Use `/jogosgratis configurar` para configurar as notificações primeiro.'
+      )
+
+    await interaction.editReply({ embeds: [embed] })
+    return
+  }
+
+  // Verificar se o canal ainda existe
+  const channel = await interaction.guild?.channels.fetch(config.channelId).catch(() => null)
+
+  if (!channel) {
+    const embed = new EmbedBuilder()
+      .setColor(COLORS.ERROR)
+      .setTitle('❌ Canal não encontrado')
+      .setDescription(
+        'O canal de notificações não foi encontrado. Use `/jogosgratis configurar` para reconfigurar.'
+      )
+
+    await interaction.editReply({ embeds: [embed] })
+    return
+  }
+
+  // Verificar se o canal é text-based
+  if (!channel.isTextBased() || !('send' in channel)) {
+    const embed = new EmbedBuilder()
+      .setColor(COLORS.ERROR)
+      .setTitle('❌ Canal inválido')
+      .setDescription(
+        'O canal configurado não é um canal de texto válido. Use `/jogosgratis configurar` para reconfigurar.'
+      )
+
+    await interaction.editReply({ embeds: [embed] })
+    return
+  }
+
+  // Buscar giveaways da API
+  const giveaways = await gamerPowerService.getAllGiveaways({
+    platforms: plataformas.length > 0 ? plataformas : undefined,
+    types: tipos.length > 0 ? tipos : undefined,
+    sortBy: 'date',
+  })
+
+  if (giveaways.length === 0) {
+    const embed = new EmbedBuilder()
+      .setColor(COLORS.WARNING)
+      .setTitle('🎮 Nenhum jogo grátis encontrado')
+      .setDescription(
+        'Não há jogos grátis disponíveis no momento com os filtros selecionados.'
+      )
+      .addFields(
+        {
+          name: 'Filtros aplicados',
+          value: `Plataformas: ${formatPlatforms(plataformas)}
+Tipos: ${formatTypes(tipos)}`,
+          inline: false,
+        }
+      )
+
+    await interaction.editReply({ embeds: [embed] })
+    return
+  }
+
+  // Limitar resultados ao número especificado (máximo 10)
+  const limitedGiveaways = giveaways.slice(0, Math.min(limite, 10))
+
+  // Helper function to safely extract string array from Json field
+  function extractStringArray(value: unknown): string[] {
+    if (Array.isArray(value)) {
+      return value.filter((item): item is string => typeof item === 'string')
+    }
+    return []
+  }
+
+  const roleIds = extractStringArray(config.roleIds)
+  const roleMention = roleIds.length > 0 ? roleIds.map((id) => `<@&${id}>`).join(' ') : null
+
+  // Embed de resumo
+  const summaryEmbed = new EmbedBuilder()
+    .setColor(COLORS.INFO)
+    .setTitle('🔄 Reenviando Jogos Grátis')
+    .setDescription(
+      `Enviando **${limitedGiveaways.length}** jogo(s) grátis para o canal <#${config.channelId}>`
+    )
+    .addFields(
+      {
+        name: '🌐 Plataformas',
+        value: plataformas.length > 0 ? plataformas.join(', ') : 'Todas',
+        inline: true,
+      },
+      {
+        name: '🏷️ Tipos',
+        value: tipos.length > 0 ? tipos.join(', ') : 'Todos',
+        inline: true,
+      }
+    )
+    .setFooter({
+      text: 'Este reenvio NÃO marcará os jogos como anunciados no banco de dados',
+    })
+
+  await interaction.editReply({ embeds: [summaryEmbed] })
+
+  // Enviar cada jogo para o canal
+  let sentCount = 0
+  for (const giveaway of limitedGiveaways) {
+    try {
+      const embed = createNotificationEmbed(giveaway)
+
+      await channel.send({
+        content: roleMention || undefined,
+        embeds: [embed],
+        allowedMentions: roleIds.length > 0 ? { roles: roleIds } : undefined,
+      })
+
+      sentCount++
+
+      // Pequeno delay entre mensagens para evitar rate limiting
+      await new Promise((resolve) => setTimeout(resolve, 500))
+    } catch (error) {
+      console.error(`Erro ao enviar notificação de jogo grátis ${giveaway.id}:`, error)
+    }
+  }
+
+  // Embed de confirmação
+  const confirmationEmbed = new EmbedBuilder()
+    .setColor(COLORS.SUCCESS)
+    .setTitle(`${EMOJIS.SUCCESS} Reenvio concluído`)
+    .setDescription(
+      ` foram enviado(s) **${sentCount}** jogo(s) grátis para o canal <#${config.channelId}>.
+
+> 💡 Este reenvio não foi marcado como anunciado. O agendador ainda poderá notificar estes jogos novamente.`
+    )
+    .addFields(
+      {
+        name: '📊 Total encontrado',
+        value: `${giveaways.length}`,
+        inline: true,
+      },
+      {
+        name: '✅ Enviados',
+        value: `${sentCount}`,
+        inline: true,
+      }
+    )
+
+  // Editar a mensagem original com o resultado
+  await interaction.editReply({ embeds: [confirmationEmbed] })
+}
+
+/**
+ * Cria embed para notificação (mesmo formato do scheduler)
+ * @param giveaway - Giveaway da GamerPower
+ * @returns Embed formatado
+ */
+function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
+  const platforms = giveaway.platforms
+    .map((p) => `${getPlatformEmoji(p)} ${getPlatformName(p)}`)
+    .join(' | ')
+
+  const typeEmoji = getTypeEmoji(giveaway.type)
+  const typeName = getTypeName(giveaway.type)
+
+  const embed = new EmbedBuilder()
+    .setColor(getEmbedColorByType(giveaway.type))
+    .setTitle(`${typeEmoji} ${giveaway.title}`)
+    .setURL(giveaway.giveaway_url)
+    .setDescription(
+      giveaway.description.length > 300
+        ? giveaway.description.substring(0, 297) + '...'
+        : giveaway.description
+    )
+    .addFields(
+      {
+        name: '🌐 Plataformas',
+        value: platforms || 'Todas',
+        inline: false,
+      },
+      {
+        name: '🏷️ Tipo',
+        value: typeName,
+        inline: true,
+      },
+      {
+        name: '💰 Valor',
+        value: giveaway.worth,
+        inline: true,
+      },
+      {
+        name: '📅 Termina em',
+        value: formatDate(giveaway.end_date),
+        inline: true,
+      }
+    )
+    .setThumbnail(giveaway.thumbnail)
+    .setFooter({
+      text: `🔗 Pegar agora: ${giveaway.giveaway_url}`,
+    })
+    .setTimestamp()
+
+  return embed
 }
