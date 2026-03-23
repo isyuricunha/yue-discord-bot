@@ -410,7 +410,11 @@ export default function TicketsPage() {
           </div>
 
           {tickets_query.isLoading ? (
-            <Skeleton className="h-28 w-full" />
+            <div className="space-y-3">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+              ))}
+            </div>
           ) : tickets_query.isError ? (
             <ErrorState
               title="Erro ao carregar tickets"
@@ -436,9 +440,9 @@ export default function TicketsPage() {
                         </Badge>
                       </div>
                       <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
-                        <span>Usuário: <span className="font-mono text-foreground/80">{t.userId}</span></span>
+                        <span>Usuário: <span className="font-mono text-foreground/80">@...{t.userId.slice(-5)}</span></span>
                         <span>•</span>
-                        <span>Canal: <span className="font-mono text-foreground/80">{t.channelId}</span></span>
+                        <span>Canal: <span className="font-mono text-foreground/80">{channels_data?.channels?.find(c => c.id === t.channelId)?.name ? `#${channels_data.channels.find(c => c.id === t.channelId)!.name}` : `...${t.channelId.slice(-5)}`}</span></span>
                       </div>
                     </div>
                     <div className="text-[11px] text-muted-foreground font-medium">{new Date(t.createdAt).toLocaleString('pt-BR')}</div>
@@ -446,7 +450,7 @@ export default function TicketsPage() {
 
                   {t.status === 'closed' && (t.closeReason || t.closedAt) && (
                     <div className="mt-2 text-xs text-muted-foreground">
-                      Fechado em: {t.closedAt ? new Date(t.closedAt).toLocaleString() : '—'}
+                      Fechado em: {t.closedAt ? new Date(t.closedAt).toLocaleString('pt-BR') : '—'}
                       {t.closeReason ? ` • Motivo: ${t.closeReason}` : ''}
                     </div>
                   )}

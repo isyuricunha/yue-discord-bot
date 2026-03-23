@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
-import { Coins, Dice5, Swords } from 'lucide-react'
+import { Coins, Dice5, RefreshCw, Swords } from 'lucide-react'
 
 import { verify_coinflip_result } from '@yuebot/shared'
 
@@ -165,13 +165,18 @@ export default function CoinflipPage() {
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-2xl font-semibold tracking-tight">Cara ou Coroa</div>
-          <div className="mt-1 text-sm text-muted-foreground">Crie apostas e aceite/recuse pelo painel</div>
+        <div className="flex items-center gap-3">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+            <Dice5 className="h-5 w-5" />
+          </span>
+          <div>
+            <div className="text-xl font-semibold tracking-tight">Cara ou Coroa</div>
+            <div className="mt-1 text-sm text-muted-foreground">Crie apostas e aceite/recuse pelo painel</div>
+          </div>
         </div>
 
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
           className="h-10"
           onClick={() => {
@@ -179,6 +184,7 @@ export default function CoinflipPage() {
             void refetch_games()
           }}
         >
+          <RefreshCw className="h-4 w-4" />
           Atualizar
         </Button>
       </div>
@@ -247,8 +253,9 @@ export default function CoinflipPage() {
             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
               <Coins className="h-3.5 w-3.5" />
               <span>
-                Ganhas: {is_stats_loading ? '-' : format_luazinhas(stats?.won ?? '0')} • Perdidas:{' '}
-                {is_stats_loading ? '-' : format_luazinhas(stats?.lost ?? '0')}
+                Ganhas: <span className="text-emerald-400 font-medium">{is_stats_loading ? '-' : format_luazinhas(stats?.won ?? '0')} 🌙</span>
+                {' • '}
+                Perdidas: <span className="text-red-400 font-medium">{is_stats_loading ? '-' : format_luazinhas(stats?.lost ?? '0')} 🌙</span>
               </span>
             </div>
           </CardContent>
@@ -275,26 +282,40 @@ export default function CoinflipPage() {
                 return (
                   <div key={g.id} className="rounded-xl border border-border/70 bg-surface/40 px-3 py-3">
                     <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="text-sm font-semibold">
-                          {g.status.toUpperCase()} • {format_luazinhas(g.betAmount)} luazinhas
+                    <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className={[
+                            'inline-block rounded px-2 py-0.5 text-xs font-semibold uppercase',
+                            g.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
+                            g.status === 'declined' ? 'bg-red-500/20 text-red-400' :
+                            'bg-yellow-500/20 text-yellow-400',
+                          ].join(' ')}>
+                            {g.status === 'completed' ? 'Concluída' : g.status === 'declined' ? 'Recusada' : 'Pendente'}
+                          </span>
+                          <span className="text-sm font-semibold">
+                            {format_luazinhas(g.betAmount)} 🌙
+                          </span>
                         </div>
                         <div className="mt-1 text-xs text-muted-foreground">
-                          challenger {g.challengerId} vs opponent {g.opponentId} • lado {g.challengerSide}
+                          <span title="Desafiante">@...{g.challengerId.slice(-5)}</span>
+                          {' vs '}
+                          <span title="Oponente">@...{g.opponentId.slice(-5)}</span>
+                          {' • '}
+                          <span>{g.challengerSide === 'heads' ? '🪙 Cara' : '🪪 Coroa'}</span>
                         </div>
                         {g.winnerId && (
-                          <div className="mt-1 text-xs text-muted-foreground">
-                            winner {g.winnerId} • result {g.resultSide}
+                          <div className="mt-1 text-xs text-emerald-400 font-medium">
+                            Vencedor: @...{g.winnerId.slice(-5)} • Resultado: {g.resultSide === 'heads' ? '🪙 Cara' : '🪪 Coroa'}
                           </div>
                         )}
                         {!!g.serverSeedHash && (
-                          <div className="mt-1 text-xs text-muted-foreground break-all">
-                            commit (server seed hash) {g.serverSeedHash}
+                          <div className="mt-1 font-mono text-[10px] text-muted-foreground/60 break-all">
+                            Hash: {g.serverSeedHash.slice(0, 16)}…
                           </div>
                         )}
                         {g.status === 'completed' && !!g.serverSeed && (
-                          <div className="mt-1 text-xs text-muted-foreground break-all">
-                            reveal (server seed) {g.serverSeed}
+                          <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/60 break-all">
+                            Seed: {g.serverSeed.slice(0, 16)}…
                           </div>
                         )}
                       </div>

@@ -707,8 +707,9 @@ export default function OwnerPage() {
                     </div>
                     <div className="mt-1 truncate text-xs text-muted-foreground">{g.id}</div>
                     <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
-                      {g.ownerId ? <span className="truncate">owner: {g.ownerId}</span> : null}
-                      {format_added_at(g.addedAt) ? <span>added: {format_added_at(g.addedAt)}</span> : null}
+                      {g.ownerId ? <span className="truncate" title={g.ownerId}>Owner: @...{g.ownerId.slice(-5)}</span> : null}
+                      {format_added_at(g.addedAt) ? <span>Adicionado: {format_added_at(g.addedAt)}</span> : null}
+                      {blocked_set.has(g.id) && <span className="font-semibold text-red-400">Bloqueado</span>}
                     </div>
                   </div>
                 </div>
@@ -764,7 +765,7 @@ export default function OwnerPage() {
                     }}
                   >
                     <Settings className="h-4 w-4" />
-                    Settings
+                    Configurações
                   </Button>
                   <Button
                     type="button"
@@ -778,7 +779,7 @@ export default function OwnerPage() {
                     isLoading={syncMutation.isPending}
                   >
                     <RefreshCw className="h-4 w-4" />
-                    Sync
+                    Sincronizar
                   </Button>
 
                   <Button

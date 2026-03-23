@@ -345,7 +345,7 @@ export default function GiveawayDetailsPage() {
                       <div key={chance.roleId} className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                           <div className="text-sm font-medium">
-                            {chance.roleId}
+                            @...{chance.roleId.slice(-5)}
                           </div>
                         </div>
                         <div className="text-sm font-medium">
@@ -420,8 +420,9 @@ export default function GiveawayDetailsPage() {
                       <span
                         key={id}
                         className="inline-flex items-center rounded-full border border-border/70 bg-surface/70 px-3 py-1 text-xs text-muted-foreground"
+                        title={id}
                       >
-                        {id}
+                        @...{id.slice(-5)}
                       </span>
                     ))}
                   </div>

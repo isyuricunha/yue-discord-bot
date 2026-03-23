@@ -5,7 +5,7 @@ import axios from 'axios'
 import { ArrowLeft, Search } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton } from '../components/ui'
 
 import { AuditLogItem, getActionFormat } from './components/AuditLogItem'
 import { toast_error, toast_success } from '../store/toast'
@@ -177,7 +177,7 @@ export default function AuditLogsPage() {
             <span className="hidden sm:inline">Voltar</span>
           </Button>
           <div>
-            <div className="text-xl font-semibold tracking-tight">Audit logs</div>
+            <div className="text-xl font-semibold tracking-tight">Logs de Auditoria</div>
             <div className="mt-1 text-sm text-muted-foreground">Eventos importantes do servidor</div>
           </div>
         </div>
@@ -233,7 +233,7 @@ export default function AuditLogsPage() {
                 <Input
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
-                  placeholder="action / userId / channelId / messageId"
+                  placeholder="Ação, usuário, canal, mensagem..."
                   className="pl-9"
                 />
               </div>
@@ -247,11 +247,13 @@ export default function AuditLogsPage() {
               ))}
             </div>
           ) : filtered.length === 0 ? (
-            <div className="rounded-2xl border border-border/70 bg-surface/40 p-6 text-sm text-muted-foreground">
-              Nenhum evento encontrado.
-            </div>
+            <EmptyState
+              title="Nenhum evento encontrado"
+              description="Tente ajustar o filtro de ação ou o termo de busca."
+            />
           ) : (
             <div className="space-y-4">
+              <div className="text-xs text-muted-foreground">{filtered.length} eventos encontrados</div>
               {filtered.slice(0, 100).map((l) => (
                 <AuditLogItem key={l.id} log={l} membersMap={membersMap} rolesMap={rolesMap} channelsMap={channelsMap} />
               ))}

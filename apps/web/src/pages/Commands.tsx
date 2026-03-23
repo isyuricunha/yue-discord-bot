@@ -178,7 +178,10 @@ export default function CommandsPage() {
           ) : (
             <div className="space-y-6">
               <div>
-                <div className="mb-3 text-sm font-semibold">Slash commands</div>
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="text-sm font-semibold">Slash Commands</div>
+                  <span className="rounded-full bg-surface/60 px-2 py-0.5 text-[11px] text-muted-foreground border border-border/60">{filtered_slash.length}</span>
+                </div>
                 {filtered_slash.length === 0 ? (
                   <div className="text-sm text-muted-foreground">Nenhum comando encontrado.</div>
                 ) : (
@@ -215,7 +218,10 @@ export default function CommandsPage() {
               </div>
 
               <div>
-                <div className="mb-3 text-sm font-semibold">Context menu</div>
+                <div className="mb-3 flex items-center gap-2">
+                  <div className="text-sm font-semibold">Menu de Contexto</div>
+                  <span className="rounded-full bg-surface/60 px-2 py-0.5 text-[11px] text-muted-foreground border border-border/60">{filtered_context.length}</span>
+                </div>
                 {filtered_context.length === 0 ? (
                   <div className="text-sm text-muted-foreground">Nenhum comando encontrado.</div>
                 ) : (
