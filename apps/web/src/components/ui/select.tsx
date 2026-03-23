@@ -68,7 +68,24 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
     const current_value = is_controlled ? value : uncontrolled_value
 
     const [open, setOpen] = React.useState(false)
+    const [search_query, setSearchQuery] = React.useState('')
     const [active_index, setActiveIndex] = React.useState<number>(-1)
+
+    const filtered_options = React.useMemo(() => {
+      if (!search_query) return options
+      const q = search_query.toLowerCase()
+      return options.filter((o) => {
+        if (typeof o.label === 'string') return o.label.toLowerCase().includes(q)
+        // Extract inner text if label is an array or object
+        const labelStr = React.Children.toArray(o.label).reduce<string>((acc, child) => {
+          if (typeof child === 'string') return acc + child
+          if (typeof child === 'number') return acc + String(child)
+          return acc
+        }, '')
+        if (labelStr) return labelStr.toLowerCase().includes(q)
+        return String(o.value).toLowerCase().includes(q)
+      })
+    }, [options, search_query])
 
     const [menu_style, setMenuStyle] = React.useState<{
       left: number
@@ -103,6 +120,7 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
     const close = React.useCallback(() => {
       setOpen(false)
       setActiveIndex(-1)
+      setSearchQuery('')
     }, [])
 
     const commit_value = React.useCallback(
@@ -194,8 +212,31 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
               className="fixed z-9999 overflow-hidden rounded-xl border border-border/80 bg-surface/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md"
               style={{ left: menu_style.left, width: menu_style.width, top: menu_style.top, bottom: menu_style.bottom }}
             >
+              {options.length > 5 && (
+                <div className="p-2 border-b border-border/40">
+                  <input
+                    type="text"
+                    placeholder="Pesquisar..."
+                    className="w-full bg-surface/40 rounded-lg border border-border/50 px-3 py-1.5 text-sm outline-none focus:border-accent/50 transition-colors"
+                    value={search_query}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onClick={(e) => e.stopPropagation()}
+                    onKeyDown={(e) => {
+                      e.stopPropagation()
+                      if (e.key === 'Escape') {
+                        close()
+                        button_ref.current?.focus()
+                      }
+                    }}
+                    autoFocus
+                  />
+                </div>
+              )}
               <div className="overflow-auto py-1" style={{ maxHeight: menu_style.maxHeight }}>
-                {options.map((opt, idx) => {
+                {filtered_options.length === 0 && (
+                  <div className="py-3 text-center text-sm text-muted-foreground w-full">Nenhum resultado</div>
+                )}
+                {filtered_options.map((opt, idx) => {
                   const is_selected = opt.value === (current_value ?? '')
                   const is_active = idx === active_index
 
@@ -214,15 +255,16 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
                         is_selected && 'bg-accent/20'
                       )}
                       onMouseEnter={() => setActiveIndex(idx)}
-                      onClick={() => {
+                      onClick={(e) => {
+                        e.stopPropagation()
                         if (opt.disabled) return
                         commit_value(opt.value)
                         close()
                         button_ref.current?.focus()
                       }}
                     >
-                      <span className="min-w-0 truncate">{opt.label}</span>
-                      {is_selected && <Check className="h-4 w-4 text-accent" />}
+                      <span className="min-w-0 flex items-center gap-2 truncate">{opt.label}</span>
+                      {is_selected && <Check className="h-4 w-4 shrink-0 text-accent" />}
                     </button>
                   )
                 })}
