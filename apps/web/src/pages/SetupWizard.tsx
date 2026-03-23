@@ -509,7 +509,7 @@ export default function SetupWizardPage() {
         </div>
       </div>
 
-      <Card>
+      <Card className="border-accent/20">
         <CardContent className="p-6">
           <div className="flex items-center justify-between">
             <div className="text-sm font-medium">Progresso</div>
@@ -549,7 +549,7 @@ export default function SetupWizardPage() {
         )}
 
       {step === 1 && (
-        <Card>
+        <Card className="border-accent/20">
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
@@ -695,7 +695,7 @@ export default function SetupWizardPage() {
       )}
 
       {step === 2 && (
-        <Card>
+        <Card className="border-accent/20">
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
@@ -783,7 +783,7 @@ export default function SetupWizardPage() {
       )}
 
       {step === 3 && (
-        <Card>
+        <Card className="border-accent/20">
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">

@@ -179,10 +179,20 @@ export default function BadgesPage() {
             <div className="text-sm font-medium">Catálogo</div>
 
             {isLoading && (
-              <div className="space-y-3">
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
-                <Skeleton className="h-10 w-full" />
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <Card key={i} className="overflow-hidden">
+                    <CardContent className="p-5">
+                      <div className="flex items-center gap-4">
+                        <Skeleton className="h-14 w-14 rounded-2xl" />
+                        <div className="min-w-0 flex-1">
+                          <Skeleton className="h-4 w-1/2" />
+                          <Skeleton className="mt-2 h-3 w-3/4" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
               </div>
             )}
 

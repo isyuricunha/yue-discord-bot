@@ -105,7 +105,7 @@ export default function ExtrasPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[320px_1fr]">
-        <Card className="h-fit">
+        <Card className="h-fit border-accent/20">
           <CardHeader>
             <div className="text-base font-semibold">Navegação</div>
             <div className="mt-1 text-sm text-muted-foreground">Escolha um tópico para ler.</div>

@@ -684,7 +684,7 @@ export default function OwnerPage() {
           {filtered.map((g) => (
             <Card
               key={g.id}
-              className="group cursor-pointer transition-colors hover:border-accent/40"
+              className="group cursor-pointer transition-colors hover:border-accent/50"
               onClick={() => navigate(`/guild/${g.id}`)}
             >
               <CardContent className="p-5">

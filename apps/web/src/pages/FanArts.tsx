@@ -135,7 +135,7 @@ export default function FanArtsPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+        <Card className="border-accent/20 lg:col-span-2">
           <CardContent className="space-y-4 pt-6">
             <div className="text-sm font-medium">Aprovadas</div>
 
@@ -181,7 +181,7 @@ export default function FanArtsPage() {
         </Card>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="border-accent/20">
             <CardContent className="space-y-4 pt-6">
               <div className="text-sm font-medium">Pendentes (staff)</div>
 
@@ -221,7 +221,7 @@ export default function FanArtsPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="border-accent/20">
             <CardContent className="space-y-4 pt-6">
               <div className="text-sm font-medium">Revisão</div>
 
