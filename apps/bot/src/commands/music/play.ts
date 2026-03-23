@@ -1,6 +1,6 @@
-import { GuildMember, SlashCommandBuilder } from 'discord.js';
+import { EmbedBuilder, GuildMember, SlashCommandBuilder } from 'discord.js';
 import type { Command } from '../index';
-import { EMOJIS } from '@yuebot/shared';
+import { EMOJIS, COLORS } from '@yuebot/shared';
 import { musicService } from '../../services/music.service';
 
 export type SearchAttempt = {
@@ -132,17 +132,14 @@ const playCommand: Command = {
           await player.play();
         }
 
-        const now_playing = player.queue.current;
-        const now_playing_link = now_playing?.uri
-          ? `[${now_playing.title}](${now_playing.uri})`
-          : now_playing?.title;
-        const now_playing_text = now_playing_link
-          ? `\n**Tocando agora:** ${now_playing_link}`
-          : '';
+        const embed = new EmbedBuilder()
+          .setColor(COLORS.SUCCESS)
+          .setTitle(`${EMOJIS.SUCCESS} Playlist Adicionada`)
+          .setDescription(`A playlist **${result.playlistName}** com **${result.tracks.length}** músicas foi adicionada à fila!${now_playing_text}`)
+          .setThumbnail(result.tracks[0]?.thumbnail || null)
+          .setTimestamp();
 
-        await interaction.followUp(
-          `${EMOJIS.SUCCESS} Playlist **${result.playlistName}** adicionada à fila com **${result.tracks.length}** músicas!${now_playing_text}`
-        );
+        await interaction.followUp({ embeds: [embed] });
       } else {
         const track = result.tracks[0];
         player.queue.add(track);
@@ -161,9 +158,14 @@ const playCommand: Command = {
           ? `\n**Tocando agora:** ${now_playing_link}`
           : '';
 
-        await interaction.followUp(
-          `${EMOJIS.SUCCESS} Música **${track.title}** adicionada à fila!${now_playing_text}`
-        );
+        const embed = new EmbedBuilder()
+          .setColor(COLORS.INFO)
+          .setTitle(`🎵 Música Adicionada`)
+          .setDescription(`**[${track.title}](${track.uri})** foi adicionada à fila!${now_playing_text}`)
+          .setThumbnail(track.thumbnail || null)
+          .setTimestamp();
+
+        await interaction.followUp({ embeds: [embed] });
       }
     } catch (error) {
       await interaction.followUp(`${EMOJIS.ERROR} Ocorreu um erro ao buscar a música.`);

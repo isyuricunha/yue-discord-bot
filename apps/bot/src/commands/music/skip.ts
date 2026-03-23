@@ -1,6 +1,6 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import type { Command } from '../index';
-import { EMOJIS } from '@yuebot/shared';
+import { EMOJIS, COLORS } from '@yuebot/shared';
 import { musicService } from '../../services/music.service';
 import { safe_reply_ephemeral } from '../../utils/interaction';
 
@@ -45,8 +45,13 @@ const skipCommand: Command = {
     const currentTrack = player.queue.current;
     player.skip();
 
+
+    const embed = new EmbedBuilder()
+      .setColor(COLORS.SUCCESS)
+      .setDescription(`${EMOJIS.SUCCESS} **[${currentTrack?.title}](${currentTrack?.uri || ''})** pulada por <@${interaction.user.id}>!`);
+
     await interaction.reply({
-      content: `${EMOJIS.SUCCESS} **${currentTrack?.title}** pulada por <@${interaction.user.id}>!`,
+      embeds: [embed],
     });
   },
 };

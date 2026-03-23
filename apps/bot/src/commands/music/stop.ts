@@ -1,6 +1,6 @@
-import { SlashCommandBuilder } from 'discord.js';
+import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import type { Command } from '../index';
-import { EMOJIS } from '@yuebot/shared';
+import { EMOJIS, COLORS } from '@yuebot/shared';
 import { musicService } from '../../services/music.service';
 import { safe_reply_ephemeral } from '../../utils/interaction';
 import { is_lavalink_player_not_found_error } from '../../utils/safe_error';
@@ -48,8 +48,13 @@ const stopCommand: Command = {
       throw error
     })
 
+
+    const embed = new EmbedBuilder()
+      .setColor(COLORS.SUCCESS)
+      .setDescription(`${EMOJIS.SUCCESS} Música parada e fila limpa por <@${interaction.user.id}>! Saindo do canal...`);
+
     await interaction.reply({
-      content: `${EMOJIS.SUCCESS} Música parada e fila limpa por <@${interaction.user.id}>! Saindo do canal...`,
+      embeds: [embed],
     });
   },
 };
