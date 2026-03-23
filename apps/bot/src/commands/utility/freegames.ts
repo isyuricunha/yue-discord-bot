@@ -421,11 +421,17 @@ async function handleStatus(
 
   const channel = interaction.guild?.channels.cache.get(config.channelId)
 
-  const roleIds = Array.isArray(config.roleIds) ? config.roleIds : []
-  const platforms = Array.isArray(config.platforms) ? config.platforms : []
-  const giveawayTypes = Array.isArray(config.giveawayTypes)
-    ? config.giveawayTypes
-    : []
+  // Helper function to safely extract string array from Json field
+  function extractStringArray(value: unknown): string[] {
+    if (Array.isArray(value)) {
+      return value.filter((item): item is string => typeof item === 'string')
+    }
+    return []
+  }
+
+  const roleIds = extractStringArray(config.roleIds)
+  const platforms = extractStringArray(config.platforms)
+  const giveawayTypes = extractStringArray(config.giveawayTypes)
 
   const embed = new EmbedBuilder()
     .setColor(COLORS.INFO)

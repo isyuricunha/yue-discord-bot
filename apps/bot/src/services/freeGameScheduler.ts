@@ -21,6 +21,14 @@ import { get_redis_connection } from './queue.connection'
 
 const DEFAULT_CHECK_INTERVAL_MINUTES = 15
 
+// Helper function to safely extract string array from Json field
+function extractStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === 'string')
+  }
+  return []
+}
+
 // ============================================
 // Helper Functions - PT-BR localization
 // ============================================
@@ -261,7 +269,15 @@ export class FreeGameScheduler {
 
       // Para cada guild, verificar e notificar
       for (const config of guildConfigs) {
-        await this.processGuild(config).catch((err) => {
+        // Transform raw Prisma config to typed config
+        const processedConfig = {
+          guildId: config.guildId,
+          channelId: config.channelId,
+          roleIds: extractStringArray(config.roleIds),
+          platforms: extractStringArray(config.platforms),
+          giveawayTypes: extractStringArray(config.giveawayTypes),
+        }
+        await this.processGuild(processedConfig).catch((err) => {
           logger.error(
             { err: safe_error_details(err), guildId: config.guildId },
             'Erro ao processar notificações de jogos grátis para guild'
