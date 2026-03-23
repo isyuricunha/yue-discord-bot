@@ -76,8 +76,8 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(403).send({ error: 'Forbidden' })
       }
 
-      const is_admin = await is_guild_admin(user.userId, guildId)
-      if (!is_admin) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!user.isOwner && !isAdmin) {
         return reply.code(403).send({ error: 'Você precisa da permissão Gerenciar Servidor.' })
       }
 
@@ -128,8 +128,8 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(403).send({ error: 'Forbidden' })
       }
 
-      const is_admin = await is_guild_admin(user.userId, guildId)
-      if (!is_admin) {
+      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      if (!user.isOwner && !isAdmin) {
         return reply.code(403).send({ error: 'Você precisa da permissão Gerenciar Servidor.' })
       }
 

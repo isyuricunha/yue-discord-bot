@@ -544,7 +544,7 @@ export function start_internal_api(client: Client, options: internal_api_options
           }
 
           const member = await guild.members.fetch(admin_check.userId).catch(() => null)
-          const is_admin = Boolean(member?.permissions.has(PermissionFlagsBits.Administrator))
+          const is_admin = Boolean(member?.permissions.has(PermissionFlagsBits.ManageGuild))
           return send_json(res, 200, { isAdmin: is_admin } satisfies admin_check_response)
         }
 
