@@ -43,6 +43,7 @@ import CoinflipPage from './pages/Coinflip'
 import OwnerPage from './pages/Owner'
 import MusicPage from './pages/Music'
 import CustomCommandsPage from './pages/CustomCommands'
+import KeywordTriggersPage from './pages/KeywordTriggers'
 import FreeGamesPage from './pages/FreeGames'
 import { AppShell, PublicShell, RequireAuth, RequireOwner } from './components/layout'
 import { getApiUrl } from './env'
@@ -154,6 +155,7 @@ function App() {
           <Route path="/guild/:guildId/modlogs" element={<ModLogsPage />} />
           <Route path="/guild/:guildId/music" element={<MusicPage />} />
           <Route path="/guild/:guildId/custom-commands" element={<CustomCommandsPage />} />
+          <Route path="/guild/:guildId/keyword-triggers" element={<KeywordTriggersPage />} />
           <Route path="/guild/:guildId/audit" element={<AuditLogsPage />} />
           <Route path="/guild/:guildId/commands" element={<CommandsPage />} />
           <Route path="/guild/:guildId/members" element={<MembersPage />} />

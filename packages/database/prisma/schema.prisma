@@ -49,6 +49,7 @@ model Guild {
   commandCooldowns           GuildCommandCooldown[]
   freeGameNotifications      FreeGameNotification[]
   freeGameGiveaways          FreeGameGiveaway[]
+  keywordTriggers            KeywordTrigger[]
 
   @@map("guilds")
 }
@@ -1237,4 +1238,19 @@ model FreeGameGiveaway {
   @@index([giveawayId])
   @@index([guildId])
   @@map("free_game_giveaways")
+}
+
+model KeywordTrigger {
+  id        String   @id @default(cuid())
+  guildId   String
+  keyword   String
+  mediaUrl  String
+  channelId String?
+  createdBy String
+  createdAt DateTime @default(now())
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@unique([guildId, keyword])
+  @@index([guildId])
+  @@map("keyword_triggers")
 }

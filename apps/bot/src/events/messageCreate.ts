@@ -12,6 +12,7 @@ import { autoModService } from "../services/automod.service";
 import { autoroleService } from "../services/autorole.service";
 import { suggestionService } from "../services/suggestion.service";
 import { customCommandService } from "../services/customCommand.service";
+import { keywordTriggerService } from "../services/keywordTrigger.service";
 import { xpService } from "../services/xp.service";
 import { afkService } from "../services/afk.service";
 import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
@@ -199,6 +200,15 @@ export async function handleMessageCreate(message: Message) {
 		logger.error(
 			{ err: safe_error_details(error) },
 			"Custom Command service failed on messageCreate"
+		);
+	}
+
+	try {
+		await keywordTriggerService.handle_message(message);
+	} catch (error) {
+		logger.error(
+			{ err: safe_error_details(error) },
+			"KeywordTrigger service failed on messageCreate"
 		);
 	}
 

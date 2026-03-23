@@ -45,6 +45,7 @@ function useBreadcrumbs(guildId: string | undefined, location: { pathname: strin
       commands: { label: 'Comandos' },
       setup: { label: 'Setup' },
       'custom-commands': { label: 'Custom Commands' },
+      'keyword-triggers': { label: 'Gatilhos' },
       music: { label: 'Música' },
     }
 

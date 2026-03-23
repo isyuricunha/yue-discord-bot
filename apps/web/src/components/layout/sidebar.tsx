@@ -31,6 +31,7 @@ import {
   Heart,
   TrendingUp,
   Gift,
+  Radio,
 } from 'lucide-react'
 
 import { cn } from '../../lib/cn'
@@ -147,6 +148,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
         items: [
           { to: `/guild/${guildId}/music`, label: 'Música', icon: <Music className="h-4 w-4" /> },
           { to: `/guild/${guildId}/custom-commands`, label: 'Custom Commands', icon: <Command className="h-4 w-4" /> },
+          { to: `/guild/${guildId}/keyword-triggers`, label: 'Gatilhos', icon: <Radio className="h-4 w-4" /> },
           { to: `/guild/${guildId}/xp`, label: 'XP', icon: <TrendingUp className="h-4 w-4" /> },
           { to: `/guild/${guildId}/reaction-roles`, label: 'Reaction Roles', icon: <MousePointerClick className="h-4 w-4" /> },
           { to: `/guild/${guildId}/starboard`, label: 'Starboard', icon: <Star className="h-4 w-4" /> },

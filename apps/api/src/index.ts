@@ -23,6 +23,7 @@ import { economyRoutes } from './routes/economy.routes'
 import { coinflipRoutes } from './routes/coinflip.routes'
 import { ownerRoutes } from './routes/owner.routes'
 import { auditRoutes } from './routes/audit.routes'
+import { triggersRoutes } from './routes/triggers.routes'
 import { safe_error_details } from './utils/safe_error'
 
 const app = Fastify({
@@ -293,6 +294,9 @@ app.register(coinflipRoutes, { prefix: '/api' })
 
 // Audit routes
 app.register(auditRoutes, { prefix: '/api' })
+
+// Triggers routes
+app.register(triggersRoutes, { prefix: '/api/guilds' })
 
 // Owner routes
 app.register(ownerRoutes, { prefix: '/api' })
