@@ -7,7 +7,7 @@ import { ArrowLeft, Search } from 'lucide-react'
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton } from '../components/ui'
 
-import { AuditLogItem } from './components/AuditLogItem'
+import { AuditLogItem, getActionFormat } from './components/AuditLogItem'
 
 const API_URL = getApiUrl()
 
@@ -55,6 +55,37 @@ export default function AuditLogsPage() {
       return res.data as audit_logs_response
     },
   })
+
+  // Resolvers
+  const { data: membersRes } = useQuery({
+    queryKey: ['members', guildId],
+    queryFn: async () => {
+      const res = await axios.get(`${API_URL}/api/guilds/${guildId}/members`, { withCredentials: true })
+      return res.data as { members: any[] }
+    },
+    staleTime: 60000,
+  })
+
+  const { data: rolesRes } = useQuery({
+    queryKey: ['roles', guildId],
+    queryFn: async () => {
+      const res = await axios.get(`${API_URL}/api/guilds/${guildId}/roles`, { withCredentials: true })
+      return res.data as { roles: any[] }
+    },
+    staleTime: 60000,
+  })
+
+  const membersMap = useMemo(() => {
+    const map = new Map<string, any>()
+    membersRes?.members?.forEach(m => map.set(m.userId, m))
+    return map
+  }, [membersRes])
+
+  const rolesMap = useMemo(() => {
+    const map = new Map<string, any>()
+    rolesRes?.roles?.forEach(r => map.set(r.id, r))
+    return map
+  }, [rolesRes])
 
   const logs = data?.logs ?? []
 
@@ -113,10 +144,10 @@ export default function AuditLogsPage() {
             <div className="md:col-span-1">
               <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Ação</div>
               <Select value={actionFilter} onValueChange={setActionFilter}>
-                <option value="">Todas</option>
+                <option value="">Todas as Ações</option>
                 {available_actions.map((a) => (
                   <option key={a} value={a}>
-                    {a}
+                    {getActionFormat(a).label}
                   </option>
                 ))}
               </Select>
@@ -149,7 +180,7 @@ export default function AuditLogsPage() {
           ) : (
             <div className="space-y-4">
               {filtered.slice(0, 100).map((l) => (
-                <AuditLogItem key={l.id} log={l} />
+                <AuditLogItem key={l.id} log={l} membersMap={membersMap} rolesMap={rolesMap} />
               ))}
 
               {filtered.length > 100 ? (

@@ -21,23 +21,94 @@ function format_ts_iso(iso: string) {
   return d.toLocaleString('pt-BR')
 }
 
-export function AuditLogItem({ log }: { log: audit_row }) {
-  const formatAction = (action: string) => {
-    switch (action) {
-      case 'message_delete': return { label: 'Mensagem Apagada', icon: <Trash2 className="h-4 w-4 text-red-500" />, color: 'text-red-400', bg: 'bg-red-500/5', border: 'border-red-500/20' }
-      case 'message_update': return { label: 'Mensagem Editada', icon: <Edit3 className="h-4 w-4 text-blue-500" />, color: 'text-blue-400', bg: 'bg-blue-500/5', border: 'border-blue-500/20' }
-      case 'channel_create': return { label: 'Canal Criado', icon: <Plus className="h-4 w-4 text-green-500" />, color: 'text-green-400', bg: 'bg-green-500/5', border: 'border-green-500/20' }
-      case 'channel_delete': return { label: 'Canal Apagado', icon: <Trash2 className="h-4 w-4 text-red-500" />, color: 'text-red-400', bg: 'bg-red-500/5', border: 'border-red-500/20' }
-      case 'member_roles_update': return { label: 'Cargos Atualizados', icon: <Shield className="h-4 w-4 text-yellow-500" />, color: 'text-yellow-400', bg: 'bg-yellow-500/5', border: 'border-yellow-500/20' }
-      case 'member_join': return { label: 'Membro Entrou', icon: <UserPlus className="h-4 w-4 text-green-500" />, color: 'text-green-400', bg: 'bg-green-500/5', border: 'border-green-500/20' }
-      case 'member_leave': return { label: 'Membro Saiu', icon: <UserMinus className="h-4 w-4 text-red-500" />, color: 'text-red-400', bg: 'bg-red-500/5', border: 'border-red-500/20' }
-      case 'guild_update': return { label: 'Servidor Atualizado', icon: <Settings className="h-4 w-4 text-purple-500" />, color: 'text-purple-400', bg: 'bg-purple-500/5', border: 'border-purple-500/20' }
-      default: return { label: action, icon: <FileText className="h-4 w-4 text-muted-foreground" />, color: 'text-foreground', bg: 'bg-surface/40', border: 'border-border/70' }
+export function getActionFormat(action: string) {
+  switch (action) {
+    case 'message_delete': return { label: 'Mensagem Deletada', icon: <Trash2 className="h-4 w-4 text-red-500" />, color: 'text-red-400', bg: 'bg-red-500/5', border: 'border-red-500/20' }
+    case 'message_update': return { label: 'Mensagem Editada', icon: <Edit3 className="h-4 w-4 text-blue-500" />, color: 'text-blue-400', bg: 'bg-blue-500/5', border: 'border-blue-500/20' }
+    case 'channel_create': return { label: 'Canal Criado', icon: <Plus className="h-4 w-4 text-green-500" />, color: 'text-green-400', bg: 'bg-green-500/5', border: 'border-green-500/20' }
+    case 'channel_delete': return { label: 'Canal Apagado', icon: <Trash2 className="h-4 w-4 text-red-500" />, color: 'text-red-400', bg: 'bg-red-500/5', border: 'border-red-500/20' }
+    case 'member_roles_update': return { label: 'Cargos Atualizados', icon: <Shield className="h-4 w-4 text-yellow-500" />, color: 'text-yellow-400', bg: 'bg-yellow-500/5', border: 'border-yellow-500/20' }
+    case 'member_join': return { label: 'Membro Entrou', icon: <UserPlus className="h-4 w-4 text-green-500" />, color: 'text-green-400', bg: 'bg-green-500/5', border: 'border-green-500/20' }
+    case 'member_leave': return { label: 'Membro Saiu', icon: <UserMinus className="h-4 w-4 text-red-500" />, color: 'text-red-400', bg: 'bg-red-500/5', border: 'border-red-500/20' }
+    case 'guild_update': return { label: 'Servidor Atualizado', icon: <Settings className="h-4 w-4 text-purple-500" />, color: 'text-purple-400', bg: 'bg-purple-500/5', border: 'border-purple-500/20' }
+    default: return { label: action, icon: <FileText className="h-4 w-4 text-muted-foreground" />, color: 'text-foreground', bg: 'bg-surface/40', border: 'border-border/70' }
+  }
+}
+
+import { useMutation } from '@tanstack/react-query'
+import axios from 'axios'
+import { getApiUrl } from '../../env'
+import { toast } from 'sonner'
+
+const API_URL = getApiUrl()
+
+export function AuditLogItem({ log, membersMap, rolesMap }: { log: audit_row, membersMap: Map<string, any>, rolesMap: Map<string, any> }) {
+  const act = getActionFormat(log.action)
+  const data = log.data as any
+
+  const modMutation = useMutation({
+    mutationFn: async ({ action, targetId }: { action: string, targetId: string }) => {
+      const payload: any = { action, reason: 'Ação rápida via Audit Logs' }
+      if (action === 'timeout') payload.duration = 60 // 1 hr default or 60 mins
+      await axios.post(`${API_URL}/api/guilds/${log.guildId}/members/${targetId}/moderate`, payload, {
+        withCredentials: true
+      })
+    },
+    onSuccess: (_, variables) => {
+      toast.success(`Ação ${variables.action.toUpperCase()} efetuada com sucesso!`)
+    },
+    onError: (err: any) => {
+      toast.error(err.response?.data?.error || 'Erro ao aplicar ação de moderação.')
     }
+  })
+
+  function renderUserBadge(userId: string | null, label: string) {
+    if (!userId) return null
+    const user = membersMap.get(userId)
+    const isTarget = label === 'Alvo'
+    return (
+      <div className="relative group inline-block">
+        <Badge className="bg-background/80 border-border/50 text-muted-foreground backdrop-blur-sm font-medium py-1 cursor-pointer hover:bg-surface/60">
+          {user?.avatar ? (
+            <img src={`https://cdn.discordapp.com/avatars/${userId}/${user.avatar}.png?size=32`} className="mr-1.5 h-4 w-4 rounded-full" />
+          ) : (
+            <User className="mr-1.5 h-3 w-3" />
+          )}
+          <span className="opacity-70 mr-1">{label}:</span> 
+          <span className="font-semibold text-foreground/80">{user?.username || `${userId.slice(-6)}`}</span>
+        </Badge>
+        {isTarget && (
+          <div className="absolute left-0 top-full mt-1 hidden group-hover:flex z-50 bg-background/90 backdrop-blur border border-border/50 rounded-lg p-1.5 flex-row gap-1.5 shadow-xl">
+            <button 
+              onClick={() => modMutation.mutate({ action: 'timeout', targetId: userId })}
+              disabled={modMutation.isPending}
+              className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              Mutar (1h)
+            </button>
+            <button 
+              onClick={() => modMutation.mutate({ action: 'ban', targetId: userId })}
+              disabled={modMutation.isPending}
+              className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
+            >
+              Banir
+            </button>
+          </div>
+        )}
+      </div>
+    )
   }
 
-  const act = formatAction(log.action)
-  const data = log.data as any
+  function renderRoleBadge(roleId: string, isAdded: boolean) {
+    const role = rolesMap.get(roleId)
+    const colorStyle = role?.color ? { color: `#${role.color.toString(16).padStart(6, '0')}` } : {}
+    return (
+      <Badge key={roleId} className={`${isAdded ? 'bg-green-500/10 border-green-500/20 text-green-400' : 'bg-red-500/10 border-red-500/20 text-red-400'} py-0.5`}>
+        <Shield className="mr-1.5 h-3 w-3 opacity-70" style={colorStyle} />
+        <span style={colorStyle} className="font-semibold mix-blend-screen">{role?.name || `ID: ${roleId}`}</span>
+      </Badge>
+    )
+  }
 
   return (
     <div className={`rounded-2xl border p-4 sm:p-5 transition-all duration-300 hover:shadow-lg ${act.bg} ${act.border}`}>
@@ -59,18 +130,8 @@ export function AuditLogItem({ log }: { log: audit_row }) {
       </div>
 
       <div className="mt-4 pl-0 sm:pl-[42px] flex flex-wrap gap-2 text-xs">
-        {log.actorUserId && (
-          <Badge className="bg-background/80 border-border/50 text-muted-foreground backdrop-blur-sm font-medium py-1">
-            <User className="mr-1.5 h-3 w-3" />
-            <span className="opacity-70 mr-1">Autor:</span> <span className="font-mono text-[10px]">{log.actorUserId}</span>
-          </Badge>
-        )}
-        {log.targetUserId && (
-          <Badge className="bg-background/80 border-border/50 text-muted-foreground backdrop-blur-sm font-medium py-1">
-            <User className="mr-1.5 h-3 w-3" />
-            <span className="opacity-70 mr-1">Alvo:</span> <span className="font-mono text-[10px]">{log.targetUserId}</span>
-          </Badge>
-        )}
+        {renderUserBadge(log.actorUserId, 'Autor')}
+        {renderUserBadge(log.targetUserId, 'Alvo')}
         {log.targetChannelId && (
           <Badge className="bg-background/80 border-border/50 text-muted-foreground backdrop-blur-sm font-medium py-1">
             <Hash className="mr-1.5 h-3 w-3" />
@@ -114,12 +175,7 @@ export function AuditLogItem({ log }: { log: audit_row }) {
               <div className={Array.isArray(data.removedRoleIds) && data.removedRoleIds.length > 0 ? "mb-3" : ""}>
                 <div className="text-[10px] font-bold uppercase tracking-wider text-green-400/80 mb-2">Cargos Adicionados</div>
                 <div className="flex flex-wrap gap-1.5">
-                  {data.addedRoleIds.map((r: string) => (
-                    <Badge key={r} className="bg-green-500/10 border-green-500/20 text-green-400 hover:bg-green-500/20 transition-colors py-0.5">
-                      <Shield className="mr-1.5 h-3 w-3 opacity-70" />
-                      ID: {r}
-                    </Badge>
-                  ))}
+                  {data.addedRoleIds.map((r: string) => renderRoleBadge(r, true))}
                 </div>
               </div>
             )}
@@ -127,12 +183,7 @@ export function AuditLogItem({ log }: { log: audit_row }) {
               <div>
                 <div className="text-[10px] font-bold uppercase tracking-wider text-red-400/80 mb-2">Cargos Removidos</div>
                 <div className="flex flex-wrap gap-1.5">
-                  {data.removedRoleIds.map((r: string) => (
-                    <Badge key={r} className="bg-red-500/10 border-red-500/20 text-red-400 hover:bg-red-500/20 transition-colors py-0.5">
-                      <Shield className="mr-1.5 h-3 w-3 opacity-70" />
-                      ID: {r}
-                    </Badge>
-                  ))}
+                  {data.removedRoleIds.map((r: string) => renderRoleBadge(r, false))}
                 </div>
               </div>
             )}
