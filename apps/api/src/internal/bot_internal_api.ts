@@ -359,30 +359,6 @@ function prune_cache() {
   }
 }
 
-async function fetch_with_timeout(url: string, log: FastifyBaseLogger) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 5_000);
-
-  try {
-    const res = await fetch(url, {
-      method: 'GET',
-      headers: {
-        ...build_internal_headers(log),
-      },
-      signal: controller.signal,
-    });
-
-    if (!res.ok) {
-      log.warn({ status: res.status, url }, 'Internal bot API returned error');
-      throw new Error(`Internal bot API returned ${res.status}`);
-    }
-
-    return (await res.json()) as unknown;
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
 async function get_cached<T>(key: internal_cache_key, load: () => Promise<T>) {
   prune_cache();
 
