@@ -420,7 +420,8 @@ export async function get_guild_channels(guild_id: string, log: FastifyBaseLogge
 
   return await get_cached<guild_channels_response>(key, async () => {
     const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/channels`;
-    return (await fetch_with_timeout(url, log)) as guild_channels_response;
+    // Use longer timeout for large guilds with many channels
+    return (await fetch_with_timeout_ms(url, log, 15_000)) as guild_channels_response;
   });
 }
 
@@ -474,7 +475,8 @@ export async function get_guild_roles(guild_id: string, log: FastifyBaseLogger) 
 
   return await get_cached<guild_roles_response>(key, async () => {
     const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/roles`;
-    return (await fetch_with_timeout(url, log)) as guild_roles_response;
+    // Use longer timeout for large guilds with many roles
+    return (await fetch_with_timeout_ms(url, log, 15_000)) as guild_roles_response;
   });
 }
 

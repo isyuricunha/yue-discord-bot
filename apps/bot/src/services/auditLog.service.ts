@@ -59,7 +59,16 @@ class AuditLogService {
       // Broadcast para o Discord
       const channelId = await getAuditLogChannelId(input.guildId)
       if (channelId) {
-        const guild = client.guilds.cache.get(input.guildId)
+        // Try to get guild from cache first, then fetch if not found
+        let guild = client.guilds.cache.get(input.guildId)
+        if (!guild) {
+          try {
+            guild = await client.guilds.fetch(input.guildId).catch(() => null)
+          } catch (fetchError) {
+            logger.warn({ err: safe_error_details(fetchError), guildId: input.guildId }, 'Failed to fetch guild for audit log')
+          }
+        }
+        
         if (guild) {
           const channel = guild.channels.cache.get(channelId) || await guild.channels.fetch(channelId).catch(() => null)
           if (channel && channel.isTextBased()) {
@@ -138,8 +147,14 @@ class AuditLogService {
             }
 
             embed.setTitle(title).setColor(color)
-            await (channel as TextChannel).send({ embeds: [embed] }).catch(() => null)
+            await (channel as TextChannel).send({ embeds: [embed] }).catch((err) => {
+              logger.warn({ err: safe_error_details(err), channelId, guildId: input.guildId }, 'Failed to send audit log embed')
+            })
+          } else {
+            logger.warn({ channelId, guildId: input.guildId }, 'Audit log channel not found or not text-based')
           }
+        } else {
+          logger.warn({ guildId: input.guildId }, 'Guild not found in bot cache for audit log')
         }
       }
     } catch (error) {
