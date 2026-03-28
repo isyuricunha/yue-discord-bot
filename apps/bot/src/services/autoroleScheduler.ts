@@ -27,6 +27,7 @@ export class AutoroleScheduler {
 
   private async tick() {
     try {
+      logger.debug('Iniciando tick do scheduler de autorole')
       await autoroleService.process_due(async (guild_id) => {
         try {
           return await this.client.guilds.fetch(guild_id)
@@ -34,6 +35,7 @@ export class AutoroleScheduler {
           return null
         }
       })
+      logger.debug('Tick do scheduler de autorole concluído')
     } catch (error) {
       const err = error as Error
       logger.error({ err }, 'Erro ao processar scheduler de autorole')
