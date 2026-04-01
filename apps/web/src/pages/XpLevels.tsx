@@ -64,6 +64,7 @@ type xp_config = {
 
   levelUpChannelId: string | null
   levelUpMessage: string | null
+  voiceXpNotificationsEnabled: boolean
 }
 
 const xp_per_level = 1000
@@ -294,6 +295,7 @@ export default function XpLevelsPage() {
 
       levelUpChannelId: initial_config.levelUpChannelId ?? null,
       levelUpMessage: initial_config.levelUpMessage ?? null,
+      voiceXpNotificationsEnabled: (initial_config as any).voiceXpNotificationsEnabled ?? true,
     })
 
     setRewards(xp_data.rewards ?? [])
@@ -482,7 +484,6 @@ export default function XpLevelsPage() {
         </Button>
       </div>
 
-      <UserNotificationSettings />
 
       {is_xp_error && (
         <ErrorState
@@ -794,7 +795,7 @@ export default function XpLevelsPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center justify-between gap-4 border-b border-border/50 pb-4 mb-4">
             <div>
               <div className="text-sm font-semibold text-accent">Ativar Voice XP (Voz)</div>
               <div className="text-xs text-muted-foreground">Recompense usuários baseados no tempo em que estiverem conectados em canais de voz não-mutados.</div>
@@ -804,6 +805,20 @@ export default function XpLevelsPage() {
               checked={Boolean(config?.voiceXpEnabled)}
               onCheckedChange={(checked) => config && setConfig({ ...config, voiceXpEnabled: checked })}
               label="Voice XP habilitado"
+              disabled={is_xp_loading}
+            />
+          </div>
+
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <div className="text-sm font-semibold text-accent">Notificações de XP por Voz</div>
+              <div className="text-xs text-muted-foreground">Enviar mensagens diretas (DM) para os usuários notificando sobre o ganho de XP em voz.</div>
+            </div>
+
+            <Switch
+              checked={Boolean(config?.voiceXpNotificationsEnabled)}
+              onCheckedChange={(checked) => config && setConfig({ ...config, voiceXpNotificationsEnabled: checked })}
+              label="Notificações habilitadas"
               disabled={is_xp_loading}
             />
           </div>

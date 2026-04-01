@@ -2356,6 +2356,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
           ...(data.rewardMode !== undefined ? { rewardMode: data.rewardMode } : {}),
           ...(data.levelUpChannelId !== undefined ? { levelUpChannelId: data.levelUpChannelId ?? null } : {}),
           ...(data.levelUpMessage !== undefined ? { levelUpMessage: data.levelUpMessage ?? null } : {}),
+          ...(data.voiceXpNotificationsEnabled !== undefined ? { voiceXpNotificationsEnabled: data.voiceXpNotificationsEnabled } : {}),
         },
         create: {
           guildId,
@@ -2385,6 +2386,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
           rewardMode: data.rewardMode ?? 'stack',
           levelUpChannelId: data.levelUpChannelId ?? null,
           levelUpMessage: data.levelUpMessage ?? null,
+          voiceXpNotificationsEnabled: data.voiceXpNotificationsEnabled ?? true,
         },
       });
 

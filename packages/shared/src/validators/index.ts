@@ -341,6 +341,8 @@ export const guildXpConfigSchema = z.object({
   levelUpChannelId: z.string().nullable().optional(),
   levelUpMessage: z.string().nullable().optional(),
 
+  voiceXpNotificationsEnabled: z.boolean().optional(),
+
   rewards: xpRoleRewardsSchema.optional(),
 });
 

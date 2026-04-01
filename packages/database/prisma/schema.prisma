@@ -404,6 +404,7 @@ model GuildXpConfig {
   levelUpMessage    String?
   voiceXpEnabled    Boolean  @default(false)
   voiceXpRate       Int      @default(10) // Deprecated: kept for backwards compatibility
+  voiceXpNotificationsEnabled Boolean @default(true)
   updatedAt         DateTime @updatedAt
   guild             Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 

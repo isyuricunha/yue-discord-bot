@@ -59,7 +59,7 @@ class VoiceXpService {
     try {
       // Check if voice XP is enabled
       const config = await prisma.guildXpConfig.findUnique({ where: { guildId } })
-      if (!config || !config.enabled || !config.voiceXpEnabled) return
+      if (!config || !config.enabled || !config.voiceXpEnabled || !config.voiceXpNotificationsEnabled) return
 
       // Check if user has disabled voice XP notifications
       const user = await prisma.user.findUnique({
