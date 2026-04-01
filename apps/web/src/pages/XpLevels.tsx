@@ -8,7 +8,6 @@ import { getApiUrl } from '../env'
 import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { MessageVariantEditor } from '../components/message_variant_editor'
 import { PlaceholderInlineList } from '../components/template_placeholders'
-import { UserNotificationSettings } from '../components/user-notification-settings'
 import { validate_extended_template_variants } from '../lib/message_template'
 import { toast_error, toast_success } from '../store/toast'
 
