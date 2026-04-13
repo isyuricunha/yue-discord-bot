@@ -45,6 +45,26 @@ class AuditLogService {
     data?: Prisma.InputJsonValue | null
   }): Promise<void> {
     try {
+      // ✅ Minimum validations before proceeding
+      if (!input.guildId) return
+      if (!input.action) return
+
+      // ✅ Specific validation for message_delete action
+      if (input.action === 'message_delete') {
+        // Require at least channel or message id
+        if (!input.targetChannelId && !input.targetMessageId) return
+
+        const data = (input.data as Record<string, any>) || {}
+        
+        // Do not log completely empty messages
+        const hasContent = !!data.content?.trim()
+        const hasAttachments = Array.isArray(data.attachments) && data.attachments.length > 0
+        
+        if (!hasContent && !hasAttachments) {
+          logger.debug({ guildId: input.guildId }, 'Skipping empty message delete log')
+          return
+        }
+      }
       await prisma.auditLog.create({
         data: {
           guildId: input.guildId,
