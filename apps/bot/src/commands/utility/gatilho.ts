@@ -24,10 +24,10 @@ export const gatilhoCommand: Command = {
         .setDescription('Adicionar um gatilho de palavra-chave com mídia')
         .addStringOption((opt) =>
           opt
-            .setName('palavra')
-            .setDescription('Palavra ou frase que ativará o gatilho')
+            .setName('palavras')
+            .setDescription('Palavras ou frases que ativará o gatilho (uma por linha)')
             .setRequired(true)
-            .setMaxLength(100)
+            .setMaxLength(500)
         )
         .addStringOption((opt) =>
           opt
@@ -58,6 +58,51 @@ export const gatilhoCommand: Command = {
     )
     .addSubcommand((sub) =>
       sub
+        .setName('editar')
+        .setDescription('Editar um gatilho existente')
+        .addStringOption((opt) =>
+          opt
+            .setName('palavra')
+            .setDescription('Palavra-chave existente do gatilho que deseja editar')
+            .setRequired(true)
+            .setAutocomplete(true)
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName('novas-palavras')
+            .setDescription('Novas palavras para este gatilho (uma por linha)')
+            .setRequired(false)
+            .setMaxLength(500)
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName('url')
+            .setDescription('Nova URL de mídia')
+            .setRequired(false)
+        )
+        .addStringOption((opt) =>
+          opt
+            .setName('texto')
+            .setDescription('Nova mensagem de texto')
+            .setRequired(false)
+            .setMaxLength(2000)
+        )
+        .addChannelOption((opt) =>
+          opt
+            .setName('canal')
+            .setDescription('Novo canal restrito')
+            .addChannelTypes(ChannelType.GuildText, ChannelType.GuildAnnouncement)
+            .setRequired(false)
+        )
+        .addBooleanOption((opt) =>
+          opt
+            .setName('responder')
+            .setDescription('Se deve responder à mensagem')
+            .setRequired(false)
+        )
+    )
+    .addSubcommand((sub) =>
+      sub
         .setName('remover')
         .setDescription('Remover um gatilho de palavra-chave')
         .addStringOption((opt) =>
@@ -65,6 +110,7 @@ export const gatilhoCommand: Command = {
             .setName('palavra')
             .setDescription('Palavra-chave do gatilho a remover')
             .setRequired(true)
+            .setAutocomplete(true)
         )
     )
     .addSubcommand((sub) =>
@@ -86,6 +132,14 @@ export const gatilhoCommand: Command = {
 
     const sub = interaction.options.getSubcommand()
 
+    // Helper to parse multiple keywords
+    const parse_keywords = (input: string): string[] => {
+      return input
+        .split('\n')
+        .map(k => k.trim().toLowerCase())
+        .filter(k => k.length > 0 && k.length <= 100)
+    }
+
     // ── /gatilho adicionar ──────────────────────────────────────────────────
     if (sub === 'adicionar') {
       if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
@@ -95,11 +149,19 @@ export const gatilhoCommand: Command = {
         return
       }
 
-      const keyword = interaction.options.getString('palavra', true).trim()
+      const keywords_input = interaction.options.getString('palavras', true)
+      const keywords = parse_keywords(keywords_input)
       const raw_url = interaction.options.getString('url')?.trim() || null
       const content = interaction.options.getString('texto')?.trim() || null
       const channel = interaction.options.getChannel('canal')
       const responder = interaction.options.getBoolean('responder') ?? true
+
+      if (keywords.length === 0) {
+        await safe_reply_ephemeral(interaction, {
+          content: `${EMOJIS.ERROR} Você precisa informar pelo menos uma palavra válida.`,
+        })
+        return
+      }
 
       if (!raw_url && !content) {
         await safe_reply_ephemeral(interaction, {
@@ -114,10 +176,6 @@ export const gatilhoCommand: Command = {
             `${EMOJIS.ERROR} URL de mídia inválida ou domínio não suportado para Embed direto. ` +
             `Links de YouTube/Spotify são aceitos, mas URLs de imagem/GIF devem ser de domínios confiáveis.`,
         })
-        // Note: For now, I'm allowing even "invalid" URLs because they might be YouTube/Spotify links 
-        // that we want to send as plain text anyway.
-        // Actually, my validate_media_url returns false for YouTube.
-        // I should probably skip validation if it's NOT handled by the Embed block in service.
       }
 
       await safe_defer_ephemeral(interaction)
@@ -125,7 +183,7 @@ export const gatilhoCommand: Command = {
       try {
         await keywordTriggerService.add_trigger(
           interaction.guild.id,
-          keyword,
+          keywords,
           raw_url,
           content,
           channel?.id ?? null,
@@ -133,10 +191,9 @@ export const gatilhoCommand: Command = {
           responder
         )
       } catch (error: any) {
-        // Unique constraint violation — keyword already exists
         if (error?.code === 'P2002') {
           await interaction.editReply({
-            content: `${EMOJIS.ERROR} Já existe um gatilho com a palavra **${keyword}** neste servidor.`,
+            content: `${EMOJIS.ERROR} Uma das palavras já está em uso por outro gatilho neste servidor.`,
           })
           return
         }
@@ -147,12 +204,66 @@ export const gatilhoCommand: Command = {
         .setColor(COLORS.SUCCESS)
         .setTitle(`${EMOJIS.SUCCESS} Gatilho adicionado`)
         .addFields(
-          { name: 'Palavra-chave', value: `\`${keyword}\``, inline: true },
+          { name: 'Palavras-chave', value: `${keywords.length} palavra(s)`, inline: true },
           { name: 'Canal', value: channel ? `<#${channel.id}>` : 'Todos os canais', inline: true }
         )
         .setImage(raw_url)
 
       await interaction.editReply({ embeds: [embed] })
+      return
+    }
+
+    // ── /gatilho editar ─────────────────────────────────────────────────────
+    if (sub === 'editar') {
+      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageGuild)) {
+        await safe_reply_ephemeral(interaction, {
+          content: `${EMOJIS.ERROR} Você precisa da permissão **Gerenciar Servidor** para usar este comando.`,
+        })
+        return
+      }
+
+      const existing_keyword = interaction.options.getString('palavra', true).trim().toLowerCase()
+      const new_keywords_input = interaction.options.getString('novas-palavras')
+      const raw_url = interaction.options.getString('url')?.trim()
+      const content = interaction.options.getString('texto')?.trim()
+      const channel = interaction.options.getChannel('canal')
+      const responder = interaction.options.getBoolean('responder')
+
+      await safe_defer_ephemeral(interaction)
+
+      try {
+        const updated = await keywordTriggerService.update_trigger(
+          interaction.guild.id,
+          existing_keyword,
+          new_keywords_input ? parse_keywords(new_keywords_input) : undefined,
+          raw_url !== undefined ? raw_url || null : undefined,
+          content !== undefined ? content || null : undefined,
+          channel?.id ?? null,
+          responder
+        )
+
+        if (!updated) {
+          await interaction.editReply({
+            content: `${EMOJIS.WARNING} Nenhum gatilho encontrado com a palavra **${existing_keyword}**.`,
+          })
+          return
+        }
+
+        const embed = new EmbedBuilder()
+          .setColor(COLORS.SUCCESS)
+          .setTitle(`${EMOJIS.SUCCESS} Gatilho atualizado`)
+          .setImage(raw_url || updated.mediaUrl)
+
+        await interaction.editReply({ embeds: [embed] })
+      } catch (error: any) {
+        if (error?.code === 'P2002') {
+          await interaction.editReply({
+            content: `${EMOJIS.ERROR} Uma das novas palavras já está em uso por outro gatilho.`,
+          })
+          return
+        }
+        throw error
+      }
       return
     }
 
@@ -181,7 +292,7 @@ export const gatilhoCommand: Command = {
       const embed = new EmbedBuilder()
         .setColor(COLORS.SUCCESS)
         .setTitle(`${EMOJIS.SUCCESS} Gatilho removido`)
-        .setDescription(`A palavra-chave **${keyword}** foi removida com sucesso.`)
+        .setDescription(`O gatilho foi removido com sucesso.`)
 
       await interaction.editReply({ embeds: [embed] })
       return
@@ -207,8 +318,14 @@ export const gatilhoCommand: Command = {
 
       const lines = page_items.map((t) => {
         const channel_text = t.channelId ? `<#${t.channelId}>` : 'Todos'
-        const url_short = t.mediaUrl.length > 60 ? `${t.mediaUrl.slice(0, 57)}…` : t.mediaUrl
-        return `• \`${t.keyword}\` — ${channel_text}\n  <${url_short}>`
+        const keyword_count = t.keywords?.length || (t.keyword ? 1 : 0)
+        const url_short = t.mediaUrl && t.mediaUrl.length > 60 ? `${t.mediaUrl.slice(0, 57)}…` : t.mediaUrl
+        
+        const keywords_list = t.keywords && t.keywords.length > 0 
+          ? t.keywords.slice(0, 3).map(k => `\`${k}\``).join(', ') + (t.keywords.length > 3 ? ` +${t.keywords.length - 3}` : '')
+          : `\`${t.keyword}\``
+
+        return `• ${keywords_list} (${keyword_count} palavra(s)) — ${channel_text}\n  ${url_short ? `<${url_short}>` : 'Apenas texto'}`
       })
 
       const embed = new EmbedBuilder()

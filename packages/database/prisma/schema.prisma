@@ -1244,16 +1244,17 @@ model FreeGameGiveaway {
 model KeywordTrigger {
   id        String   @id @default(cuid())
   guildId   String
-  keyword     String
-  mediaUrl    String?
-  content     String?
-  channelId   String?
-  createdBy   String
-  createdAt   DateTime @default(now())
-  replyToUser Boolean  @default(true)
+  /// @deprecated Use keywords instead - maintained for backwards compatibility
+  keyword   String?  @db.Text
+  keywords  String[] @default([])
+  mediaUrl  String?
+  content   String?
+  channelId String?
+  createdBy String
+  createdAt DateTime @default(now())
+  replyToUser Boolean @default(true)
   guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
-  @@unique([guildId, keyword])
   @@index([guildId])
   @@map("keyword_triggers")
 }

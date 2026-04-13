@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { Plus, Radio, Trash2 } from 'lucide-react'
+import { Edit2, Plus, Radio, Trash2, X } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
@@ -47,6 +47,7 @@ type api_channel = { id: string; name: string; type: number }
 type keyword_trigger = {
   id: string
   keyword: string
+  keywords?: string[]
   mediaUrl: string
   channelId: string | null
   createdBy: string
@@ -68,6 +69,15 @@ export default function KeywordTriggersPage() {
   const [channelId, setChannelId] = useState('')
   const [replyToUser, setReplyToUser] = useState(true)
   const [url_error, set_url_error] = useState<string | null>(null)
+
+  // Edit modal state
+  const [editing_trigger, set_editing_trigger] = useState<keyword_trigger | null>(null)
+  const [edit_keywords, set_edit_keywords] = useState('')
+  const [edit_content, set_edit_content] = useState('')
+  const [edit_url, set_edit_url] = useState('')
+  const [edit_channel_id, set_edit_channel_id] = useState('')
+  const [edit_reply_to_user, set_edit_reply_to_user] = useState(true)
+  const [edit_url_error, set_edit_url_error] = useState<string | null>(null)
 
   const { data: channels_data, isLoading: is_channels_loading } = useQuery({
     queryKey: ['channels', guildId],
@@ -131,6 +141,33 @@ export default function KeywordTriggersPage() {
     },
     onError: (error: any) => {
       toast_error(error.response?.data?.error || error.message || 'Erro ao remover gatilho.')
+    },
+  })
+
+  const update_mutation = useMutation({
+    mutationFn: async () => {
+      if (!editing_trigger) return
+
+      const keywords = edit_keywords
+        .split('\n')
+        .map(k => k.trim().toLowerCase())
+        .filter(k => k.length > 0 && k.length <= 100)
+
+      await axios.put(`${API_URL}/api/guilds/${guildId}/triggers/${editing_trigger.id}`, {
+        keywords,
+        mediaUrl: edit_url.trim() || null,
+        content: edit_content.trim() || null,
+        channelId: edit_channel_id || null,
+        replyToUser: edit_reply_to_user,
+      })
+    },
+    onSuccess: () => {
+      toast_success('Gatilho atualizado com sucesso!')
+      set_editing_trigger(null)
+      void queryClient.invalidateQueries({ queryKey: ['triggers', guildId] })
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao atualizar gatilho.')
     },
   })
 
@@ -259,7 +296,7 @@ export default function KeywordTriggersPage() {
                 alt="Preview"
                 className="max-h-48 rounded-xl object-contain"
                 onError={(e) => {
-                  ;(e.target as HTMLImageElement).style.display = 'none'
+                  ; (e.target as HTMLImageElement).style.display = 'none'
                 }}
               />
             </div>
@@ -327,7 +364,7 @@ export default function KeywordTriggersPage() {
                           alt={t.keyword}
                           className="h-full w-full object-cover"
                           onError={(e) => {
-                            ;(e.target as HTMLImageElement).style.display = 'none'
+                            ; (e.target as HTMLImageElement).style.display = 'none'
                           }}
                         />
                       ) : (
@@ -349,8 +386,8 @@ export default function KeywordTriggersPage() {
                           </span>
                         ) : (
                           <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
-                          {t.replyToUser ? 'Responde' : 'Envia'}
-                        </span>
+                            {t.replyToUser ? 'Responde' : 'Envia'}
+                          </span>
                         )}
                       </div>
                       <div className="mt-1 flex flex-col gap-0.5">
@@ -368,6 +405,25 @@ export default function KeywordTriggersPage() {
                         </div>
                       </div>
                     </div>
+
+                    {/* Edit */}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        set_editing_trigger(t)
+                        set_edit_keywords(t.keywords ? t.keywords.join('\n') : t.keyword)
+                        set_edit_content(t.content || '')
+                        set_edit_url(t.mediaUrl || '')
+                        set_edit_channel_id(t.channelId || '')
+                        set_edit_reply_to_user(t.replyToUser)
+                        set_edit_url_error(null)
+                      }}
+                      className="shrink-0 text-muted-foreground hover:text-accent"
+                      aria-label={`Editar gatilho ${t.keyword}`}
+                    >
+                      <Edit2 className="h-4 w-4" />
+                    </Button>
 
                     {/* Delete */}
                     <Button
@@ -389,6 +445,134 @@ export default function KeywordTriggersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit Modal */}
+      {editing_trigger && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-2xl rounded-2xl bg-surface border border-border shadow-xl">
+            <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
+              <div className="text-lg font-semibold">Editar Gatilho</div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => set_editing_trigger(null)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <div className="mb-1.5 text-xs font-medium text-muted-foreground">Palavras-chave (uma por linha)</div>
+                  <Textarea
+                    value={edit_keywords}
+                    onChange={(e) => set_edit_keywords(e.target.value)}
+                    placeholder="ex: bom dia&#10;boa tarde"
+                    rows={3}
+                    className="resize-none"
+                  />
+                </div>
+
+                <div>
+                  <div className="mb-1.5 text-xs font-medium text-muted-foreground">
+                    Canal (opcional)
+                  </div>
+                  {is_channels_loading ? (
+                    <Skeleton className="h-11 w-full" />
+                  ) : (
+                    <Select value={edit_channel_id} onValueChange={set_edit_channel_id}>
+                      <option value="">Todos os canais</option>
+                      {text_channels.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          #{c.name}
+                        </option>
+                      ))}
+                    </Select>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <div className="mb-1.5 text-xs font-medium text-muted-foreground">Mensagem (Texto)</div>
+                <Textarea
+                  value={edit_content}
+                  onChange={(e) => set_edit_content(e.target.value)}
+                  placeholder="O que o bot deve dizer..."
+                  className="resize-none"
+                  rows={3}
+                />
+              </div>
+
+              <div>
+                <div className="mb-1.5 text-xs font-medium text-muted-foreground">URL da mídia (opcional)</div>
+                <Input
+                  value={edit_url}
+                  onChange={(e) => {
+                    set_edit_url(e.target.value)
+                    if (e.target.value.trim()) {
+                      set_edit_url_error(validate_media_url(e.target.value.trim()))
+                    } else {
+                      set_edit_url_error(null)
+                    }
+                  }}
+                  placeholder="https://media.tenor.com/..."
+                  className={edit_url_error ? 'border-red-500 focus:border-red-500' : ''}
+                />
+                {edit_url_error && <div className="mt-1 text-xs text-red-400">{edit_url_error}</div>}
+              </div>
+
+              <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface/20 p-3">
+                <div className="space-y-0.5">
+                  <div className="text-sm font-medium">Responder à mensagem</div>
+                  <div className="text-xs text-muted-foreground">
+                    Menciona quem ativou o gatilho ao enviar a mídia
+                  </div>
+                </div>
+                <Switch checked={edit_reply_to_user} onCheckedChange={set_edit_reply_to_user} />
+              </div>
+
+              {/* Preview */}
+              {edit_url && !edit_url_error && (
+                <div className="rounded-2xl border border-accent/20 bg-surface/40 p-4">
+                  <div className="mb-2 text-xs font-medium text-muted-foreground">
+                    Preview da mídia
+                  </div>
+                  <img
+                    src={edit_url}
+                    alt="Preview"
+                    className="max-h-48 rounded-xl object-contain"
+                    onError={(e) => {
+                      ; (e.target as HTMLImageElement).style.display = 'none'
+                    }}
+                  />
+                </div>
+              )}
+
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="ghost"
+                  onClick={() => set_editing_trigger(null)}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={() => update_mutation.mutate()}
+                  isLoading={update_mutation.isPending}
+                  disabled={
+                    (!edit_keywords.trim() || (edit_keywords.split('\n').every(k => !k.trim()))) ||
+                    (!edit_url.trim() && !edit_content.trim()) ||
+                    !!edit_url_error
+                  }
+                >
+                  Salvar alterações
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
