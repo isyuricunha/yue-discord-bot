@@ -34,14 +34,14 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@semantic-release/commit-analyzer": "^13.0.1",
-    "@semantic-release/github": "^11.0.0",
+    "@semantic-release/github": "^11.0.6",
     "@semantic-release/release-notes-generator": "^14.1.0",
-    "@typescript-eslint/eslint-plugin": "^8.57.1",
-    "@typescript-eslint/parser": "^8.57.1",
+    "@typescript-eslint/eslint-plugin": "^8.58.2",
+    "@typescript-eslint/parser": "^8.58.2",
     "conventional-changelog-conventionalcommits": "^8.0.0",
-    "eslint": "^10.0.3",
-    "globals": "^17.4.0",
-    "knip": "^5.88.0",
+    "eslint": "^10.2.0",
+    "globals": "^17.5.0",
+    "knip": "^5.88.1",
     "semantic-release": "^25.0.3",
     "typescript": "^5.9.3"
   },
@@ -69,6 +69,6 @@
   },
   "packageManager": "pnpm@10.32.1",
   "dependencies": {
-    "@types/node": "^25.5.0"
+    "@types/node": "^25.6.0"
   }
 }
