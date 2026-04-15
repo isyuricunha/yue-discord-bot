@@ -124,7 +124,7 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      const keywords = parseKeywords(body.keywords || body.keyword)
+      const keywords = parseKeywords(body.keywords ?? body.keyword ?? [])
 
       if (keywords.length === 0) {
         return reply.code(400).send({ error: 'É necessário informar pelo menos uma palavra-chave válida.' })
@@ -147,9 +147,6 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
         }
       }
 
-      if (existing) {
-        return reply.code(409).send({ error: `Já existe um gatilho com a palavra "${keyword}".` })
-      }
 
       if (!body.mediaUrl && !body.content) {
         return reply.code(400).send({ error: 'Você precisa informar pelo menos uma URL ou um Texto.' })
@@ -208,7 +205,7 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(404).send({ error: 'Gatilho não encontrado.' })
       }
 
-      const keywords = parseKeywords(body.keywords || body.keyword || existing_trigger.keywords || existing_trigger.keyword)
+      const keywords = parseKeywords(body.keywords ?? body.keyword ?? existing_trigger.keywords ?? existing_trigger.keyword ?? [])
 
       if (keywords.length === 0) {
         return reply.code(400).send({ error: 'É necessário informar pelo menos uma palavra-chave válida.' })
