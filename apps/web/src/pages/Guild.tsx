@@ -127,6 +127,27 @@ function useGuildModules(guildId: string) {
         category: 'engagement',
       },
       {
+        to: `/guild/${guildId}/antiraid`,
+        label: 'Anti-Raide',
+        description: 'Proteção contra raids e moderação avançada',
+        icon: <Shield className="h-5 w-5" />,
+        category: 'engagement',
+      },
+      {
+        to: `/guild/${guildId}/free-games`,
+        label: 'Jogos Grátis',
+        description: 'Games gratuitos para membros',
+        icon: <Trophy className="h-5 w-5" />,
+        category: 'engagement',
+      },
+      {
+        to: `/guild/${guildId}/triggers`,
+        label: 'Gatilhos',
+        description: 'Automação de mensagens e reações',
+        icon: <Lightbulb className="h-5 w-5" />,
+        category: 'engagement',
+      },
+      {
         to: `/guild/${guildId}/music`,
         label: 'Música',
         description: 'Player e playlists',
