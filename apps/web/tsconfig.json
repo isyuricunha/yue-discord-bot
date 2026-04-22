@@ -4,7 +4,6 @@
     "useDefineForClassFields": true,
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
-    "ignoreDeprecations": "6.0",
     "skipLibCheck": true,
 
     /* Bundler mode */
@@ -22,7 +21,6 @@
     "noFallthroughCasesInSwitch": true,
 
     /* Path alias */
-    "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
     }
