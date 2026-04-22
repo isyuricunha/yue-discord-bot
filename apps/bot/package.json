@@ -14,14 +14,14 @@
     "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && tsc --noEmit"
   },
   "dependencies": {
-    "@mistralai/mistralai": "^1.15.1",
-    "@napi-rs/canvas": "^0.1.97",
+    "@mistralai/mistralai": "^2.2.1",
+    "@napi-rs/canvas": "^0.1.99",
     "@yuebot/database": "workspace:*",
     "@yuebot/shared": "workspace:*",
-    "axios": "^1.15.0",
-    "bullmq": "^5.74.1",
+    "axios": "^1.15.2",
+    "bullmq": "^5.76.0",
     "discord.js": "^14.26.3",
-    "ioredis": "5.4.1",
+    "ioredis": "5.10.1",
     "kazagumo": "^3.4.3",
     "luxon": "^3.7.2",
     "pino": "^10.3.1",
@@ -36,6 +36,6 @@
     "@types/node": "^25.6.0",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^6.0.3"
   }
 }
