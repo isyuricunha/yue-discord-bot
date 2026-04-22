@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
-import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
+import { MistralError } from "@mistralai/mistralai/models/errors";
 
 import {
 	create_mistral_client_for_tests,

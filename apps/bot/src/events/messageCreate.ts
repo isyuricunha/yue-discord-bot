@@ -15,7 +15,7 @@ import { customCommandService } from "../services/customCommand.service";
 import { keywordTriggerService } from "../services/keywordTrigger.service";
 import { xpService } from "../services/xp.service";
 import { afkService } from "../services/afk.service";
-import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
+import { MistralError } from "@mistralai/mistralai/models/errors";
 import { MistralApiError } from "../services/mistral.service";
 import { COLORS, EMOJIS } from "@yuebot/shared";
 

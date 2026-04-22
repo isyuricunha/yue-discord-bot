@@ -1,11 +1,11 @@
 import {
 	ConnectionError,
 	HTTPClientError,
+	MistralError,
 	RequestAbortedError,
 	RequestTimeoutError,
 	UnexpectedClientError,
 } from "@mistralai/mistralai/models/errors";
-import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
 
 import {
 	GroqApiError,

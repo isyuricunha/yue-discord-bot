@@ -3,7 +3,7 @@ import type { ChatInputCommandInteraction } from "discord.js";
 
 import { EMOJIS } from "@yuebot/shared";
 
-import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
+import { MistralError } from "@mistralai/mistralai/models/errors";
 import { MistralApiError } from "../../services/mistral.service";
 
 import { get_llm_client } from "../../services/llm_client_singleton";

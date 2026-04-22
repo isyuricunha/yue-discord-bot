@@ -2,7 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { Mistral } from "@mistralai/mistralai";
-import { MistralError } from "@mistralai/mistralai/models/errors/mistralerror";
+import { MistralError } from "@mistralai/mistralai/models/errors";
 
 import { logger } from "../utils/logger";
 

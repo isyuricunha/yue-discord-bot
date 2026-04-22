@@ -1,8 +1,4 @@
 {
-  "ignoreFiles": [
-    "apps/web/public/env.js",
-    "knip-report.txt"
-  ],
   "ignoreDependencies": [
     "pino-pretty",
     "semantic-release",
@@ -20,7 +16,6 @@
       "project": ["src/**/*.{ts,tsx}"]
     },
     "apps/web": {
-      "entry": ["src/main.tsx"],
       "project": ["src/**/*.{ts,tsx}"]
     },
     "packages/shared": {
