@@ -89,6 +89,9 @@ export async function loadCommands(client: Client): Promise<void> {
   // Anime commands
   const { animeCommand } = await import('./anime')
 
+  // Pokedex command
+  const { pokedexCommand } = await import('./pokedex')
+
   // Economy commands
   const { luazinhasCommand } = await import('./luazinhas');
   const { lojaCommand } = await import('./loja')
@@ -171,6 +174,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(fanartCommand.data.name, { data: fanartCommand.data, execute: fanartCommand.execute });
   commands.set(verifyMessageCommand.data.name, verifyMessageCommand);
   commands.set(animeCommand.data.name, animeCommand)
+  commands.set(pokedexCommand.data.name, pokedexCommand)
   commands.set(luazinhasCommand.data.name, luazinhasCommand);
   commands.set(lojaCommand.data.name, lojaCommand)
   commands.set(inventarioCommand.data.name, inventarioCommand)

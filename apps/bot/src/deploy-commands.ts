@@ -63,6 +63,9 @@ async function loadCommandsForDeploy(): Promise<Command[]> {
   // Anime commands
   const { animeCommand } = await import('./commands/anime');
 
+  // Pokedex command
+  const { pokedexCommand } = await import('./commands/pokedex');
+
   // Economy commands
   const { luazinhasCommand } = await import('./commands/luazinhas');
   const { lojaCommand } = await import('./commands/loja');
@@ -147,6 +150,7 @@ async function loadCommandsForDeploy(): Promise<Command[]> {
   commands.push({ data: fanartCommand.data, execute: fanartCommand.execute });
   commands.push(verifyMessageCommand);
   commands.push(animeCommand);
+  commands.push(pokedexCommand);
   commands.push(luazinhasCommand);
   commands.push(lojaCommand);
   commands.push(inventarioCommand);
