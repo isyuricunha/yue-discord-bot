@@ -1,6 +1,6 @@
-import { 
-  SlashCommandBuilder, 
-  ChatInputCommandInteraction, 
+import {
+  SlashCommandBuilder,
+  ChatInputCommandInteraction,
   PermissionFlagsBits,
   EmbedBuilder
 } from 'discord.js'
@@ -8,6 +8,8 @@ import { prisma } from '@yuebot/database'
 import { getSendableChannel } from '../utils/discord'
 import { generate_public_id, parseDurationMs } from '@yuebot/shared'
 import { safe_defer_ephemeral } from '../utils/interaction'
+import { logger } from '../utils/logger'
+import { safe_error_details } from '../utils/safe_error'
 
 export const data = new SlashCommandBuilder()
   .setName('sorteio')
@@ -438,6 +440,57 @@ async function handleEnd(interaction: ChatInputCommandInteraction) {
       await channel.send({ embeds: [embed] })
     }
     
+    // Enviar DM para vencedores
+    const guild = await interaction.guild?.fetch().catch(() => null)
+    const serverName = guild?.name || 'Servidor desconhecido'
+    
+    for (const winner of winnersData) {
+      try {
+        const user = await interaction.client.users.fetch(winner.userId)
+        
+        const winnerEmbed = new EmbedBuilder()
+          .setColor(0x9333ea)
+          .setTitle('🎉 Parabéns! Você ganhou um sorteio!')
+          .setDescription(`Você foi selecionado como vencedor no sorteio: **${resolved_giveaway.title}**`)
+          .addFields(
+            { name: '🎁 Sorteio', value: resolved_giveaway.title, inline: true },
+            { name: '🏠 Servidor', value: serverName, inline: true },
+            ...(winner.prize
+              ? [{ name: '🎯 Prêmio', value: winner.prize, inline: false } as any]
+              : []
+            ),
+            {
+              name: '📅 Data',
+              value: new Date().toLocaleString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+              inline: true
+            }
+          )
+          .setFooter({ text: 'Obrigado por participar! 🎉' })
+          .setTimestamp()
+        
+        await user.send({ embeds: [winnerEmbed] })
+        
+        // Marcar como notificado
+        await prisma.giveawayWinner.updateMany({
+          where: {
+            giveawayId: resolved_giveaway.id,
+            userId: winner.userId
+          },
+          data: { notified: true }
+        })
+      } catch (error) {
+        // Usuário pode ter DM desativado - não é um erro crítico
+        logger.warn({ err: safe_error_details(error), winnerId: winner.userId }, 'Não foi possível enviar DM para vencedor (provavelmente tem DM desativado)')
+      }
+    }
+    
     await interaction.editReply(`✅ Sorteio finalizado! ${winnersData.length} vencedor(es) selecionado(s).`)
   } catch (error: any) {
     await interaction.editReply(`❌ Erro: ${error.message}`)
@@ -513,6 +566,53 @@ async function handleReroll(interaction: ChatInputCommandInteraction) {
         .setTimestamp()
       
       await channel.send({ embeds: [embed] })
+    }
+    
+    // Enviar DM para vencedores
+    const guild = await interaction.guild?.fetch().catch(() => null)
+    const serverName = guild?.name || 'Servidor desconhecido'
+    
+    for (const winner of winners) {
+      try {
+        const user = await interaction.client.users.fetch(winner.userId)
+        
+        const winnerEmbed = new EmbedBuilder()
+          .setColor(0x9333ea)
+          .setTitle('🎉 Parabéns! Você ganhou um sorteio!')
+          .setDescription(`Você foi selecionado como vencedor no sorteio: **${resolved_giveaway.title}**`)
+          .addFields(
+            { name: '🎁 Sorteio', value: resolved_giveaway.title, inline: true },
+            { name: '🏠 Servidor', value: serverName, inline: true },
+            {
+              name: '📅 Data',
+              value: new Date().toLocaleString('pt-BR', {
+                timeZone: 'America/Sao_Paulo',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              }),
+              inline: true
+            }
+          )
+          .setFooter({ text: 'Obrigado por participar! 🎉' })
+          .setTimestamp()
+        
+        await user.send({ embeds: [winnerEmbed] })
+        
+        // Marcar como notificado
+        await prisma.giveawayWinner.updateMany({
+          where: {
+            giveawayId: resolved_giveaway.id,
+            userId: winner.userId
+          },
+          data: { notified: true }
+        })
+      } catch (error) {
+        // Usuário pode ter DM desativado - não é um erro crítico
+        logger.warn({ err: safe_error_details(error), winnerId: winner.userId }, 'Não foi possível enviar DM para vencedor (provavelmente tem DM desativado)')
+      }
     }
     
     await interaction.editReply(`✅ Novos vencedores selecionados!`)
