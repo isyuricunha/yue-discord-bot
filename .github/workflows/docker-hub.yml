@@ -125,6 +125,7 @@ jobs:
         if: steps.semantic.outputs.new_release_published == 'true'
         env:
           DATABASE_URL: postgresql://yuebot:change_me_postgres_password@db:5432/yuebot
+          DSLIM_RC_ENV: DATABASE_URL=${{ env.DATABASE_URL }}
         uses: kitabisa/docker-slim-action@v1
         with:
           target: yue-discord-bot:${{ steps.semantic.outputs.new_release_git_tag }}-fat-amd64
@@ -144,6 +145,7 @@ jobs:
         if: steps.semantic.outputs.new_release_published == 'true'
         env:
           DATABASE_URL: postgresql://yuebot:change_me_postgres_password@db:5432/yuebot
+          DSLIM_RC_ENV: DATABASE_URL=${{ env.DATABASE_URL }}
         uses: kitabisa/docker-slim-action@v1
         with:
           target: yue-discord-bot:${{ steps.semantic.outputs.new_release_git_tag }}-fat-arm64
