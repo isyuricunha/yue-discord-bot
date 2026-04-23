@@ -19,7 +19,7 @@
     "@yuebot/database": "workspace:*",
     "@yuebot/shared": "workspace:*",
     "axios": "^1.15.2",
-    "bullmq": "^5.76.0",
+    "bullmq": "^5.76.1",
     "discord.js": "^14.26.3",
     "ioredis": "5.10.1",
     "kazagumo": "^3.4.3",
