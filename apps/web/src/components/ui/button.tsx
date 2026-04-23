@@ -42,7 +42,7 @@ const sizes: Record<button_size, string> = {
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, button_props>(
-  ({ className, variant = 'solid', size = 'md', isLoading = false, disabled, children, ...props }, ref) => {
+  ({ className, variant = 'solid', size = 'md', isLoading = false, disabled, children, 'aria-label': ariaLabel, ...props }, ref) => {
     return (
       <button
         ref={ref}
@@ -54,6 +54,9 @@ export const Button = React.forwardRef<HTMLButtonElement, button_props>(
           className
         )}
         disabled={disabled || isLoading}
+        aria-disabled={disabled || isLoading}
+        aria-label={ariaLabel || (typeof children === 'string' ? children : 'Botão')}
+        tabIndex={disabled || isLoading ? -1 : 0}
         {...props}
       >
         {isLoading && (

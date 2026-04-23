@@ -183,13 +183,15 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
 
   return (
     <aside
+      id="sidebar"
       className={cn(
         'relative h-screen shrink-0 overflow-hidden border-r border-border/80 bg-background/90 backdrop-blur-md',
         'transition-[width] duration-200 ease-out',
         width
       )}
       role="navigation"
-      aria-label="Main navigation sidebar"
+      aria-label="Barra lateral principal de navegação"
+      aria-expanded={!collapsed}
     >
       <div className="flex h-full flex-col">
         <div className={cn('flex items-center justify-between px-4 py-4', collapsed && 'justify-center')}>

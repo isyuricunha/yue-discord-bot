@@ -101,7 +101,7 @@ export function Topbar() {
     window.open('/extras', '_blank', 'noopener,noreferrer')
   }
 
-  const handleKeyDown = (
+  const handleButtonKeyDown = (
     e: React.KeyboardEvent<HTMLButtonElement>,
     action: () => void
   ) => {
@@ -151,7 +151,7 @@ export function Topbar() {
               variant="outline"
               size="sm"
               onClick={open}
-              onKeyDown={(e) => handleKeyDown(e, open)}
+              onKeyDown={(e) => handleButtonKeyDown(e, open)}
               className="h-9 gap-1.5 px-2.5 sm:px-3"
               aria-label="Open command palette"
               aria-keyshortcuts="Ctrl+K"
@@ -168,7 +168,7 @@ export function Topbar() {
               variant="outline"
               size="sm"
               onClick={handleExtras}
-              onKeyDown={(e) => handleKeyDown(e, handleExtras)}
+              onKeyDown={(e) => handleButtonKeyDown(e, handleExtras)}
               className="h-9 gap-1.5 px-2.5 sm:px-3"
               aria-label="Open Extras panel in new tab"
             >
@@ -205,7 +205,7 @@ export function Topbar() {
             variant="ghost"
             size="sm"
             onClick={handleLogout}
-            onKeyDown={(e) => handleKeyDown(e, handleLogout)}
+            onKeyDown={(e) => handleButtonKeyDown(e, handleLogout)}
             className="h-9 w-9 px-0 sm:w-auto sm:px-2.5"
             aria-label="Logout"
           >
