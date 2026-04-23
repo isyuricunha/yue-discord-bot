@@ -27,6 +27,9 @@ jobs:
   push_to_registry:
     name: Push Docker image to Docker Hub
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      DSLIM_NO_HEALTHCHECK: true
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -120,9 +123,7 @@ jobs:
 
       - name: Slim image (amd64)
         if: steps.semantic.outputs.new_release_published == 'true'
-        uses: kitabisa/docker-slim-action@v1
-        env:
-          DSLIM_HTTP_PROBE: false
+        uses: kitabisa/docker-slim-action@v1.41.8
         with:
           target: yue-discord-bot:${{ steps.semantic.outputs.new_release_git_tag }}-fat-amd64
           tag: ${{ steps.semantic.outputs.new_release_git_tag }}-slim-amd64
@@ -139,9 +140,7 @@ jobs:
 
       - name: Slim image (arm64)
         if: steps.semantic.outputs.new_release_published == 'true'
-        uses: kitabisa/docker-slim-action@v1
-        env:
-          DSLIM_HTTP_PROBE: false
+        uses: kitabisa/docker-slim-action@v1.41.8
         with:
           target: yue-discord-bot:${{ steps.semantic.outputs.new_release_git_tag }}-fat-arm64
           tag: ${{ steps.semantic.outputs.new_release_git_tag }}-slim-arm64

@@ -32,7 +32,9 @@ jobs:
   checks:
     name: lint, type-check, build
     runs-on: ubuntu-latest
-
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      DSLIM_NO_HEALTHCHECK: true
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
