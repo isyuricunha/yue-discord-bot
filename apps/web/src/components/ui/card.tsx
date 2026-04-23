@@ -1,3 +1,11 @@
+/**
+ * Componente Card para exibição de conteúdo em cards
+ *
+ * @param {Object} props - Props do componente
+ * @param {string} [props.className] - Classes CSS adicionais
+ * @param {React.HTMLAttributes<HTMLDivElement>} props - Props nativos do div
+ * @returns {JSX.Element} Card renderizado
+ */
 import * as React from 'react'
 
 import { cn } from '../../lib/cn'

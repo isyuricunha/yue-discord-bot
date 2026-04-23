@@ -1,3 +1,14 @@
+/**
+ * Componente Switch para toggles
+ *
+ * @param {Object} props - Props do componente
+ * @param {boolean} props.checked - Estado do switch
+ * @param {function} props.onCheckedChange - Callback quando estado muda
+ * @param {boolean} [props.disabled=false] - Desabilitado
+ * @param {string} [props.className] - Classes CSS adicionais
+ * @param {string} [props.label] - Rótulo acessível
+ * @returns {JSX.Element} Switch renderizado
+ */
 import { cn } from '../../lib/cn'
 
 export type switch_props = {

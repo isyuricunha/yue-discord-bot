@@ -1,3 +1,9 @@
+/**
+ * Componente Toast para notificações
+ *
+ * @param {Object} props - Props do componente
+ * @returns {JSX.Element} Toast renderizado
+ */
 import { X, CheckCircle, AlertCircle, Info } from 'lucide-react'
 
 import { cn } from '../../lib/cn'

@@ -1,3 +1,11 @@
+/**
+ * Sidebar principal de navegação
+ *
+ * @param {Object} props - Props do componente
+ * @param {boolean} props.collapsed - Estado de colapso
+ * @param {function} props.onToggle - Callback para alternar estado
+ * @returns {JSX.Element} Sidebar renderizada
+ */
 import * as React from 'react'
 import { NavLink, useParams } from 'react-router-dom'
 import {

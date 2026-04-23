@@ -1,3 +1,11 @@
+/**
+ * Componente Skeleton para loading states
+ *
+ * @param {Object} props - Props do componente
+ * @param {string} [props.className] - Classes CSS adicionais
+ * @param {React.HTMLAttributes<HTMLDivElement>} props - Props nativos do div
+ * @returns {JSX.Element} Skeleton renderizado
+ */
 import * as React from 'react'
 
 import { cn } from '../../lib/cn'

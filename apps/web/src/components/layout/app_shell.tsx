@@ -1,3 +1,8 @@
+/**
+ * Componente AppShell que envolve toda a aplicação
+ *
+ * @returns {JSX.Element} Estrutura principal da aplicação
+ */
 import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 

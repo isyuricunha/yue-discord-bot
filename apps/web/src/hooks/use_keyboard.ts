@@ -1,3 +1,8 @@
+/**
+ * Hook para atalhos de teclado da aplicação
+ *
+ * @returns {void} Configura os atalhos de teclado
+ */
 import { useEffect, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
 
@@ -34,13 +39,13 @@ export function useKeyboardShortcuts() {
       Escape: (e) => {
         const target = e.target as HTMLElement
         const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
-        
+
         if (!isInput && location.pathname !== '/') {
           e.preventDefault()
           goBack()
         }
       },
-      
+
       // g + d = go to dashboard
       'g+d': (e) => {
         if (location.pathname !== '/') {
@@ -48,7 +53,7 @@ export function useKeyboardShortcuts() {
           goToDashboard()
         }
       },
-      
+
       // g + g = go to guild home (when in guild)
       'g+g': (e) => {
         if (guildId) {
@@ -64,11 +69,11 @@ export function useKeyboardShortcuts() {
     const handleKeyDown = (e: KeyboardEvent) => {
       // Ignore if meta/ctrl key is pressed (except for specific combos)
       if (e.metaKey || e.ctrlKey) return
-      
+
       // Ignore if typing in input fields (except Escape)
       const target = e.target as HTMLElement
       const isInput = target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable
-      
+
       if (isInput && e.key !== 'Escape') return
 
       // Handle single key shortcuts
@@ -80,7 +85,7 @@ export function useKeyboardShortcuts() {
       // Handle chord shortcuts (g+d style)
       if (e.key.length === 1) {
         keyBuffer.push(e.key.toLowerCase())
-        
+
         if (bufferTimeout) clearTimeout(bufferTimeout)
         bufferTimeout = setTimeout(() => {
           keyBuffer = []

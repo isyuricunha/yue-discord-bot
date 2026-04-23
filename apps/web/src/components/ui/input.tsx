@@ -1,3 +1,12 @@
+/**
+ * Campo de entrada de texto reutilizável
+ *
+ * @param {Object} props - Props do componente
+ * @param {string} [props.className] - Classes CSS adicionais
+ * @param {string} [props.type='text'] - Tipo do input
+ * @param {React.Ref<HTMLInputElement>} ref - Referência do input
+ * @returns {JSX.Element} Input renderizado
+ */
 import * as React from 'react'
 
 import { cn } from '../../lib/cn'

@@ -1,3 +1,9 @@
+/**
+ * Topbar com breadcrumbs e ações principais
+ *
+ * @param {Object} props - Props do componente
+ * @returns {JSX.Element} Topbar renderizado
+ */
 import { useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useParams, Link } from 'react-router-dom'
 import { LogOut, ExternalLink, ChevronRight, Home, LayoutDashboard, Search } from 'lucide-react'

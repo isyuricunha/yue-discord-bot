@@ -1,3 +1,13 @@
+/**
+ * Componente Tooltip para dicas de contexto
+ *
+ * @param {Object} props - Props do componente
+ * @param {React.ReactNode} props.children - Elemento alvo
+ * @param {string} props.content - Conteúdo da tooltip
+ * @param {'top' | 'bottom' | 'left' | 'right'} [props.position='top'] - Posição da tooltip
+ * @param {number} [props.delay=200] - Delay para exibição em ms
+ * @returns {JSX.Element} Tooltip renderizada
+ */
 import * as React from 'react'
 import { cn } from '../../lib/cn'
 
@@ -8,11 +18,11 @@ interface TooltipProps {
   delay?: number
 }
 
-export function Tooltip({ 
-  children, 
-  content, 
+export function Tooltip({
+  children,
+  content,
   position = 'top',
-  delay = 200 
+  delay = 200
 }: TooltipProps) {
   const [isVisible, setIsVisible] = React.useState(false)
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -53,7 +63,7 @@ export function Tooltip({
   }
 
   return (
-    <div 
+    <div
       className="relative inline-flex"
       onMouseEnter={show}
       onMouseLeave={hide}
@@ -73,7 +83,7 @@ export function Tooltip({
           role="tooltip"
         >
           {content}
-          <span 
+          <span
             className={cn(
               'absolute w-0 h-0 border-4',
               arrowClasses[position]
@@ -86,12 +96,12 @@ export function Tooltip({
 }
 
 // Simpler version for inline use
-export function TooltipInline({ 
-  children, 
-  content 
-}: { 
+export function TooltipInline({
+  children,
+  content
+}: {
   children: React.ReactNode
-  content: string 
+  content: string
 }) {
   return (
     <Tooltip content={content} position="top">

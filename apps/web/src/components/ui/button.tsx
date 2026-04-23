@@ -1,3 +1,15 @@
+/**
+ * Botão reutilizável com suporte a loading state e variantes
+ *
+ * @param {Object} props - Props do componente
+ * @param {string} [props.variant='solid'] - Variante visual (solid, outline, ghost)
+ * @param {string} [props.size='md'] - Tamanho do botão (sm, md, lg)
+ * @param {boolean} [props.isLoading=false] - Estado de carregamento
+ * @param {boolean} [props.disabled=false] - Estado desabilitado
+ * @param {React.ReactNode} props.children - Conteúdo do botão
+ * @param {React.Ref<HTMLButtonElement>} ref - Referência do botão
+ * @returns {JSX.Element} Botão renderizado
+ */
 import * as React from 'react'
 
 import { cn } from '../../lib/cn'

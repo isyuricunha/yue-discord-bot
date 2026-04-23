@@ -1,3 +1,20 @@
+/**
+ * Select personalizado com busca e navegação por teclado
+ *
+ * @param {Object} props - Props do componente
+ * @param {string} [props.value] - Valor controlado
+ * @param {string} [props.defaultValue] - Valor padrão (não controlado)
+ * @param {function} [props.onValueChange] - Callback quando valor muda
+ * @param {boolean} [props.disabled=false] - Desabilitado
+ * @param {string} [props.className] - Classes CSS adicionais
+ * @param {string} [props.placeholder] - Texto placeholder
+ * @param {React.ReactNode} props.children - Opções do select
+ * @param {string} [props.name] - Nome do input oculto
+ * @param {string} [props.id] - ID do componente
+ * @param {string} [props['aria-label']] - Rótulo acessível
+ * @param {React.Ref<HTMLButtonElement>} ref - Referência do botão
+ * @returns {JSX.Element} Select renderizado
+ */
 import * as React from 'react'
 import { Check, ChevronDown, Search } from 'lucide-react'
 import { createPortal } from 'react-dom'
@@ -206,73 +223,73 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
     const menu =
       open && menu_style
         ? createPortal(
-            <div
-              ref={menu_ref}
-              role="listbox"
-              className="fixed z-9999 overflow-hidden rounded-xl border border-border/80 bg-surface/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md"
-              style={{ left: menu_style.left, width: menu_style.width, top: menu_style.top, bottom: menu_style.bottom }}
-            >
-              {options.length > 5 && (
-                <div className="relative p-2 border-b border-border/40">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  <input
-                    type="text"
-                    placeholder="Pesquisar..."
-                    className="w-full bg-surface/40 rounded-lg border border-border/50 pl-9 pr-3 py-1.5 text-sm outline-none focus:border-accent/50 transition-colors"
-                    value={search_query}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    onClick={(e) => e.stopPropagation()}
-                    onKeyDown={(e) => {
-                      e.stopPropagation()
-                      if (e.key === 'Escape') {
-                        close()
-                        button_ref.current?.focus()
-                      }
-                    }}
-                    autoFocus
-                  />
-                </div>
-              )}
-              <div className="overflow-auto py-1" style={{ maxHeight: menu_style.maxHeight }}>
-                {filtered_options.length === 0 && (
-                  <div className="py-3 text-center text-sm text-muted-foreground w-full">Nenhum resultado</div>
-                )}
-                {filtered_options.map((opt, idx) => {
-                  const is_selected = opt.value === (current_value ?? '')
-                  const is_active = idx === active_index
-
-                  return (
-                    <button
-                      key={`${opt.value}-${idx}`}
-                      type="button"
-                      role="option"
-                      aria-selected={is_selected}
-                      disabled={opt.disabled}
-                      className={cn(
-                        'mx-1 flex w-[calc(100%-0.5rem)] items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors',
-                        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
-                        'hover:bg-accent/15 disabled:pointer-events-none disabled:opacity-50',
-                        is_active && 'bg-accent/12',
-                        is_selected && 'bg-accent/20'
-                      )}
-                      onMouseEnter={() => setActiveIndex(idx)}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        if (opt.disabled) return
-                        commit_value(opt.value)
-                        close()
-                        button_ref.current?.focus()
-                      }}
-                    >
-                      <span className="min-w-0 flex items-center gap-2 truncate">{opt.label}</span>
-                      {is_selected && <Check className="h-4 w-4 shrink-0 text-accent" />}
-                    </button>
-                  )
-                })}
+          <div
+            ref={menu_ref}
+            role="listbox"
+            className="fixed z-9999 overflow-hidden rounded-xl border border-border/80 bg-surface/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md"
+            style={{ left: menu_style.left, width: menu_style.width, top: menu_style.top, bottom: menu_style.bottom }}
+          >
+            {options.length > 5 && (
+              <div className="relative p-2 border-b border-border/40">
+                <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <input
+                  type="text"
+                  placeholder="Pesquisar..."
+                  className="w-full bg-surface/40 rounded-lg border border-border/50 pl-9 pr-3 py-1.5 text-sm outline-none focus:border-accent/50 transition-colors"
+                  value={search_query}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onClick={(e) => e.stopPropagation()}
+                  onKeyDown={(e) => {
+                    e.stopPropagation()
+                    if (e.key === 'Escape') {
+                      close()
+                      button_ref.current?.focus()
+                    }
+                  }}
+                  autoFocus
+                />
               </div>
-            </div>,
-            document.body
-          )
+            )}
+            <div className="overflow-auto py-1" style={{ maxHeight: menu_style.maxHeight }}>
+              {filtered_options.length === 0 && (
+                <div className="py-3 text-center text-sm text-muted-foreground w-full">Nenhum resultado</div>
+              )}
+              {filtered_options.map((opt, idx) => {
+                const is_selected = opt.value === (current_value ?? '')
+                const is_active = idx === active_index
+
+                return (
+                  <button
+                    key={`${opt.value}-${idx}`}
+                    type="button"
+                    role="option"
+                    aria-selected={is_selected}
+                    disabled={opt.disabled}
+                    className={cn(
+                      'mx-1 flex w-[calc(100%-0.5rem)] items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
+                      'hover:bg-accent/15 disabled:pointer-events-none disabled:opacity-50',
+                      is_active && 'bg-accent/12',
+                      is_selected && 'bg-accent/20'
+                    )}
+                    onMouseEnter={() => setActiveIndex(idx)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      if (opt.disabled) return
+                      commit_value(opt.value)
+                      close()
+                      button_ref.current?.focus()
+                    }}
+                  >
+                    <span className="min-w-0 flex items-center gap-2 truncate">{opt.label}</span>
+                    {is_selected && <Check className="h-4 w-4 shrink-0 text-accent" />}
+                  </button>
+                )
+              })}
+            </div>
+          </div>,
+          document.body
+        )
         : null
 
     return (

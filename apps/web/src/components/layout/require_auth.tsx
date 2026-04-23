@@ -2,6 +2,7 @@ import * as React from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 
 import { useAuthStore } from '../../store/auth'
+import { Skeleton } from '../ui/skeleton'
 
 type require_auth_props = {
   children: React.ReactNode
@@ -12,7 +13,11 @@ export function RequireAuth({ children }: require_auth_props) {
   const location = useLocation()
 
   if (isLoading) {
-    return null
+    return (
+      <div className="flex h-screen items-center justify-center">
+        <Skeleton className="h-8 w-32" />
+      </div>
+    )
   }
 
   if (!user) {

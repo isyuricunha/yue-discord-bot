@@ -1,3 +1,12 @@
+/**
+ * Campo de texto de múltiplas linhas
+ *
+ * @param {Object} props - Props do componente
+ * @param {string} [props.className] - Classes CSS adicionais
+ * @param {React.Ref<HTMLTextAreaElement>} ref - Referência da textarea
+ * @param {React.TextareaHTMLAttributes<HTMLTextAreaElement>} props - Props nativos da textarea
+ * @returns {JSX.Element} Textarea renderizada
+ */
 import * as React from 'react'
 
 import { cn } from '../../lib/cn'
