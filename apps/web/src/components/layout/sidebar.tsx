@@ -54,16 +54,16 @@ function sort_by_label_ptbr(items: nav_item[]) {
 
 function nav_link_class({ isActive }: { isActive: boolean }) {
   return cn(
-    'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors',
-    'hover:bg-surface/70 hover:text-foreground',
+    'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors outline-none',
+    'hover:bg-surface/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     isActive ? 'bg-surface/80 text-foreground border border-border/80' : 'text-muted-foreground'
   )
 }
 
 function nav_link_class_static() {
   return cn(
-    'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors',
-    'hover:bg-surface/70 hover:text-foreground',
+    'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors outline-none',
+    'hover:bg-surface/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     'text-muted-foreground cursor-pointer'
   )
 }
@@ -180,13 +180,15 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
         'transition-[width] duration-200 ease-out',
         width
       )}
+      role="navigation"
+      aria-label="Main navigation sidebar"
     >
       <div className="flex h-full flex-col">
         <div className={cn('flex items-center justify-between px-4 py-4', collapsed && 'justify-center')}>
           {!collapsed && (
             <div className="flex items-center gap-3">
               <div className="grid h-9 w-9 place-items-center rounded-2xl bg-surface/80 border border-border/80">
-                <img src="/icon.png" alt="Yue" className="h-5 w-5 rounded" />
+                <img src="/icon.png" alt="Yue logo - Control panel" className="h-5 w-5 rounded" />
               </div>
               <div className="leading-tight">
                 <div className="text-sm font-semibold">Yue</div>
@@ -202,13 +204,15 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
               'inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-surface/50 text-muted-foreground',
               'hover:bg-surface/70 hover:text-foreground transition-colors'
             )}
-            aria-label={collapsed ? 'Expandir sidebar' : 'Colapsar sidebar'}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-expanded={!collapsed}
+            aria-controls="sidebar-content"
           >
             {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
           </button>
         </div>
 
-        <nav className={cn('scrollbar-yue min-h-0 flex-1 space-y-1 overflow-y-auto px-3', collapsed && 'px-2')}>
+        <nav id="sidebar-content" className={cn('scrollbar-yue min-h-0 flex-1 space-y-1 overflow-y-auto px-3', collapsed && 'px-2')}>
           {base.map((item) => (
             <NavLink
               key={item.to}
@@ -229,7 +233,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
             target="_blank"
             rel="noreferrer"
             className={nav_link_class_static()}
-            aria-label="Abrir Extras em uma nova aba"
+            aria-label="Open Extras in a new tab"
             title={collapsed ? 'Extras' : undefined}
           >
             <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
@@ -241,7 +245,9 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
           {guild_sections.map((section) => (
             <React.Fragment key={section.title}>
               {section.items.length > 0 && !collapsed && (
-                <div className="px-2 pt-4 text-xs text-muted-foreground">{section.title}</div>
+                <div className="px-2 pt-4 text-xs text-muted-foreground" role="group" aria-label={section.title}>
+                  {section.title}
+                </div>
               )}
 
               {section.items.map((item) => (

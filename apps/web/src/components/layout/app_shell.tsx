@@ -14,7 +14,7 @@ const STORAGE_KEY = 'yuebot-sidebar-collapsed'
 export function AppShell() {
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
-  
+
   useKeyboardShortcuts()
 
   useEffect(() => {
@@ -40,13 +40,21 @@ export function AppShell() {
         <div className="absolute -bottom-52 right-[-120px] h-[520px] w-[520px] rounded-full bg-accent/4 blur-[120px]" />
       </div>
 
+      {/* Skip Link - Visible on focus for keyboard users */}
+      <a
+        href="#main-content"
+        className="absolute left-4 top-4 z-50 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black shadow-lg transition-all focus:top-4"
+      >
+        Pular para conteúdo principal
+      </a>
+
       <div className="relative flex h-full">
         <Sidebar collapsed={collapsed} onToggle={toggle} />
 
         <div className="min-w-0 flex flex-1 flex-col">
           <div className="scrollbar-yue min-h-0 flex-1 overflow-y-auto">
             <Topbar />
-            <main className={cn('px-5 py-6', 'animate-fadeIn')} key={content_key}>
+            <main id="main-content" className={cn('px-5 py-6', 'animate-fadeIn')} key={content_key} tabIndex={-1}>
               <Outlet />
             </main>
           </div>
