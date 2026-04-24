@@ -316,26 +316,13 @@ export async function get_bot_stats(log: FastifyBaseLogger): Promise<bot_stats_r
   const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/stats`
 
   try {
-    const response = await fetch_with_timeout_ms(url, log, 3_000) // Reduced timeout to 3 seconds
+    const response = await fetch_with_timeout_ms(url, log, 5_000) // Use 5 second timeout
     const stats = response as bot_stats_response
 
     // Update cache
     bot_stats_cache.value = stats
     bot_stats_cache.expires_at = now + cache_ttl
     bot_stats_cache.last_calculated_at = now
-
-    // Schedule background refresh
-    setTimeout(async () => {
-      try {
-        const bg_response = await fetch_with_timeout_ms(url, log, 3_000)
-        const bg_stats = bg_response as bot_stats_response
-        bot_stats_cache.value = bg_stats
-        bot_stats_cache.last_calculated_at = Date.now()
-        log.info({ bg_stats }, 'Background stats refresh completed in API layer')
-      } catch (bgError) {
-        log.warn({ err: safe_error_details(bgError) }, 'Background stats refresh failed in API layer')
-      }
-    }, 1000) // Refresh after 1 second in background
 
     return stats
   } catch (error) {

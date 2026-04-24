@@ -4,73 +4,11 @@ import { can_access_guild } from '../utils/guild_access'
 import { safe_error_details } from '../utils/safe_error'
 import { get_guild_counts, is_guild_admin, get_bot_stats } from '../internal/bot_internal_api'
 
-// Cache state for bot stats endpoint
-const bot_stats_endpoint_cache = {
-  value: { servers: 0, users: 0 } as { servers: number, users: number } | null,
-  expires_at: 0,
-  last_calculated_at: 0,
-}
-
-function get_bot_stats_endpoint_cache_ttl_ms(): number {
-  const env = process.env.API_STATS_ENDPOINT_CACHE_TTL_MS
-  if (!env) return 30_000 // 30 seconds default
-  const parsed = Number.parseInt(env, 10)
-  if (Number.isNaN(parsed) || parsed <= 0) return 30_000
-  return parsed
-}
-
-function get_bot_stats_endpoint_cache_max_age_ms(): number {
-  const env = process.env.API_STATS_ENDPOINT_CACHE_MAX_AGE_MS
-  if (!env) return 90_000 // 90 seconds max age
-  const parsed = Number.parseInt(env, 10)
-  if (Number.isNaN(parsed) || parsed <= 0) return 90_000
-  return parsed
-}
-
 export async function statsRoutes(fastify: FastifyInstance) {
   // Public endpoint to get global bot stats (for login page)
   fastify.get('/bot/stats', async (request, reply) => {
-    const now = Date.now()
-    const cache_ttl = get_bot_stats_endpoint_cache_ttl_ms()
-    const cache_max_age = get_bot_stats_endpoint_cache_max_age_ms()
-
-    // Check if we have a valid cache
-    if (bot_stats_endpoint_cache.value &&
-        bot_stats_endpoint_cache.expires_at > now &&
-        (now - bot_stats_endpoint_cache.last_calculated_at) <= cache_max_age) {
-      request.log.info({ cached: true, ...bot_stats_endpoint_cache.value }, 'Serving cached bot stats from endpoint')
-      return reply.send({
-        success: true,
-        servers: bot_stats_endpoint_cache.value.servers,
-        users: bot_stats_endpoint_cache.value.users,
-      })
-    }
-
     try {
       const stats = await get_bot_stats(request.log)
-
-      // Update cache
-      bot_stats_endpoint_cache.value = {
-        servers: stats.servers,
-        users: stats.users,
-      }
-      bot_stats_endpoint_cache.expires_at = now + cache_ttl
-      bot_stats_endpoint_cache.last_calculated_at = now
-
-      // Schedule background refresh
-      setTimeout(async () => {
-        try {
-          const bg_stats = await get_bot_stats(request.log)
-          bot_stats_endpoint_cache.value = {
-            servers: bg_stats.servers,
-            users: bg_stats.users,
-          }
-          bot_stats_endpoint_cache.last_calculated_at = Date.now()
-          request.log.info({ bg_stats }, 'Background stats refresh completed in endpoint')
-        } catch (bgError) {
-          request.log.warn({ err: safe_error_details(bgError) }, 'Background stats refresh failed in endpoint')
-        }
-      }, 1000) // Refresh after 1 second in background
 
       return reply.send({
         success: true,
@@ -79,17 +17,6 @@ export async function statsRoutes(fastify: FastifyInstance) {
       })
     } catch (error: unknown) {
       request.log.error({ err: safe_error_details(error) }, 'Failed to get bot stats')
-
-      // If we have a stale cache, return it instead of failing
-      if (bot_stats_endpoint_cache.value && bot_stats_endpoint_cache.last_calculated_at > 0) {
-        request.log.info({ cached: true, ...bot_stats_endpoint_cache.value }, 'Serving stale cached bot stats from endpoint')
-        return reply.send({
-          success: true,
-          servers: bot_stats_endpoint_cache.value.servers,
-          users: bot_stats_endpoint_cache.value.users,
-        })
-      }
-
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
