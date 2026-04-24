@@ -277,9 +277,80 @@ export async function get_internal_health(log: FastifyBaseLogger) {
   return (await fetch_with_timeout_ms(url, log, 3_000)) as { status: string }
 }
 
+// Cache state for bot stats
+const bot_stats_cache = {
+  value: { servers: 0, users: 0 } as bot_stats_response | null,
+  expires_at: 0,
+  last_calculated_at: 0,
+}
+
+function get_bot_stats_cache_ttl_ms(): number {
+  const env = process.env.API_BOT_STATS_CACHE_TTL_MS
+  if (!env) return 30_000 // 30 seconds default
+  const parsed = Number.parseInt(env, 10)
+  if (Number.isNaN(parsed) || parsed <= 0) return 30_000
+  return parsed
+}
+
+function get_bot_stats_cache_max_age_ms(): number {
+  const env = process.env.API_BOT_STATS_CACHE_MAX_AGE_MS
+  if (!env) return 60_000 // 60 seconds max age
+  const parsed = Number.parseInt(env, 10)
+  if (Number.isNaN(parsed) || parsed <= 0) return 60_000
+  return parsed
+}
+
 export async function get_bot_stats(log: FastifyBaseLogger): Promise<bot_stats_response> {
+  const now = Date.now()
+  const cache_ttl = get_bot_stats_cache_ttl_ms()
+  const cache_max_age = get_bot_stats_cache_max_age_ms()
+
+  // Check if we have a valid cache
+  if (bot_stats_cache.value &&
+      bot_stats_cache.expires_at > now &&
+      (now - bot_stats_cache.last_calculated_at) <= cache_max_age) {
+    log.info({ cached: true, ...bot_stats_cache.value }, 'Serving cached bot stats from API layer')
+    return bot_stats_cache.value
+  }
+
   const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/stats`
-  return (await fetch_with_timeout_ms(url, log, 5_000)) as bot_stats_response
+
+  try {
+    const response = await fetch_with_timeout_ms(url, log, 3_000) // Reduced timeout to 3 seconds
+    const stats = response as bot_stats_response
+
+    // Update cache
+    bot_stats_cache.value = stats
+    bot_stats_cache.expires_at = now + cache_ttl
+    bot_stats_cache.last_calculated_at = now
+
+    // Schedule background refresh
+    setTimeout(async () => {
+      try {
+        const bg_response = await fetch_with_timeout_ms(url, log, 3_000)
+        const bg_stats = bg_response as bot_stats_response
+        bot_stats_cache.value = bg_stats
+        bot_stats_cache.last_calculated_at = Date.now()
+        log.info({ bg_stats }, 'Background stats refresh completed in API layer')
+      } catch (bgError) {
+        log.warn({ err: safe_error_details(bgError) }, 'Background stats refresh failed in API layer')
+      }
+    }, 1000) // Refresh after 1 second in background
+
+    return stats
+  } catch (error) {
+    log.warn({ err: safe_error_details(error) }, 'Failed to fetch bot stats from bot, using stale cache if available')
+
+    // If we have a stale cache, return it instead of failing
+    if (bot_stats_cache.value && bot_stats_cache.last_calculated_at > 0) {
+      log.info({ cached: true, ...bot_stats_cache.value }, 'Serving stale cached bot stats')
+      return bot_stats_cache.value
+    }
+
+    // Final fallback - return zeros
+    log.error('No cached stats available, returning zeros')
+    return { servers: 0, users: 0 }
+  }
 }
 
 async function fetch_json_with_timeout_ms(

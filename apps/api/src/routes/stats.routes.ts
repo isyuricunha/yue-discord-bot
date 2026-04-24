@@ -4,11 +4,74 @@ import { can_access_guild } from '../utils/guild_access'
 import { safe_error_details } from '../utils/safe_error'
 import { get_guild_counts, is_guild_admin, get_bot_stats } from '../internal/bot_internal_api'
 
+// Cache state for bot stats endpoint
+const bot_stats_endpoint_cache = {
+  value: { servers: 0, users: 0 } as { servers: number, users: number } | null,
+  expires_at: 0,
+  last_calculated_at: 0,
+}
+
+function get_bot_stats_endpoint_cache_ttl_ms(): number {
+  const env = process.env.API_STATS_ENDPOINT_CACHE_TTL_MS
+  if (!env) return 30_000 // 30 seconds default
+  const parsed = Number.parseInt(env, 10)
+  if (Number.isNaN(parsed) || parsed <= 0) return 30_000
+  return parsed
+}
+
+function get_bot_stats_endpoint_cache_max_age_ms(): number {
+  const env = process.env.API_STATS_ENDPOINT_CACHE_MAX_AGE_MS
+  if (!env) return 90_000 // 90 seconds max age
+  const parsed = Number.parseInt(env, 10)
+  if (Number.isNaN(parsed) || parsed <= 0) return 90_000
+  return parsed
+}
+
 export async function statsRoutes(fastify: FastifyInstance) {
   // Public endpoint to get global bot stats (for login page)
   fastify.get('/bot/stats', async (request, reply) => {
+    const now = Date.now()
+    const cache_ttl = get_bot_stats_endpoint_cache_ttl_ms()
+    const cache_max_age = get_bot_stats_endpoint_cache_max_age_ms()
+
+    // Check if we have a valid cache
+    if (bot_stats_endpoint_cache.value &&
+        bot_stats_endpoint_cache.expires_at > now &&
+        (now - bot_stats_endpoint_cache.last_calculated_at) <= cache_max_age) {
+      request.log.info({ cached: true, ...bot_stats_endpoint_cache.value }, 'Serving cached bot stats from endpoint')
+      return reply.send({
+        success: true,
+        servers: bot_stats_endpoint_cache.value.servers,
+        users: bot_stats_endpoint_cache.value.users,
+      })
+    }
+
     try {
       const stats = await get_bot_stats(request.log)
+
+      // Update cache
+      bot_stats_endpoint_cache.value = {
+        servers: stats.servers,
+        users: stats.users,
+      }
+      bot_stats_endpoint_cache.expires_at = now + cache_ttl
+      bot_stats_endpoint_cache.last_calculated_at = now
+
+      // Schedule background refresh
+      setTimeout(async () => {
+        try {
+          const bg_stats = await get_bot_stats(request.log)
+          bot_stats_endpoint_cache.value = {
+            servers: bg_stats.servers,
+            users: bg_stats.users,
+          }
+          bot_stats_endpoint_cache.last_calculated_at = Date.now()
+          request.log.info({ bg_stats }, 'Background stats refresh completed in endpoint')
+        } catch (bgError) {
+          request.log.warn({ err: safe_error_details(bgError) }, 'Background stats refresh failed in endpoint')
+        }
+      }, 1000) // Refresh after 1 second in background
+
       return reply.send({
         success: true,
         servers: stats.servers,
@@ -16,6 +79,17 @@ export async function statsRoutes(fastify: FastifyInstance) {
       })
     } catch (error: unknown) {
       request.log.error({ err: safe_error_details(error) }, 'Failed to get bot stats')
+
+      // If we have a stale cache, return it instead of failing
+      if (bot_stats_endpoint_cache.value && bot_stats_endpoint_cache.last_calculated_at > 0) {
+        request.log.info({ cached: true, ...bot_stats_endpoint_cache.value }, 'Serving stale cached bot stats from endpoint')
+        return reply.send({
+          success: true,
+          servers: bot_stats_endpoint_cache.value.servers,
+          users: bot_stats_endpoint_cache.value.users,
+        })
+      }
+
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
@@ -129,19 +203,19 @@ export async function statsRoutes(fastify: FastifyInstance) {
       })
 
       const actionsByType: Record<string, number> = {}
-      actionsByTypeData.forEach(item => {
+      actionsByTypeData.forEach((item: { action: string; _count: { action: number } }) => {
         actionsByType[item.action] = item._count.action
       })
 
       // Generate 7-days chart data
-      const dateLabels = Array.from({ length: 7 }, (_, i) => {
+      const dateLabels = Array.from({ length: 7 }, (_, i: number) => {
         const d = new Date()
         d.setDate(d.getDate() - (6 - i))
         return d.toISOString().split('T')[0]
       })
 
       const chartDataMap = new Map<string, { date: string, newMembers: number, moderationActions: number, economy: number }>()
-      dateLabels.forEach(date => {
+      dateLabels.forEach((date: string) => {
         // Will format date as "DD/MM" for UI
         const [, mm, dd] = date.split('-')
         chartDataMap.set(date, { date: `${dd}/${mm}`, newMembers: 0, moderationActions: 0, economy: 0 })
@@ -152,7 +226,7 @@ export async function statsRoutes(fastify: FastifyInstance) {
         where: { guildId, createdAt: { gte: sevenDaysAgo } },
         select: { createdAt: true }
       })
-      recentModLogs.forEach(log => {
+      recentModLogs.forEach((log: { createdAt: Date }) => {
         const dStr = log.createdAt.toISOString().split('T')[0]
         if (chartDataMap.has(dStr)) chartDataMap.get(dStr)!.moderationActions++
       })
@@ -162,8 +236,8 @@ export async function statsRoutes(fastify: FastifyInstance) {
         where: { guildId, joinedAt: { gte: sevenDaysAgo } },
         select: { joinedAt: true }
       })
-      recentMembers.forEach(member => {
-        const dStr = member.joinedAt.toISOString().split('T')[0]
+      recentMembers.forEach((member: { joinedAt: Date | null }) => {
+        const dStr = member.joinedAt?.toISOString().split('T')[0] || ''
         if (chartDataMap.has(dStr)) chartDataMap.get(dStr)!.newMembers++
       })
 
@@ -172,7 +246,7 @@ export async function statsRoutes(fastify: FastifyInstance) {
         where: { guildId, createdAt: { gte: sevenDaysAgo } },
         select: { createdAt: true }
       })
-      recentEconomy.forEach(tx => {
+      recentEconomy.forEach((tx: { createdAt: Date }) => {
         const dStr = tx.createdAt.toISOString().split('T')[0]
         if (chartDataMap.has(dStr)) chartDataMap.get(dStr)!.economy++
       })

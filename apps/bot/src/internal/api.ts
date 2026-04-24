@@ -378,6 +378,29 @@ function pick_member(member: GuildMember) {
   };
 }
 
+// Cache state for bot stats
+const bot_stats_cache = {
+  value: { servers: 0, users: 0 } as bot_stats_response | null,
+  expires_at: 0,
+  last_calculated_at: 0,
+}
+
+function get_bot_stats_cache_ttl_ms(): number {
+  const env = process.env.BOT_STATS_CACHE_TTL_MS
+  if (!env) return 30_000 // 30 seconds default
+  const parsed = Number.parseInt(env, 10)
+  if (Number.isNaN(parsed) || parsed <= 0) return 30_000
+  return parsed
+}
+
+function get_bot_stats_cache_max_age_ms(): number {
+  const env = process.env.BOT_STATS_CACHE_MAX_AGE_MS
+  if (!env) return 60_000 // 60 seconds max age
+  const parsed = Number.parseInt(env, 10)
+  if (Number.isNaN(parsed) || parsed <= 0) return 60_000
+  return parsed
+}
+
 export function start_internal_api(client: Client, options: internal_api_options) {
   const server = http.createServer(async (req, res) => {
     const request_id = typeof req.headers['x-request-id'] === 'string' ? req.headers['x-request-id'].trim() : ''
@@ -399,16 +422,85 @@ export function start_internal_api(client: Client, options: internal_api_options
       }
 
       if (req.method === 'GET' && url.pathname === '/internal/stats') {
+        const now = Date.now()
+        const cache_ttl = get_bot_stats_cache_ttl_ms()
+        const cache_max_age = get_bot_stats_cache_max_age_ms()
+
+        // Check if we have a valid cache
+        if (bot_stats_cache.value &&
+            bot_stats_cache.expires_at > now &&
+            (now - bot_stats_cache.last_calculated_at) <= cache_max_age) {
+          log.info({ cached: true, ...bot_stats_cache.value }, 'Serving cached bot stats')
+          return send_json(res, 200, bot_stats_cache.value satisfies bot_stats_response)
+        }
+
         const serverCount = client.guilds.cache.size
-        
-        // Calculate total users by getting approximate member counts from Discord API (primary method)
         let totalUsers = 0
+
+        // Try to get values from cache first (fast path)
+        const cached_guild = client.guilds.cache.first()
+        if (cached_guild) {
+          if (typeof cached_guild.approximateMemberCount === 'number') {
+            totalUsers = cached_guild.approximateMemberCount
+            log.info({ totalUsers, serverCount, source: 'cached_guild.approximateMemberCount' }, 'Stats calculated using cached guild approximateMemberCount')
+          } else if (typeof cached_guild.memberCount === 'number') {
+            totalUsers = cached_guild.memberCount
+            log.info({ totalUsers, serverCount, source: 'cached_guild.memberCount' }, 'Stats calculated using cached guild memberCount')
+          }
+        }
+
+        // If we have reasonable values from cache, use them and schedule a refresh
+        if (totalUsers > 0 && serverCount > 0) {
+          const response = {
+            servers: serverCount,
+            users: totalUsers,
+          } satisfies bot_stats_response
+
+          // Update cache
+          bot_stats_cache.value = response
+          bot_stats_cache.expires_at = now + cache_ttl
+          bot_stats_cache.last_calculated_at = now
+
+          // Schedule background refresh
+          setTimeout(async () => {
+            try {
+              const bg_serverCount = client.guilds.cache.size
+              let bg_totalUsers = 0
+
+              // Try to get fresh values in background
+              const bg_guild = client.guilds.cache.first()
+              if (bg_guild) {
+                if (typeof bg_guild.approximateMemberCount === 'number') {
+                  bg_totalUsers = bg_guild.approximateMemberCount
+                } else if (typeof bg_guild.memberCount === 'number') {
+                  bg_totalUsers = bg_guild.memberCount
+                }
+              }
+
+              if (bg_totalUsers > 0 && bg_serverCount > 0) {
+                bot_stats_cache.value = {
+                  servers: bg_serverCount,
+                  users: bg_totalUsers,
+                }
+                bot_stats_cache.last_calculated_at = Date.now()
+                log.info({ bg_totalUsers, bg_serverCount }, 'Background stats refresh completed')
+              }
+            } catch (bgError) {
+              log.warn({ err: safe_error_details(bgError) }, 'Background stats refresh failed')
+            }
+          }, 1000) // Refresh after 1 second in background
+
+          return send_json(res, 200, response)
+        }
+
+        // Fallback: Calculate total users by getting approximate member counts from Discord API (primary method)
         try {
           // Primary method: fetch guilds with counts to get approximate member counts from Discord API
           const guilds = await Promise.all(
             client.guilds.cache.map(async (guild) => {
               try {
-                const fetchedGuild = await client.guilds.fetch({ guild: guild.id, withCounts: true, force: true })
+                // Use withCounts: true but WITHOUT force: true to respect Discord cache
+                const fetchedGuild = await client.guilds.fetch({ guild: guild.id, withCounts: true })
                 return fetchedGuild
               } catch (error) {
                 log.warn({ err: safe_error_details(error), guildId: guild.id }, 'Failed to fetch guild with counts')
@@ -416,7 +508,7 @@ export function start_internal_api(client: Client, options: internal_api_options
               }
             })
           )
-          
+
           for (const guild of guilds) {
             if (typeof guild.approximateMemberCount === 'number') {
               totalUsers += guild.approximateMemberCount
@@ -427,11 +519,11 @@ export function start_internal_api(client: Client, options: internal_api_options
               }
             }
           }
-          
+
           log.info({ totalUsers, serverCount }, 'Stats calculated using Discord API')
         } catch (error) {
           log.warn({ err: safe_error_details(error) }, 'Failed to fetch guilds with counts, using database fallback')
-          
+
           // Fallback: count unique users from database
           try {
             const uniqueUsers = await prisma.guildMember.groupBy({
@@ -454,11 +546,47 @@ export function start_internal_api(client: Client, options: internal_api_options
             }
           }
         }
-        
-        return send_json(res, 200, {
+
+        const response = {
           servers: serverCount,
           users: totalUsers,
-        } satisfies bot_stats_response)
+        } satisfies bot_stats_response
+
+        // Update cache
+        bot_stats_cache.value = response
+        bot_stats_cache.expires_at = now + cache_ttl
+        bot_stats_cache.last_calculated_at = now
+
+        // Schedule background refresh
+        setTimeout(async () => {
+          try {
+            const bg_serverCount = client.guilds.cache.size
+            let bg_totalUsers = 0
+
+            // Try to get fresh values in background
+            const bg_guild = client.guilds.cache.first()
+            if (bg_guild) {
+              if (typeof bg_guild.approximateMemberCount === 'number') {
+                bg_totalUsers = bg_guild.approximateMemberCount
+              } else if (typeof bg_guild.memberCount === 'number') {
+                bg_totalUsers = bg_guild.memberCount
+              }
+            }
+
+            if (bg_totalUsers > 0 && bg_serverCount > 0) {
+              bot_stats_cache.value = {
+                servers: bg_serverCount,
+                users: bg_totalUsers,
+              }
+              bot_stats_cache.last_calculated_at = Date.now()
+              log.info({ bg_totalUsers, bg_serverCount }, 'Background stats refresh completed')
+            }
+          } catch (bgError) {
+            log.warn({ err: safe_error_details(bgError) }, 'Background stats refresh failed')
+          }
+        }, 1000) // Refresh after 1 second in background
+
+        return send_json(res, 200, response)
       }
 
       if (req.method === 'GET' && url.pathname === '/internal/commands') {
