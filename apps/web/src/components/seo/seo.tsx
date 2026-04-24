@@ -8,6 +8,7 @@ type seo_payload = {
   title: string
   description: string
   indexable: boolean
+  keywords?: string
 }
 
 function normalize_pathname(pathname: string) {
@@ -35,7 +36,8 @@ function resolve_payload(pathname: string, guild_id?: string): seo_payload {
   if (normalized === '/login') {
     return {
       title: 'Login - Yue Bot',
-      description: 'Acesse o painel do Yue Bot para gerenciar seu servidor no Discord.',
+      description: 'Acesse o painel do Yue Bot para gerenciar seu servidor Discord. Login via OAuth seguro e rápido.',
+      keywords: 'discord bot, login, painel, gerenciamento, servidor',
       indexable: true,
     }
   }
@@ -151,6 +153,7 @@ export function Seo() {
       <meta name="description" content={payload.description} />
       <meta name="robots" content={robots} />
       <link rel="canonical" href={canonical} />
+      {payload.keywords && <meta name="keywords" content={payload.keywords} />}
 
       <meta property="og:title" content={payload.title} />
       <meta property="og:description" content={payload.description} />

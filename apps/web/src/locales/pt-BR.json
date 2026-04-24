@@ -1,0 +1,27 @@
+{
+    "login": {
+        "title": "Yue Bot",
+        "subtitle": "Gerencie seu servidor com excelência",
+        "description": "Faça login com sua conta Discord para gerenciar seus servidores de forma simples e eficiente.",
+        "servers": "Servidores",
+        "users": "Usuários",
+        "loginButton": "Entrar com Discord",
+        "inviteButton": "Convidar Bot",
+        "or": "ou",
+        "termsNotice": "Ao fazer login, você concorda com nossos {termsLink} e {privacyLink}.",
+        "terms": "termos",
+        "privacy": "política de privacidade"
+    },
+    "errors": {
+        "statsLoadError": "Não foi possível carregar estatísticas do bot",
+        "invalidResponse": "Formato de resposta inválido",
+        "unknownError": "Erro desconhecido",
+        "configIncomplete": "Configuração do painel incompleta"
+    },
+    "footer": {
+        "viewExtras": "Ver Extras",
+        "faq": "FAQ",
+        "placeholders": "Placeholders",
+        "guides": "Guias"
+    }
+}

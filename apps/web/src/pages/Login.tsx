@@ -11,6 +11,10 @@ const API_URL = getApiUrl()
 interface BotStats {
   servers: number
   users: number
+  shards?: number
+  uptime?: string
+  version?: string
+  lastUpdated?: string
 }
 
 function formatNumber(num: number): string {
@@ -26,35 +30,47 @@ function formatNumber(num: number): string {
 export default function LoginPage() {
   const [stats, setStats] = useState<BotStats | null>(null)
   const [statsLoading, setStatsLoading] = useState(true)
+  const [statsError, setStatsError] = useState<string | null>(null)
   const [inviteLink, setInviteLink] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
+    // Validate environment variables
+    const apiUrl = getApiUrl()
+    const clientId = getDiscordClientId()
+
+    if (!apiUrl || !clientId) {
+      console.error('Environment variables missing')
+      setStatsError('Configuração do painel incompleta')
+      setStatsLoading(false)
+      return
+    }
+
     // Fetch bot stats
     const fetchStats = async () => {
       try {
-        const apiUrl = getApiUrl() // Get API URL inside useEffect to ensure env is loaded
         const response = await fetch(`${apiUrl}/api/bot/stats`)
-        if (response.ok) {
-          const data = await response.json()
-          // Extract stats from the API response (which includes 'success' wrapper)
-          // API returns: { success: true, servers: number, users: number }
-          if (data && typeof data.servers === 'number' && typeof data.users === 'number') {
-            setStats({ servers: data.servers, users: data.users })
-          } else {
-            console.warn('Invalid stats response:', data)
-          }
+        if (!response.ok) {
+          throw new Error('Não foi possível carregar estatísticas do bot')
+        }
+        const data = await response.json()
+        // Extract stats from the API response (which includes 'success' wrapper)
+        // API returns: { success: true, servers: number, users: number }
+        if (data && typeof data.servers === 'number' && typeof data.users === 'number') {
+          setStats({ servers: data.servers, users: data.users })
         } else {
-          console.warn('Failed to fetch stats:', response.status, response.statusText)
+          console.warn('Invalid stats response:', data)
+          setStatsError('Formato de resposta inválido')
         }
       } catch (error) {
         console.error('Failed to fetch bot stats:', error)
+        setStatsError(error instanceof Error ? error.message : 'Erro desconhecido')
       } finally {
         setStatsLoading(false)
       }
     }
 
     // Set up invite link
-    const clientId = getDiscordClientId()
     if (clientId) {
       setInviteLink(`https://discord.com/oauth2/authorize?client_id=${clientId}&scope=bot&permissions=8`)
     }
@@ -63,6 +79,7 @@ export default function LoginPage() {
   }, [])
 
   const handleLogin = () => {
+    setIsLoading(true)
     window.location.href = `${API_URL}/api/auth/login`
   }
 
@@ -77,8 +94,8 @@ export default function LoginPage() {
       {/* Refined geometric background */}
       <div className="fixed inset-0 overflow-hidden">
         {/* Primary gradient orbs */}
-        <div className="absolute -top-1/2 -left-1/4 h-[800px] w-[800px] rounded-full bg-accent/8 blur-[150px] animate-pulse" style={{ animationDuration: '8s' }} />
-        <div className="absolute -bottom-1/2 -right-1/4 h-[600px] w-[600px] rounded-full bg-accent/5 blur-[140px] animate-pulse" style={{ animationDuration: '12s' }} />
+        <div className="absolute -top-1/2 -left-1/4 h-[800px] w-[800px] rounded-full bg-accent/8 blur-[80px] animate-pulse" style={{ animationDuration: '8s' }} />
+        <div className="absolute -bottom-1/2 -right-1/4 h-[600px] w-[600px] rounded-full bg-accent/5 blur-[80px] animate-pulse" style={{ animationDuration: '12s' }} />
 
         {/* Subtle grid pattern */}
         <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]" />
@@ -139,6 +156,13 @@ export default function LoginPage() {
               </div>
             </div>
 
+            {/* Error message */}
+            {statsError && (
+              <div className="mb-4 p-3 rounded-lg bg-destructive/10 text-destructive text-sm text-center">
+                {statsError}
+              </div>
+            )}
+
             {/* Login card */}
             <div
               className="rounded-2xl border border-border/60 bg-surface/40 backdrop-blur-xl p-6 shadow-2xl shadow-black/20 animate-[fadeIn_400ms_ease-out_200ms_both]"
@@ -155,6 +179,9 @@ export default function LoginPage() {
                 onClick={handleLogin}
                 size="lg"
                 className="w-full gap-2 !bg-[#5865F2] hover:!bg-[#4752C4] !text-white !border-none shadow-lg shadow-[#5865F2]/20 hover:shadow-[#5865F2]/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                isLoading={isLoading}
+                disabled={isLoading}
+                aria-label="Entrar com Discord"
               >
                 <span className="flex items-center gap-2">
                   <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
