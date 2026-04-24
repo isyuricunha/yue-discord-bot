@@ -25,7 +25,16 @@ function build_canonical(pathname: string) {
 function resolve_payload(pathname: string, guild_id?: string): seo_payload {
   const normalized = normalize_pathname(pathname)
 
-  if (normalized === '/' || normalized === '/moderation') {
+  if (normalized === '/') {
+    return {
+      title: 'Painel de Gerenciamento - Yue Bot',
+      description: 'Gerencie seus servidores Discord com o Yue Bot. Configurações de AutoMod, sorteios, economia e muito mais.',
+      keywords: 'discord bot, painel, gerenciamento, servidor, automod, sorteios, economia',
+      indexable: true,
+    }
+  }
+
+  if (normalized === '/moderation') {
     return {
       title: 'Yue Bot - Painel de Gerenciamento',
       description: 'Painel de gerenciamento do Yue Bot para configurar moderação, automod, logs e recursos do seu servidor no Discord.',
