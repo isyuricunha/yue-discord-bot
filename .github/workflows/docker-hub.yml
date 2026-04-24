@@ -29,7 +29,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-      DSLIM_NO_HEALTHCHECK: true
     steps:
       - name: Check out the repo
         uses: actions/checkout@v4
@@ -111,88 +110,3 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      - name: Pull fat image (amd64)
-        if: steps.semantic.outputs.new_release_published == 'true'
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          VERSION: ${{ steps.semantic.outputs.new_release_git_tag }}
-        run: |
-          set -euo pipefail
-          docker pull --platform linux/amd64 "${DOCKERHUB_USERNAME}/yue-discord-bot:${VERSION}"
-          docker tag "${DOCKERHUB_USERNAME}/yue-discord-bot:${VERSION}" "yue-discord-bot:${VERSION}-fat-amd64"
-
-      - name: Slim image (amd64)
-        if: steps.semantic.outputs.new_release_published == 'true'
-        env:
-          DATABASE_URL: postgresql://yuebot:change_me_postgres_password@db:5432/yuebot
-          DSLIM_RC_ENV: DATABASE_URL=${{ env.DATABASE_URL }}
-        uses: kitabisa/docker-slim-action@v1
-        with:
-          target: yue-discord-bot:${{ steps.semantic.outputs.new_release_git_tag }}-fat-amd64
-          tag: ${{ steps.semantic.outputs.new_release_git_tag }}-slim-amd64
-
-      - name: Pull fat image (arm64)
-        if: steps.semantic.outputs.new_release_published == 'true'
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          VERSION: ${{ steps.semantic.outputs.new_release_git_tag }}
-        run: |
-          set -euo pipefail
-          docker pull --platform linux/arm64 "${DOCKERHUB_USERNAME}/yue-discord-bot:${VERSION}"
-          docker tag "${DOCKERHUB_USERNAME}/yue-discord-bot:${VERSION}" "yue-discord-bot:${VERSION}-fat-arm64"
-
-      - name: Slim image (arm64)
-        if: steps.semantic.outputs.new_release_published == 'true'
-        env:
-          DATABASE_URL: postgresql://yuebot:change_me_postgres_password@db:5432/yuebot
-          DSLIM_RC_ENV: DATABASE_URL=${{ env.DATABASE_URL }}
-        uses: kitabisa/docker-slim-action@v1
-        with:
-          target: yue-discord-bot:${{ steps.semantic.outputs.new_release_git_tag }}-fat-arm64
-          tag: ${{ steps.semantic.outputs.new_release_git_tag }}-slim-arm64
-
-      - name: Push slim images (arch tags)
-        if: steps.semantic.outputs.new_release_published == 'true'
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          REPO: ${{ github.repository }}
-          VERSION: ${{ steps.semantic.outputs.new_release_git_tag }}
-        run: |
-          set -euo pipefail
-
-          for arch in amd64 arm64; do
-            docker tag "yue-discord-bot:${VERSION}-slim-${arch}" "${DOCKERHUB_USERNAME}/yue-discord-bot:${VERSION}-slim-${arch}"
-            docker push "${DOCKERHUB_USERNAME}/yue-discord-bot:${VERSION}-slim-${arch}"
-
-            docker tag "yue-discord-bot:${VERSION}-slim-${arch}" "ghcr.io/${REPO}:${VERSION}-slim-${arch}"
-            docker push "ghcr.io/${REPO}:${VERSION}-slim-${arch}"
-          done
-
-      - name: Create and push slim manifests (multi-arch tags)
-        if: steps.semantic.outputs.new_release_published == 'true'
-        env:
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKERHUB_USERNAME }}
-          REPO: ${{ github.repository }}
-          VERSION: ${{ steps.semantic.outputs.new_release_git_tag }}
-        run: |
-          set -euo pipefail
-
-          docker buildx imagetools create \
-            --tag "${DOCKERHUB_USERNAME}/yue-discord-bot:${VERSION}-slim" \
-            "${DOCKERHUB_USERNAME}/yue-discord-bot:${VERSION}-slim-amd64" \
-            "${DOCKERHUB_USERNAME}/yue-discord-bot:${VERSION}-slim-arm64"
-
-          docker buildx imagetools create \
-            --tag "${DOCKERHUB_USERNAME}/yue-discord-bot:latest-slim" \
-            "${DOCKERHUB_USERNAME}/yue-discord-bot:${VERSION}-slim-amd64" \
-            "${DOCKERHUB_USERNAME}/yue-discord-bot:${VERSION}-slim-arm64"
-
-          docker buildx imagetools create \
-            --tag "ghcr.io/${REPO}:${VERSION}-slim" \
-            "ghcr.io/${REPO}:${VERSION}-slim-amd64" \
-            "ghcr.io/${REPO}:${VERSION}-slim-arm64"
-
-          docker buildx imagetools create \
-            --tag "ghcr.io/${REPO}:latest-slim" \
-            "ghcr.io/${REPO}:${VERSION}-slim-amd64" \
-            "ghcr.io/${REPO}:${VERSION}-slim-arm64"
