@@ -45,13 +45,6 @@ export function AppShell() {
         <div className="absolute -bottom-52 right-[-120px] h-[520px] w-[520px] rounded-full bg-accent/4 blur-[120px]" />
       </div>
 
-      {/* Skip Link - Visible on focus for keyboard users */}
-      <a
-        href="#main-content"
-        className="absolute left-4 top-4 z-50 rounded-lg bg-accent px-4 py-2 text-sm font-medium text-black shadow-lg transition-all focus:top-4"
-      >
-        Pular para conteúdo principal
-      </a>
 
       <div className="relative flex h-full">
         <Sidebar collapsed={collapsed} onToggle={toggle} />
