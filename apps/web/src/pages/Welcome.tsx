@@ -5,7 +5,8 @@ import axios from 'axios'
 import { Save, Eye, MessageSquare, UserMinus } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, CardHeader, ErrorState, Select, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, CardHeader, ErrorState, Select, Skeleton, PageHeader, ModuleLayout } from '../components/ui'
+import { channel_label } from '../lib/discord'
 import { MessageVariantEditor } from '../components/message_variant_editor'
 import { PlaceholderChips } from '../components/template_placeholders'
 import { validate_extended_template_variants } from '../lib/message_template'
@@ -57,10 +58,6 @@ const preview_guild = {
   name: 'Meu Servidor Discord',
   memberCount: 150,
   iconUrl: 'https://cdn.discordapp.com/embed/avatars/1.png',
-}
-
-function channel_label(channel: api_channel) {
-  return `#${channel.name}`
 }
 
 function render_preview(template: string) {
@@ -167,13 +164,12 @@ export default function WelcomePage() {
   })
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="text-xl font-semibold tracking-tight">Boas-vindas</div>
-          <div className="mt-1 text-sm text-muted-foreground">Mensagens e canais automáticos</div>
-        </div>
-
+    <ModuleLayout maxWidth="4xl">
+      <PageHeader
+        icon={Save}
+        title="Boas-vindas"
+        description="Mensagens e canais automáticos"
+      >
         <Button
           onClick={() => saveMutation.mutate()}
           isLoading={saveMutation.isPending}
@@ -183,7 +179,7 @@ export default function WelcomePage() {
           <Save className="h-4 w-4" />
           <span>Salvar</span>
         </Button>
-      </div>
+      </PageHeader>
 
       {/* Preview Toggle Button */}
       <div className="flex items-center gap-2">
@@ -297,13 +293,13 @@ export default function WelcomePage() {
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                         <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
                           <div className="text-xs font-semibold text-foreground">Texto simples</div>
-                          <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
+                          <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
                             {'Bem-vindo {@user} ao {guild}! Agora somos {guild-size} membros.'}
                           </pre>
                         </div>
                         <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
                           <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
-                          <pre className="mt-2 whitespace-pre-wrap wrap-break-word text-xs text-foreground">
+                          <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
                             {"Bem-vindo {@user} ao {guild}! Agora somos {guild-size} membros."}
                           </pre>
                         </div>
@@ -452,6 +448,6 @@ export default function WelcomePage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </ModuleLayout>
   )
 }

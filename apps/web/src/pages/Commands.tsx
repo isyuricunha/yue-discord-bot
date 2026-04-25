@@ -208,7 +208,7 @@ export default function CommandsPage() {
                           </div>
                         </div>
 
-                        <pre className="mt-3 whitespace-pre-wrap wrap-break-word rounded-xl border border-border/60 bg-surface/60 p-3 text-xs text-foreground">
+                        <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl border border-border/60 bg-surface/60 p-3 text-xs text-foreground">
                           {JSON.stringify(cmd.json, null, 2)}
                         </pre>
                       </div>
@@ -237,7 +237,7 @@ export default function CommandsPage() {
                           />
                         </div>
 
-                        <pre className="mt-3 whitespace-pre-wrap wrap-break-word rounded-xl border border-border/60 bg-surface/60 p-3 text-xs text-foreground">
+                        <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl border border-border/60 bg-surface/60 p-3 text-xs text-foreground">
                           {JSON.stringify(cmd.json, null, 2)}
                         </pre>
                       </div>

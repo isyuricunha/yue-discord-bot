@@ -264,7 +264,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
                <Settings className="h-3.5 w-3.5 transition-transform group-open:rotate-90" />
                Ver detalhes técnicos (Avançado)
              </summary>
-             <pre className="mt-3 overflow-x-auto whitespace-pre-wrap wrap-break-word rounded-xl border border-border/40 bg-black/20 p-4 text-[11px] font-mono text-muted-foreground shadow-inner">
+             <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words rounded-xl border border-border/40 bg-black/20 p-4 text-[11px] font-mono text-muted-foreground shadow-inner">
                {JSON.stringify(data, null, 2)}
              </pre>
           </details>
