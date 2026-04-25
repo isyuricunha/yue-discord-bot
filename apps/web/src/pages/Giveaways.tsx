@@ -4,7 +4,8 @@ import axios from 'axios'
 import { Trophy, Calendar, Users, CheckCircle, Clock, Plus } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, PageHeader, ModuleLayout } from '../components/ui'
+import { channel_label } from '../lib/discord'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -13,10 +14,6 @@ type api_channel = {
   id: string
   name: string
   type: number
-}
-
-function channel_label(channel: api_channel) {
-  return `#${channel.name}`
 }
 
 interface Giveaway {
@@ -100,23 +97,17 @@ export default function GiveawaysPage() {
   const endedGiveaways = giveaways.filter((g: Giveaway) => g.ended || g.cancelled)
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-            <Trophy className="h-5 w-5" />
-          </span>
-          <div>
-            <div className="text-xl font-semibold tracking-tight">Sorteios</div>
-            <div className="mt-1 text-sm text-muted-foreground">Gerencie sorteios do servidor</div>
-          </div>
-        </div>
-
+    <ModuleLayout>
+      <PageHeader
+        icon={Trophy}
+        title="Sorteios"
+        description="Gerencie sorteios do servidor"
+      >
         <Button onClick={() => navigate(`/guild/${guildId}/giveaways/create`)}>
           <Plus className="h-4 w-4" />
           <span>Criar sorteio</span>
         </Button>
-      </div>
+      </PageHeader>
 
       <Card className="border-accent/20">
         <CardContent className="p-6 text-sm text-muted-foreground">
@@ -234,7 +225,7 @@ export default function GiveawaysPage() {
           )}
         </>
       )}
-    </div>
+    </ModuleLayout>
   )
 }
 

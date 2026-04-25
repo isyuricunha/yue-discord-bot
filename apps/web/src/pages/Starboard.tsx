@@ -5,7 +5,8 @@ import axios from 'axios'
 import { Save, Star } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Switch, PageHeader, ModuleLayout } from '../components/ui'
+import { channel_label } from '../lib/discord'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -34,10 +35,6 @@ type api_starboard_post = {
   starCount: number
   createdAt: string
   updatedAt: string
-}
-
-function channel_label(ch: api_channel) {
-  return `#${ch.name}`
 }
 
 const CHANNEL_TYPE_GUILD_TEXT = 0
@@ -159,18 +156,12 @@ export default function StarboardPage() {
     (config.emoji ?? '').trim().length === 0
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-            <Star className="h-5 w-5" />
-          </span>
-          <div>
-            <div className="text-xl font-semibold tracking-tight">Starboard</div>
-            <div className="text-sm text-muted-foreground">Reposte mensagens populares com estrelas</div>
-          </div>
-        </div>
-
+    <ModuleLayout>
+      <PageHeader
+        icon={Star}
+        title="Starboard"
+        description="Reposte mensagens populares com estrelas"
+      >
         <div className="flex items-center gap-2">
           <Button
             variant="ghost"
@@ -184,13 +175,12 @@ export default function StarboardPage() {
           >
             Atualizar
           </Button>
-
           <Button onClick={handle_save} isLoading={save_mutation.isPending} disabled={is_save_disabled} className="shrink-0">
             <Save className="h-4 w-4" />
             <span>Salvar</span>
           </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {is_error && (
         <ErrorState
@@ -329,6 +319,6 @@ export default function StarboardPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </ModuleLayout>
   )
 }

@@ -5,7 +5,8 @@ import axios from 'axios'
 import { BrainCircuit, Plus, Save, X } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
+import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch, PageHeader, ModuleLayout } from '../components/ui'
+import { action_label, ai_level_label, type automod_action, type ai_moderation_level } from '../lib/automod'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
 
@@ -42,24 +43,6 @@ type automod_config_response = {
   }
 }
 
-type automod_action = 'delete' | 'warn' | 'mute' | 'kick' | 'ban'
-type ai_moderation_level = 'permissivo' | 'brando' | 'medio' | 'rigoroso' | 'maximo'
-
-const action_label: Record<automod_action, string> = {
-  delete: 'Deletar',
-  warn: 'Avisar',
-  mute: 'Silenciar',
-  kick: 'Expulsar',
-  ban: 'Banir',
-}
-
-const ai_level_label: Record<ai_moderation_level, string> = {
-  permissivo: 'Permissivo',
-  brando: 'Brando',
-  medio: 'Médio',
-  rigoroso: 'Rigoroso',
-  maximo: 'Máximo',
-}
 
 const openai_categories = [
   'harassment',
@@ -211,13 +194,12 @@ export default function ModerationPage() {
   })
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <div className="text-xl font-semibold tracking-tight">Moderação</div>
-          <div className="mt-1 text-sm text-muted-foreground">Configurações de punição e automação</div>
-        </div>
-
+    <ModuleLayout maxWidth="4xl">
+      <PageHeader
+        icon={BrainCircuit}
+        title="Moderação"
+        description="Configurações de punição e automação"
+      >
         <div className="flex items-center gap-2">
           {has_changes && <Badge>Alterações pendentes</Badge>}
           <Button
@@ -230,7 +212,7 @@ export default function ModerationPage() {
             <span>Salvar</span>
           </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {is_config_error && (
         <ErrorState
@@ -427,6 +409,6 @@ export default function ModerationPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </ModuleLayout>
   )
 }

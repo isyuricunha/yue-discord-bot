@@ -5,10 +5,19 @@ import axios from 'axios'
 import { Save, Plus, Trash2, Shield, AlertTriangle, Link as LinkIcon, BrainCircuit } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
+import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch, PageHeader, ModuleLayout } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
 import { Ban, FileWarning, MicOff, Trash2 as TrashIcon } from 'lucide-react'
+import {
+  action_label,
+  action_description,
+  describe_action,
+  ai_level_label,
+  ai_level_description,
+  type automod_action,
+  type ai_moderation_level,
+} from '../lib/automod'
 
 const ActionIcon = ({ action }: { action: string }) => {
   if (action === 'delete') return <TrashIcon className="w-3 h-3" />
@@ -20,51 +29,9 @@ const ActionIcon = ({ action }: { action: string }) => {
 
 const API_URL = getApiUrl()
 
-type automod_action = 'delete' | 'warn' | 'mute' | 'kick' | 'ban'
-
-const action_label: Record<automod_action, string> = {
-  delete: 'Deletar',
-  warn: 'Avisar',
-  mute: 'Silenciar',
-  kick: 'Expulsar',
-  ban: 'Banir',
-}
-
-const action_description: Record<automod_action, string> = {
-  delete: 'Remove a mensagem. Não aplica punição ao usuário.',
-  warn: 'Remove a mensagem e registra 1 warn no usuário (pode contar para thresholds).',
-  mute: 'Remove a mensagem e aplica timeout de 5 minutos no usuário.',
-  kick: 'Remove a mensagem e expulsa o usuário do servidor.',
-  ban: 'Remove a mensagem e bane o usuário do servidor.',
-}
-
-function describe_action(value: unknown) {
-  const key = value as automod_action
-  if (!key || !(key in action_description)) return ''
-  return action_description[key]
-}
-
 interface BannedWord {
   word: string
   action: string
-}
-
-type ai_moderation_level = 'permissivo' | 'brando' | 'medio' | 'rigoroso' | 'maximo'
-
-const ai_level_label: Record<ai_moderation_level, string> = {
-  permissivo: 'Permissivo',
-  brando: 'Brando',
-  medio: 'Médio',
-  rigoroso: 'Rigoroso',
-  maximo: 'Máximo',
-}
-
-const ai_level_description: Record<ai_moderation_level, string> = {
-  permissivo: 'Quase tudo passa. Só conteúdo bem explícito será punido.',
-  brando: 'Mais permissivo que o padrão, mas ainda barra casos evidentes.',
-  medio: 'Equilíbrio (recomendado).',
-  rigoroso: 'Mais restritivo. Penaliza com mais frequência.',
-  maximo: 'Quase nada passa. Use apenas se você quiser tolerância mínima.',
 }
 
 interface GuildConfig {
@@ -194,18 +161,12 @@ export default function AutoModPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-            <Shield className="h-5 w-5" />
-          </span>
-          <div>
-            <div className="text-xl font-semibold tracking-tight">AutoMod</div>
-            <div className="text-sm text-muted-foreground">Moderação automática</div>
-          </div>
-        </div>
-
+    <ModuleLayout>
+      <PageHeader
+        icon={Shield}
+        title="AutoMod"
+        description="Moderação automática"
+      >
         <div className="flex items-center gap-2">
           {has_changes && <Badge>Alterações pendentes</Badge>}
           <Button
@@ -218,7 +179,7 @@ export default function AutoModPage() {
             <span>Salvar</span>
           </Button>
         </div>
-      </div>
+      </PageHeader>
 
       {isError && (
         <ErrorState
@@ -553,6 +514,6 @@ export default function AutoModPage() {
           )}
         </CardContent>
       </Card>
-    </div>
+    </ModuleLayout>
   )
 }

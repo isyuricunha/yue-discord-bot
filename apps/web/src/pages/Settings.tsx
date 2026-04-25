@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Save, Settings as SettingsIcon, Globe, Clock } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Card, CardContent, ErrorState, Select, Skeleton, Button } from '../components/ui'
+import { Card, CardContent, ErrorState, Select, Skeleton, Button, PageHeader, ModuleLayout } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -80,23 +80,17 @@ export default function SettingsPage() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
-            <SettingsIcon className="h-5 w-5" />
-          </span>
-          <div>
-            <div className="text-xl font-semibold tracking-tight">Configurações</div>
-            <div className="text-sm text-muted-foreground">Preferências do servidor</div>
-          </div>
-        </div>
-
+    <ModuleLayout maxWidth="4xl">
+      <PageHeader
+        icon={SettingsIcon}
+        title="Configurações"
+        description="Preferências do servidor"
+      >
         <Button onClick={handleSave} isLoading={updateMutation.isPending} className="shrink-0">
           <Save className="h-4 w-4" />
           <span>Salvar</span>
         </Button>
-      </div>
+      </PageHeader>
 
       {is_config_error && (
         <ErrorState
@@ -162,6 +156,6 @@ export default function SettingsPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </ModuleLayout>
   )
 }

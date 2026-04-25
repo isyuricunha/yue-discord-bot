@@ -5,7 +5,7 @@ import { useState } from 'react'
 import { Search, Shield, AlertTriangle, User } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, PageHeader, ModuleLayout } from '../components/ui'
 
 const API_URL = getApiUrl()
 
@@ -64,13 +64,12 @@ export default function MembersPage() {
   const has_filters = searchTerm.trim().length > 0 || warningFilter !== 'all'
 
   return (
-    <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <div className="text-xl font-semibold tracking-tight">Membros</div>
-          <div className="mt-1 text-sm text-muted-foreground">Gerencie membros e histórico de avisos</div>
-        </div>
-      </div>
+    <ModuleLayout>
+      <PageHeader
+        icon={User}
+        title="Membros"
+        description="Gerencie membros e histórico de avisos"
+      />
 
       {isError && (
         <ErrorState
@@ -236,6 +235,6 @@ export default function MembersPage() {
           )}
         </>
       )}
-    </div>
+    </ModuleLayout>
   )
 }
