@@ -6,11 +6,12 @@
  */
 import { useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useParams, Link } from 'react-router-dom'
-import { LogOut, ExternalLink, ChevronRight, Home, LayoutDashboard, Search } from 'lucide-react'
+import { LogOut, ExternalLink, ChevronRight, Home, LayoutDashboard, Search, User } from 'lucide-react'
 
 import { useAuthStore } from '../../store/auth'
 import { useCommandPaletteStore } from '../../store/command_palette'
 import { cn } from '../../lib/cn'
+import { getDiscordAvatarUrl } from '../../lib/discord'
 import { Button } from '../ui'
 
 type breadcrumb_item = {
@@ -191,12 +192,24 @@ export function Topbar() {
           {/* Avatar */}
           <div
             className={cn(
-              'grid h-9 w-9 shrink-0 place-items-center rounded-xl border border-border/80 bg-surface/60',
+              'grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl border border-border/80 bg-surface/60',
               'shadow-[0_0_0_1px_rgba(255,255,255,0.03)]'
             )}
             aria-label="User avatar"
           >
-            <img src="/icon.png" alt="User avatar" className="h-5 w-5 rounded" />
+            {user?.userId && user?.avatar ? (
+              <img
+                src={getDiscordAvatarUrl(user.userId, user.avatar) ?? undefined}
+                alt={`Avatar de ${user.username}`}
+                className="h-full w-full object-cover"
+                onError={(e) => {
+                  const target = e.currentTarget
+                  target.style.display = 'none'
+                }}
+              />
+            ) : (
+              <User className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            )}
           </div>
 
           {/* Logout */}
