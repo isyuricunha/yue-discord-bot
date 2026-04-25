@@ -6,3 +6,13 @@ export function getDiscordAvatarUrl(userId: string, avatar: string | null): stri
   if (!avatar) return null
   return `https://cdn.discordapp.com/avatars/${userId}/${avatar}.png`
 }
+
+export interface api_channel {
+  id: string
+  name: string
+  type: number
+}
+
+export function channel_label(channel: api_channel) {
+  return `#${channel.name}`
+}
