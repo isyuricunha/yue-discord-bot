@@ -253,18 +253,18 @@ export default function OverviewPage() {
             <CardContent className="p-6">
               <div className="text-sm font-medium mb-4">Ingresso de Membros (7 dias)</div>
               <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                <ResponsiveContainer width="100%" height={256}>
                   <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorMembers" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
                     <XAxis dataKey="date" stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{ backgroundColor: '#0b0b0b', borderColor: '#1f1f1f', borderRadius: '8px' }}
                       itemStyle={{ color: '#f5f5f5' }}
                     />
@@ -279,22 +279,22 @@ export default function OverviewPage() {
             <CardContent className="p-6">
               <div className="text-sm font-medium mb-4">Economia & Moderação (7 dias)</div>
               <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%" minWidth={1} minHeight={1}>
+                <ResponsiveContainer width="100%" height={256}>
                   <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorEcon" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ff6a00" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#ff6a00" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#ff6a00" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#ff6a00" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorMod" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
                     <XAxis dataKey="date" stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
-                    <Tooltip 
+                    <Tooltip
                       contentStyle={{ backgroundColor: '#0b0b0b', borderColor: '#1f1f1f', borderRadius: '8px' }}
                       itemStyle={{ color: '#f5f5f5' }}
                     />
