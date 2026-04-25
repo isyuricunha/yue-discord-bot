@@ -1,45 +1,72 @@
-/**
- * Componente GuildCard para exibir informações da guild
- *
- * @param {Object} props - Props do componente
- * @param {Guild} props.guild - Dados da guild
- * @param {boolean} props.isLoading - Estado de carregamento
- * @returns {JSX.Element} Card da guild com imagem, nome e descrição
- */
-
+import { Crown, Hash } from 'lucide-react'
 import { Skeleton } from '../../../components/ui'
 import type { Guild } from '../types'
 
-export function GuildCard({ guild, isLoading }: { guild: Guild | null; isLoading: boolean }) {
+interface GuildCardProps {
+    guild: Guild
+    isLoading?: boolean
+}
+
+export function GuildCard({ guild, isLoading = false }: GuildCardProps) {
+    const guildIconUrl = guild.icon
+        ? `https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`
+        : null
+
     return (
-        <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
             {isLoading ? (
-                <Skeleton className="h-14 w-14 rounded-2xl" />
-            ) : guild?.icon ? (
+                <Skeleton className="h-20 w-20 rounded-3xl" />
+            ) : guildIconUrl ? (
                 <img
-                    src={`https://cdn.discordapp.com/icons/${guild.id}/${guild.icon}.png`}
+                    src={guildIconUrl}
                     alt={guild.name}
-                    className="h-14 w-14 rounded-2xl"
+                    className="h-20 w-20 rounded-3xl border border-border/80 bg-surface/60 object-cover"
                     loading="lazy"
                     onError={(e) => {
-                        const target = e.target as HTMLImageElement
+                        const target = e.currentTarget
                         target.onerror = null
-                        target.src = '/placeholder-guild.png'
+                        target.style.display = 'none'
                     }}
                 />
-            ) : (
-                <div className="grid h-14 w-14 place-items-center rounded-2xl border border-border/80 bg-surface/70 text-lg font-semibold">
-                    <span className="text-accent">{guild?.name.charAt(0) ?? '?'}</span>
+            ) : null}
+
+            {!guildIconUrl && !isLoading && (
+                <div className="grid h-20 w-20 shrink-0 place-items-center rounded-3xl border border-border/80 bg-surface/70 text-2xl font-bold">
+                    <span className="text-accent">{guild.name.charAt(0)}</span>
                 </div>
             )}
 
             <div className="min-w-0 flex-1">
-                <div className="text-base font-semibold tracking-tight">
-                    {isLoading ? <Skeleton className="h-4 w-40" /> : guild?.name ?? 'Guild'}
+                <div className="flex items-center gap-2">
+                    {isLoading ? (
+                        <Skeleton className="h-7 w-56" />
+                    ) : (
+                        <h1 className="truncate text-2xl font-bold tracking-tight text-foreground">
+                            {guild.name}
+                        </h1>
+                    )}
+                    {!isLoading && (
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
+                            <Crown className="h-3 w-3" aria-hidden="true" />
+                            Dono
+                        </span>
+                    )}
                 </div>
-                <div className="mt-1 text-sm text-muted-foreground">
-                    {isLoading ? <Skeleton className="h-3 w-56" /> : 'Painel de gerenciamento do servidor'}
+                <div className="mt-1.5 flex items-center gap-1.5 text-sm text-muted-foreground">
+                    {isLoading ? (
+                        <Skeleton className="h-4 w-40" />
+                    ) : (
+                        <>
+                            <Hash className="h-3.5 w-3.5" aria-hidden="true" />
+                            <span className="font-mono text-xs">{guild.id}</span>
+                        </>
+                    )}
                 </div>
+                {!isLoading && (
+                    <p className="mt-1 text-sm text-muted-foreground">
+                        Painel de gerenciamento do servidor
+                    </p>
+                )}
             </div>
         </div>
     )

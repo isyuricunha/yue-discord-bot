@@ -1,27 +1,27 @@
-/**
- * Hook customizado para disponibilizar módulos da guild
- *
- * @param {string} guildId - ID da guild
- * @returns {UseGuildModulesResult} Objeto com módulos organizados por categoria
- */
-
 import { useMemo } from 'react'
 import {
     BarChart3,
     Shield,
+    Gavel,
+    Siren,
     Trophy,
+    Gamepad2,
     FileText,
     Users,
     Settings,
     Sparkles,
+    Hand,
     UserPlus,
     LifeBuoy,
-    Wand2,
     Lightbulb,
+    Zap,
     MousePointerClick,
     Star,
     TerminalSquare,
+    Command,
     ClipboardList,
+    Music,
+    TrendingUp,
 } from 'lucide-react'
 import type { ModuleCard, ModuleCategory } from '../types'
 
@@ -49,7 +49,7 @@ export function useGuildModules(guildId: string): UseGuildModulesResult {
                 to: `/guild/${guildId}/setup`,
                 label: 'Setup Wizard',
                 description: 'Configuração guiada inicial',
-                icon: <Wand2 className="h-5 w-5" />,
+                icon: <Sparkles className="h-5 w-5" />,
                 category: 'essentials',
             },
             {
@@ -77,14 +77,14 @@ export function useGuildModules(guildId: string): UseGuildModulesResult {
                 to: `/guild/${guildId}/moderation`,
                 label: 'Moderação',
                 description: 'Punições e automação',
-                icon: <Shield className="h-5 w-5" />,
+                icon: <Gavel className="h-5 w-5" />,
                 category: 'automation',
             },
             {
                 to: `/guild/${guildId}/welcome`,
                 label: 'Boas-vindas',
                 description: 'Mensagens automáticas',
-                icon: <Sparkles className="h-5 w-5" />,
+                icon: <Hand className="h-5 w-5" />,
                 category: 'automation',
             },
             {
@@ -98,7 +98,7 @@ export function useGuildModules(guildId: string): UseGuildModulesResult {
                 to: `/guild/${guildId}/xp`,
                 label: 'XP & Níveis',
                 description: 'Sistema de ranking',
-                icon: <Sparkles className="h-5 w-5" />,
+                icon: <TrendingUp className="h-5 w-5" />,
                 category: 'engagement',
             },
             {
@@ -126,35 +126,35 @@ export function useGuildModules(guildId: string): UseGuildModulesResult {
                 to: `/guild/${guildId}/custom-commands`,
                 label: 'Custom Commands',
                 description: 'Comandos personalizados',
-                icon: <TerminalSquare className="h-5 w-5" />,
+                icon: <Command className="h-5 w-5" />,
                 category: 'engagement',
             },
             {
                 to: `/guild/${guildId}/antiraid`,
                 label: 'Anti-Raide',
                 description: 'Proteção contra raids e moderação avançada',
-                icon: <Shield className="h-5 w-5" />,
+                icon: <Siren className="h-5 w-5" />,
                 category: 'engagement',
             },
             {
                 to: `/guild/${guildId}/free-games`,
                 label: 'Jogos Grátis',
                 description: 'Games gratuitos para membros',
-                icon: <Trophy className="h-5 w-5" />,
+                icon: <Gamepad2 className="h-5 w-5" />,
                 category: 'engagement',
             },
             {
                 to: `/guild/${guildId}/triggers`,
                 label: 'Gatilhos',
                 description: 'Automação de mensagens e reações',
-                icon: <Lightbulb className="h-5 w-5" />,
+                icon: <Zap className="h-5 w-5" />,
                 category: 'engagement',
             },
             {
                 to: `/guild/${guildId}/music`,
                 label: 'Música',
                 description: 'Player e playlists',
-                icon: <TerminalSquare className="h-5 w-5" />,
+                icon: <Music className="h-5 w-5" />,
                 category: 'engagement',
             },
             {
