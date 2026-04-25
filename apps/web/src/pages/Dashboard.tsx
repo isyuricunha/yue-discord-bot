@@ -1,11 +1,19 @@
-import { useEffect, useState } from 'react'
-import { Plus, Search } from 'lucide-react'
-import { Card, CardContent, Skeleton, Button, Input } from '../components/ui'
+import { useEffect, useMemo, useState } from 'react'
+import { Plus, Search, Server, Users, X } from 'lucide-react'
+import {
+  Button,
+  Input,
+  EmptyState,
+  ErrorState,
+  StatCard,
+} from '../components/ui'
+import { SkeletonDashboard } from '../components/ui/skeleton_presets'
 import { useAuthStore } from '../store/auth'
 import { GuildCard } from './components/GuildCard'
-import { useGuilds, useDebounce } from '../hooks'
+import { useGuilds, useDebounce, useBotStats } from '../hooks'
 import type { Guild } from '../hooks/useGuilds'
 import { Seo } from '../components/seo/seo'
+import { formatNumber } from '../lib/format_number'
 
 export default function DashboardPage() {
   const { user } = useAuthStore()
@@ -19,13 +27,25 @@ export default function DashboardPage() {
     inviteUrl,
   } = useGuilds()
 
+  const { stats, loading: statsLoading } = useBotStats()
   const [internalSearchQuery, setInternalSearchQuery] = useState('')
   const debouncedSearchQuery = useDebounce(internalSearchQuery, 300)
 
-  // Sync debounced search with hook search
+  const greeting = useMemo(() => {
+    const hour = new Date().getHours()
+    if (hour >= 5 && hour < 12) return 'Bom dia'
+    if (hour >= 12 && hour < 18) return 'Boa tarde'
+    return 'Boa noite'
+  }, [])
+
   useEffect(() => {
     setSearchQuery(debouncedSearchQuery)
   }, [debouncedSearchQuery, setSearchQuery])
+
+  const clearSearch = () => {
+    setInternalSearchQuery('')
+    setSearchQuery('')
+  }
 
   if (isError) {
     return (
@@ -42,20 +62,12 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
-          <Card>
-            <CardContent className="p-8 text-center">
-              <div className="text-destructive mb-4 text-sm">{error?.message || 'Não foi possível carregar seus servidores'}</div>
-              <div className="text-sm text-muted-foreground">
-                Tente recarregar a página ou verifique sua conexão com a internet.
-              </div>
-              <Button
-                className="mt-4"
-                onClick={() => window.location.reload()}
-              >
-                Tentar novamente
-              </Button>
-            </CardContent>
-          </Card>
+          <ErrorState
+            title="Erro ao carregar servidores"
+            description={error?.message || 'Não foi possível carregar seus servidores. Tente recarregar a página ou verifique sua conexão com a internet.'}
+            actionLabel="Tentar novamente"
+            onAction={() => window.location.reload()}
+          />
         </div>
       </>
     )
@@ -65,9 +77,12 @@ export default function DashboardPage() {
     <>
       <Seo />
       <div className="mx-auto w-full max-w-7xl space-y-6">
+        {/* Header de boas-vindas */}
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="text-2xl font-semibold tracking-tight">Seus servidores</div>
+            <div className="text-2xl font-semibold tracking-tight">
+              {greeting}, {user?.username ?? 'Administrador'}
+            </div>
             <div className="mt-1 text-sm text-muted-foreground">
               {user?.isOwner
                 ? 'Você está em modo owner - acesso total aos servidores onde o bot está instalado.'
@@ -82,8 +97,18 @@ export default function DashboardPage() {
                   placeholder="Buscar servidor..."
                   value={internalSearchQuery}
                   onChange={(e) => setInternalSearchQuery(e.target.value)}
-                  className="w-full sm:w-[250px] pl-9"
+                  className="w-full sm:w-[250px] pl-9 pr-9"
                 />
+                {internalSearchQuery && (
+                  <button
+                    type="button"
+                    onClick={clearSearch}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground"
+                    aria-label="Limpar busca"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             )}
             <Button
@@ -98,63 +123,68 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {isLoading ? (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <Card key={i} className="overflow-hidden">
-                <CardContent className="p-5">
-                  <div className="flex items-center gap-4">
-                    <Skeleton className="h-14 w-14 rounded-2xl" />
-                    <div className="min-w-0 flex-1">
-                      <Skeleton className="h-4 w-3/4" />
-                      <Skeleton className="mt-2 h-3 w-1/2" />
-                    </div>
-                  </div>
-                  <div className="mt-4 grid grid-cols-3 gap-2">
-                    <Skeleton className="h-12" />
-                    <Skeleton className="h-12" />
-                    <Skeleton className="h-12" />
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {filteredGuilds?.map((guild: Guild) => (
-              <GuildCard key={guild.id} guild={guild} />
-            ))}
-            {filteredGuilds?.length === 0 && internalSearchQuery && (
-              <div className="col-span-full py-12 text-center text-muted-foreground">
-                Nenhum servidor encontrado para "{internalSearchQuery}"
-              </div>
-            )}
-          </div>
-        )}
+        {/* Stats do bot */}
+        <div
+          className="grid grid-cols-2 gap-3 sm:grid-cols-2 lg:grid-cols-4"
+          role="region"
+          aria-label="Estatísticas do bot"
+          aria-live="polite"
+        >
+          <StatCard
+            icon={<Server className="h-5 w-5" />}
+            value={stats ? formatNumber(stats.servers) : '---'}
+            label="Servidores"
+            isLoading={statsLoading}
+          />
+          <StatCard
+            icon={<Users className="h-5 w-5" />}
+            value={stats ? formatNumber(stats.users) : '---'}
+            label="Usuários"
+            isLoading={statsLoading}
+          />
+        </div>
 
-        {!isLoading && guilds?.length === 0 && (
-          <Card>
-            <CardContent className="p-8 text-center">
-              <div className="mx-auto mb-4 grid h-12 w-12 place-items-center rounded-full bg-surface/60">
-                <Plus className="h-5 w-5 text-muted-foreground" />
+        {isLoading ? (
+          <SkeletonDashboard />
+        ) : (
+          <>
+            {filteredGuilds && filteredGuilds.length > 0 ? (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {filteredGuilds.map((guild: Guild) => (
+                  <GuildCard key={guild.id} guild={guild} />
+                ))}
               </div>
-              <div className="text-base font-semibold">Nenhum servidor encontrado</div>
-              <div className="mt-2 text-sm text-muted-foreground">
-                {user?.isOwner
-                  ? 'O bot ainda não sincronizou nenhum servidor no banco. Verifique se ele está online e conectado.'
-                  : 'Convide o bot para seus servidores onde você é administrador.'}
-              </div>
-              {!user?.isOwner && (
-                <Button
-                  className="mt-4"
-                  onClick={() => inviteUrl ? window.open(inviteUrl, '_blank') : undefined}
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Adicionar bot ao servidor
-                </Button>
-              )}
-            </CardContent>
-          </Card>
+            ) : null}
+
+            {filteredGuilds?.length === 0 && internalSearchQuery && (
+              <EmptyState
+                title="Nenhum servidor encontrado"
+                description={`Não encontramos resultados para "${internalSearchQuery}"`}
+                icon={<Search className="h-5 w-5 text-muted-foreground" />}
+                action={{ label: 'Limpar busca', onClick: clearSearch }}
+              />
+            )}
+
+            {!isLoading && guilds?.length === 0 && (
+              <EmptyState
+                title="Nenhum servidor encontrado"
+                description={
+                  user?.isOwner
+                    ? 'O bot ainda não sincronizou nenhum servidor no banco. Verifique se ele está online e conectado.'
+                    : 'Convide o bot para seus servidores onde você é administrador.'
+                }
+                icon={<Plus className="h-5 w-5 text-muted-foreground" />}
+                action={
+                  !user?.isOwner && inviteUrl
+                    ? {
+                      label: 'Adicionar bot ao servidor',
+                      onClick: () => window.open(inviteUrl, '_blank'),
+                    }
+                    : undefined
+                }
+              />
+            )}
+          </>
         )}
       </div>
     </>
