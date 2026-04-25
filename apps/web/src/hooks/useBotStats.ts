@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getApiUrl } from '../env'
 
-interface BotStats {
+export interface BotStats {
   servers: number
   users: number
   shards?: number
@@ -16,6 +16,8 @@ export function useBotStats() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    const controller = new AbortController()
+
     const fetchStats = async () => {
       try {
         const apiUrl = getApiUrl()
@@ -23,16 +25,17 @@ export function useBotStats() {
           throw new Error('Configuração do painel incompleta')
         }
 
-        const response = await fetch(`${apiUrl}/api/bot/stats`)
+        const response = await fetch(`${apiUrl}/api/bot/stats`, {
+          signal: controller.signal,
+          cache: 'force-cache',
+        })
 
         if (!response.ok) {
-          throw new Error('Não foi possível carregar estatísticas do bot')
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
         }
 
         const data = await response.json()
 
-        // Extract stats from the API response (which includes 'success' wrapper)
-        // API returns: { success: true, servers: number, users: number }
         if (data && typeof data.servers === 'number' && typeof data.users === 'number') {
           setStats({
             servers: data.servers,
@@ -40,21 +43,30 @@ export function useBotStats() {
             shards: data.shards,
             uptime: data.uptime,
             version: data.version,
-            lastUpdated: data.lastUpdated
+            lastUpdated: data.lastUpdated,
           })
         } else {
           console.warn('Invalid stats response:', data)
-          throw new Error('Formato de resposta inválido')
+          throw new Error('Formato de resposta inválido do servidor')
         }
       } catch (err) {
+        if (err instanceof Error && err.name === 'AbortError') {
+          return
+        }
         console.error('Failed to fetch bot stats:', err)
-        setError(err instanceof Error ? err.message : 'Erro desconhecido')
+        setError(err instanceof Error ? err.message : 'Erro desconhecido ao carregar estatísticas')
       } finally {
-        setLoading(false)
+        if (!controller.signal.aborted) {
+          setLoading(false)
+        }
       }
     }
 
-    fetchStats()
+    void fetchStats()
+
+    return () => {
+      controller.abort()
+    }
   }, [])
 
   return { stats, loading, error }
