@@ -32,7 +32,7 @@ export interface ContextMenuCommand {
 
 export async function loadCommands(client: Client): Promise<void> {
   const commands = new Collection<string, Command>();
-  
+
   // Import moderation commands
   const { banCommand } = await import('./moderation/ban');
   const { kickCommand } = await import('./moderation/kick');
@@ -43,7 +43,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const { modlogCommand } = await import('./moderation/modlog');
   const { baninfoCommand } = await import('./moderation/baninfo');
   const { antiraidCommand } = await import('./moderation/antiraid');
-  
+
   // Import utility commands
   const { limparCommand } = await import('./utility/limpar');
   const { lockCommand } = await import('./utility/lock');
@@ -63,7 +63,9 @@ export async function loadCommands(client: Client): Promise<void> {
   const { aniversarioCommand } = await import('./utility/aniversario')
   const { jogosGratisCommand } = await import('./utility/freegames')
   const { gatilhoCommand } = await import('./utility/gatilho')
-  
+  const { pingCommand } = await import('./utility/ping')
+  const { estatisticasCommand } = await import('./utility/estatisticas')
+
   // Import giveaway commands
   const giveawayCommand = await import('./giveaway');
   const giveawayListaCommand = await import('./sorteio-lista');
@@ -142,6 +144,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(unlockCommand.data.name, unlockCommand);
   commands.set(painelCommand.data.name, painelCommand);
   commands.set(sayCommand.data.name, sayCommand);
+  commands.set('estatisticas', estatisticasCommand);
 
   if (typeof process.env.GROQ_API_KEY === 'string' && process.env.GROQ_API_KEY.trim().length > 0) {
     const { askCommand } = await import('./utility/ask')
@@ -161,6 +164,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(aniversarioCommand.data.name, aniversarioCommand)
   commands.set(jogosGratisCommand.data.name, jogosGratisCommand)
   commands.set(gatilhoCommand.data.name, gatilhoCommand)
+  commands.set(pingCommand.data.name, pingCommand)
   commands.set(giveawayCommand.data.name, { data: giveawayCommand.data, execute: giveawayCommand.execute });
   commands.set(giveawayListaCommand.data.name, { data: giveawayListaCommand.data, execute: giveawayListaCommand.execute });
   commands.set(giveawayWizardCommand.data.name, { data: giveawayWizardCommand.data, execute: giveawayWizardCommand.execute });
@@ -184,7 +188,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(husbandoCommand.data.name, husbandoCommand)
   commands.set(casarCommand.data.name, casarCommand)
   commands.set(rerollCommand.data.name, rerollCommand)
-  commands.set(meuharemCommand.data.name, meuharemCommand)
+  commands.set(meuharemCommand.data, meuharemCommand)
   commands.set(divorciarCommand.data.name, divorciarCommand)
   commands.set(infocasamentoCommand.data.name, infocasamentoCommand)
   commands.set(desejosCommand.data.name, desejosCommand)
@@ -204,7 +208,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(playlistCommand.data.name, playlistCommand)
   commands.set(nowplayingCommand.data.name, nowplayingCommand)
   commands.set(djCommand.data.name, djCommand)
-  
+
   client.commands = commands;
 }
 
