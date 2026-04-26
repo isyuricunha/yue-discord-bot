@@ -60,9 +60,11 @@ export async function loadCommands(client: Client): Promise<void> {
   const { dailyCommand } = await import('./utility/daily')
   const { pollCommand } = await import('./utility/poll')
   const { afkCommand, volteiCommand } = await import('./utility/afk')
+  const { pingCommand } = await import('./utility/ping')
   const { aniversarioCommand } = await import('./utility/aniversario')
   const { jogosGratisCommand } = await import('./utility/freegames')
   const { gatilhoCommand } = await import('./utility/gatilho')
+  const { estatisticasCommand } = await import('./utility/estatisticas')
   
   // Import giveaway commands
   const giveawayCommand = await import('./giveaway');
