@@ -63,9 +63,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const { aniversarioCommand } = await import('./utility/aniversario')
   const { jogosGratisCommand } = await import('./utility/freegames')
   const { gatilhoCommand } = await import('./utility/gatilho')
-  const { pingCommand } = await import('./utility/ping')
-  const { estatisticasCommand } = await import('./utility/estatisticas')
-
+  
   // Import giveaway commands
   const giveawayCommand = await import('./giveaway');
   const giveawayListaCommand = await import('./sorteio-lista');
