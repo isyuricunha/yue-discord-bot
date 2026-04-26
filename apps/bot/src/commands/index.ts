@@ -188,7 +188,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(husbandoCommand.data.name, husbandoCommand)
   commands.set(casarCommand.data.name, casarCommand)
   commands.set(rerollCommand.data.name, rerollCommand)
-  commands.set(meuharemCommand.data, meuharemCommand)
+  commands.set(meuharemCommand.data.name, meuharemCommand)
   commands.set(divorciarCommand.data.name, divorciarCommand)
   commands.set(infocasamentoCommand.data.name, infocasamentoCommand)
   commands.set(desejosCommand.data.name, desejosCommand)
