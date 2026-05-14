@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "@mistralai/mistralai": "^2.2.1",
-    "@napi-rs/canvas": "^0.1.100",
+    "@napi-rs/canvas": "^1.0.0",
     "@yuebot/database": "workspace:*",
     "@yuebot/shared": "workspace:*",
     "axios": "^1.16.1",
