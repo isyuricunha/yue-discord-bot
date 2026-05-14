@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 
 import { Users, Server, ExternalLink, Info } from 'lucide-react'
@@ -10,43 +10,121 @@ import { useBotStats } from '../hooks/useBotStats'
 import { formatNumber } from '../lib/format_number'
 import { toast_error } from '../store/toast'
 
+// Gerar state token para CSRF protection
+const generateState = (): string => {
+  const array = new Uint8Array(32)
+  crypto.getRandomValues(array)
+  return Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('')
+}
+
 export default function LoginPage() {
-  const { stats, loading: statsLoading, error: statsError } = useBotStats()
-  const [isLoginLoading, setIsLoginLoading] = useState(false)
+const { stats, loading: statsLoading, error: statsError } = useBotStats()
+const [isLoginLoading, setIsLoginLoading] = useState(false)
+const [loginError, setLoginError] = useState<string | null>(null)
 
-  const API_URL = useMemo(() => getApiUrl(), [])
-  const inviteLink = useMemo(() => {
-    const clientId = getDiscordClientId()
-    return clientId
-      ? `https://discord.com/oauth2/authorize?client_id=${clientId}&scope=bot&permissions=8`
-      : null
-  }, [])
+const API_URL = useMemo(() => getApiUrl(), [])
+const inviteLink = useMemo(() => {
+const clientId = getDiscordClientId()
+return clientId
+  ? `https://discord.com/oauth2/authorize?client_id=${clientId}&scope=bot&permissions=8`
+  : null
+}, [])
 
-  const handleLogin = useCallback(() => {
-    if (!API_URL) {
-      toast_error('URL de autenticação não disponível')
-      return
+// Verificar erros de login após redirect
+useEffect(() => {
+  const params = new URLSearchParams(window.location.search)
+  const error = params.get('error')
+  const errorDesc = params.get('error_description')
+  
+  if (error) {
+    const message = errorDesc ? decodeURIComponent(errorDesc) : 'Falha na autenticação'
+    setLoginError(message)
+    toast_error('Erro no login', message)
+    
+    // Limpar state do sessionStorage
+    sessionStorage.removeItem('oauth_state')
+    
+    // Limpar URL sem reload
+    if (window.history.replaceState) {
+      window.history.replaceState({}, document.title, window.location.pathname)
     }
-    setIsLoginLoading(true)
-    window.location.href = `${API_URL}/api/auth/login`
-  }, [API_URL])
+  }
+}, [])
 
-  const handleInvite = useCallback(() => {
-    if (inviteLink) {
-      const newWindow = window.open(inviteLink, '_blank', 'noopener,noreferrer')
-      if (!newWindow) {
-        toast_error('Permita popups para abrir o convite do bot')
-        void navigator.clipboard.writeText(inviteLink)
-        toast_error('Link copiado para área de transferência!')
-      }
+const handleLogin = useCallback(() => {
+if (!API_URL) {
+  toast_error('URL de autenticação não disponível')
+  return
+}
+
+setIsLoginLoading(true)
+setLoginError(null)
+
+try {
+  // Gerar e armazenar state para CSRF protection
+  const state = generateState()
+  sessionStorage.setItem('oauth_state', state)
+  
+  // Construir URL com state parameter
+  const loginUrl = new URL(`${API_URL}/api/auth/login`)
+  loginUrl.searchParams.set('state', state)
+  
+  // Analytics: track login attempt
+  window.dispatchEvent(new CustomEvent('login_attempt', {
+    detail: { 
+      method: 'discord',
+      timestamp: Date.now(),
+      hasState: true
     }
-  }, [inviteLink])
+  }))
+  
+  window.location.href = loginUrl.toString()
+} catch (error) {
+  toast_error('Erro ao iniciar login', error instanceof Error ? error.message : 'Erro desconhecido')
+  setIsLoginLoading(false)
+}
+}, [API_URL])
 
-  const hasVersion = Boolean(stats?.version)
+// Teclar de atalho Alt+L para login
+useEffect(() => {
+const handleKeyDown = (e: KeyboardEvent) => {
+const isInput = (e.target as HTMLElement).tagName === 'INPUT' || 
+                (e.target as HTMLElement).tagName === 'TEXTAREA' ||
+                (e.target as HTMLElement).isContentEditable
 
-  return (
-    <>
-      <Seo />
+if (e.altKey && e.key === 'l' && !isInput && !isLoginLoading) {
+  e.preventDefault()
+  handleLogin()
+}
+}
+
+window.addEventListener('keydown', handleKeyDown)
+return () => window.removeEventListener('keydown', handleKeyDown)
+}, [handleLogin, isLoginLoading])
+
+// Analytics: track view
+useEffect(() => {
+window.dispatchEvent(new CustomEvent('login_page_view', {
+  detail: { timestamp: Date.now(), path: '/login' }
+}))
+}, [])
+
+const handleInvite = useCallback(() => {
+if (inviteLink) {
+  const newWindow = window.open(inviteLink, '_blank', 'noopener,noreferrer')
+  if (!newWindow) {
+    toast_error('Permita popups para abrir o convite do bot')
+    void navigator.clipboard.writeText(inviteLink)
+    toast_error('Link copiado para área de transferência!')
+  }
+}
+}, [inviteLink])
+
+const hasVersion = Boolean(stats?.version)
+
+return (
+<>
+<Seo />
       <div className="min-h-screen bg-background flex flex-col">
         {/* Background consistente com AppShell */}
         <div
@@ -154,31 +232,43 @@ export default function LoginPage() {
                 </div>
               )}
 
-              {/* Card de login */}
-              <Card className="animate-fadeIn border-border/60 shadow-2xl shadow-black/20">
-                <CardContent className="p-6">
-                  <div className="text-center mb-6">
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Faça login com sua conta Discord para gerenciar seus servidores de forma simples e eficiente.
-                    </p>
-                  </div>
+{/* Mensagem de erro de login */}
+{loginError && (
+  <div
+    className="mb-4 p-3 rounded-xl border border-destructive/20 bg-destructive/10 text-destructive text-sm text-center animate-fadeIn"
+    role="alert"
+    aria-live="assertive"
+    aria-atomic="true"
+  >
+    {loginError}
+  </div>
+)}
 
-                  <Button
-                    onClick={handleLogin}
-                    size="lg"
-                    className="w-full gap-2 !bg-[#5865F2] hover:!bg-[#4752C4] !text-white !border-none shadow-lg shadow-[#5865F2]/20 hover:shadow-[#5865F2]/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
-                    isLoading={isLoginLoading}
-                    disabled={isLoginLoading || !API_URL}
-                    aria-label="Entrar com Discord para acessar o painel de controle"
-                  >
-                    <span className="flex items-center gap-2">
-                      <svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                        <title>Discord Logo</title>
-                        <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z" />
-                      </svg>
-                      <span>Entrar com Discord</span>
-                    </span>
-                  </Button>
+{/* Card de login */}
+<Card className="animate-fadeIn border-border/60 shadow-2xl shadow-black/20">
+<CardContent className="p-6">
+<div className="text-center mb-6">
+<p className="text-sm text-muted-foreground leading-relaxed">
+Faça login com sua conta Discord para gerenciar seus servidores de forma simples e eficiente.
+</p>
+</div>
+
+<Button
+onClick={handleLogin}
+size="lg"
+className="w-full gap-2 !bg-[#5865F2] hover:!bg-[#4752C4] !text-white !border-none shadow-lg shadow-[#5865F2]/20 hover:shadow-[#5865F2]/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98] focus-visible:ring-4 focus-visible:ring-[#5865F2]/50"
+isLoading={isLoginLoading}
+disabled={isLoginLoading || !API_URL}
+aria-label="Entrar com Discord para acessar o painel de controle"
+>
+<span className="flex items-center gap-2">
+<svg className="h-5 w-5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+<title>Discord Logo</title>
+<path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515a.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0a12.64 12.64 0 0 0-.617-1.25a.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057a19.9 19.9 0 0 0 5.993 3.03a.078.078 0 0 0 .084-.028a14.09 14.09 0 0 0 1.226-1.994a.076.076 0 0 0-.041-.106a13.107 13.107 0 0 1-1.872-.892a.077.077 0 0 1-.008-.128a10.2 10.2 0 0 0 .372-.292a.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127a12.299 12.299 0 0 1-1.873.892a.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028a19.839 19.839 0 0 0 6.002-3.03a.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.956-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419c0-1.333.955-2.419 2.157-2.419c1.21 0 2.176 1.096 2.157 2.42c0 1.333-.946 2.418-2.157 2.418z" />
+</svg>
+<span>{isLoginLoading ? 'Redirecionando...' : 'Entrar com Discord'}</span>
+</span>
+</Button>
 
                   <div className="relative my-5">
                     <div className="absolute inset-0 flex items-center">
