@@ -15,12 +15,12 @@
   },
   "dependencies": {
     "@mistralai/mistralai": "^2.2.1",
-    "@napi-rs/canvas": "^0.1.100",
+    "@napi-rs/canvas": "^0.1.99",
     "@yuebot/database": "workspace:*",
     "@yuebot/shared": "workspace:*",
-    "axios": "^1.16.1",
-    "bullmq": "^5.76.8",
-    "discord.js": "^14.26.4",
+    "axios": "^1.15.2",
+    "bullmq": "^5.76.1",
+    "discord.js": "^14.26.3",
     "ioredis": "5.10.1",
     "kazagumo": "^3.4.3",
     "luxon": "^3.7.2",
@@ -33,7 +33,7 @@
     "shoukaku": "^4.3.0"
   },
   "devDependencies": {
-    "@types/node": "^25.7.0",
+    "@types/node": "^25.6.0",
     "tsup": "^8.5.1",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
