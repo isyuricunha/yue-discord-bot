@@ -187,7 +187,7 @@ export default function CommandsPage() {
                 ) : (
                   <div className="space-y-2">
                     {filtered_slash.map((cmd) => (
-                      <div key={cmd.name} className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+                      <div key={cmd.name} className="rounded-lg border border-border/70 bg-surface/40 p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
                             <div className="flex items-center gap-2">
@@ -208,7 +208,7 @@ export default function CommandsPage() {
                           </div>
                         </div>
 
-                        <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl border border-border/60 bg-surface/60 p-3 text-xs text-foreground">
+                        <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-border/60 bg-surface/60 p-3 text-xs text-foreground">
                           {JSON.stringify(cmd.json, null, 2)}
                         </pre>
                       </div>
@@ -227,7 +227,7 @@ export default function CommandsPage() {
                 ) : (
                   <div className="space-y-2">
                     {filtered_context.map((cmd) => (
-                      <div key={cmd.name} className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+                      <div key={cmd.name} className="rounded-lg border border-border/70 bg-surface/40 p-4">
                         <div className="flex items-start justify-between gap-3">
                           <div className="text-sm font-semibold">{cmd.name}</div>
                           <Switch
@@ -237,7 +237,7 @@ export default function CommandsPage() {
                           />
                         </div>
 
-                        <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl border border-border/60 bg-surface/60 p-3 text-xs text-foreground">
+                        <pre className="mt-3 whitespace-pre-wrap break-words rounded-lg border border-border/60 bg-surface/60 p-3 text-xs text-foreground">
                           {JSON.stringify(cmd.json, null, 2)}
                         </pre>
                       </div>

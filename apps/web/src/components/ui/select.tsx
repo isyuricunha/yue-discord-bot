@@ -218,7 +218,7 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
     }, [open, close])
 
     const base =
-      'flex h-11 w-full items-center justify-between rounded-xl border border-border/80 bg-surface/60 px-4 py-2 text-sm text-foreground shadow-sm backdrop-blur-md transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:border-accent/60 disabled:cursor-not-allowed disabled:opacity-60'
+      'flex h-9 w-full items-center justify-between rounded-md border border-border/80 bg-cursor-bg-input px-3 py-2 text-[13px] text-foreground transition-colors duration-[160ms] ease-cursor focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent focus-visible:border-accent disabled:cursor-not-allowed disabled:opacity-60'
 
     const menu =
       open && menu_style
@@ -226,7 +226,7 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
           <div
             ref={menu_ref}
             role="listbox"
-            className="fixed z-9999 overflow-hidden rounded-xl border border-border/80 bg-surface/95 shadow-[0_12px_40px_rgba(0,0,0,0.35)] backdrop-blur-md"
+            className="fixed z-9999 overflow-hidden rounded-lg border border-border/80 bg-cursor-bg-menu shadow-cursorMd"
             style={{ left: menu_style.left, width: menu_style.width, top: menu_style.top, bottom: menu_style.bottom }}
           >
             {options.length > 5 && (
@@ -235,7 +235,7 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
                 <input
                   type="text"
                   placeholder="Pesquisar..."
-                  className="w-full bg-surface/40 rounded-lg border border-border/50 pl-9 pr-3 py-1.5 text-sm outline-none focus:border-accent/50 transition-colors"
+                  className="w-full rounded-md border border-border/80 bg-cursor-bg-input pl-9 pr-3 py-1.5 text-[13px] text-foreground outline-none transition-colors focus:border-accent focus:outline focus:outline-1 focus:outline-accent"
                   value={search_query}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onClick={(e) => e.stopPropagation()}
@@ -266,11 +266,11 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
                     aria-selected={is_selected}
                     disabled={opt.disabled}
                     className={cn(
-                      'mx-1 flex w-[calc(100%-0.5rem)] items-center justify-between gap-3 rounded-lg px-3 py-2 text-left text-sm transition-colors',
-                      'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
-                      'hover:bg-accent/15 disabled:pointer-events-none disabled:opacity-50',
-                      is_active && 'bg-accent/12',
-                      is_selected && 'bg-accent/20'
+                      'mx-1 flex w-[calc(100%-0.5rem)] items-center justify-between gap-3 rounded-md px-3 py-1.5 text-left text-[13px] transition-colors',
+                      'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-accent',
+                      'hover:bg-cursor-bg-hover disabled:pointer-events-none disabled:opacity-50',
+                      is_active && 'bg-cursor-bg-hover',
+                      is_selected && 'bg-cursor-accent-soft text-white'
                     )}
                     onMouseEnter={() => setActiveIndex(idx)}
                     onClick={(e) => {

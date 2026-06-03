@@ -41,7 +41,7 @@ export function GuildCard({ guild, className = '' }: GuildCardProps) {
                         <img
                             src={guildIconUrl}
                             alt={guild.name}
-                            className="h-14 w-14 rounded-2xl bg-surface/60 object-cover"
+                            className="h-14 w-14 rounded-lg bg-surface/60 object-cover"
                             loading="lazy"
                             onError={(e) => {
                                 const target = e.currentTarget
@@ -55,7 +55,7 @@ export function GuildCard({ guild, className = '' }: GuildCardProps) {
 
                     {/* Fallback visível quando não há ícone ou imagem falhou */}
                     {!guildIconUrl && (
-                        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-2xl border border-border/80 bg-surface/70 text-lg font-semibold">
+                        <div className="grid h-14 w-14 shrink-0 place-items-center rounded-lg border border-border/80 bg-surface/70 text-lg font-semibold">
                             <span className="text-accent">{guild.name.charAt(0)}</span>
                         </div>
                     )}
@@ -80,7 +80,7 @@ export function GuildCard({ guild, className = '' }: GuildCardProps) {
                     <div
                         role="button"
                         tabIndex={0}
-                        className="flex-1 rounded-xl border border-border/70 bg-surface/50 p-2.5 text-center transition-colors hover:border-accent/30 hover:bg-surface/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                        className="flex-1 rounded-lg border border-border/70 bg-surface/50 p-2.5 text-center transition-colors hover:border-accent/30 hover:bg-surface/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                         aria-label="Abrir AutoMod"
                         onClick={(e) => {
                             e.stopPropagation()
@@ -100,7 +100,7 @@ export function GuildCard({ guild, className = '' }: GuildCardProps) {
                     <div
                         role="button"
                         tabIndex={0}
-                        className="flex-1 rounded-xl border border-border/70 bg-surface/50 p-2.5 text-center transition-colors hover:border-accent/30 hover:bg-surface/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                        className="flex-1 rounded-lg border border-border/70 bg-surface/50 p-2.5 text-center transition-colors hover:border-accent/30 hover:bg-surface/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                         aria-label="Abrir Sorteios"
                         onClick={(e) => {
                             e.stopPropagation()
@@ -120,7 +120,7 @@ export function GuildCard({ guild, className = '' }: GuildCardProps) {
                     <div
                         role="button"
                         tabIndex={0}
-                        className="flex-1 rounded-xl border border-border/70 bg-surface/50 p-2.5 text-center transition-colors hover:border-accent/30 hover:bg-surface/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                        className="flex-1 rounded-lg border border-border/70 bg-surface/50 p-2.5 text-center transition-colors hover:border-accent/30 hover:bg-surface/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
                         aria-label="Abrir Configurações"
                         onClick={(e) => {
                             e.stopPropagation()

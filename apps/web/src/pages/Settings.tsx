@@ -100,7 +100,7 @@ export default function SettingsPage() {
         />
       )}
 
-      <Card className="border-border/80 bg-surface/40 backdrop-blur-md shadow-sm">
+      <Card className="border-border/80 bg-surface">
         <CardContent className="space-y-6 p-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>
@@ -110,7 +110,7 @@ export default function SettingsPage() {
               </div>
               <div className="mt-3">
                 {is_config_loading ? (
-                  <Skeleton className="h-11 w-full rounded-xl" />
+                  <Skeleton className="h-11 w-full rounded-lg" />
                 ) : (
                   <Select value={locale} onValueChange={setLocale}>
                     <option value="pt-BR">Português (Brasil)</option>
@@ -128,7 +128,7 @@ export default function SettingsPage() {
               </div>
               <div className="mt-3">
                 {is_config_loading ? (
-                  <Skeleton className="h-11 w-full rounded-xl" />
+                  <Skeleton className="h-11 w-full rounded-lg" />
                 ) : (
                   <Select value={timezone} onValueChange={setTimezone}>
                     <option value="America/Sao_Paulo">São Paulo (BRT)</option>

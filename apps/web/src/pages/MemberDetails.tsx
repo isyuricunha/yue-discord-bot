@@ -132,7 +132,7 @@ export default function MemberDetailsPage() {
           <Card className="border-accent/20 lg:col-span-1">
             <CardContent className="space-y-4 p-6">
               <div className="flex items-center gap-4">
-                <Skeleton className="h-14 w-14 rounded-2xl" />
+                <Skeleton className="h-14 w-14 rounded-lg" />
                 <div className="min-w-0 flex-1">
                   <Skeleton className="h-4 w-2/3" />
                   <Skeleton className="mt-2 h-3 w-1/2" />
@@ -163,10 +163,10 @@ export default function MemberDetailsPage() {
                     <img
                       src={`https://cdn.discordapp.com/avatars/${member.userId}/${member.avatar}.png`}
                       alt={member.username}
-                      className="h-14 w-14 rounded-2xl"
+                      className="h-14 w-14 rounded-lg"
                     />
                   ) : (
-                    <div className="grid h-14 w-14 place-items-center rounded-2xl border border-border/80 bg-surface/70">
+                    <div className="grid h-14 w-14 place-items-center rounded-lg border border-border/80 bg-surface/70">
                       <User className="h-6 w-6 text-muted-foreground" />
                     </div>
                   )}
@@ -178,15 +178,15 @@ export default function MemberDetailsPage() {
                 </div>
 
                 <div className="mt-4 grid grid-cols-3 gap-2">
-                  <div className="rounded-xl border border-border/70 bg-surface/50 p-3 text-center">
+                  <div className="rounded-lg border border-border/70 bg-surface/50 p-3 text-center">
                     <div className="text-xs text-muted-foreground">Warns</div>
                     <div className="mt-1 text-lg font-semibold text-accent">{member.warnings}</div>
                   </div>
-                  <div className="rounded-xl border border-border/70 bg-surface/50 p-3 text-center">
+                  <div className="rounded-lg border border-border/70 bg-surface/50 p-3 text-center">
                     <div className="text-xs text-muted-foreground">Ações</div>
                     <div className="mt-1 text-lg font-semibold">{member.modLogs.length}</div>
                   </div>
-                  <div className="rounded-xl border border-border/70 bg-surface/50 p-3 text-center">
+                  <div className="rounded-lg border border-border/70 bg-surface/50 p-3 text-center">
                     <div className="text-xs text-muted-foreground">Desde</div>
                     <div className="mt-1 text-xs font-medium">
                       {new Date(member.joinedAt).toLocaleDateString('pt-BR')}
@@ -368,7 +368,7 @@ export default function MemberDetailsPage() {
               ) : (
                 <div className="space-y-3">
                   {member.modLogs.map((log) => (
-                    <div key={log.id} className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+                    <div key={log.id} className="rounded-lg border border-border/70 bg-surface/40 p-4">
                       <div className="flex items-center justify-between gap-3">
                         <div className="text-xs font-semibold uppercase tracking-wide text-accent">
                           {get_modlog_action_label(log.action)}

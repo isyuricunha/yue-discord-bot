@@ -181,7 +181,7 @@ export default function SuggestionsPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+          <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
             <Lightbulb className="h-5 w-5" />
           </span>
           <div>
@@ -307,7 +307,7 @@ export default function SuggestionsPage() {
           ) : (
             <div className="space-y-2">
               {all_suggestions.map((s) => (
-                <div key={s.id} className="rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
+                <div key={s.id} className="rounded-lg border border-border/70 bg-surface/30 px-4 py-3">
                   <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
@@ -392,7 +392,7 @@ export default function SuggestionsPage() {
                 const score = s.upvotes - s.downvotes
 
                 return (
-                  <div key={s.id} className="rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
+                  <div key={s.id} className="rounded-lg border border-border/70 bg-surface/30 px-4 py-3">
                     <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-medium">{s.content}</div>

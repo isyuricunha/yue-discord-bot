@@ -195,7 +195,7 @@ export function MessageVariantEditor({
 
       <div className="space-y-2">
         {variants.length === 0 ? (
-          <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+          <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
             Nenhuma mensagem adicionada
           </div>
         ) : (
@@ -204,7 +204,7 @@ export function MessageVariantEditor({
             const error = variant_errors ? variant_errors[index] : null
 
             return (
-              <div key={index} className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+              <div key={index} className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0 flex-1">
                     <div className="text-xs text-muted-foreground">Mensagem {index + 1}</div>
@@ -318,7 +318,7 @@ export function MessageVariantEditor({
         </Button>
 
         {show_advanced ? (
-          <div className="mt-3 rounded-2xl border border-border/70 bg-surface/40 p-4">
+          <div className="mt-3 rounded-lg border border-border/70 bg-surface/40 p-4">
             <div className="text-xs text-muted-foreground">
               Edite o template completo (texto, JSON ou JSON array). Use “Aplicar” para atualizar.
             </div>

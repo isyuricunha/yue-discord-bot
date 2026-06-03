@@ -30,7 +30,7 @@ export function GuildModuleCard({ item }: GuildModuleCardProps) {
         >
             <CardContent className="p-5">
                 <div className="flex items-center gap-3">
-                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent transition-colors group-hover:bg-accent/10">
+                    <span className="grid h-10 w-10 shrink-0 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent transition-colors group-hover:bg-accent/10">
                         {item.icon}
                     </span>
                     <div className="min-w-0 flex-1">

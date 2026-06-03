@@ -14,7 +14,7 @@ export function faq_item({ question, children, className }: faq_item_props) {
 
     return (
         <details
-            className={cn('rounded-xl border border-border/70 bg-surface/40 px-4 py-3', className)}
+            className={cn('rounded-lg border border-border/70 bg-surface/40 px-4 py-3', className)}
             aria-labelledby={`faq-question-${id}`}
         >
             <summary
@@ -44,7 +44,7 @@ export function command_item({ name, description, children, id, className }: com
 
     return (
         <details
-            className={cn('rounded-xl border border-border/70 bg-surface/40 px-4 py-3', className)}
+            className={cn('rounded-lg border border-border/70 bg-surface/40 px-4 py-3', className)}
             aria-labelledby={`command-item-${generatedId}`}
         >
             <summary
@@ -83,7 +83,7 @@ export type help_box_props = {
 
 export function help_box({ title, children, className }: help_box_props) {
     return (
-        <div className={cn('rounded-xl border border-border/70 bg-surface/40 px-4 py-3', className)}>
+        <div className={cn('rounded-lg border border-border/70 bg-surface/40 px-4 py-3', className)}>
             <div className="text-sm font-medium text-foreground">{title}</div>
             <div className="mt-1 space-y-1 text-sm text-muted-foreground">{children}</div>
         </div>

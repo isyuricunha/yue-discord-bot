@@ -173,7 +173,7 @@ export default function GiveawayDetailsPage() {
           <div className="flex items-center gap-2">
             <a
               href={`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/export?format=json`}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
               download
             >
               <Download className="h-4 w-4" />
@@ -181,7 +181,7 @@ export default function GiveawayDetailsPage() {
             </a>
             <a
               href={`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/export?format=csv`}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+              className="inline-flex h-10 items-center gap-2 rounded-lg border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
               download
             >
               <Download className="h-4 w-4" />
@@ -299,21 +299,21 @@ export default function GiveawayDetailsPage() {
               )}
 
               <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">
-                <div className="rounded-2xl border border-border/70 bg-surface/50 p-4">
+                <div className="rounded-lg border border-border/70 bg-surface/50 p-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Trophy className="h-4 w-4" />
                     <span>Vencedores</span>
                   </div>
                   <div className="mt-2 text-2xl font-semibold">{giveaway.maxWinners}</div>
                 </div>
-                <div className="rounded-2xl border border-border/70 bg-surface/50 p-4">
+                <div className="rounded-lg border border-border/70 bg-surface/50 p-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Users className="h-4 w-4" />
                     <span>Participantes</span>
                   </div>
                   <div className="mt-2 text-2xl font-semibold">{giveaway.entries.length}</div>
                 </div>
-                <div className="rounded-2xl border border-border/70 bg-surface/50 p-4">
+                <div className="rounded-lg border border-border/70 bg-surface/50 p-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <Calendar className="h-4 w-4" />
                     <span>Termina</span>
@@ -322,7 +322,7 @@ export default function GiveawayDetailsPage() {
                     {new Date(giveaway.endsAt).toLocaleDateString('pt-BR')}
                   </div>
                 </div>
-                <div className="rounded-2xl border border-border/70 bg-surface/50 p-4">
+                <div className="rounded-lg border border-border/70 bg-surface/50 p-4">
                   <div className="flex items-center gap-2 text-xs text-muted-foreground">
                     <CheckCircle className="h-4 w-4" />
                     <span>Formato</span>
@@ -334,7 +334,7 @@ export default function GiveawayDetailsPage() {
               </div>
 
               {giveaway.roleChances && giveaway.roleChances.length > 0 && (
-                <div className="mt-6 rounded-2xl border border-border/70 bg-surface/40 p-4">
+                <div className="mt-6 rounded-lg border border-border/70 bg-surface/40 p-4">
                   <div className="text-sm font-semibold">Chances por cargo</div>
                   <div className="mt-2 text-xs text-muted-foreground">
                     Usuários com estes cargos têm mais chances de ganhar
@@ -358,7 +358,7 @@ export default function GiveawayDetailsPage() {
               )}
 
               {giveaway.format === 'list' && giveaway.availableItems && (
-                <div className="mt-6 rounded-2xl border border-border/70 bg-surface/40 p-4">
+                <div className="mt-6 rounded-lg border border-border/70 bg-surface/40 p-4">
                   <div className="text-sm font-semibold">Itens disponíveis ({giveaway.availableItems.length})</div>
                   <div className="mt-2 text-xs text-muted-foreground">
                     Min: {giveaway.minChoices} • Max: {giveaway.maxChoices}
@@ -377,7 +377,7 @@ export default function GiveawayDetailsPage() {
                   </div>
 
                   {show_items && (
-                    <div className="mt-4 max-h-[420px] overflow-auto rounded-xl border border-border/70 bg-surface/60 p-3">
+                    <div className="mt-4 max-h-[420px] overflow-auto rounded-lg border border-border/70 bg-surface/60 p-3">
                       <div className="text-xs text-muted-foreground mb-2">
                         💡 Você pode selecionar itens pelo número ou pelo nome (ex: "1, 3, 7" ou "1 3 7")
                       </div>
@@ -412,7 +412,7 @@ export default function GiveawayDetailsPage() {
               )}
 
               {required_roles.length > 0 && (
-                <div className="mt-6 rounded-2xl border border-border/70 bg-surface/40 p-4">
+                <div className="mt-6 rounded-lg border border-border/70 bg-surface/40 p-4">
                   <div className="text-sm font-semibold">Cargos obrigatórios</div>
                   <div className="mt-2 text-xs text-muted-foreground">O participante precisa ter pelo menos 1 deles.</div>
                   <div className="mt-3 flex flex-wrap gap-2">
@@ -441,7 +441,7 @@ export default function GiveawayDetailsPage() {
 
                 <div className="space-y-2">
                   {giveaway.winners.map((winner, index) => (
-                    <div key={winner.id} className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/40 px-4 py-3">
+                    <div key={winner.id} className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold">{winner.username}</div>
                         {winner.prize && <div className="mt-1 text-xs text-muted-foreground">Prêmio: {winner.prize}</div>}
@@ -472,8 +472,8 @@ export default function GiveawayDetailsPage() {
                       key={entry.id}
                       className={
                         entry.disqualified
-                          ? 'rounded-2xl border border-border/70 bg-surface/40 px-4 py-3 opacity-60'
-                          : 'rounded-2xl border border-border/70 bg-surface/40 px-4 py-3'
+                          ? 'rounded-lg border border-border/70 bg-surface/40 px-4 py-3 opacity-60'
+                          : 'rounded-lg border border-border/70 bg-surface/40 px-4 py-3'
                       }
                     >
                       <div className="flex items-start justify-between gap-4">
@@ -491,13 +491,13 @@ export default function GiveawayDetailsPage() {
                           </div>
                         </div>
 
-                        <div className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+                        <div className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
                           {entry.username.charAt(0).toUpperCase()}
                         </div>
                       </div>
 
                       {entry.choices && entry.choices.length > 0 && (
-                        <div className="mt-3 rounded-xl border border-border/70 bg-surface/60 p-3">
+                        <div className="mt-3 rounded-lg border border-border/70 bg-surface/60 p-3">
                           <div className="text-xs font-semibold text-muted-foreground">Escolhas</div>
                           <ol className="mt-2 space-y-1 text-sm text-muted-foreground">
                             {entry.choices.map((choice, idx) => (

@@ -21,7 +21,7 @@ export default function GuildPage() {
           <SkeletonPageHeader />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
             {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-20 rounded-2xl border border-border/60 bg-surface/30" />
+              <div key={i} className="h-20 rounded-lg border border-border/60 bg-surface/30" />
             ))}
           </div>
         </div>
@@ -75,7 +75,7 @@ export default function GuildPage() {
                 <h2 className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
                   {categoryLabels[category]}
                 </h2>
-                <div className="h-px flex-1 bg-gradient-to-r from-border/60 to-transparent" />
+                <div className="h-px flex-1 bg-border/60" />
               </div>
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {items.map((item) => (

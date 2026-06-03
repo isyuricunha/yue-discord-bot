@@ -203,7 +203,7 @@ export default function TicketsPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+          <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
             <LifeBuoy className="h-5 w-5" />
           </span>
           <div>
@@ -317,7 +317,7 @@ export default function TicketsPage() {
             <div>
               <div className="text-sm font-medium">Painel</div>
               <div className="mt-1 text-xs text-muted-foreground">Criado pelo bot via /ticket setup.</div>
-              <div className="mt-2 rounded-2xl border border-border/70 bg-surface/30 p-4 text-sm">
+              <div className="mt-2 rounded-lg border border-border/70 bg-surface/30 p-4 text-sm">
                 <div>
                   Canal: {config?.panelChannelId ? <span className="font-mono">{config.panelChannelId}</span> : '—'}
                 </div>
@@ -363,7 +363,7 @@ export default function TicketsPage() {
                       {config.supportRoleIds.map((id) => {
                         const role = role_by_id.get(id)
                         return (
-                          <div key={id} className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
+                          <div key={id} className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface/30 px-4 py-3">
                             <div className="min-w-0 flex items-center gap-3">
                               {role && (
                                 <span
@@ -412,7 +412,7 @@ export default function TicketsPage() {
           {tickets_query.isLoading ? (
             <div className="space-y-3">
               {Array.from({ length: 5 }).map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full rounded-2xl" />
+                <Skeleton key={i} className="h-16 w-full rounded-lg" />
               ))}
             </div>
           ) : tickets_query.isError ? (
@@ -430,7 +430,7 @@ export default function TicketsPage() {
           ) : (
             <div className="space-y-2">
               {all_tickets.map((t) => (
-                <div key={t.id} className="rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
+                <div key={t.id} className="rounded-lg border border-border/70 bg-surface/30 px-4 py-3">
                   <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">

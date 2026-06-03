@@ -38,7 +38,7 @@ export default function ExtrasCommandsPage() {
 
       {/* Table of Contents - Sticky on desktop */}
       <div className="sticky top-4 z-10 mb-6 lg:mb-0">
-        <div className="rounded-xl border border-border/70 bg-surface/80 backdrop-blur-sm px-4 py-3">
+        <div className="rounded-lg border border-border/70 bg-surface px-4 py-3">
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Índice</div>
           <nav className="flex flex-wrap gap-2" aria-label="Table of contents">
             {tableOfContents.map((item) => (
@@ -865,15 +865,15 @@ export default function ExtrasCommandsPage() {
           {section_title({ children: 'Rolls' })}
 
           <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
-            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
               <div className="text-sm font-medium text-foreground">/waifu</div>
               <div className="mt-1 text-xs text-muted-foreground">Rolar uma waifu (claim via botão).</div>
             </div>
-            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
               <div className="text-sm font-medium text-foreground">/husbando</div>
               <div className="mt-1 text-xs text-muted-foreground">Rolar um husbando (claim via botão).</div>
             </div>
-            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
               <div className="text-sm font-medium text-foreground">/casar</div>
               <div className="mt-1 text-xs text-muted-foreground">Rolar personagem (filtro por gênero opcional).</div>
             </div>

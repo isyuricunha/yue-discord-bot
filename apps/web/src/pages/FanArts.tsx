@@ -101,7 +101,7 @@ export default function FanArtsPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+          <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
             <ImageIcon className="h-5 w-5" />
           </span>
           <div>
@@ -157,13 +157,13 @@ export default function FanArtsPage() {
                     href={fa.imageUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="group overflow-hidden rounded-2xl border border-border/80 bg-surface/40 hover:bg-surface/60"
+                    className="group overflow-hidden rounded-lg border border-border/80 bg-surface/40 hover:bg-surface/60"
                   >
-                    <div className="aspect-video w-full overflow-hidden bg-black/10">
+                    <div className="aspect-video w-full overflow-hidden bg-cursor-bg-raised">
                       <img
                         src={fa.imageUrl}
                         alt={fa.title ?? fa.id}
-                        className="h-full w-full object-cover transition-transform group-hover:scale-[1.02]"
+                        className="h-full w-full object-cover"
                       />
                     </div>
                     <div className="space-y-1 p-4">
@@ -201,7 +201,7 @@ export default function FanArtsPage() {
                       type="button"
                       onClick={() => setSelectedId(fa.id)}
                       className={
-                        'w-full rounded-2xl border px-4 py-3 text-left transition-colors ' +
+                        'w-full rounded-lg border px-4 py-3 text-left transition-colors ' +
                         (selected_id === fa.id
                           ? 'border-accent/50 bg-surface/70'
                           : 'border-border/80 bg-surface/40 hover:bg-surface/60')
@@ -233,9 +233,9 @@ export default function FanArtsPage() {
                     href={selected.imageUrl}
                     target="_blank"
                     rel="noreferrer"
-                    className="block overflow-hidden rounded-2xl border border-border/80 bg-surface/40"
+                    className="block overflow-hidden rounded-lg border border-border/80 bg-surface/40"
                   >
-                    <div className="aspect-video w-full overflow-hidden bg-black/10">
+                    <div className="aspect-video w-full overflow-hidden bg-cursor-bg-raised">
                       <img src={selected.imageUrl} alt={selected.title ?? selected.id} className="h-full w-full object-cover" />
                     </div>
                   </a>

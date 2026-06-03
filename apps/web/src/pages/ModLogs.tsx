@@ -79,7 +79,7 @@ const actionIcons = {
 const actionColors = {
   BAN: 'text-red-400',
   UNBAN: 'text-red-400',
-  KICK: 'text-orange-400',
+  KICK: 'text-cursor-warning',
   MUTE: 'text-yellow-400',
   UNMUTE: 'text-yellow-400',
   TIMEOUT: 'text-yellow-400',
@@ -255,7 +255,7 @@ export default function ModLogsPage() {
           <a
             href={`${API_URL}/api/guilds/${guildId}/modlogs/export?format=json&action=all`}
             download
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
           >
             <Download className="h-4 w-4" />
             JSON
@@ -263,7 +263,7 @@ export default function ModLogsPage() {
           <a
             href={`${API_URL}/api/guilds/${guildId}/modlogs/export?format=csv&action=all`}
             download
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+            className="inline-flex h-10 items-center gap-2 rounded-lg border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
           >
             <Download className="h-4 w-4" />
             CSV
@@ -374,7 +374,7 @@ export default function ModLogsPage() {
             {message_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {message_validation}</div>}
             <div className="mt-2 text-xs text-muted-foreground">Suporta placeholders e JSON com embed.</div>
 
-            <div className="mt-4 rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
+            <div className="mt-4 rounded-lg border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
               <div className="text-sm font-semibold text-foreground">Exemplos</div>
               <div className="mt-2 space-y-3">
                 <div>
@@ -382,7 +382,7 @@ export default function ModLogsPage() {
                   <PlaceholderChips placeholders={template_placeholders.modlog_template_placeholders} />
                 </div>
 
-                <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                <div className="rounded-lg border border-border/70 bg-surface/60 px-3 py-3">
                   <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
                   <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
 {JSON.stringify(
@@ -476,7 +476,7 @@ export default function ModLogsPage() {
             <Card key={i}>
               <CardContent className="p-6">
                 <div className="flex items-start gap-4">
-                  <Skeleton className="h-10 w-10 rounded-xl" />
+                  <Skeleton className="h-10 w-10 rounded-lg" />
                   <div className="flex-1">
                     <Skeleton className="h-4 w-1/3" />
                     <Skeleton className="mt-3 h-4 w-2/3" />
@@ -513,7 +513,7 @@ export default function ModLogsPage() {
                 <Card key={log.id}>
                   <CardContent className="p-6">
                     <div className="flex items-start gap-4">
-                      <div className={`grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60 ${color}`}>
+                      <div className={`grid h-10 w-10 place-items-center rounded-lg border border-border/70 bg-surface/60 ${color}`}>
                         <Icon className="h-5 w-5" />
                       </div>
                       <div className="flex-1">
@@ -533,7 +533,7 @@ export default function ModLogsPage() {
                         </div>
 
                         {log.reason && (
-                          <div className="mt-3 rounded-xl border border-border/70 bg-surface/50 px-4 py-3">
+                          <div className="mt-3 rounded-lg border border-border/70 bg-surface/50 px-4 py-3">
                             <div className="text-sm text-muted-foreground">
                               <span className="font-medium">Motivo:</span> {log.reason}
                             </div>
@@ -541,7 +541,7 @@ export default function ModLogsPage() {
                         )}
 
                         {(log.duration || messageMeta?.channelId || messageMeta?.excerpt || ruleMeta || detailsMeta || actionMeta) && (
-                          <div className="mt-3 rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+                          <div className="mt-3 rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
                             <div className="grid gap-1 text-xs text-muted-foreground">
                               {typeof actionMeta === 'string' && <div><span className="font-medium">Ação aplicada:</span> {String(actionMeta).toUpperCase()}</div>}
                               {typeof ruleMeta === 'string' && <div><span className="font-medium">Regra:</span> {ruleMeta}</div>}

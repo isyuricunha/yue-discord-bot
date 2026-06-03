@@ -349,7 +349,7 @@ export default function ModerationPage() {
                   {openai_categories.map((category) => {
                     const value = ai_thresholds[category]
                     return (
-                      <div key={category} className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+                      <div key={category} className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
                         <div className="text-xs font-medium text-muted-foreground">{category}</div>
                         <div className="mt-2 flex items-center gap-2">
                           <Input

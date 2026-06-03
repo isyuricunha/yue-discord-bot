@@ -151,7 +151,7 @@ export default function BadgesPage() {
     <div className="mx-auto w-full max-w-6xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex min-w-0 items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+          <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
             <Award className="h-5 w-5" />
           </span>
           <div className="min-w-0">
@@ -185,7 +185,7 @@ export default function BadgesPage() {
                   <Card key={i} className="overflow-hidden">
                     <CardContent className="p-5">
                       <div className="flex items-center gap-4">
-                        <Skeleton className="h-14 w-14 rounded-2xl" />
+                        <Skeleton className="h-14 w-14 rounded-lg" />
                         <div className="min-w-0 flex-1">
                           <Skeleton className="h-4 w-1/2" />
                           <Skeleton className="mt-2 h-3 w-3/4" />
@@ -212,7 +212,7 @@ export default function BadgesPage() {
                           key={b.id}
                           type="button"
                         className={[
-                          'flex items-start justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-colors',
+                          'flex items-start justify-between gap-3 rounded-lg border px-4 py-3 text-left transition-colors',
                           editing?.id === b.id
                             ? 'border-accent/60 bg-accent/10'
                             : 'border-border/80 bg-surface/40 hover:bg-surface/60',
@@ -462,7 +462,7 @@ export default function BadgesPage() {
                       {holders_query.data.holders.map((h) => (
                         <div
                           key={`${h.userId}:${h.badgeId}`}
-                          className="flex items-center justify-between gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3"
+                          className="flex items-center justify-between gap-3 rounded-lg border border-border/80 bg-surface/40 px-4 py-3"
                         >
                           <div className="min-w-0">
                             <div className="truncate text-sm font-semibold">{h.user.username ?? h.user.id}</div>

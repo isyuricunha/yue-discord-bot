@@ -321,19 +321,19 @@ export function CommandPalette() {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-cursor-overlay"
         onClick={close}
       />
       <div
         className={cn(
-          'relative w-full max-w-xl overflow-hidden rounded-2xl border border-border/80 bg-background shadow-2xl',
-          'animate-in fade-in zoom-in-95 duration-200'
+          'relative w-full max-w-xl overflow-hidden rounded-lg border border-border/80 bg-cursor-bg-command shadow-cursorMd',
+          'animate-in fade-in zoom-in-95 duration-[120ms] ease-cursor'
         )}
         role="dialog"
         aria-modal="true"
         aria-label="Command Palette"
       >
-        <div className="flex items-center gap-3 border-b border-border/80 px-4 py-3">
+        <div className="flex items-center gap-3 border-b border-border/80 px-4 py-2.5">
           <Search className="h-5 w-5 text-muted-foreground" />
           <input
             ref={inputRef}
@@ -342,7 +342,7 @@ export function CommandPalette() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Buscar páginas, comandos..."
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent text-[13px] text-foreground outline-none placeholder:text-muted-foreground"
             aria-label="Buscar"
           />
           <div className="flex items-center gap-1.5">
@@ -351,7 +351,7 @@ export function CommandPalette() {
             </kbd>
             <button
               onClick={close}
-              className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground hover:bg-surface/70 hover:text-foreground transition-colors"
+              className="grid h-7 w-7 place-items-center rounded-md text-muted-foreground transition-colors hover:bg-cursor-bg-hover hover:text-foreground focus-visible:ring-1 focus-visible:ring-accent"
               aria-label="Fechar"
             >
               <X className="h-4 w-4" />
@@ -372,13 +372,13 @@ export function CommandPalette() {
                   onClick={() => handleSelect(command)}
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={cn(
-                    'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
+                    'flex w-full items-center gap-3 rounded-md px-3 py-2 text-left transition-colors focus-visible:ring-1 focus-visible:ring-accent',
                     index === selectedIndex
-                      ? 'bg-accent/10 text-foreground'
-                      : 'text-muted-foreground hover:bg-surface/60'
+                      ? 'bg-cursor-accent-soft text-white'
+                      : 'text-muted-foreground hover:bg-cursor-bg-hover'
                   )}
                 >
-                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/60 text-accent">
+                  <span className="grid h-7 w-7 place-items-center rounded-md border border-border/60 bg-surface text-accent">
                     {command.icon}
                   </span>
                   <div className="flex-1">
@@ -394,7 +394,7 @@ export function CommandPalette() {
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-border/80 bg-surface/30 px-4 py-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between border-t border-border/80 bg-surface px-4 py-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
               <kbd className="rounded border border-border/60 bg-surface/60 px-1.5 py-0.5 font-mono">↑</kbd>

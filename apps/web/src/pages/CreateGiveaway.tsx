@@ -259,8 +259,8 @@ export default function CreateGiveawayPage() {
                   onClick={() => setFormat('reaction')}
                   className={
                     format === 'reaction'
-                      ? 'rounded-2xl border border-accent/40 bg-accent/10 p-6 text-left transition-colors'
-                      : 'rounded-2xl border border-border/80 bg-surface/40 p-6 text-left transition-colors hover:bg-surface/60'
+                      ? 'rounded-lg border border-accent/40 bg-accent/10 p-6 text-left transition-colors'
+                      : 'rounded-lg border border-border/80 bg-surface/40 p-6 text-left transition-colors hover:bg-surface/60'
                   }
                 >
                   <div className="text-3xl mb-3">🎉</div>
@@ -274,8 +274,8 @@ export default function CreateGiveawayPage() {
                   onClick={() => setFormat('list')}
                   className={
                     format === 'list'
-                      ? 'rounded-2xl border border-accent/40 bg-accent/10 p-6 text-left transition-colors'
-                      : 'rounded-2xl border border-border/80 bg-surface/40 p-6 text-left transition-colors hover:bg-surface/60'
+                      ? 'rounded-lg border border-accent/40 bg-accent/10 p-6 text-left transition-colors'
+                      : 'rounded-lg border border-border/80 bg-surface/40 p-6 text-left transition-colors hover:bg-surface/60'
                   }
                 >
                   <div className="text-3xl mb-3">📋</div>
@@ -286,7 +286,7 @@ export default function CreateGiveawayPage() {
                 </button>
               </div>
 
-              <div className="mt-6 rounded-2xl border border-border/70 bg-surface/40 p-4">
+              <div className="mt-6 rounded-lg border border-border/70 bg-surface/40 p-4">
                 <div className="text-sm font-semibold">Exemplo</div>
                 {format === 'reaction' ? (
                   <div className="mt-2 space-y-2 text-sm text-muted-foreground">
@@ -296,7 +296,7 @@ export default function CreateGiveawayPage() {
                     <div className="text-xs">
                       Bom para prêmios únicos (ex: "Nitro 1 mês") e sorteios rápidos.
                     </div>
-                    <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-2 text-xs">
+                    <div className="rounded-lg border border-border/70 bg-surface/60 px-3 py-2 text-xs">
                       <span className="font-mono text-foreground">Título:</span> Sorteio de Nitro
                       <br />
                       <span className="font-mono text-foreground">Vencedores:</span> 1
@@ -312,7 +312,7 @@ export default function CreateGiveawayPage() {
                     <div className="text-xs">
                       Bom quando há vários prêmios diferentes (ou quando você quer distribuir por preferência).
                     </div>
-                    <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-2 text-xs">
+                    <div className="rounded-lg border border-border/70 bg-surface/60 px-3 py-2 text-xs">
                       Itens (ex): Nitro, Steam R$ 50, Cargo VIP...
                       <br />
                       Min escolhas: 3 • Max escolhas: 5
@@ -371,7 +371,7 @@ export default function CreateGiveawayPage() {
               </div>
 
               <div className="space-y-6">
-                <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+                <div className="rounded-lg border border-border/70 bg-surface/40 p-4">
                   <div className="text-sm font-semibold">Dicas rápidas</div>
                   <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                     <div>
@@ -490,7 +490,7 @@ export default function CreateGiveawayPage() {
                           return (
                             <div
                               key={sortedIndex}
-                              className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/50 px-4 py-3"
+                              className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/50 px-4 py-3"
                             >
                               <div className="flex items-center gap-2 min-w-0">
                                 <span className="text-accent font-mono">{sortedIndex + 1}.</span>
@@ -582,7 +582,7 @@ export default function CreateGiveawayPage() {
                       {requiredRoleIds.map((role_id) => (
                         <div
                           key={role_id}
-                          className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/40 px-4 py-3"
+                          className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface/40 px-4 py-3"
                         >
                           <div className="min-w-0">
                             <div className="truncate text-sm font-semibold">
@@ -631,7 +631,7 @@ export default function CreateGiveawayPage() {
               </div>
 
               <div className="space-y-6">
-                <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
+                <div className="rounded-lg border border-border/70 bg-surface/40 p-4">
                   <div className="text-sm font-semibold">Como funciona</div>
                   <div className="mt-2 space-y-2 text-sm text-muted-foreground">
                     <div>

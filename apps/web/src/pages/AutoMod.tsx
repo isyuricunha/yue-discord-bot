@@ -199,7 +199,7 @@ export default function AutoModPage() {
 
           <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
             {(Object.keys(action_label) as automod_action[]).map((key) => (
-              <div key={key} className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+              <div key={key} className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
                 <div className="text-sm font-medium">{action_label[key]}</div>
                 <div className="mt-1 text-xs text-muted-foreground">{action_description[key]}</div>
               </div>
@@ -252,7 +252,7 @@ export default function AutoModPage() {
 
               <div className="space-y-2">
                 {(config.bannedWords || []).map((item, index) => (
-                  <div key={index} className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+                  <div key={index} className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <span className="truncate font-mono text-sm">{item.word}</span>
                       <span className="flex items-center gap-1.5 rounded-full border border-border/70 bg-surface/70 px-2.5 py-1.5 text-xs text-muted-foreground font-medium">
@@ -267,7 +267,7 @@ export default function AutoModPage() {
                 ))}
 
                 {!isLoading && (config.bannedWords || []).length === 0 && (
-                  <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                  <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
                     Nenhuma palavra adicionada
                   </div>
                 )}
@@ -283,7 +283,7 @@ export default function AutoModPage() {
         <CardContent className="space-y-4 p-6">
           <div className="flex items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">🔠</span>
+              <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">🔠</span>
               <div>
                 <div className="text-sm font-semibold">Anti-CAPS</div>
                 <div className="text-xs text-muted-foreground">Punir mensagens com excesso de letras maiúsculas</div>
@@ -373,7 +373,7 @@ export default function AutoModPage() {
 
           {Boolean(config.linkFilterEnabled) && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4 rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+              <div className="flex items-center justify-between gap-4 rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
                 <div className="text-sm">
                   <div className="font-medium">Bloquear todos os links</div>
                   <div className="text-xs text-muted-foreground">Exceto domínios permitidos</div>
@@ -421,7 +421,7 @@ export default function AutoModPage() {
 
                 <div className="space-y-2">
                   {(config.bannedDomains || []).map((domain, index) => (
-                    <div key={index} className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
+                    <div key={index} className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
                       <span className="truncate font-mono text-sm">{domain}</span>
                       <Button variant="ghost" size="sm" onClick={() => removeDomain(index)} aria-label="Remover domínio">
                         <Trash2 className="h-4 w-4" />
@@ -430,7 +430,7 @@ export default function AutoModPage() {
                   ))}
 
                   {!isLoading && (config.bannedDomains || []).length === 0 && (
-                    <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                    <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
                       Nenhum domínio bloqueado
                     </div>
                   )}

@@ -199,7 +199,7 @@ export default function FreeGamesPage() {
         <div className="mx-auto w-full max-w-7xl space-y-6">
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+                    <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
                         <Gift className="h-5 w-5" />
                     </span>
                     <div>
@@ -307,7 +307,7 @@ export default function FreeGamesPage() {
                                             <div
                                                 key={role.id}
                                                 onClick={() => toggle_role(role.id)}
-                                                className={`cursor-pointer rounded-xl border px-4 py-3 transition-colors ${is_selected
+                                                className={`cursor-pointer rounded-lg border px-4 py-3 transition-colors ${is_selected
                                                     ? 'border-accent/60 bg-accent/10'
                                                     : 'border-border/70 hover:bg-surface/50'
                                                     }`}
@@ -341,7 +341,7 @@ export default function FreeGamesPage() {
                                         <div
                                             key={platform.id}
                                             onClick={() => toggle_platform(platform.id)}
-                                            className={`cursor-pointer rounded-xl border px-4 py-3 text-center transition-colors ${is_selected
+                                            className={`cursor-pointer rounded-lg border px-4 py-3 text-center transition-colors ${is_selected
                                                 ? 'border-accent/60 bg-accent/10'
                                                 : 'border-border/70 hover:bg-surface/50'
                                                 }`}
@@ -368,7 +368,7 @@ export default function FreeGamesPage() {
                                         <div
                                             key={type.id}
                                             onClick={() => toggle_type(type.id)}
-                                            className={`cursor-pointer rounded-xl border px-4 py-3 text-center transition-colors ${is_selected
+                                            className={`cursor-pointer rounded-lg border px-4 py-3 text-center transition-colors ${is_selected
                                                 ? 'border-accent/60 bg-accent/10'
                                                 : 'border-border/70 hover:bg-surface/50'
                                                 }`}

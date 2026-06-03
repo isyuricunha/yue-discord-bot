@@ -138,7 +138,7 @@ export function SkeletonTable({
   columns?: number
 }) {
   return (
-    <div className="rounded-xl border border-border/60 overflow-hidden">
+    <div className="rounded-lg border border-border/60 overflow-hidden">
       {/* Header */}
       <div className="flex border-b border-border/60 bg-surface/30 p-3">
         {Array.from({ length: columns }).map((_, i) => (

@@ -282,7 +282,7 @@ export default function WelcomePage() {
 
                   {leave_validation && <div className="text-xs text-red-500">Template inválido: {leave_validation}</div>}
 
-                  <div className="rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
+                  <div className="rounded-lg border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
                     <div className="text-sm font-semibold text-foreground">Exemplos</div>
                     <div className="mt-2 space-y-3">
                       <div>
@@ -291,13 +291,13 @@ export default function WelcomePage() {
                       </div>
 
                       <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                        <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                        <div className="rounded-lg border border-border/70 bg-surface/60 px-3 py-3">
                           <div className="text-xs font-semibold text-foreground">Texto simples</div>
                           <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
                             {'Bem-vindo {@user} ao {guild}! Agora somos {guild-size} membros.'}
                           </pre>
                         </div>
-                        <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
+                        <div className="rounded-lg border border-border/70 bg-surface/60 px-3 py-3">
                           <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
                           <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
                             {"Bem-vindo {@user} ao {guild}! Agora somos {guild-size} membros."}

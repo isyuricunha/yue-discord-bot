@@ -51,7 +51,7 @@ const items: nav_item[] = [
 
 function nav_link_class({ isActive }: { isActive: boolean }) {
   return cn(
-    'block rounded-xl border border-border/70 px-4 py-3 transition-colors',
+    'block rounded-lg border border-border/70 px-4 py-3 transition-colors',
     'hover:border-accent/50 hover:bg-surface/50',
     isActive ? 'bg-surface/60 text-foreground' : 'bg-surface/30 text-muted-foreground'
   )

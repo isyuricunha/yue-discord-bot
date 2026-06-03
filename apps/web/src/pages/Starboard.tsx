@@ -247,7 +247,7 @@ export default function StarboardPage() {
                 </div>
               </div>
 
-              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
+              <div className="flex items-start justify-between gap-4 rounded-lg border border-border/70 bg-surface/30 p-4">
                 <div>
                   <div className="text-sm font-medium">Ignorar bots</div>
                   <div className="mt-1 text-xs text-muted-foreground">Não inclui mensagens enviadas por bots.</div>
@@ -281,7 +281,7 @@ export default function StarboardPage() {
           ) : (
             <div className="space-y-2">
               {all_posts.map((p) => (
-                <div key={p.id} className="rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
+                <div key={p.id} className="rounded-lg border border-border/70 bg-surface/30 px-4 py-3">
                   <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
                     <div className="min-w-0">
                     <div className="min-w-0">
