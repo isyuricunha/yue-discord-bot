@@ -257,18 +257,18 @@ export default function OverviewPage() {
                   <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorMembers" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                        <stop offset="5%" stopColor="var(--cursor-accent-navy)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--cursor-accent-navy)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
-                    <XAxis dataKey="date" stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.10)" vertical={false} />
+                    <XAxis dataKey="date" stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0b0b0b', borderColor: '#1f1f1f', borderRadius: '8px' }}
-                      itemStyle={{ color: '#f5f5f5' }}
+                      contentStyle={{ backgroundColor: 'var(--cursor-bg-popover)', borderColor: 'rgba(255,255,255,0.10)', borderRadius: '14px', boxShadow: 'var(--cursor-floating-shadow)' }}
+                      itemStyle={{ color: 'var(--cursor-text-primary)' }}
                     />
-                    <Area type="monotone" dataKey="newMembers" name="Novos Membros" stroke="#3b82f6" fillOpacity={1} fill="url(#colorMembers)" />
+                    <Area type="monotone" dataKey="newMembers" name="Novos Membros" stroke="var(--cursor-accent-navy)" fillOpacity={1} fill="url(#colorMembers)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -283,23 +283,23 @@ export default function OverviewPage() {
                   <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorEcon" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ff6a00" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#ff6a00" stopOpacity={0} />
+                        <stop offset="5%" stopColor="var(--cursor-accent-yellow)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--cursor-accent-yellow)" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorMod" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                        <stop offset="5%" stopColor="var(--cursor-accent-red)" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="var(--cursor-accent-red)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
-                    <XAxis dataKey="date" stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.10)" vertical={false} />
+                    <XAxis dataKey="date" stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#0b0b0b', borderColor: '#1f1f1f', borderRadius: '8px' }}
-                      itemStyle={{ color: '#f5f5f5' }}
+                      contentStyle={{ backgroundColor: 'var(--cursor-bg-popover)', borderColor: 'rgba(255,255,255,0.10)', borderRadius: '14px', boxShadow: 'var(--cursor-floating-shadow)' }}
+                      itemStyle={{ color: 'var(--cursor-text-primary)' }}
                     />
-                    <Area type="monotone" dataKey="economy" name="Transações Globais" stroke="#ff6a00" fillOpacity={1} fill="url(#colorEcon)" />
-                    <Area type="monotone" dataKey="moderationActions" name="Ações de Mod." stroke="#ef4444" fillOpacity={1} fill="url(#colorMod)" />
+                    <Area type="monotone" dataKey="economy" name="Transações Globais" stroke="var(--cursor-accent-yellow)" fillOpacity={1} fill="url(#colorEcon)" />
+                    <Area type="monotone" dataKey="moderationActions" name="Ações de Mod." stroke="var(--cursor-accent-red)" fillOpacity={1} fill="url(#colorMod)" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>

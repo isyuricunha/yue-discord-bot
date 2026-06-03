@@ -38,7 +38,7 @@ export default function ExtrasCommandsPage() {
 
       {/* Table of Contents - Sticky on desktop */}
       <div className="sticky top-4 z-10 mb-6 lg:mb-0">
-        <div className="rounded-xl border border-border/70 bg-surface/80 backdrop-blur-sm px-4 py-3">
+        <div className="rounded-2xl border border-border/70 bg-surface px-4 py-3 shadow-innerBorder">
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Índice</div>
           <nav className="flex flex-wrap gap-2" aria-label="Table of contents">
             {tableOfContents.map((item) => (

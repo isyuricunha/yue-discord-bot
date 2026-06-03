@@ -11,27 +11,27 @@ import { useToastStore } from '../../store/toast'
 
 const toast_styles = {
   success: {
-    border: 'border-green-500/30',
-    bg: 'bg-green-500/10',
-    iconBg: 'bg-green-500/20',
-    iconColor: 'text-green-500',
-    dot: 'bg-green-500',
+    border: 'border-success/30',
+    bg: 'bg-popover',
+    iconBg: 'bg-success/20',
+    iconColor: 'text-success',
+    dot: 'bg-success',
     Icon: CheckCircle,
   },
   error: {
-    border: 'border-red-500/30',
-    bg: 'bg-red-500/10',
-    iconBg: 'bg-red-500/20',
-    iconColor: 'text-red-500',
-    dot: 'bg-red-500',
+    border: 'border-danger/30',
+    bg: 'bg-popover',
+    iconBg: 'bg-danger/20',
+    iconColor: 'text-danger',
+    dot: 'bg-danger',
     Icon: AlertCircle,
   },
   default: {
-    border: 'border-accent/30',
-    bg: 'bg-surface/70',
-    iconBg: 'bg-accent/20',
-    iconColor: 'text-accent',
-    dot: 'bg-accent',
+    border: 'border-info/30',
+    bg: 'bg-popover',
+    iconBg: 'bg-info/20',
+    iconColor: 'text-info',
+    dot: 'bg-info',
     Icon: Info,
   },
 }
@@ -53,9 +53,7 @@ export function ToastViewport() {
           <div
             key={t.id}
             className={cn(
-              'pointer-events-auto overflow-hidden rounded-2xl border shadow-lg backdrop-blur-md',
-              'animate-in slide-in-from-right-full duration-300 ease-out',
-              'data-[state=closed]:animate-out data-[state=closed]:slide-out-to-right-full',
+              'pointer-events-auto overflow-hidden rounded-2xl border shadow-floating animate-slide-in-right',
               styles.border,
               styles.bg
             )}
@@ -64,7 +62,7 @@ export function ToastViewport() {
           >
             <div className="flex items-start gap-3 p-4">
               <div className={cn(
-                'grid h-10 w-10 shrink-0 place-items-center rounded-xl',
+                'grid h-9 w-9 shrink-0 place-items-center rounded-xl',
                 styles.iconBg
               )}>
                 <IconComponent className={cn('h-5 w-5', styles.iconColor)} />
@@ -74,8 +72,8 @@ export function ToastViewport() {
                 {t.title && (
                   <div className={cn(
                     'text-sm font-semibold',
-                    t.variant === 'success' && 'text-green-400',
-                    t.variant === 'error' && 'text-red-400',
+                    t.variant === 'success' && 'text-success',
+                    t.variant === 'error' && 'text-danger',
                     t.variant === 'default' && 'text-foreground'
                   )}>
                     {t.title}
@@ -91,7 +89,7 @@ export function ToastViewport() {
                 onClick={() => dismiss(t.id)}
                 className={cn(
                   'grid h-8 w-8 place-items-center rounded-lg text-muted-foreground',
-                  'hover:bg-white/5 hover:text-foreground transition-colors'
+                  'hover:bg-surface-hover hover:text-foreground transition-colors'
                 )}
                 aria-label="Fechar notificação"
               >

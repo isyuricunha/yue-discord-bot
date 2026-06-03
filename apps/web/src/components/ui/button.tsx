@@ -25,20 +25,20 @@ type button_props = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 }
 
 const base =
-  'relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl font-medium transition-all duration-200 text-center leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 disabled:pointer-events-none disabled:opacity-60 hover:scale-[1.02] active:scale-[0.98]'
+  'relative inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border font-medium transition-[background-color,border-color,color,box-shadow,transform,opacity] duration-150 text-center leading-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35 focus-visible:border-accent/60 disabled:pointer-events-none disabled:opacity-55'
 
 const variants: Record<button_variant, string> = {
   solid:
-    'bg-accent text-black shadow-[0_0_0_1px_rgba(255,106,0,0.35),0_10px_30px_rgba(255,106,0,0.12)] hover:bg-accent/90 active:bg-accent/85',
+    'border-accent/40 bg-accent text-accent-foreground shadow-yellowGlow hover:bg-accent-hover active:bg-accent-active active:translate-y-px',
   outline:
-    'bg-transparent text-foreground border border-border/80 hover:border-accent/60 hover:bg-surface/60',
-  ghost: 'bg-transparent text-foreground hover:bg-surface/70',
+    'border-border/80 bg-surface-raised text-foreground shadow-innerBorder hover:border-accent/45 hover:bg-surface-hover',
+  ghost: 'border-transparent bg-transparent text-foreground hover:bg-surface-hover',
 }
 
 const sizes: Record<button_size, string> = {
-  sm: 'h-9 px-3 text-sm',
-  md: 'h-11 px-4 text-sm',
-  lg: 'h-12 px-5 text-base',
+  sm: 'h-8 px-3 text-xs',
+  md: 'h-9 px-4 text-sm',
+  lg: 'h-10 px-5 text-sm',
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, button_props>(

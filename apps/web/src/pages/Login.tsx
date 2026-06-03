@@ -47,42 +47,16 @@ export default function LoginPage() {
   return (
     <>
       <Seo />
-      <div className="min-h-screen bg-background flex flex-col">
-        {/* Background consistente com AppShell */}
-        <div
-          className="fixed inset-0 overflow-hidden"
-          role="img"
-          aria-label="Fundo decorativo com gradientes e padrões geométricos"
-        >
-          <div
-            className="absolute -top-1/2 -left-1/4 h-[800px] w-[800px] rounded-full bg-accent/8 blur-[80px] animate-pulse"
-            style={{ animationDuration: '8s' }}
-            aria-hidden="true"
-          />
-          <div
-            className="absolute -bottom-1/2 -right-1/4 h-[600px] w-[600px] rounded-full bg-accent/5 blur-[80px] animate-pulse"
-            style={{ animationDuration: '12s' }}
-            aria-hidden="true"
-          />
-          <div
-            className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:64px_64px]"
-            aria-hidden="true"
-          />
-          <div
-            className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_0%,rgba(0,0,0,0.4)_100%)]"
-            aria-hidden="true"
-          />
-        </div>
-
-        <div className="relative z-10 flex min-h-screen flex-col">
+      <div data-theme="yu-dark" className="flex min-h-screen flex-col bg-canvas">
+        <div className="flex min-h-screen flex-col">
           {/* Header com logo e navegação */}
           <header className="flex w-full items-center justify-between px-6 py-5" role="banner">
             <NavLink
               to="/extras"
-              className="flex items-center gap-2.5 rounded-xl p-1.5 transition-colors hover:bg-surface/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50"
+              className="flex items-center gap-2.5 rounded-xl p-1.5 transition-colors hover:bg-surface-hover focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35"
               aria-label="Ir para página inicial do Yue Bot"
             >
-              <div className="grid h-8 w-8 place-items-center rounded-xl border border-border/80 bg-surface/60 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+              <div className="grid h-8 w-8 place-items-center rounded-xl border border-border/80 bg-surface-raised shadow-innerBorder">
                 <img src="/icon.png" alt="" className="h-5 w-5 rounded" aria-hidden="true" />
               </div>
               <span className="text-sm font-semibold tracking-tight text-foreground">Yue Bot</span>
@@ -91,7 +65,7 @@ export default function LoginPage() {
             <nav className="flex items-center gap-2">
               <NavLink
                 to="/extras"
-                className="inline-flex items-center rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface/40 hover:text-foreground"
+                className="inline-flex items-center rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
               >
                 Extras
               </NavLink>
@@ -103,7 +77,7 @@ export default function LoginPage() {
             <div className="w-full max-w-md">
               {/* Logo e tagline */}
               <div className="text-center mb-8 animate-fadeIn">
-                <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl border border-border/80 bg-surface/60 shadow-[0_0_0_1px_rgba(255,255,255,0.03)]">
+                <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl border border-border/80 bg-surface-raised shadow-innerBorder">
                   <img src="/icon.png" alt="Yue Bot" className="h-10 w-10 rounded-xl" />
                 </div>
                 <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-1">
@@ -155,7 +129,7 @@ export default function LoginPage() {
               )}
 
               {/* Card de login */}
-              <Card className="animate-fadeIn border-border/60 shadow-2xl shadow-black/20">
+              <Card className="animate-fadeIn border-border/60">
                 <CardContent className="p-6">
                   <div className="text-center mb-6">
                     <p className="text-sm text-muted-foreground leading-relaxed">
@@ -166,7 +140,7 @@ export default function LoginPage() {
                   <Button
                     onClick={handleLogin}
                     size="lg"
-                    className="w-full gap-2 !bg-[#5865F2] hover:!bg-[#4752C4] !text-white !border-none shadow-lg shadow-[#5865F2]/20 hover:shadow-[#5865F2]/30 transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+                    className="w-full gap-2 !border-[#5865F2]/40 !bg-[#5865F2] !text-white shadow-[0_0_24px_rgba(88,101,242,0.16)] transition-colors hover:!bg-[#4752C4]"
                     isLoading={isLoginLoading}
                     disabled={isLoginLoading || !API_URL}
                     aria-label="Entrar com Discord para acessar o painel de controle"
@@ -185,7 +159,7 @@ export default function LoginPage() {
                       <div className="w-full border-t border-border/40" aria-hidden="true" />
                     </div>
                     <div className="relative flex justify-center text-xs">
-                      <span className="bg-surface/50 px-2 text-muted-foreground/50">ou</span>
+                      <span className="bg-surface px-2 text-muted-foreground/60">ou</span>
                     </div>
                   </div>
 
@@ -194,7 +168,7 @@ export default function LoginPage() {
                       onClick={handleInvite}
                       size="lg"
                       variant="outline"
-                      className="w-full border-accent/30 text-foreground hover:bg-accent/10 hover:border-accent/50 transition-all duration-300"
+                      className="w-full border-accent/30 text-foreground transition-colors hover:border-accent/50 hover:bg-accent/10"
                       aria-label="Convidar o Yue Bot para o seu servidor Discord"
                     >
                       <ExternalLink className="h-4 w-4 mr-2" aria-hidden="true" />

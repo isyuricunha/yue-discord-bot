@@ -113,11 +113,11 @@ export function Topbar() {
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border/80 bg-background/75 backdrop-blur-md">
-      <div className="flex h-16 items-center justify-between gap-4 px-5">
+    <header className="sticky top-0 z-20 border-b border-border/80 bg-window">
+      <div className="flex h-12 items-center justify-between gap-4 px-4 sm:px-5">
         {/* Left: Breadcrumbs */}
         <div className="flex min-w-0 flex-1 items-center">
-          <nav aria-label="Breadcrumb navigation" className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
+          <nav aria-label="Breadcrumb navigation" className="flex flex-wrap items-center gap-1 font-mono text-[11px] text-muted-foreground">
             {breadcrumbs.map((crumb, idx) => {
               const isLast = idx === breadcrumbs.length - 1
               return (
@@ -126,7 +126,7 @@ export function Topbar() {
                   {crumb.to && !isLast ? (
                     <Link
                       to={crumb.to}
-                      className="flex items-center gap-1 hover:text-foreground transition-colors"
+                      className="flex items-center gap-1 transition-colors hover:text-accent"
                     >
                       {crumb.icon}
                       <span className="hidden sm:inline">{crumb.label}</span>
@@ -159,7 +159,7 @@ export function Topbar() {
             >
               <Search className="h-4 w-4" />
               <span className="hidden lg:inline text-sm">Buscar</span>
-              <kbd className="hidden rounded bg-surface/60 px-1 py-0.5 text-[10px] font-mono lg:inline">
+              <kbd className="hidden rounded bg-surface-raised px-1 py-0.5 text-[10px] font-mono lg:inline">
                 {typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('win') ? 'Ctrl+K' : '⌘K'}
               </kbd>
             </Button>
@@ -193,7 +193,7 @@ export function Topbar() {
           <div
             className={cn(
               'grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl border border-border/80 bg-surface/60',
-              'shadow-[0_0_0_1px_rgba(255,255,255,0.03)]'
+              'shadow-innerBorder'
             )}
             aria-label="User avatar"
           >

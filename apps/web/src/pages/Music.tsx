@@ -119,7 +119,7 @@ export default function MusicPage() {
   const { current, queue } = status
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 p-6">
+      <div className="mx-auto max-w-5xl space-y-6 p-5">
       <div className="flex items-center gap-3">
         <ListMusic className="h-6 w-6 text-accent" />
         <h1 className="text-2xl font-bold tracking-tight">Player de Música</h1>
@@ -128,7 +128,7 @@ export default function MusicPage() {
       <div className="grid gap-6 md:grid-cols-12">
         {/* Now Playing Widget */}
         <div className="md:col-span-7">
-          <div className="overflow-hidden rounded-2xl border border-border/80 bg-surface/40 shadow-sm backdrop-blur-md">
+          <div className="cursor-card overflow-hidden">
             {current ? (
               <div className="p-6">
                 <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
@@ -173,7 +173,7 @@ export default function MusicPage() {
                       <button
                         onClick={() => handleAction('stop')}
                         disabled={actionMutation.isPending}
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-surface/80 text-muted-foreground transition hover:bg-surface/100 hover:text-foreground hover:scale-105 active:scale-95 disabled:opacity-50"
+                        className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-surface-raised text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground disabled:opacity-50"
                         title="Parar"
                       >
                         <Square className="h-4 w-4 fill-current" />
@@ -182,7 +182,7 @@ export default function MusicPage() {
                       <button
                         onClick={() => handleAction(status.paused ? 'resume' : 'pause')}
                         disabled={actionMutation.isPending}
-                        className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-[0_0_15px_rgba(255,106,0,0.3)] transition hover:bg-accent/90 hover:scale-105 active:scale-95 disabled:opacity-50"
+                        className="flex h-14 w-14 items-center justify-center rounded-full border border-accent/40 bg-accent text-accent-foreground shadow-yellowGlow transition-colors hover:bg-accent-hover active:bg-accent-active disabled:opacity-50"
                         title={status.paused ? "Retomar" : "Pausar"}
                       >
                         {status.paused ? (
@@ -195,7 +195,7 @@ export default function MusicPage() {
                       <button
                         onClick={() => handleAction('skip')}
                         disabled={actionMutation.isPending}
-                        className="flex h-10 w-10 items-center justify-center rounded-full bg-surface/80 text-muted-foreground transition hover:bg-surface/100 hover:text-foreground hover:scale-105 active:scale-95 disabled:opacity-50"
+                        className="flex h-10 w-10 items-center justify-center rounded-full border border-border/70 bg-surface-raised text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground disabled:opacity-50"
                         title="Pular"
                       >
                         <SkipForward className="h-4 w-4 fill-current" />
@@ -236,7 +236,7 @@ export default function MusicPage() {
 
         {/* Queue List */}
         <div className="md:col-span-5">
-          <div className="flex h-[500px] flex-col overflow-hidden rounded-2xl border border-border/80 bg-surface/40 shadow-sm backdrop-blur-md">
+          <div className="cursor-card flex h-[500px] flex-col overflow-hidden">
             <div className="border-b border-border/50 bg-surface/50 px-5 py-4 flex justify-between items-center">
               <h3 className="font-semibold">Fila de Reprodução</h3>
               <span className="text-xs font-medium text-muted-foreground bg-background/80 px-2 py-1 rounded-md">

@@ -321,20 +321,19 @@ export function CommandPalette() {
   return (
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
       <div
-        className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/60"
         onClick={close}
       />
       <div
         className={cn(
-          'relative w-full max-w-xl overflow-hidden rounded-2xl border border-border/80 bg-background shadow-2xl',
-          'animate-in fade-in zoom-in-95 duration-200'
+          'cursor-floating relative w-full max-w-xl animate-scale-in'
         )}
         role="dialog"
         aria-modal="true"
         aria-label="Command Palette"
       >
         <div className="flex items-center gap-3 border-b border-border/80 px-4 py-3">
-          <Search className="h-5 w-5 text-muted-foreground" />
+          <Search className="h-5 w-5 text-accent" />
           <input
             ref={inputRef}
             type="text"
@@ -342,16 +341,16 @@ export function CommandPalette() {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder="Buscar páginas, comandos..."
-            className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
+            className="flex-1 bg-transparent font-mono text-sm outline-none placeholder:text-muted-foreground"
             aria-label="Buscar"
           />
           <div className="flex items-center gap-1.5">
-            <kbd className="rounded border border-border/80 bg-surface/60 px-2 py-1 text-xs font-mono text-muted-foreground">
+            <kbd className="rounded border border-border/80 bg-surface-raised px-2 py-1 text-xs font-mono text-muted-foreground">
               ESC
             </kbd>
             <button
               onClick={close}
-              className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground hover:bg-surface/70 hover:text-foreground transition-colors"
+              className="grid h-7 w-7 place-items-center rounded-lg text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
               aria-label="Fechar"
             >
               <X className="h-4 w-4" />
@@ -372,13 +371,13 @@ export function CommandPalette() {
                   onClick={() => handleSelect(command)}
                   onMouseEnter={() => setSelectedIndex(index)}
                   className={cn(
-                    'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-colors',
+                    'flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition-colors',
                     index === selectedIndex
-                      ? 'bg-accent/10 text-foreground'
-                      : 'text-muted-foreground hover:bg-surface/60'
+                      ? 'border-accent/35 bg-accent/10 text-foreground'
+                      : 'border-transparent text-muted-foreground hover:bg-surface-hover'
                   )}
                 >
-                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/60 text-accent">
+                  <span className="grid h-8 w-8 place-items-center rounded-lg border border-border/70 bg-surface text-accent">
                     {command.icon}
                   </span>
                   <div className="flex-1">
@@ -394,15 +393,15 @@ export function CommandPalette() {
           )}
         </div>
 
-        <div className="flex items-center justify-between border-t border-border/80 bg-surface/30 px-4 py-2 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between border-t border-border/80 bg-surface/50 px-4 py-2 text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
             <span className="flex items-center gap-1">
-              <kbd className="rounded border border-border/60 bg-surface/60 px-1.5 py-0.5 font-mono">↑</kbd>
-              <kbd className="rounded border border-border/60 bg-surface/60 px-1.5 py-0.5 font-mono">↓</kbd>
+              <kbd className="rounded border border-border/60 bg-surface-raised px-1.5 py-0.5 font-mono">↑</kbd>
+              <kbd className="rounded border border-border/60 bg-surface-raised px-1.5 py-0.5 font-mono">↓</kbd>
               <span>navegar</span>
             </span>
             <span className="flex items-center gap-1">
-              <kbd className="rounded border border-border/60 bg-surface/60 px-1.5 py-0.5 font-mono">↵</kbd>
+              <kbd className="rounded border border-border/60 bg-surface-raised px-1.5 py-0.5 font-mono">↵</kbd>
               <span>selecionar</span>
             </span>
           </div>

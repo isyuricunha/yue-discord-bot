@@ -38,13 +38,8 @@ export function AppShell() {
   const content_key = useMemo(() => location.pathname, [location.pathname])
 
   return (
-    <div className="h-screen overflow-hidden bg-background text-foreground">
+    <div data-theme="yu-dark" className="h-screen overflow-hidden bg-canvas text-foreground">
       <Seo />
-      <div className="pointer-events-none fixed inset-0">
-        <div className="absolute -top-40 left-1/2 h-[520px] w-[520px] -translate-x-1/2 rounded-full bg-accent/8 blur-[120px]" />
-        <div className="absolute -bottom-52 right-[-120px] h-[520px] w-[520px] rounded-full bg-accent/4 blur-[120px]" />
-      </div>
-
 
       <div className="relative flex h-full">
         <Sidebar collapsed={collapsed} onToggle={toggle} />
@@ -52,7 +47,7 @@ export function AppShell() {
         <div className="min-w-0 flex flex-1 flex-col">
           <div className="scrollbar-yue min-h-0 flex-1 overflow-y-auto">
             <Topbar />
-            <main id="main-content" className={cn('px-5 py-6', 'animate-fadeIn')} key={content_key} tabIndex={-1}>
+            <main id="main-content" className={cn('px-4 py-5 sm:px-5', 'animate-fadeIn')} key={content_key} tabIndex={-1}>
               <Outlet />
             </main>
           </div>

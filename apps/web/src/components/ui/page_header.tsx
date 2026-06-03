@@ -13,11 +13,11 @@ export function PageHeader({ icon: Icon, title, description, children, className
     return (
         <div className={cn('flex items-center justify-between gap-4', className)}>
             <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
+                <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface-raised text-accent shadow-innerBorder">
                     <Icon className="h-5 w-5" />
                 </span>
                 <div>
-                    <div className="text-xl font-semibold tracking-tight">{title}</div>
+                    <div className="text-xl font-semibold tracking-tight text-foreground">{title}</div>
                     <div className="text-sm text-muted-foreground">{description}</div>
                 </div>
             </div>

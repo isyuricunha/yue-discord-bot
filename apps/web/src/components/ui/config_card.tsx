@@ -25,12 +25,12 @@ export function ConfigCard({
     label,
 }: ConfigCardProps) {
     return (
-        <div className={cn('rounded-2xl border border-border/80 bg-surface/40 p-6', className)}>
+        <div className={cn('cursor-card p-5', className)}>
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     {icon && <span className="text-accent">{icon}</span>}
                     <div>
-                        <div className="text-sm font-semibold">{title}</div>
+                        <div className="text-sm font-semibold text-foreground">{title}</div>
                         {description && <div className="text-xs text-muted-foreground">{description}</div>}
                     </div>
                 </div>

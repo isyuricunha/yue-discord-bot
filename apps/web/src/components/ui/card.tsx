@@ -16,7 +16,7 @@ export function Card({ className, ...props }: card_props) {
   return (
     <div
       className={cn(
-        'rounded-2xl border border-border/80 bg-surface/50 shadow-[0_0_0_1px_rgba(255,255,255,0.03),0_20px_60px_rgba(0,0,0,0.65)] backdrop-blur-md',
+        'cursor-card',
         className
       )}
       {...props}

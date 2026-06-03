@@ -24,7 +24,7 @@ export function StatCard({
     return (
         <Card
             className={cn(
-                'border-border/60 bg-surface/40 backdrop-blur-xl p-4 text-center transition-all duration-300 hover:border-accent/30 hover:bg-surface/60',
+                'p-4 text-center transition-colors duration-150 hover:border-accent/30',
                 className
             )}
         >
@@ -34,7 +34,7 @@ export function StatCard({
                 </div>
                 <div className="text-2xl font-bold text-foreground">
                     {isLoading ? (
-                        <span className="animate-pulse">---</span>
+                        <span className="cursor-text-shimmer font-mono">---</span>
                     ) : (
                         value
                     )}

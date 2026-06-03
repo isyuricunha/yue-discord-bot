@@ -100,7 +100,7 @@ export default function SettingsPage() {
         />
       )}
 
-      <Card className="border-border/80 bg-surface/40 backdrop-blur-md shadow-sm">
+      <Card className="border-border/80 bg-surface">
         <CardContent className="space-y-6 p-6">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <div>

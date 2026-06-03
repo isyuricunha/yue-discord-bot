@@ -448,8 +448,8 @@ export default function KeywordTriggersPage() {
 
       {/* Edit Modal */}
       {editing_trigger && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="mx-4 w-full max-w-2xl rounded-2xl bg-surface border border-border shadow-xl">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+          <div className="cursor-floating mx-4 w-full max-w-2xl">
             <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
               <div className="text-lg font-semibold">Editar Gatilho</div>
               <Button

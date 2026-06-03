@@ -70,7 +70,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
     const isTarget = label === 'Alvo'
     return (
       <div className="relative group inline-block">
-        <Badge className="bg-background/80 border-border/50 text-muted-foreground backdrop-blur-sm font-medium py-1 cursor-pointer hover:bg-surface/60">
+        <Badge className="bg-chip border-border/50 text-muted-foreground font-medium py-1 cursor-pointer hover:bg-surface-hover">
           {user?.avatar ? (
             <img src={`https://cdn.discordapp.com/avatars/${userId}/${user.avatar}.png?size=32`} className="mr-1.5 h-4 w-4 rounded-full" />
           ) : (
@@ -81,7 +81,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
         </Badge>
         {isTarget && (
           <div className="absolute left-0 top-full pt-1.5 hidden group-hover:block z-50">
-            <div className="bg-background/95 backdrop-blur border border-border/50 rounded-lg p-1.5 flex flex-row gap-1.5 shadow-xl">
+            <div className="cursor-floating flex flex-row gap-1.5 p-1.5">
               <button 
                 onClick={() => modMutation.mutate({ action: 'timeout', targetId: userId })}
                 disabled={modMutation.isPending}
@@ -119,7 +119,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${act.border} bg-background/50 shadow-sm backdrop-blur-sm`}>
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${act.border} bg-surface shadow-innerBorder`}>
               {act.icon}
             </div>
             <div className={`truncate text-sm sm:text-base font-semibold ${act.color}`}>{act.label}</div>
@@ -138,7 +138,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
         {renderUserBadge(log.targetUserId, 'Alvo')}
         
         {log.targetChannelId && (
-          <Badge className="bg-background/80 border-border/50 text-muted-foreground backdrop-blur-sm font-medium py-1">
+          <Badge className="bg-chip border-border/50 text-muted-foreground font-medium py-1">
             <Hash className="mr-1.5 h-3 w-3" />
             <span className="opacity-70 mr-1">Canal:</span> 
             <span className="font-semibold text-foreground/80">
@@ -191,7 +191,6 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
               </div>
             </div>
             <div className="rounded-xl border border-blue-500/10 bg-blue-500/5 p-3.5 shadow-sm relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-blue-400/90 mb-2 relative z-10">Atualmente</div>
               <div className="text-sm text-foreground/90 break-words bg-background/60 p-3 rounded-lg border border-blue-500/20 relative z-10">
                 {data.newContent || <span className="opacity-50">(Vazio)</span>}
@@ -241,7 +240,6 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
                 <div className="text-sm line-through decoration-red-500/40 text-muted-foreground/80 break-words">{data.oldNick || <span className="italic opacity-50 text-xs">(Nenhum)</span>}</div>
               </div>
               <div className="bg-background/50 p-3 rounded-lg border border-blue-500/20 shadow-sm relative overflow-hidden">
-                <div className="absolute inset-0 bg-blue-500/5 pointer-events-none"></div>
                 <div className="text-[10px] uppercase tracking-wider text-blue-400/80 mb-1 relative z-10">Depois</div>
                 <div className="text-sm font-medium text-foreground relative z-10 break-words">{data.newNick || <span className="italic opacity-50 text-muted-foreground text-xs">(Nenhum)</span>}</div>
               </div>

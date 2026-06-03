@@ -28,16 +28,16 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     render(): ReactNode {
         if (this.state.hasError) {
             return (
-                <div className="flex min-h-screen items-center justify-center p-4">
-                    <div className="max-w-md w-full text-center">
-                        <h1 className="text-2xl font-bold mb-4">Something went wrong</h1>
-                        <p className="text-muted-foreground mb-6">
+                <div data-theme="yu-dark" className="flex min-h-screen items-center justify-center bg-canvas p-4 text-foreground">
+                    <div className="cursor-card w-full max-w-md p-6 text-center">
+                        <h1 className="mb-4 text-xl font-semibold">Something went wrong</h1>
+                        <p className="mb-6 text-sm text-muted-foreground">
                             We encountered an unexpected error. Please try refreshing the page or contact support if the problem persists.
                         </p>
                         {this.props.fallback || (
                             <button
                                 onClick={() => window.location.reload()}
-                                className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+                                className="rounded-xl border border-accent/40 bg-accent px-4 py-2 text-sm font-medium text-accent-foreground shadow-yellowGlow transition-colors hover:bg-accent-hover"
                             >
                                 Refresh Page
                             </button>

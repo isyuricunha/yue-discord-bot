@@ -1,7 +1,7 @@
 import { cn } from '../../lib/cn'
 import { Card, CardContent } from './card'
 
-// Base skeleton with pulse animation
+// Base skeleton with Cursor-style loading sheen.
 interface SkeletonBaseProps {
   className?: string
   style?: React.CSSProperties
@@ -14,7 +14,7 @@ export function SkeletonBase({
   return (
     <div
       className={cn(
-        'animate-pulse rounded-lg bg-surface/60',
+        'cursor-skeleton',
         className
       )}
       style={style}
