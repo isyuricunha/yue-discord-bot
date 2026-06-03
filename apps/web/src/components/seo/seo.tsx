@@ -134,7 +134,7 @@ function resolve_payload(pathname: string, guild_id?: string): seo_payload {
 
   if (normalized === '/owner' || normalized.startsWith('/owner/')) {
     return {
-      title: 'Owner - Yue Bot',
+      title: 'Admin - Yue Bot',
       description: 'Área administrativa do Yue Bot.',
       indexable: false,
     }

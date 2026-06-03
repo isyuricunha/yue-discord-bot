@@ -116,7 +116,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
   if (user?.isOwner) {
     base_items.push({
       to: '/owner',
-      label: 'Owner',
+      label: 'Admin',
       icon: <Crown className="h-4 w-4" />,
     })
   }

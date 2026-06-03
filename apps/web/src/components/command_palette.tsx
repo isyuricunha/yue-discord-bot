@@ -72,7 +72,7 @@ export function CommandPalette() {
     if (user?.isOwner) {
       base.push({
         id: 'owner',
-        label: 'Painel Owner',
+        label: 'Painel Admin',
         description: 'Administração do bot',
         icon: <Crown className="h-4 w-4" />,
         to: '/owner',
