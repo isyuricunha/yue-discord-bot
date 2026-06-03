@@ -16,7 +16,7 @@ export function Skeleton({ className, ...props }: skeleton_props) {
   return (
     <div
       className={cn(
-        'relative overflow-hidden rounded-md bg-cursor-bg-raised before:absolute before:inset-0 before:animate-shimmer before:bg-[linear-gradient(90deg,#202020_0%,#2b2b2b_50%,#202020_100%)] before:bg-[length:200%_100%]',
+        'relative overflow-hidden rounded-xl bg-surface/70 before:absolute before:inset-0 before:-translate-x-full before:animate-shimmer before:bg-gradient-to-r before:from-transparent before:via-white/10 before:to-transparent',
         className
       )}
       {...props}

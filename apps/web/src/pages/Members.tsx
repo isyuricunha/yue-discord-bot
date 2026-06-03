@@ -138,7 +138,7 @@ export default function MembersPage() {
             <Card key={i} className="overflow-hidden">
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
-                  <Skeleton className="h-12 w-12 rounded-lg" />
+                  <Skeleton className="h-12 w-12 rounded-2xl" />
                   <div className="min-w-0 flex-1">
                     <Skeleton className="h-4 w-2/3" />
                     <Skeleton className="mt-2 h-3 w-1/2" />
@@ -168,10 +168,10 @@ export default function MembersPage() {
                       <img
                         src={`https://cdn.discordapp.com/avatars/${member.userId}/${member.avatar}.png`}
                         alt={member.username}
-                        className="h-12 w-12 rounded-lg"
+                        className="h-12 w-12 rounded-2xl"
                       />
                     ) : (
-                      <div className="grid h-12 w-12 place-items-center rounded-lg border border-border/80 bg-surface/70">
+                      <div className="grid h-12 w-12 place-items-center rounded-2xl border border-border/80 bg-surface/70">
                         <User className="h-5 w-5 text-muted-foreground" />
                       </div>
                     )}
@@ -203,7 +203,7 @@ export default function MembersPage() {
                   </div>
 
                   {member.notes && (
-                    <div className="mt-4 rounded-lg border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
+                    <div className="mt-4 rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
                       <span className="font-semibold text-foreground">Notas:</span> {member.notes}
                     </div>
                   )}

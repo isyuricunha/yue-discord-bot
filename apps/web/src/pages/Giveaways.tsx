@@ -248,7 +248,7 @@ function GiveawayCard({ giveaway, guildId }: { giveaway: Giveaway; guildId: stri
     >
       <CardContent className="p-6">
         <div className="flex items-start gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60">
+          <div className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60">
             <Trophy className={isActive ? 'h-5 w-5 text-accent' : 'h-5 w-5 text-muted-foreground'} />
           </div>
 
@@ -265,15 +265,15 @@ function GiveawayCard({ giveaway, guildId }: { giveaway: Giveaway; guildId: stri
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-          <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-surface/50 px-3 py-2">
+          <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-surface/50 px-3 py-2">
             <Users className="h-4 w-4" />
             <span title="Participantes">{giveaway._count.entries}</span>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-surface/50 px-3 py-2">
+          <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-surface/50 px-3 py-2">
             <Trophy className="h-4 w-4" />
             <span title="Vencedores / Máximo">{giveaway._count.winners}/{giveaway.maxWinners}</span>
           </div>
-          <div className="flex items-center gap-2 rounded-lg border border-border/70 bg-surface/50 px-3 py-2">
+          <div className="flex items-center gap-2 rounded-xl border border-border/70 bg-surface/50 px-3 py-2">
             <Calendar className="h-4 w-4" />
             <span title="Data de encerramento">{endsAt.toLocaleDateString('pt-BR')}</span>
           </div>

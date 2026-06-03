@@ -127,7 +127,7 @@ export default function AutorolePage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
             <UserPlus className="h-5 w-5" />
           </span>
           <div>
@@ -197,7 +197,7 @@ export default function AutorolePage() {
                 </div>
               </div>
 
-              <div className="flex items-start justify-between gap-4 rounded-lg border border-border/70 bg-surface/30 p-4">
+              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
                 <div>
                   <div className="text-sm font-medium">Somente após primeira mensagem</div>
                   <div className="mt-1 text-xs text-muted-foreground">
@@ -257,7 +257,7 @@ export default function AutorolePage() {
                       return (
                         <div
                           key={role_id}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface/40 px-4 py-3"
+                          className="flex items-center justify-between gap-3 rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
                         >
                           <div className="min-w-0 flex items-center gap-3">
                             {role && (

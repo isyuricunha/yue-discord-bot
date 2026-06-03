@@ -381,7 +381,7 @@ export default function OwnerPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-border/80 bg-surface/40 px-4 py-3">
+            <div className="rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
               <div className="text-xs text-muted-foreground">Internal bot API</div>
               <div className="mt-1 text-sm font-semibold">
                 {diagnostics_data?.internalBotApi?.status === 'down' ? 'Indisponível' : 'OK'}
@@ -391,7 +391,7 @@ export default function OwnerPage() {
               ) : null}
             </div>
 
-            <div className="rounded-lg border border-border/80 bg-surface/40 px-4 py-3">
+            <div className="rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
               <div className="text-xs text-muted-foreground">Issues</div>
               <div className="mt-1 text-sm font-semibold">
                 {(() => {
@@ -409,7 +409,7 @@ export default function OwnerPage() {
                 .filter((g) => (g.issues?.length ?? 0) > 0)
                 .slice(0, 20)
                 .map((g) => (
-                  <div key={g.guildId} className="rounded-lg border border-border/80 bg-surface/30 px-4 py-3">
+                  <div key={g.guildId} className="rounded-2xl border border-border/80 bg-surface/30 px-4 py-3">
                     <div className="flex items-center justify-between gap-4">
                       <div className="text-sm font-semibold">{g.guildName}</div>
                       <div className="text-xs text-muted-foreground">{g.issues.length} issue(s)</div>
@@ -451,7 +451,7 @@ export default function OwnerPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="flex items-center justify-between rounded-lg border border-border/80 bg-surface/40 px-4 py-3">
+            <div className="flex items-center justify-between rounded-2xl border border-border/80 bg-surface/40 px-4 py-3">
               <div>
                 <div className="text-sm font-semibold">Ativar presence</div>
                 <div className="text-xs text-muted-foreground">Liga/desliga atividades e status</div>
@@ -599,7 +599,7 @@ export default function OwnerPage() {
           </div>
 
           {announcement_preview && (
-            <div className="rounded-lg border border-border/80 bg-surface/40 p-4">
+            <div className="rounded-2xl border border-border/80 bg-surface/40 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge>{announcement_preview.total ?? 0} total</Badge>
                 <Badge>{announcement_preview.sendable ?? 0} enviáveis</Badge>
@@ -612,7 +612,7 @@ export default function OwnerPage() {
           )}
 
           {announcement_result && (
-            <div className="rounded-lg border border-border/80 bg-surface/40 p-4">
+            <div className="rounded-2xl border border-border/80 bg-surface/40 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge>{announcement_result.total ?? 0} processadas</Badge>
                 <Badge>{announcement_result.sent ?? 0} enviadas</Badge>
@@ -669,7 +669,7 @@ export default function OwnerPage() {
             <Card key={i} className="overflow-hidden">
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
-                  <Skeleton className="h-14 w-14 rounded-lg" />
+                  <Skeleton className="h-14 w-14 rounded-2xl" />
                   <div className="min-w-0 flex-1">
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="mt-2 h-3 w-1/2" />
@@ -693,10 +693,10 @@ export default function OwnerPage() {
                     <img
                       src={`https://cdn.discordapp.com/icons/${g.id}/${g.icon}.png`}
                       alt={g.name}
-                      className="h-14 w-14 rounded-lg"
+                      className="h-14 w-14 rounded-2xl"
                     />
                   ) : (
-                    <div className="grid h-14 w-14 place-items-center rounded-lg border border-border/80 bg-surface/70 text-lg font-semibold">
+                    <div className="grid h-14 w-14 place-items-center rounded-2xl border border-border/80 bg-surface/70 text-lg font-semibold">
                       <span className="text-accent">{g.name.charAt(0)}</span>
                     </div>
                   )}

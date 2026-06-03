@@ -166,7 +166,7 @@ export default function CoinflipPage() {
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
             <Dice5 className="h-5 w-5" />
           </span>
           <div>
@@ -224,7 +224,7 @@ export default function CoinflipPage() {
         <Card className="border-accent/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
                 <Dice5 className="h-5 w-5" />
               </span>
               <div>
@@ -236,15 +236,15 @@ export default function CoinflipPage() {
             </div>
 
             <div className="mt-4 grid grid-cols-3 gap-2 text-center">
-              <div className="rounded-lg border border-border/70 bg-surface/40 p-3">
+              <div className="rounded-xl border border-border/70 bg-surface/40 p-3">
                 <div className="text-xs text-muted-foreground">Partidas</div>
                 <div className="text-sm font-semibold">{is_stats_loading ? '-' : stats?.played ?? 0}</div>
               </div>
-              <div className="rounded-lg border border-border/70 bg-surface/40 p-3">
+              <div className="rounded-xl border border-border/70 bg-surface/40 p-3">
                 <div className="text-xs text-muted-foreground">Vitórias</div>
                 <div className="text-sm font-semibold">{is_stats_loading ? '-' : stats?.wins ?? 0}</div>
               </div>
-              <div className="rounded-lg border border-border/70 bg-surface/40 p-3">
+              <div className="rounded-xl border border-border/70 bg-surface/40 p-3">
                 <div className="text-xs text-muted-foreground">Derrotas</div>
                 <div className="text-sm font-semibold">{is_stats_loading ? '-' : stats?.losses ?? 0}</div>
               </div>
@@ -280,7 +280,7 @@ export default function CoinflipPage() {
                 const is_pending = g.status === 'pending'
                 const can_verify = g.status === 'completed' && !!g.serverSeed && !!g.serverSeedHash && !!g.resultSide
                 return (
-                  <div key={g.id} className="rounded-lg border border-border/70 bg-surface/40 px-3 py-3">
+                  <div key={g.id} className="rounded-xl border border-border/70 bg-surface/40 px-3 py-3">
                     <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">

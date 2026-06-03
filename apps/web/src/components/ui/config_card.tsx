@@ -25,7 +25,7 @@ export function ConfigCard({
     label,
 }: ConfigCardProps) {
     return (
-        <div className={cn('rounded-lg border border-border/80 bg-surface p-5', className)}>
+        <div className={cn('rounded-2xl border border-border/80 bg-surface/40 p-6', className)}>
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                     {icon && <span className="text-accent">{icon}</span>}

@@ -70,7 +70,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
     const isTarget = label === 'Alvo'
     return (
       <div className="relative group inline-block">
-        <Badge className="cursor-pointer border-border/50 bg-surface text-muted-foreground font-medium py-1 hover:bg-cursor-bg-hover">
+        <Badge className="bg-background/80 border-border/50 text-muted-foreground backdrop-blur-sm font-medium py-1 cursor-pointer hover:bg-surface/60">
           {user?.avatar ? (
             <img src={`https://cdn.discordapp.com/avatars/${userId}/${user.avatar}.png?size=32`} className="mr-1.5 h-4 w-4 rounded-full" />
           ) : (
@@ -81,18 +81,18 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
         </Badge>
         {isTarget && (
           <div className="absolute left-0 top-full pt-1.5 hidden group-hover:block z-50">
-            <div className="flex flex-row gap-1.5 rounded-lg border border-border/80 bg-cursor-bg-popover p-1.5 shadow-cursorMd">
+            <div className="bg-background/95 backdrop-blur border border-border/50 rounded-lg p-1.5 flex flex-row gap-1.5 shadow-xl">
               <button 
                 onClick={() => modMutation.mutate({ action: 'timeout', targetId: userId })}
                 disabled={modMutation.isPending}
-                className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cursor-warning bg-cursor-warning/10 hover:bg-cursor-warning/20 transition-colors whitespace-nowrap disabled:opacity-50 focus-visible:ring-1 focus-visible:ring-accent"
+                className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-yellow-500 bg-yellow-500/10 hover:bg-yellow-500/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
               >
                 Mutar (1h)
               </button>
               <button 
                 onClick={() => modMutation.mutate({ action: 'ban', targetId: userId })}
                 disabled={modMutation.isPending}
-                className="rounded px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-cursor-error bg-cursor-error/10 hover:bg-cursor-error/20 transition-colors whitespace-nowrap disabled:opacity-50 focus-visible:ring-1 focus-visible:ring-accent"
+                className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-red-500 bg-red-500/10 hover:bg-red-500/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
               >
                 Banir
               </button>
@@ -115,11 +115,11 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
   }
 
   return (
-    <div className={`rounded-lg border p-4 transition-colors duration-[160ms] ease-cursor sm:p-5 ${act.bg} ${act.border}`}>
+    <div className={`rounded-2xl border p-4 sm:p-5 transition-all duration-300 hover:shadow-lg ${act.bg} ${act.border}`}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2.5">
-            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${act.border} bg-surface`}>
+            <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border ${act.border} bg-background/50 shadow-sm backdrop-blur-sm`}>
               {act.icon}
             </div>
             <div className={`truncate text-sm sm:text-base font-semibold ${act.color}`}>{act.label}</div>
@@ -138,7 +138,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
         {renderUserBadge(log.targetUserId, 'Alvo')}
         
         {log.targetChannelId && (
-          <Badge className="border-border/50 bg-surface text-muted-foreground font-medium py-1">
+          <Badge className="bg-background/80 border-border/50 text-muted-foreground backdrop-blur-sm font-medium py-1">
             <Hash className="mr-1.5 h-3 w-3" />
             <span className="opacity-70 mr-1">Canal:</span> 
             <span className="font-semibold text-foreground/80">
@@ -162,7 +162,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
 
       <div className="mt-4 pl-0 sm:pl-[42px]">
         {log.action === 'message_delete' && data ? (
-          <div className="rounded-lg border border-red-500/10 bg-red-500/5 p-3.5 shadow-sm">
+          <div className="rounded-xl border border-red-500/10 bg-red-500/5 p-3.5 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <MessageSquare className="h-3.5 w-3.5 text-red-400/70" />
               <span className="text-xs font-semibold text-red-400/90 tracking-wide uppercase">Mensagem Deletada</span>
@@ -184,13 +184,13 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
           </div>
         ) : log.action === 'message_update' && data ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-            <div className="rounded-lg border border-border/60 bg-surface/50 p-3.5 shadow-sm">
+            <div className="rounded-xl border border-border/60 bg-surface/50 p-3.5 shadow-sm">
               <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Previamente</div>
               <div className="text-sm text-foreground/80 italic break-words line-through decoration-red-500/30 bg-background/40 p-3 rounded-lg border border-border/40">
                 {data.oldContent || <span className="opacity-50">(Vazio)</span>}
               </div>
             </div>
-            <div className="rounded-lg border border-blue-500/10 bg-blue-500/5 p-3.5 shadow-sm relative overflow-hidden">
+            <div className="rounded-xl border border-blue-500/10 bg-blue-500/5 p-3.5 shadow-sm relative overflow-hidden">
               <div className="absolute top-0 right-0 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none"></div>
               <div className="text-[10px] font-bold uppercase tracking-wider text-blue-400/90 mb-2 relative z-10">Atualmente</div>
               <div className="text-sm text-foreground/90 break-words bg-background/60 p-3 rounded-lg border border-blue-500/20 relative z-10">
@@ -211,7 +211,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
             )}
           </div>
         ) : log.action === 'member_roles_update' && data ? (
-          <div className="rounded-lg border border-yellow-500/10 bg-yellow-500/5 p-3.5 shadow-sm">
+          <div className="rounded-xl border border-yellow-500/10 bg-yellow-500/5 p-3.5 shadow-sm">
             {Array.isArray(data.addedRoleIds) && data.addedRoleIds.length > 0 && (
               <div className={Array.isArray(data.removedRoleIds) && data.removedRoleIds.length > 0 ? "mb-3" : ""}>
                 <div className="text-[10px] font-bold uppercase tracking-wider text-green-400/80 mb-2">Cargos Adicionados</div>
@@ -230,7 +230,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
             )}
           </div>
         ) : log.action === 'member_nick_update' && data ? (
-          <div className="rounded-lg border border-blue-500/10 bg-blue-500/5 p-3.5 shadow-sm">
+          <div className="rounded-xl border border-blue-500/10 bg-blue-500/5 p-3.5 shadow-sm">
             <div className="flex items-center gap-2 mb-3">
               <User className="h-3.5 w-3.5 text-blue-400/70" />
               <span className="text-xs font-semibold text-blue-400/90 tracking-wide uppercase">Apelido Alterado</span>
@@ -248,7 +248,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
             </div>
           </div>
         ) : log.action === 'channel_create' && data ? (
-          <div className="rounded-lg border border-green-500/10 bg-green-500/5 p-3.5 shadow-sm">
+          <div className="rounded-xl border border-green-500/10 bg-green-500/5 p-3.5 shadow-sm">
             <div className="flex items-center gap-2 mb-2">
               <Hash className="h-3.5 w-3.5 text-green-400/70" />
               <span className="text-xs font-semibold text-green-400/90 tracking-wide uppercase">Detalhes do Canal</span>
@@ -264,7 +264,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
                <Settings className="h-3.5 w-3.5 transition-transform group-open:rotate-90" />
                Ver detalhes técnicos (Avançado)
              </summary>
-             <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words rounded-lg border border-border/60 bg-cursor-bg-editor p-4 text-[11px] font-mono text-syntax-fg">
+             <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words rounded-xl border border-border/40 bg-black/20 p-4 text-[11px] font-mono text-muted-foreground shadow-inner">
                {JSON.stringify(data, null, 2)}
              </pre>
           </details>

@@ -34,7 +34,7 @@ export default function ExtrasAboutPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
+          <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">Nota:</span> o nome <span className="font-semibold text-foreground">Yue</span> é uma
             homenagem pessoal - ele carrega o carinho de alguém muito importante para o projeto.
           </div>
@@ -48,12 +48,12 @@ export default function ExtrasAboutPage() {
               href={invite_url}
               target="_blank"
               rel="noreferrer"
-              className="inline-flex items-center justify-center rounded-lg border border-border/80 bg-surface/60 px-4 py-2 text-sm text-foreground transition-colors hover:border-accent/50"
+              className="inline-flex items-center justify-center rounded-xl border border-border/80 bg-surface/60 px-4 py-2 text-sm text-foreground transition-colors hover:border-accent/50"
             >
               Adicionar a Yue no meu servidor
             </a>
           ) : (
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
               Link de convite indisponível no momento.
             </div>
           )}

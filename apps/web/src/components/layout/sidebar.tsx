@@ -62,16 +62,16 @@ function sort_by_label_ptbr(items: nav_item[]) {
 
 function nav_link_class({ isActive }: { isActive: boolean }) {
   return cn(
-    'group flex items-center gap-2.5 rounded-md border border-transparent px-2.5 py-1.5 text-[13px] transition-colors outline-none',
-    'hover:bg-cursor-bg-hover hover:text-foreground focus-visible:ring-1 focus-visible:ring-accent',
-    isActive ? 'border-l-accent bg-cursor-accent-soft text-white' : 'text-muted-foreground'
+    'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors outline-none',
+    'hover:bg-surface/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+    isActive ? 'bg-surface/80 text-foreground border border-border/80' : 'text-muted-foreground'
   )
 }
 
 function nav_link_class_static() {
   return cn(
-    'group flex items-center gap-2.5 rounded-md border border-transparent px-2.5 py-1.5 text-[13px] transition-colors outline-none',
-    'hover:bg-cursor-bg-hover hover:text-foreground focus-visible:ring-1 focus-visible:ring-accent',
+    'group flex items-center gap-3 rounded-xl px-3 py-2 text-sm transition-colors outline-none',
+    'hover:bg-surface/70 hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 focus-visible:ring-offset-background',
     'text-muted-foreground cursor-pointer'
   )
 }
@@ -179,14 +179,14 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
     ]
     : []
 
-  const width = collapsed ? 'w-[56px]' : 'w-[260px]'
+  const width = collapsed ? 'w-[72px]' : 'w-[260px]'
 
   return (
     <aside
       id="sidebar"
       className={cn(
-        'relative h-screen shrink-0 overflow-hidden border-r border-border/80 bg-cursor-bg-sidebar',
-        'transition-[width] duration-[160ms] ease-cursor',
+        'relative h-screen shrink-0 overflow-hidden border-r border-border/80 bg-background/90 backdrop-blur-md',
+        'transition-[width] duration-200 ease-out',
         width
       )}
       role="navigation"
@@ -194,14 +194,14 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
       aria-expanded={!collapsed}
     >
       <div className="flex h-full flex-col">
-        <div className={cn('flex h-12 items-center justify-between border-b border-border/60 px-3', collapsed && 'justify-center px-2')}>
+        <div className={cn('flex items-center justify-between px-4 py-4', collapsed && 'justify-center')}>
           {!collapsed && (
             <div className="flex items-center gap-3">
-              <div className="grid h-8 w-8 place-items-center rounded-md bg-surface border border-border/80">
+              <div className="grid h-9 w-9 place-items-center rounded-2xl bg-surface/80 border border-border/80">
                 <img src="/icon.png" alt="Yue logo - Control panel" className="h-5 w-5 rounded" />
               </div>
               <div className="leading-tight">
-                <div className="text-[13px] font-semibold text-white">Yue</div>
+                <div className="text-sm font-semibold">Yue</div>
                 <div className="text-xs text-muted-foreground">Painel de Controle</div>
               </div>
             </div>
@@ -211,8 +211,8 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
             type="button"
             onClick={onToggle}
             className={cn(
-              'inline-flex h-8 w-8 items-center justify-center rounded-md border border-border/80 bg-transparent text-muted-foreground',
-              'hover:bg-cursor-bg-hover hover:text-foreground transition-colors focus-visible:ring-1 focus-visible:ring-accent'
+              'inline-flex h-9 w-9 items-center justify-center rounded-xl border border-border/80 bg-surface/50 text-muted-foreground',
+              'hover:bg-surface/70 hover:text-foreground transition-colors'
             )}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             aria-expanded={!collapsed}
@@ -222,7 +222,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
           </button>
         </div>
 
-        <nav id="sidebar-content" className={cn('scrollbar-yue min-h-0 flex-1 space-y-1 overflow-y-auto px-2 py-2', collapsed && 'px-1.5')}>
+        <nav id="sidebar-content" className={cn('scrollbar-yue min-h-0 flex-1 space-y-1 overflow-y-auto px-3', collapsed && 'px-2')}>
           {base.map((item) => (
             <NavLink
               key={item.to}
@@ -231,7 +231,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
               end
               title={collapsed ? item.label : undefined}
             >
-              <span className="grid h-7 w-7 place-items-center rounded-md bg-surface border border-border/70">
+              <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
                 {item.icon}
               </span>
               {!collapsed && <span className="truncate">{item.label}</span>}
@@ -246,7 +246,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
             aria-label="Open Extras in a new tab"
             title={collapsed ? 'Extras' : undefined}
           >
-            <span className="grid h-7 w-7 place-items-center rounded-md bg-surface border border-border/70">
+            <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
               <ExternalLink className="h-4 w-4" />
             </span>
             {!collapsed && <span className="truncate">Extras</span>}
@@ -255,7 +255,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
           {guild_sections.map((section) => (
             <React.Fragment key={section.title}>
               {section.items.length > 0 && !collapsed && (
-                <div className="px-2 pt-3 text-[11px] font-medium uppercase tracking-wide text-muted-foreground" role="group" aria-label={section.title}>
+                <div className="px-2 pt-4 text-xs text-muted-foreground" role="group" aria-label={section.title}>
                   {section.title}
                 </div>
               )}
@@ -267,7 +267,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
                   className={nav_link_class}
                   title={collapsed ? item.label : undefined}
                 >
-                  <span className="grid h-7 w-7 place-items-center rounded-md bg-surface border border-border/70">
+                  <span className="grid h-8 w-8 place-items-center rounded-lg bg-surface/50 border border-border/70">
                     {item.icon}
                   </span>
                   {!collapsed && <span className="truncate">{item.label}</span>}
@@ -277,12 +277,12 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
           ))}
         </nav>
 
-        <div className={cn('border-t border-border/60 px-3 py-3', collapsed && 'px-2')}>
-          <div className={cn('rounded-md border border-border/80 bg-surface p-2.5', collapsed && 'p-2')}>
+        <div className={cn('px-4 py-4', collapsed && 'px-2')}>
+          <div className={cn('rounded-2xl border border-border/80 bg-surface/40 p-3', collapsed && 'p-2')}>
             <div className={cn('text-xs text-muted-foreground', collapsed && 'hidden')}>Status</div>
             <div className={cn('mt-1 flex items-center gap-2', collapsed && 'justify-center')}
             >
-              <span className="h-2 w-2 rounded-full bg-cursor-success" />
+              <span className="h-2 w-2 rounded-full bg-accent shadow-[0_0_18px_rgba(255,106,0,0.35)]" />
               {!collapsed && <span className="text-xs">Online</span>}
             </div>
           </div>

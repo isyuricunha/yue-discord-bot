@@ -94,7 +94,7 @@ export default function MusicPage() {
         <p className="text-muted-foreground">Ocorreu um erro ao carregar o player.</p>
         <button
           onClick={() => refetch()}
-          className="rounded-lg border border-border/80 bg-surface px-4 py-2 text-sm font-medium hover:bg-surface/70"
+          className="rounded-xl border border-border/80 bg-surface px-4 py-2 text-sm font-medium hover:bg-surface/70"
         >
           Tentar novamente
         </button>
@@ -128,7 +128,7 @@ export default function MusicPage() {
       <div className="grid gap-6 md:grid-cols-12">
         {/* Now Playing Widget */}
         <div className="md:col-span-7">
-          <div className="overflow-hidden rounded-lg border border-border/80 bg-surface">
+          <div className="overflow-hidden rounded-2xl border border-border/80 bg-surface/40 shadow-sm backdrop-blur-md">
             {current ? (
               <div className="p-6">
                 <div className="flex flex-col md:flex-row gap-6 items-center md:items-start">
@@ -136,10 +136,10 @@ export default function MusicPage() {
                     <img 
                       src={current.thumbnail} 
                       alt="Thumbnail" 
-                      className="h-48 w-48 rounded-lg object-cover shadow-md border border-border/50"
+                      className="h-48 w-48 rounded-xl object-cover shadow-md border border-border/50"
                     />
                   ) : (
-                    <div className="flex h-48 w-48 items-center justify-center rounded-lg bg-background/50 border border-border/50">
+                    <div className="flex h-48 w-48 items-center justify-center rounded-xl bg-background/50 border border-border/50">
                       <MusicIcon className="h-16 w-16 text-muted-foreground/50" />
                     </div>
                   )}
@@ -173,7 +173,7 @@ export default function MusicPage() {
                       <button
                         onClick={() => handleAction('stop')}
                         disabled={actionMutation.isPending}
-                        className="flex h-10 w-10 items-center justify-center rounded-full border border-border/80 bg-surface text-muted-foreground transition-colors hover:bg-cursor-bg-hover hover:text-foreground focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-surface/80 text-muted-foreground transition hover:bg-surface/100 hover:text-foreground hover:scale-105 active:scale-95 disabled:opacity-50"
                         title="Parar"
                       >
                         <Square className="h-4 w-4 fill-current" />
@@ -182,7 +182,7 @@ export default function MusicPage() {
                       <button
                         onClick={() => handleAction(status.paused ? 'resume' : 'pause')}
                         disabled={actionMutation.isPending}
-                        className="flex h-14 w-14 items-center justify-center rounded-full border border-transparent bg-accent text-white transition-colors hover:bg-cursor-accent-hover focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
+                        className="flex h-14 w-14 items-center justify-center rounded-full bg-accent text-white shadow-[0_0_15px_rgba(255,106,0,0.3)] transition hover:bg-accent/90 hover:scale-105 active:scale-95 disabled:opacity-50"
                         title={status.paused ? "Retomar" : "Pausar"}
                       >
                         {status.paused ? (
@@ -195,7 +195,7 @@ export default function MusicPage() {
                       <button
                         onClick={() => handleAction('skip')}
                         disabled={actionMutation.isPending}
-                        className="flex h-10 w-10 items-center justify-center rounded-full border border-border/80 bg-surface text-muted-foreground transition-colors hover:bg-cursor-bg-hover hover:text-foreground focus-visible:ring-1 focus-visible:ring-accent disabled:opacity-50"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-surface/80 text-muted-foreground transition hover:bg-surface/100 hover:text-foreground hover:scale-105 active:scale-95 disabled:opacity-50"
                         title="Pular"
                       >
                         <SkipForward className="h-4 w-4 fill-current" />
@@ -205,7 +205,7 @@ export default function MusicPage() {
                 </div>
 
                 {/* Volume Slider */}
-                <div className="mt-8 flex items-center gap-4 rounded-lg bg-background/30 p-4 border border-border/40">
+                <div className="mt-8 flex items-center gap-4 rounded-xl bg-background/30 p-4 border border-border/40">
                   <Volume2 className="h-5 w-5 text-muted-foreground" />
                   <input
                     type="range"
@@ -236,7 +236,7 @@ export default function MusicPage() {
 
         {/* Queue List */}
         <div className="md:col-span-5">
-          <div className="flex h-[500px] flex-col overflow-hidden rounded-lg border border-border/80 bg-surface">
+          <div className="flex h-[500px] flex-col overflow-hidden rounded-2xl border border-border/80 bg-surface/40 shadow-sm backdrop-blur-md">
             <div className="border-b border-border/50 bg-surface/50 px-5 py-4 flex justify-between items-center">
               <h3 className="font-semibold">Fila de Reprodução</h3>
               <span className="text-xs font-medium text-muted-foreground bg-background/80 px-2 py-1 rounded-md">
@@ -255,7 +255,7 @@ export default function MusicPage() {
                   {queue.map((track, idx) => (
                     <div
                       key={`${track.uri}-${idx}`}
-                      className="group flex items-center gap-3 rounded-lg px-3 py-3 transition-colors hover:bg-surface/60"
+                      className="group flex items-center gap-3 rounded-xl px-3 py-3 transition-colors hover:bg-surface/60"
                     >
                       <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-background/50 text-xs font-semibold text-muted-foreground border border-border/30">
                         {idx + 1}

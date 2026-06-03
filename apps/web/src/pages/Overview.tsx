@@ -151,9 +151,9 @@ export default function OverviewPage() {
           <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-3">
             <button
               onClick={() => navigate(`/guild/${guildId}/automod`)}
-              className="flex items-center gap-3 rounded-lg border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60"
+              className="flex items-center gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60"
             >
-              <div className="grid h-10 w-10 place-items-center rounded-lg border border-border/70 bg-surface/60">
+              <div className="grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60">
                 <Shield className="h-5 w-5 text-accent" />
               </div>
               <div>
@@ -164,9 +164,9 @@ export default function OverviewPage() {
 
             <button
               onClick={() => navigate(`/guild/${guildId}/modlogs`)}
-              className="flex items-center gap-3 rounded-lg border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60"
+              className="flex items-center gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60"
             >
-              <div className="grid h-10 w-10 place-items-center rounded-lg border border-border/70 bg-surface/60">
+              <div className="grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60">
                 <FileText className="h-5 w-5 text-accent" />
               </div>
               <div>
@@ -177,9 +177,9 @@ export default function OverviewPage() {
 
             <button
               onClick={() => navigate(`/guild/${guildId}/members`)}
-              className="flex items-center gap-3 rounded-lg border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60"
+              className="flex items-center gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3 text-left transition-colors hover:bg-surface/60"
             >
-              <div className="grid h-10 w-10 place-items-center rounded-lg border border-border/70 bg-surface/60">
+              <div className="grid h-10 w-10 place-items-center rounded-xl border border-border/70 bg-surface/60">
                 <Users className="h-5 w-5 text-accent" />
               </div>
               <div>
@@ -261,12 +261,12 @@ export default function OverviewPage() {
                         <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.10)" vertical={false} />
-                    <XAxis dataKey="date" stroke="#9d9d9d" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#9d9d9d" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+                    <XAxis dataKey="date" stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#202020', borderColor: 'rgba(255,255,255,0.10)', borderRadius: '8px' }}
-                      itemStyle={{ color: '#cccccc' }}
+                      contentStyle={{ backgroundColor: '#0b0b0b', borderColor: '#1f1f1f', borderRadius: '8px' }}
+                      itemStyle={{ color: '#f5f5f5' }}
                     />
                     <Area type="monotone" dataKey="newMembers" name="Novos Membros" stroke="#3b82f6" fillOpacity={1} fill="url(#colorMembers)" />
                   </AreaChart>
@@ -283,22 +283,22 @@ export default function OverviewPage() {
                   <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorEcon" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#4ec9b0" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="#4ec9b0" stopOpacity={0} />
+                        <stop offset="5%" stopColor="#ff6a00" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#ff6a00" stopOpacity={0} />
                       </linearGradient>
                       <linearGradient id="colorMod" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
                         <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.10)" vertical={false} />
-                    <XAxis dataKey="date" stroke="#9d9d9d" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="#9d9d9d" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="#1f1f1f" vertical={false} />
+                    <XAxis dataKey="date" stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} />
+                    <YAxis stroke="#a3a3a3" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: '#202020', borderColor: 'rgba(255,255,255,0.10)', borderRadius: '8px' }}
-                      itemStyle={{ color: '#cccccc' }}
+                      contentStyle={{ backgroundColor: '#0b0b0b', borderColor: '#1f1f1f', borderRadius: '8px' }}
+                      itemStyle={{ color: '#f5f5f5' }}
                     />
-                    <Area type="monotone" dataKey="economy" name="Transações Globais" stroke="#4ec9b0" fillOpacity={1} fill="url(#colorEcon)" />
+                    <Area type="monotone" dataKey="economy" name="Transações Globais" stroke="#ff6a00" fillOpacity={1} fill="url(#colorEcon)" />
                     <Area type="monotone" dataKey="moderationActions" name="Ações de Mod." stroke="#ef4444" fillOpacity={1} fill="url(#colorMod)" />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -349,7 +349,7 @@ export default function OverviewPage() {
               {stats.recentActions.map((action) => (
                 <div
                   key={action.id}
-                  className="flex flex-col gap-2 rounded-lg border border-border/70 bg-surface/40 p-4 transition-colors hover:bg-surface/60 md:flex-row md:items-center md:justify-between"
+                  className="flex flex-col gap-2 rounded-2xl border border-border/70 bg-surface/40 p-4 transition-colors hover:bg-surface/60 md:flex-row md:items-center md:justify-between"
                 >
                   <div className="flex min-w-0 items-start gap-3">
                     <Badge variant="neutral">

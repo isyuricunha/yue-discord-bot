@@ -212,7 +212,7 @@ export default function GiveawayEntryEditPage() {
               </div>
 
               {!is_count_valid && (
-                <div className="rounded-lg border border-border/70 bg-surface/60 p-3 text-xs text-yellow-300">
+                <div className="rounded-xl border border-border/70 bg-surface/60 p-3 text-xs text-yellow-300">
                   Quantidade inválida. Você precisa respeitar Min/Max do sorteio.
                 </div>
               )}
@@ -224,7 +224,7 @@ export default function GiveawayEntryEditPage() {
                   {choices.map((choice, idx) => (
                     <li
                       key={`${idx}-${choice}`}
-                      className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface/40 px-4 py-3"
+                      className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/40 px-4 py-3"
                     >
                       <div className="min-w-0">
                         <div className="text-xs text-muted-foreground">#{idx + 1}</div>
@@ -267,7 +267,7 @@ export default function GiveawayEntryEditPage() {
                 </ol>
               )}
 
-              <div className="rounded-lg border border-border/70 bg-surface/40 p-4 space-y-3">
+              <div className="rounded-2xl border border-border/70 bg-surface/40 p-4 space-y-3">
                 <div className="text-sm font-semibold">Adicionar item</div>
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
                   <div className="flex-1">

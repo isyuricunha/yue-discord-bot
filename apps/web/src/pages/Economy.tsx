@@ -135,7 +135,7 @@ export default function EconomyPage() {
           <Card className="border-accent/20 min-w-[220px]">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
-                <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+                <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
                   <Coins className="h-5 w-5" />
                 </span>
                 <div>
@@ -233,7 +233,7 @@ export default function EconomyPage() {
           ) : tx_data?.transactions?.length ? (
             <div className="space-y-2">
               {tx_data.transactions.map((tx) => (
-                <div key={tx.id} className="flex items-center justify-between gap-4 rounded-lg border border-border/70 bg-surface/40 px-3 py-2">
+                <div key={tx.id} className="flex items-center justify-between gap-4 rounded-xl border border-border/70 bg-surface/40 px-3 py-2">
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
                        <ArrowRightLeft className="w-5 h-5" />

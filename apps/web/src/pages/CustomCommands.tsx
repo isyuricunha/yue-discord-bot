@@ -79,7 +79,7 @@ export default function CustomCommandsPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
             <Command className="h-5 w-5" />
           </span>
           <div>
@@ -147,7 +147,7 @@ export default function CustomCommandsPage() {
             {isLoading ? (
                <div className="space-y-3">
                  {Array.from({ length: 4 }).map((_, i) => (
-                   <Skeleton key={i} className="h-20 w-full rounded-lg" />
+                   <Skeleton key={i} className="h-20 w-full rounded-2xl" />
                  ))}
                </div>
             ) : !commands?.length ? (
@@ -155,7 +155,7 @@ export default function CustomCommandsPage() {
             ) : (
               <div className="space-y-3">
                 {commands.map((cmd) => (
-                  <div key={cmd.id} className="rounded-lg border border-border/70 bg-surface/30 px-4 py-3">
+                  <div key={cmd.id} className="rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
                     <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">

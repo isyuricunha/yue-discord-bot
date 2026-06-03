@@ -194,7 +194,7 @@ export default function AntiRaidPage() {
         <div className="mx-auto w-full max-w-7xl space-y-6">
             <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
-                    <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+                    <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
                         <Shield className="h-5 w-5" />
                     </span>
                     <div>
@@ -234,7 +234,7 @@ export default function AntiRaidPage() {
 
                     <div className="grid grid-cols-1 gap-2 md:grid-cols-3">
                         {(Object.keys(action_label) as antiraid_action[]).map((key) => (
-                            <div key={key} className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
+                            <div key={key} className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
                                 <div className="text-sm font-medium">{action_label[key]}</div>
                                 <div className="mt-1 text-xs text-muted-foreground">{action_description[key]}</div>
                             </div>
@@ -265,7 +265,7 @@ export default function AntiRaidPage() {
                     </div>
 
                     {config.raidActive && (
-                        <div className="rounded-lg border border-red-500/50 bg-red-500/10 px-4 py-3">
+                        <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3">
                             <div className="flex items-center gap-2 text-red-500">
                                 <AlertTriangle className="h-5 w-5" />
                                 <span className="font-medium">Raide ativo no momento!</span>
@@ -277,7 +277,7 @@ export default function AntiRaidPage() {
                     )}
 
                     {config.locked && (
-                        <div className="rounded-lg border border-yellow-500/50 bg-yellow-500/10 px-4 py-3">
+                        <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 px-4 py-3">
                             <div className="flex items-center gap-2 text-yellow-500">
                                 <Ban className="h-5 w-5" />
                                 <span className="font-medium">Servidor bloqueado!</span>
@@ -452,7 +452,7 @@ export default function AntiRaidPage() {
                                             return (
                                                 <Badge
                                                     key={roleId}
-                                                    className="flex cursor-pointer items-center gap-1.5 transition-colors hover:border-cursor-error hover:bg-cursor-error/20 hover:text-cursor-error"
+                                                    className="flex items-center gap-1.5 cursor-pointer hover:bg-destructive/20 hover:text-destructive hover:border-destructive transition-colors"
                                                     onClick={() => toggleExemptRole(roleId)}
                                                 >
                                                     {role && (
@@ -488,7 +488,7 @@ export default function AntiRaidPage() {
                                             return (
                                                 <Badge
                                                     key={channelId}
-                                                    className="flex cursor-pointer items-center gap-1.5 transition-colors hover:border-cursor-error hover:bg-cursor-error/20 hover:text-cursor-error"
+                                                    className="flex items-center gap-1.5 cursor-pointer hover:bg-destructive/20 hover:text-destructive hover:border-destructive transition-colors"
                                                     onClick={() => toggleExemptChannel(channelId)}
                                                 >
                                                     <Hash className="w-3 h-3 opacity-50" />

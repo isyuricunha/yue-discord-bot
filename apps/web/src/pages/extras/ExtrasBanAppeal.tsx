@@ -21,7 +21,7 @@ export default function ExtrasBanAppealPage() {
           <div className="text-sm text-muted-foreground">
             Usar a Yue é um privilégio - apelos existem para casos onde faz sentido avaliar contexto, arrependimento e/ou erros.
           </div>
-          <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3 text-xs text-muted-foreground">
+          <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-xs text-muted-foreground">
             Esta página é informativa e não possui formulário.
           </div>
         </CardContent>
@@ -34,16 +34,16 @@ export default function ExtrasBanAppealPage() {
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid grid-cols-1 gap-2">
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
               1) Faça apenas um apelo por punição.
             </div>
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
               2) Seja objetivo: explique o que aconteceu, por que foi um erro (se for o caso) e o que você fará diferente.
             </div>
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
               3) Não pressione a equipe e não tente “forçar” resposta.
             </div>
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
               4) Não peça apelo em lugares aleatórios (ex: chat público). Use o canal oficial indicado pela equipe.
             </div>
           </div>

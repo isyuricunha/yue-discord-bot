@@ -444,7 +444,7 @@ export default function XpLevelsPage() {
   const render_avatar = (user_id: string, avatar: string | null) => {
     if (!avatar) {
       return (
-        <div className="grid h-9 w-9 place-items-center rounded-lg border border-border/70 bg-surface/60 text-xs font-semibold">
+        <div className="grid h-9 w-9 place-items-center rounded-xl border border-border/70 bg-surface/60 text-xs font-semibold">
           <span className="text-accent">?</span>
         </div>
       )
@@ -454,7 +454,7 @@ export default function XpLevelsPage() {
       <img
         src={`https://cdn.discordapp.com/avatars/${user_id}/${avatar}.png`}
         alt="avatar"
-        className="h-9 w-9 rounded-lg"
+        className="h-9 w-9 rounded-xl"
       />
     )
   }
@@ -463,7 +463,7 @@ export default function XpLevelsPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
             <Sparkles className="h-5 w-5" />
           </span>
           <div>
@@ -502,7 +502,7 @@ export default function XpLevelsPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <div className="rounded-lg border border-border/70 bg-surface/40 p-4">
+            <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
               <div className="text-sm font-medium">Nível</div>
               <div className="mt-2 grid gap-2 text-sm text-muted-foreground">
                 <div>
@@ -523,7 +523,7 @@ export default function XpLevelsPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border/70 bg-surface/40 p-4">
+            <div className="rounded-2xl border border-border/70 bg-surface/40 p-4">
               <div className="text-sm font-medium">Quanto XP eu ganho por mensagem?</div>
               <div className="mt-2 grid gap-2 text-sm text-muted-foreground">
                 <div>
@@ -733,7 +733,7 @@ export default function XpLevelsPage() {
                 {leaderboard.leaderboard.map((row) => (
                   <div
                     key={row.userId}
-                    className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/40 px-4 py-3"
+                    className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       {render_avatar(row.userId, row.avatar)}
@@ -761,7 +761,7 @@ export default function XpLevelsPage() {
                 {global_leaderboard.leaderboard.map((row) => (
                   <div
                     key={row.userId}
-                    className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/40 px-4 py-3"
+                    className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
                   >
                     <div className="flex min-w-0 items-center gap-3">
                       {render_avatar(row.userId, row.avatar)}
@@ -823,7 +823,7 @@ export default function XpLevelsPage() {
           </div>
 
           {config?.voiceXpEnabled && (
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 bg-surface/30 p-4 rounded-lg border border-border/70">
+            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2 bg-surface/30 p-4 rounded-xl border border-border/70">
               <div>
                 <div className="text-sm font-medium">Pontos a cada 10 minutos (Voice Rate)</div>
                 <div className="mt-2 text-xs text-muted-foreground mb-3">
@@ -937,16 +937,16 @@ export default function XpLevelsPage() {
                   </div>
                 </div>
 
-                <div className="mt-4 rounded-lg border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
+                <div className="mt-4 rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
                   <div className="text-sm font-semibold text-foreground">Exemplos</div>
                   <div className="mt-2 grid grid-cols-1 gap-3 md:grid-cols-2">
-                    <div className="rounded-lg border border-border/70 bg-surface/60 px-3 py-3">
+                    <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
                       <div className="text-xs font-semibold text-foreground">Texto simples</div>
                       <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
                         {'🎉 {@user} → nível {level} ({xp} XP)! Você está em #{experience.ranking}.'}
                       </pre>
                     </div>
-                    <div className="rounded-lg border border-border/70 bg-surface/60 px-3 py-3">
+                    <div className="rounded-xl border border-border/70 bg-surface/60 px-3 py-3">
                       <div className="text-xs font-semibold text-foreground">JSON (content + embed)</div>
                       <pre className="mt-2 whitespace-pre-wrap break-words text-xs text-foreground">
                         {JSON.stringify(
@@ -982,7 +982,7 @@ export default function XpLevelsPage() {
             <Skeleton className="h-16 w-full" />
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-4">
+              <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <div className="text-sm font-semibold">Empilhar recompensas anteriores</div>
@@ -996,7 +996,7 @@ export default function XpLevelsPage() {
                 </div>
               </div>
 
-              <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-4">
+              <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4">
                 <div className="flex items-center justify-between gap-4">
                   <div>
                     <div className="text-sm font-semibold">Remover recompensas anteriores</div>
@@ -1043,7 +1043,7 @@ export default function XpLevelsPage() {
 
               <div className="space-y-2">
                 {Object.entries(config.roleXpMultipliers).length === 0 ? (
-                  <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                  <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
                     Nenhum multiplicador configurado
                   </div>
                 ) : (
@@ -1052,7 +1052,7 @@ export default function XpLevelsPage() {
                     .map(([role_id, value]) => (
                       <div
                         key={role_id}
-                        className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/40 px-4 py-3"
+                        className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
@@ -1103,14 +1103,14 @@ export default function XpLevelsPage() {
 
                 <div className="space-y-2">
                   {config.ignoredRoleIds.length === 0 ? (
-                    <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                    <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
                       Nenhum cargo ignorado
                     </div>
                   ) : (
                     config.ignoredRoleIds.map((role_id) => (
                       <div
                         key={role_id}
-                        className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/40 px-4 py-3"
+                        className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
                       >
                         <div className="flex items-center gap-2 min-w-0">
                           {role_by_id.get(role_id) && (
@@ -1162,14 +1162,14 @@ export default function XpLevelsPage() {
 
                 <div className="space-y-2">
                   {config.ignoredChannelIds.length === 0 ? (
-                    <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                    <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
                       Nenhum canal ignorado
                     </div>
                   ) : (
                     config.ignoredChannelIds.map((channel_id) => (
                       <div
                         key={channel_id}
-                        className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/40 px-4 py-3"
+                        className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
                       >
                         <div className="truncate text-sm font-semibold">{channel_by_id.get(channel_id)?.name ? `#${channel_by_id.get(channel_id)!.name}` : channel_id}</div>
                         <Button
@@ -1225,14 +1225,14 @@ export default function XpLevelsPage() {
 
               <div className="space-y-2">
                 {rewards.length === 0 ? (
-                  <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                  <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
                     Nenhuma recompensa configurada
                   </div>
                 ) : (
                   rewards.map((reward) => (
                     <div
                       key={reward.level}
-                      className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/40 px-4 py-3"
+                      className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3"
                     >
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold">Ao chegar no nível {reward.level}</div>

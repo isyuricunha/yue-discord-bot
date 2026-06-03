@@ -24,37 +24,37 @@ export default function ExtrasModerationPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
               <div className="text-sm font-medium text-foreground">/ban</div>
               <div className="mt-1 text-xs text-muted-foreground">Banir um usuário do servidor.</div>
             </div>
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
               <div className="text-sm font-medium text-foreground">/kick</div>
               <div className="mt-1 text-xs text-muted-foreground">Expulsar um usuário do servidor.</div>
             </div>
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
               <div className="text-sm font-medium text-foreground">/mute</div>
               <div className="mt-1 text-xs text-muted-foreground">Aplicar timeout com duração (ex: 5m, 2h, 1d).</div>
             </div>
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
               <div className="text-sm font-medium text-foreground">/unmute</div>
               <div className="mt-1 text-xs text-muted-foreground">Remover timeout de um usuário.</div>
             </div>
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
               <div className="text-sm font-medium text-foreground">/warn</div>
               <div className="mt-1 text-xs text-muted-foreground">Advertir um usuário (com razão obrigatória).</div>
             </div>
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
               <div className="text-sm font-medium text-foreground">/unwarn</div>
               <div className="mt-1 text-xs text-muted-foreground">Remover uma advertência (por id/registro).</div>
             </div>
-            <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3 md:col-span-2">
+            <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 md:col-span-2">
               <div className="text-sm font-medium text-foreground">/modlog</div>
               <div className="mt-1 text-xs text-muted-foreground">Ver histórico de punições de um usuário.</div>
             </div>
           </div>
 
-          <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3 text-xs text-muted-foreground">
+          <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-xs text-muted-foreground">
             Observação: alguns comandos têm nome localizado em pt-BR (ex: <span className="font-mono text-foreground">/banir</span>,{' '}
             <span className="font-mono text-foreground">/expulsar</span>, <span className="font-mono text-foreground">/silenciar</span>,{' '}
             <span className="font-mono text-foreground">/avisar</span>).

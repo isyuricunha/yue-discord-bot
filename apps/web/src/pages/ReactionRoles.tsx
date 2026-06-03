@@ -320,7 +320,7 @@ export default function ReactionRolesPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+          <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
             <Wand2 className="h-5 w-5" />
           </span>
           <div>
@@ -398,7 +398,7 @@ export default function ReactionRolesPage() {
               </div>
 
               {selected_panel_id && (
-                <div className="mt-3 flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface/30 px-4 py-3">
+                <div className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
                   <div className="min-w-0">
                     <div className="truncate text-sm font-medium">{selected_panel?.name ?? 'Painel'}</div>
                     <div className="mt-1 text-xs text-muted-foreground font-mono">{selected_panel_id}</div>
@@ -439,7 +439,7 @@ export default function ReactionRolesPage() {
                   <span>Publicar</span>
                 </Button>
 
-                <div className="rounded-lg border border-border/70 bg-surface/30 p-4 text-sm">
+                <div className="rounded-2xl border border-border/70 bg-surface/30 p-4 text-sm">
                   <div>
                     Canal: {selected_panel?.channelId ? <span className="font-mono">{selected_panel.channelId}</span> : '—'}
                   </div>
@@ -512,7 +512,7 @@ export default function ReactionRolesPage() {
                     {editor.items.map((it, idx) => {
                       const role = role_by_id.get(it.roleId)
                       return (
-                        <div key={`${it.roleId}-${idx}`} className="grid grid-cols-1 gap-2 rounded-lg border border-border/70 bg-surface/30 p-4 md:grid-cols-12 md:items-center">
+                        <div key={`${it.roleId}-${idx}`} className="grid grid-cols-1 gap-2 rounded-2xl border border-border/70 bg-surface/30 p-4 md:grid-cols-12 md:items-center">
                           <div className="md:col-span-5">
                             <div className="text-xs text-muted-foreground flex items-center justify-between">
                               <span>Cargo do Discord</span>

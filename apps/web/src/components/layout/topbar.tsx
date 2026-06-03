@@ -113,8 +113,8 @@ export function Topbar() {
   }
 
   return (
-    <header className="sticky top-0 z-20 border-b border-border/80 bg-cursor-bg-titlebar">
-      <div className="flex h-12 items-center justify-between gap-3 px-4 sm:px-5">
+    <header className="sticky top-0 z-20 border-b border-border/80 bg-background/75 backdrop-blur-md">
+      <div className="flex h-16 items-center justify-between gap-4 px-5">
         {/* Left: Breadcrumbs */}
         <div className="flex min-w-0 flex-1 items-center">
           <nav aria-label="Breadcrumb navigation" className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
@@ -153,13 +153,13 @@ export function Topbar() {
               size="sm"
               onClick={open}
               onKeyDown={(e) => handleButtonKeyDown(e, open)}
-              className="h-8 gap-1.5 px-2.5 sm:px-3"
+              className="h-9 gap-1.5 px-2.5 sm:px-3"
               aria-label="Open command palette"
               aria-keyshortcuts="Ctrl+K"
             >
               <Search className="h-4 w-4" />
               <span className="hidden lg:inline text-sm">Buscar</span>
-              <kbd className="hidden rounded border border-border/60 bg-cursor-bg-input px-1 py-0.5 text-[10px] font-mono text-muted-foreground lg:inline">
+              <kbd className="hidden rounded bg-surface/60 px-1 py-0.5 text-[10px] font-mono lg:inline">
                 {typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('win') ? 'Ctrl+K' : '⌘K'}
               </kbd>
             </Button>
@@ -170,7 +170,7 @@ export function Topbar() {
               size="sm"
               onClick={handleExtras}
               onKeyDown={(e) => handleButtonKeyDown(e, handleExtras)}
-              className="h-8 gap-1.5 px-2.5 sm:px-3"
+              className="h-9 gap-1.5 px-2.5 sm:px-3"
               aria-label="Open Extras panel in new tab"
             >
               <ExternalLink className="h-4 w-4" />
@@ -192,7 +192,8 @@ export function Topbar() {
           {/* Avatar */}
           <div
             className={cn(
-              'grid h-8 w-8 shrink-0 place-items-center overflow-hidden rounded-md border border-border/80 bg-surface'
+              'grid h-9 w-9 shrink-0 place-items-center overflow-hidden rounded-xl border border-border/80 bg-surface/60',
+              'shadow-[0_0_0_1px_rgba(255,255,255,0.03)]'
             )}
             aria-label="User avatar"
           >
@@ -218,7 +219,7 @@ export function Topbar() {
             size="sm"
             onClick={handleLogout}
             onKeyDown={(e) => handleButtonKeyDown(e, handleLogout)}
-            className="h-8 w-8 px-0 sm:w-auto sm:px-2.5"
+            className="h-9 w-9 px-0 sm:w-auto sm:px-2.5"
             aria-label="Logout"
           >
             <LogOut className="h-4 w-4" />

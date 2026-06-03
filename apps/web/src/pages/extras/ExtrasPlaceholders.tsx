@@ -9,7 +9,7 @@ function placeholder_list(props: { placeholders: template_placeholder[] }) {
       {props.placeholders.map((p) => (
         <div
           key={p.key}
-          className="flex flex-col gap-1 rounded-lg border border-border/70 bg-surface/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
+          className="flex flex-col gap-1 rounded-xl border border-border/70 bg-surface/40 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
         >
           <div className="font-mono text-sm text-foreground">{p.token}</div>
           <div className="text-sm text-muted-foreground">{p.description ?? '-'}</div>
@@ -37,7 +37,7 @@ export default function ExtrasPlaceholdersPage() {
           <div className="mt-1 text-sm text-muted-foreground">Coloque o placeholder dentro de chaves na sua mensagem.</div>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div className="rounded-lg border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
+          <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
             Exemplo: <span className="font-mono text-foreground">Olá {mention_token}!</span>
           </div>
           <div className="text-xs text-muted-foreground">

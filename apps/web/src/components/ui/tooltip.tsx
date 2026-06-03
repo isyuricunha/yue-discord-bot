@@ -56,10 +56,10 @@ export function Tooltip({
   }
 
   const arrowClasses = {
-    top: 'top-full left-1/2 -translate-x-1/2 border-t-cursor-bg-tooltip border-b-transparent border-l-transparent border-r-transparent',
-    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-cursor-bg-tooltip border-t-transparent border-l-transparent border-r-transparent',
-    left: 'left-full top-1/2 -translate-y-1/2 border-l-cursor-bg-tooltip border-r-transparent border-t-transparent border-b-transparent',
-    right: 'right-full top-1/2 -translate-y-1/2 border-r-cursor-bg-tooltip border-l-transparent border-t-transparent border-b-transparent',
+    top: 'top-full left-1/2 -translate-x-1/2 border-t-white/10 border-b-transparent border-l-transparent border-r-transparent',
+    bottom: 'bottom-full left-1/2 -translate-x-1/2 border-b-white/10 border-t-transparent border-l-transparent border-r-transparent',
+    left: 'left-full top-1/2 -translate-y-1/2 border-l-white/10 border-r-transparent border-t-transparent border-b-transparent',
+    right: 'right-full top-1/2 -translate-y-1/2 border-r-white/10 border-l-transparent border-t-transparent border-b-transparent',
   }
 
   return (
@@ -74,9 +74,10 @@ export function Tooltip({
       {isVisible && (
         <div
           className={cn(
-            'absolute z-50 whitespace-nowrap rounded-md border border-border/80 px-2 py-1.5 text-xs',
-            'bg-cursor-bg-tooltip text-foreground shadow-cursorTooltip',
-            'animate-in fade-in zoom-in-95 duration-[120ms] ease-cursor',
+            'absolute z-50 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs',
+            'bg-white/10 backdrop-blur-md border border-white/10',
+            'text-foreground shadow-lg',
+            'animate-in fade-in zoom-in-95 duration-150',
             positionClasses[position]
           )}
           role="tooltip"

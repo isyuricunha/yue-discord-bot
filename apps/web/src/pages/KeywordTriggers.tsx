@@ -202,7 +202,7 @@ export default function KeywordTriggersPage() {
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
       <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-accent/10">
+        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-accent/10">
           <Radio className="h-5 w-5 text-accent" />
         </div>
         <div>
@@ -275,7 +275,7 @@ export default function KeywordTriggersPage() {
             </div>
           </div>
 
-          <div className="flex items-center justify-between rounded-lg border border-border/50 bg-surface/20 p-3">
+          <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface/20 p-3">
             <div className="space-y-0.5">
               <div className="text-sm font-medium">Responder à mensagem</div>
               <div className="text-xs text-muted-foreground">
@@ -287,14 +287,14 @@ export default function KeywordTriggersPage() {
 
           {/* Preview */}
           {url && !url_error && (
-            <div className="rounded-lg border border-accent/20 bg-surface/40 p-4">
+            <div className="rounded-2xl border border-accent/20 bg-surface/40 p-4">
               <div className="mb-2 text-xs font-medium text-muted-foreground">
                 Preview da mídia
               </div>
               <img
                 src={url}
                 alt="Preview"
-                className="max-h-48 rounded-lg object-contain"
+                className="max-h-48 rounded-xl object-contain"
                 onError={(e) => {
                   ; (e.target as HTMLImageElement).style.display = 'none'
                 }}
@@ -332,7 +332,7 @@ export default function KeywordTriggersPage() {
           {is_triggers_loading ? (
             <div className="space-y-3">
               {Array.from({ length: 4 }).map((_, i) => (
-                <Skeleton key={i} className="h-16 w-full rounded-lg" />
+                <Skeleton key={i} className="h-16 w-full rounded-2xl" />
               ))}
             </div>
           ) : is_triggers_error ? (
@@ -354,10 +354,10 @@ export default function KeywordTriggersPage() {
                 return (
                   <div
                     key={t.id}
-                    className="flex items-center gap-4 rounded-lg border border-border/70 bg-surface/40 px-4 py-3 transition-colors hover:bg-surface/60"
+                    className="flex items-center gap-4 rounded-2xl border border-border/70 bg-surface/40 px-4 py-3 transition-colors hover:bg-surface/60"
                   >
                     {/* Thumbnail preview */}
-                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-border/50 bg-surface/80">
+                    <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-border/50 bg-surface/80">
                       {t.mediaUrl ? (
                         <img
                           src={t.mediaUrl}
@@ -448,8 +448,8 @@ export default function KeywordTriggersPage() {
 
       {/* Edit Modal */}
       {editing_trigger && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-cursor-overlay">
-          <div className="mx-4 w-full max-w-2xl rounded-lg border border-border bg-cursor-bg-modal shadow-cursorMd">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="mx-4 w-full max-w-2xl rounded-2xl bg-surface border border-border shadow-xl">
             <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
               <div className="text-lg font-semibold">Editar Gatilho</div>
               <Button
@@ -523,7 +523,7 @@ export default function KeywordTriggersPage() {
                 {edit_url_error && <div className="mt-1 text-xs text-red-400">{edit_url_error}</div>}
               </div>
 
-              <div className="flex items-center justify-between rounded-lg border border-border/50 bg-surface/20 p-3">
+              <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface/20 p-3">
                 <div className="space-y-0.5">
                   <div className="text-sm font-medium">Responder à mensagem</div>
                   <div className="text-xs text-muted-foreground">
@@ -535,14 +535,14 @@ export default function KeywordTriggersPage() {
 
               {/* Preview */}
               {edit_url && !edit_url_error && (
-                <div className="rounded-lg border border-accent/20 bg-surface/40 p-4">
+                <div className="rounded-2xl border border-accent/20 bg-surface/40 p-4">
                   <div className="mb-2 text-xs font-medium text-muted-foreground">
                     Preview da mídia
                   </div>
                   <img
                     src={edit_url}
                     alt="Preview"
-                    className="max-h-48 rounded-lg object-contain"
+                    className="max-h-48 rounded-xl object-contain"
                     onError={(e) => {
                       ; (e.target as HTMLImageElement).style.display = 'none'
                     }}

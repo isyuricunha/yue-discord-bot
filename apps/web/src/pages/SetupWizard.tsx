@@ -552,7 +552,7 @@ export default function SetupWizardPage() {
         <Card className="border-accent/20">
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
                 <LifeBuoy className="h-5 w-5" />
               </span>
               <div>
@@ -561,7 +561,7 @@ export default function SetupWizardPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/30 px-4 py-3">
+            <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
               <div>
                 <div className="text-sm font-medium">Ativar tickets</div>
                 <div className="mt-1 text-xs text-muted-foreground">Habilita criação de canais de atendimento</div>
@@ -660,7 +660,7 @@ export default function SetupWizardPage() {
                       return (
                         <div
                           key={id}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface/30 px-4 py-3"
+                          className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/30 px-4 py-3"
                         >
                           <div className="min-w-0">
                             <div className="truncate text-sm font-medium">{role?.name ?? id}</div>
@@ -698,7 +698,7 @@ export default function SetupWizardPage() {
         <Card className="border-accent/20">
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
                 <Mail className="h-5 w-5" />
               </span>
               <div>
@@ -786,7 +786,7 @@ export default function SetupWizardPage() {
         <Card className="border-accent/20">
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
                 <Shield className="h-5 w-5" />
               </span>
               <div>
@@ -814,7 +814,7 @@ export default function SetupWizardPage() {
                 </div>
               </div>
 
-              <div className="flex items-start justify-between gap-4 rounded-lg border border-border/70 bg-surface/30 p-4">
+              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
                 <div>
                   <div className="text-sm font-medium">Filtro de links</div>
                   <div className="mt-1 text-xs text-muted-foreground">Deleta mensagens com links e aplica a punição escolhida.</div>
@@ -824,7 +824,7 @@ export default function SetupWizardPage() {
 
               {automod_link_enabled && (
                 <>
-                  <div className="flex items-start justify-between gap-4 rounded-lg border border-border/70 bg-surface/30 p-4">
+                  <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
                     <div>
                       <div className="text-sm font-medium">Bloquear todos os links</div>
                       <div className="mt-1 text-xs text-muted-foreground">Quando desativado, você pode permitir domínios na página de AutoMod.</div>
@@ -870,7 +870,7 @@ export default function SetupWizardPage() {
         <Card>
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
                 <UserPlus className="h-5 w-5" />
               </span>
               <div>
@@ -879,7 +879,7 @@ export default function SetupWizardPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/30 px-4 py-3">
+            <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
               <div>
                 <div className="text-sm font-medium">Ativar autorole</div>
                 <div className="mt-1 text-xs text-muted-foreground">Aplica cargos automaticamente para novos membros</div>
@@ -902,7 +902,7 @@ export default function SetupWizardPage() {
                 </div>
               </div>
 
-              <div className="flex items-start justify-between gap-4 rounded-lg border border-border/70 bg-surface/30 p-4">
+              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
                 <div>
                   <div className="text-sm font-medium">Somente após primeira mensagem</div>
                   <div className="mt-1 text-xs text-muted-foreground">Recomendado em servidores com verificação alta.</div>
@@ -946,7 +946,7 @@ export default function SetupWizardPage() {
                       return (
                         <div
                           key={id}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-border/70 bg-surface/30 px-4 py-3"
+                          className="flex items-center justify-between gap-3 rounded-2xl border border-border/70 bg-surface/30 px-4 py-3"
                         >
                           <div className="min-w-0">
                             <div className="truncate text-sm font-medium">{role?.name ?? id}</div>
@@ -986,7 +986,7 @@ export default function SetupWizardPage() {
         <Card>
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
                 <Sparkles className="h-5 w-5" />
               </span>
               <div>
@@ -995,7 +995,7 @@ export default function SetupWizardPage() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between rounded-lg border border-border/70 bg-surface/30 px-4 py-3">
+            <div className="flex items-center justify-between rounded-2xl border border-border/70 bg-surface/30 px-4 py-3">
               <div>
                 <div className="text-sm font-medium">Ativar XP</div>
                 <div className="mt-1 text-xs text-muted-foreground">Habilita ganho de XP e níveis</div>
@@ -1053,7 +1053,7 @@ export default function SetupWizardPage() {
         <Card>
           <CardContent className="space-y-6 p-6">
             <div className="flex items-center gap-3">
-              <span className="grid h-10 w-10 place-items-center rounded-lg border border-border/80 bg-surface/60 text-accent">
+              <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
                 <Wand2 className="h-5 w-5" />
               </span>
               <div>
@@ -1062,7 +1062,7 @@ export default function SetupWizardPage() {
               </div>
             </div>
 
-            <div className="rounded-lg border border-border/70 bg-surface/30 p-4 text-sm">
+            <div className="rounded-2xl border border-border/70 bg-surface/30 p-4 text-sm">
               <div className="font-medium">Resumo</div>
               <div className="mt-2">Tickets: {tickets_enabled ? 'Ativo' : 'Desativado'}</div>
               <div className="mt-1">Painel: {ticket_panel_channel_id ? <span className="font-mono">{ticket_panel_channel_id}</span> : '—'}</div>
