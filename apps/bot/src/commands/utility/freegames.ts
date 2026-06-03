@@ -21,6 +21,9 @@ import {
   type GamerPowerGiveaway,
 } from '../../services/gamerpower.service'
 import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
+import { normalize_http_url } from '../../utils/http_url'
+import { logger } from '../../utils/logger'
+import { safe_error_details } from '../../utils/safe_error'
 
 /**
  * Converte string separada por vírgulas em array de strings
@@ -139,6 +142,7 @@ function createGiveawayEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
   const typeName = getTypeName(giveaway.type)
 
   const url = getGiveawayUrl(giveaway)
+  const image_url = normalize_http_url(giveaway.image)
 
   const embed = new EmbedBuilder()
     .setColor(getEmbedColorByType(giveaway.type))
@@ -166,10 +170,13 @@ function createGiveawayEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
         inline: false,
       }
     )
-    .setImage(giveaway.image)
     .setFooter({
       text: `ID: ${giveaway.id} • Ends: ${formatDate(giveaway.end_date)}`,
     })
+
+  if (image_url) {
+    embed.setImage(image_url)
+  }
 
   return embed
 }
@@ -366,11 +373,10 @@ export const jogosGratisCommand: Command = {
         content: `${EMOJIS.ERROR} Subcomando inválido.`,
       })
     } catch (error) {
-      console.error('jogosgratis command error:', error)
+      logger.error({ err: safe_error_details(error), subcommand: sub, guildId }, 'Erro ao executar comando jogosgratis')
       await interaction.editReply({
         content: `${EMOJIS.ERROR} Erro ao executar o comando.`,
       })
-      throw error
     }
   },
 }
@@ -816,7 +822,10 @@ Tipos: ${formatTypes(tipos)}`,
       // Pequeno delay entre mensagens para evitar rate limiting
       await new Promise((resolve) => setTimeout(resolve, 500))
     } catch (error) {
-      console.error(`Erro ao enviar notificação de jogo grátis ${giveaway.id}:`, error)
+      logger.warn(
+        { err: safe_error_details(error), giveawayId: giveaway.id, guildId },
+        'Erro ao enviar notificação manual de jogo grátis'
+      )
     }
   }
 
@@ -860,6 +869,7 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
   const typeName = getTypeName(giveaway.type)
 
   const giveawayUrl = getGiveawayUrl(giveaway)
+  const thumbnail_url = normalize_http_url(giveaway.thumbnail)
 
   const embed = new EmbedBuilder()
     .setColor(getEmbedColorByType(giveaway.type))
@@ -892,11 +902,14 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
         inline: true,
       }
     )
-    .setThumbnail(giveaway.thumbnail)
     .setFooter({
       text: `🔗 Pegar agora: ${giveawayUrl}`,
     })
     .setTimestamp()
+
+  if (thumbnail_url) {
+    embed.setThumbnail(thumbnail_url)
+  }
 
   return embed
 }

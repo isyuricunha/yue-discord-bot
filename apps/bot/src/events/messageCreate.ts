@@ -52,11 +52,37 @@ function parse_int_env(value: string | undefined, fallback: number): number {
 
 function has_mistral_agent_configured(): boolean {
 	const candidates = [
+		process.env.MISTRAL_IMAGE_AGENT_ID,
+		process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_1,
+		process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_2,
 		process.env.MISTRAL_AGENT_ID,
 		process.env.MISTRAL_AGENT_ID_FALLBACK_1,
 		process.env.MISTRAL_AGENT_ID_FALLBACK_2,
 	];
 	return candidates.some((v) => typeof v === "string" && v.trim().length > 0);
+}
+
+function detect_image_generation_request(prompt: string): boolean {
+	const normalized = prompt
+		.toLowerCase()
+		.normalize("NFD")
+		.replace(/[\u0300-\u036f]/g, "")
+		.replace(/\s+/g, " ")
+		.trim();
+
+	if (!normalized) return false;
+	if (/^\/?imagine\b/.test(normalized)) return true;
+
+	const has_generation_action =
+		/\b(gerar|gere|gera|criar|crie|cria|fazer|faca|desenhar|desenhe|generate|create|make|draw)\b/.test(
+			normalized
+		);
+	const has_image_target =
+		/\b(imagem|foto|figura|ilustracao|arte|image|picture|photo|illustration|art)\b/.test(
+			normalized
+		);
+
+	return has_generation_action && has_image_target;
 }
 
 function start_typing_indicator(channel: Message["channel"]): () => void {
@@ -278,10 +304,16 @@ export async function handleMessageCreate(message: Message) {
 						await conversation_backend.get_history(key)
 					);
 
-					const web_query = parse_web_search_query(prompt);
-					const user_prompt = web_query ?? prompt;
-					const prefer_agent_websearch =
-						!!web_query && has_mistral_agent_configured();
+						const web_query = parse_web_search_query(prompt);
+						const user_prompt = web_query ?? prompt;
+						const wants_image_generation =
+							detect_image_generation_request(user_prompt);
+						const prefer_mistral_image_generation =
+							wants_image_generation && has_mistral_agent_configured();
+						const prefer_agent_websearch =
+							!!web_query &&
+							!prefer_mistral_image_generation &&
+							has_mistral_agent_configured();
 
 					let web_context: string | null = null;
 					if (web_query && !prefer_agent_websearch) {
@@ -290,26 +322,31 @@ export async function handleMessageCreate(message: Message) {
 						web_context = formatted.length > 0 ? formatted : null;
 					}
 
-					const final_user_prompt = prefer_agent_websearch
-						? `Use the web_search tool to answer the question. Provide a direct answer and include source URLs.
+						const final_user_prompt = prefer_mistral_image_generation
+							? `Use the image_generation tool to generate the requested image. Do not only describe the image. Return the generated image file and a short caption.
+
+Request: ${user_prompt}`
+							: prefer_agent_websearch
+								? `Use the web_search tool to answer the question. Provide a direct answer and include source URLs.
 
 If the tool does not return enough information, say you could not find the answer.
 
 Question: ${user_prompt}`
-						: web_context
-							? `You are given web search results. Answer the question using the provided results and include source URLs when relevant.
+								: web_context
+									? `You are given web search results. Answer the question using the provided results and include source URLs when relevant.
 
 Do not claim you lack internet access or real-time data. If the provided sources do not contain enough information to answer, say you could not find the answer in the provided sources.
 
 ${web_context}
 
 Question: ${user_prompt}`
-							: user_prompt;
+									: user_prompt;
 
-					const completion = await llm_client.create_completion({
-						user_prompt: final_user_prompt,
-						history,
-					});
+						const completion = await llm_client.create_completion({
+							user_prompt: final_user_prompt,
+							prefer_image_generation: prefer_mistral_image_generation,
+							history,
+						});
 
 					const files = (completion.attachments ?? []).map(
 						(att) => new AttachmentBuilder(att.data, { name: att.filename })

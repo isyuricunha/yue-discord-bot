@@ -106,9 +106,11 @@ export class LlmClient {
 					attachments: result.attachments,
 				};
 			} catch (error: unknown) {
-				last_error = error;
-				const can_fallback =
-					this.groq !== null && is_retryable_mistral_error(error);
+					last_error = error;
+					const can_fallback =
+						!input.prefer_image_generation &&
+						this.groq !== null &&
+						is_retryable_mistral_error(error);
 
 				if (can_fallback) {
 					const status =

@@ -1,5 +1,8 @@
 import axios from 'axios'
 
+import { logger } from '../utils/logger'
+import { safe_error_details } from '../utils/safe_error'
+
 // ============================================
 // Types - Interface definitions (PT-BR comments, English code)
 // ============================================
@@ -98,8 +101,27 @@ export const GAMERPOWER_TYPES = [
 // ============================================
 
 const GAMERPOWER_API_BASE = 'https://gamerpower.com/api'
+const DEFAULT_TIMEOUT_MS = 15_000
+const DEFAULT_CACHE_TTL_MS = 10 * 60 * 1000
+const DEFAULT_MAX_ATTEMPTS = 2
+const DEFAULT_RETRY_DELAY_MS = 750
 
 type http_get = <T>(url: string, options: { timeout: number; headers: { Accept: string } }) => Promise<{ data: T }>
+
+type cache_entry<T> = {
+  expires_at: number
+  data: T
+}
+
+function parse_int_env(value: string | undefined, fallback: number): number {
+  if (!value) return fallback
+  const parsed = Number.parseInt(value, 10)
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
 
 /**
  * Serviço para interagir com a API da GamerPower.
@@ -107,9 +129,24 @@ type http_get = <T>(url: string, options: { timeout: number; headers: { Accept: 
  */
 export class GamerPowerService {
   private readonly http_get: http_get
+  private readonly cache_ttl_ms: number
+  private readonly max_attempts: number
+  private readonly retry_delay_ms: number
+  private readonly cache = new Map<string, cache_entry<unknown>>()
 
-  constructor(options?: { http_get?: http_get }) {
+  constructor(options?: {
+    http_get?: http_get
+    cache_ttl_ms?: number
+    max_attempts?: number
+    retry_delay_ms?: number
+  }) {
     this.http_get = options?.http_get ?? (axios.get as unknown as http_get)
+    this.cache_ttl_ms = Math.max(
+      0,
+      options?.cache_ttl_ms ?? parse_int_env(process.env.GAMERPOWER_CACHE_TTL_MS, DEFAULT_CACHE_TTL_MS)
+    )
+    this.max_attempts = Math.max(1, options?.max_attempts ?? DEFAULT_MAX_ATTEMPTS)
+    this.retry_delay_ms = Math.max(0, options?.retry_delay_ms ?? DEFAULT_RETRY_DELAY_MS)
   }
 
   /**
@@ -120,16 +157,13 @@ export class GamerPowerService {
    * @returns Array de giveaways ou array vazio em caso de erro
    */
   async getAllGiveaways(options?: GetAllGiveawaysOptions): Promise<GamerPowerGiveaway[]> {
-    try {
-      const primary_url = this.build_giveaways_url(options)
-      const response = await this.http_get<GamerPowerGiveaway[]>(primary_url, {
-        timeout: 15_000,
-        headers: {
-          Accept: 'application/json',
-        },
-      })
+    const primary_url = this.build_giveaways_url(options)
 
-      return response.data ?? []
+    try {
+      const data = await this.fetch_json<GamerPowerGiveaway[]>(primary_url, 'GamerPower giveaways')
+      const giveaways = data ?? []
+      this.set_cache(primary_url, giveaways)
+      return giveaways
     } catch (error) {
       const maybe_status = this.get_http_status(error)
 
@@ -138,20 +172,30 @@ export class GamerPowerService {
 
         for (const url of fallback_urls) {
           try {
-            const response = await this.http_get<GamerPowerGiveaway[]>(url, {
-              timeout: 15_000,
-              headers: {
-                Accept: 'application/json',
-              },
-            })
-            return response.data ?? []
+            const data = await this.fetch_json<GamerPowerGiveaway[]>(url, 'GamerPower giveaways fallback')
+            const giveaways = data ?? []
+            this.set_cache(primary_url, giveaways)
+            this.set_cache(url, giveaways)
+            return giveaways
           } catch {
             continue
           }
         }
       }
 
-      console.error('GamerPowerService.getAllGiveaways: erro na requisição', error)
+      const cached = this.get_cache<GamerPowerGiveaway[]>(primary_url)
+      if (cached) {
+        logger.warn(
+          { err: safe_error_details(error), url: primary_url },
+          'GamerPower giveaways request failed; using cached response'
+        )
+        return cached
+      }
+
+      logger.warn(
+        { err: safe_error_details(error), url: primary_url },
+        'GamerPower giveaways request failed'
+      )
       return []
     }
   }
@@ -164,17 +208,14 @@ export class GamerPowerService {
    * @returns Giveaway ou null se não encontrado ou em caso de erro
    */
   async getGiveawayById(id: number): Promise<GamerPowerGiveaway | null> {
+    const url = `${GAMERPOWER_API_BASE}/giveaway?id=${id}`
     try {
-      const response = await this.http_get<GamerPowerGiveaway>(`${GAMERPOWER_API_BASE}/giveaway?id=${id}`, {
-        timeout: 15_000,
-        headers: {
-          Accept: 'application/json',
-        },
-      })
-
-      return response.data ?? null
+      return (await this.fetch_json<GamerPowerGiveaway>(url, 'GamerPower giveaway')) ?? null
     } catch (error) {
-      console.error(`GamerPowerService.getGiveawayById: erro ao buscar giveaway ${id}`, error)
+      logger.warn(
+        { err: safe_error_details(error), giveawayId: id, url },
+        'GamerPower giveaway request failed'
+      )
       return null
     }
   }
@@ -186,19 +227,63 @@ export class GamerPowerService {
    * @returns Valor total em string ou "$0" em caso de erro
    */
   async getTotalWorth(): Promise<string> {
+    const url = `${GAMERPOWER_API_BASE}/worth`
     try {
-      const response = await this.http_get<{ worth: string }>(`${GAMERPOWER_API_BASE}/worth`, {
-        timeout: 15_000,
-        headers: {
-          Accept: 'application/json',
-        },
-      })
-
-      return response.data?.worth ?? '$0'
+      const response = await this.fetch_json<{ worth: string }>(url, 'GamerPower worth')
+      return response?.worth ?? '$0'
     } catch (error) {
-      console.error('GamerPowerService.getTotalWorth: erro na requisição', error)
+      logger.warn({ err: safe_error_details(error), url }, 'GamerPower worth request failed')
       return '$0'
     }
+  }
+
+  private async fetch_json<T>(url: string, label: string): Promise<T | null> {
+    let last_error: unknown = null
+
+    for (let attempt = 1; attempt <= this.max_attempts; attempt += 1) {
+      try {
+        const response = await this.http_get<T>(url, {
+          timeout: DEFAULT_TIMEOUT_MS,
+          headers: {
+            Accept: 'application/json',
+          },
+        })
+        return response.data ?? null
+      } catch (error) {
+        last_error = error
+        if (!this.is_retryable_error(error) || attempt >= this.max_attempts) {
+          throw error
+        }
+
+        logger.debug(
+          { err: safe_error_details(error), url, attempt, maxAttempts: this.max_attempts },
+          `${label} request failed; retrying`
+        )
+        if (this.retry_delay_ms > 0) {
+          await sleep(this.retry_delay_ms)
+        }
+      }
+    }
+
+    throw last_error
+  }
+
+  private get_cache<T>(key: string): T | null {
+    const entry = this.cache.get(key) as cache_entry<T> | undefined
+    if (!entry) return null
+    if (entry.expires_at <= Date.now()) {
+      this.cache.delete(key)
+      return null
+    }
+    return entry.data
+  }
+
+  private set_cache<T>(key: string, data: T): void {
+    if (this.cache_ttl_ms <= 0) return
+    this.cache.set(key, {
+      expires_at: Date.now() + this.cache_ttl_ms,
+      data,
+    })
   }
 
   private build_giveaways_url(options?: GetAllGiveawaysOptions): string {
@@ -250,7 +335,31 @@ export class GamerPowerService {
     if (axios.isAxiosError(error)) {
       return (error.response?.status ?? null) as number | null
     }
+    const status = (error as { response?: { status?: unknown }; status?: unknown } | null)?.response?.status
+    if (typeof status === 'number') return status
+    const direct_status = (error as { status?: unknown } | null)?.status
+    if (typeof direct_status === 'number') return direct_status
     return null
+  }
+
+  private is_retryable_error(error: unknown): boolean {
+    const status = this.get_http_status(error)
+    if (typeof status === 'number') {
+      return status === 408 || status === 425 || status === 429 || status >= 500
+    }
+
+    const code = (error as { code?: unknown } | null)?.code
+    if (typeof code !== 'string') return true
+
+    return [
+      'ECONNABORTED',
+      'ECONNRESET',
+      'ETIMEDOUT',
+      'EAI_AGAIN',
+      'ENOTFOUND',
+      'ENETUNREACH',
+      'EHOSTUNREACH',
+    ].includes(code)
   }
 }
 

@@ -13,6 +13,8 @@ import {
   calculateAge,
 } from '../../services/birthday.service';
 import { safe_reply_ephemeral } from '../../utils/interaction';
+import { logger } from '../../utils/logger';
+import { safe_error_details } from '../../utils/safe_error';
 
 // Subcommand: configurar - Set birthday
 const configurarSubcommand = new SlashCommandSubcommandBuilder()
@@ -159,7 +161,7 @@ async function executeConfigurar(interaction: ChatInputCommandInteraction) {
 
     await safe_reply_ephemeral(interaction, { embeds: [embed] });
   } catch (error) {
-    console.error('Error setting birthday:', error);
+    logger.error({ err: safe_error_details(error), userId }, 'Erro ao salvar aniversário');
     await safe_reply_ephemeral(interaction, {
       content: `${EMOJIS.ERROR} Ocorreu um erro ao salvar seu aniversário. Tente novamente.`,
     });
@@ -223,7 +225,7 @@ async function executeVer(interaction: ChatInputCommandInteraction) {
 
     await safe_reply_ephemeral(interaction, { embeds: [embed] });
   } catch (error) {
-    console.error('Error getting birthday:', error);
+    logger.error({ err: safe_error_details(error), userId: targetUser.id, guildId }, 'Erro ao buscar aniversário');
     await safe_reply_ephemeral(interaction, {
       content: `${EMOJIS.ERROR} Ocorreu um erro ao buscar o aniversário. Tente novamente.`,
     });
@@ -299,7 +301,7 @@ async function executeProximos(interaction: ChatInputCommandInteraction) {
 
     await safe_reply_ephemeral(interaction, { embeds: [embed] });
   } catch (error) {
-    console.error('Error getting upcoming birthdays:', error);
+    logger.error({ err: safe_error_details(error), guildId }, 'Erro ao buscar próximos aniversários');
     await safe_reply_ephemeral(interaction, {
       content: `${EMOJIS.ERROR} Ocorreu um erro ao buscar os próximos aniversários. Tente novamente.`,
     });

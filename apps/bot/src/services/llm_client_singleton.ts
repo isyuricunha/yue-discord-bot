@@ -13,7 +13,7 @@ function count_non_empty(values: Array<string | undefined>): number {
 }
 
 function summarize_llm_env_config(): {
-	mistral: { enabled: boolean; keys: number; agents: number };
+	mistral: { enabled: boolean; keys: number; agents: number; image_agents: number };
 	groq: { enabled: boolean; keys: number };
 } {
 	const mistral_keys = count_non_empty([
@@ -26,6 +26,11 @@ function summarize_llm_env_config(): {
 		process.env.MISTRAL_AGENT_ID_FALLBACK_1,
 		process.env.MISTRAL_AGENT_ID_FALLBACK_2,
 	]);
+	const mistral_image_agents = count_non_empty([
+		process.env.MISTRAL_IMAGE_AGENT_ID,
+		process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_1,
+		process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_2,
+	]);
 
 	const groq_keys = count_non_empty([
 		process.env.GROQ_API_KEY,
@@ -35,10 +40,11 @@ function summarize_llm_env_config(): {
 
 	return {
 		mistral: {
-			enabled: mistral_keys > 0,
-			keys: mistral_keys,
-			agents: mistral_agents,
-		},
+				enabled: mistral_keys > 0,
+				keys: mistral_keys,
+				agents: mistral_agents,
+				image_agents: mistral_image_agents,
+			},
 		groq: {
 			enabled: groq_keys > 0,
 			keys: groq_keys,

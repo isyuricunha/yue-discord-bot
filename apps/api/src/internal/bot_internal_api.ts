@@ -123,7 +123,7 @@ export type music_action_body = {
   volume?: number
 }
 
-export type music_status_response = {
+type music_status_response = {
   hasSession: boolean
   playing: boolean
   paused: boolean

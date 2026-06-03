@@ -4,6 +4,7 @@ import type { ButtonInteraction } from 'discord.js'
 import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import { waifuService } from '../services/waifu.service'
+import { normalize_http_url } from '../utils/http_url'
 
 type waifu_custom_id =
   | { action: 'claim'; rollId: string }
@@ -230,13 +231,13 @@ export async function handleWaifuButton(interaction: ButtonInteraction): Promise
 
     const kind_title = kind === 'waifu' ? 'Waifu' : kind === 'husbando' ? 'Husbando' : 'Casamento'
 
+    const image_url = normalize_http_url(newRoll.character.imageUrl)
     const embed = new EmbedBuilder()
       .setColor(COLORS.INFO)
       .setTitle(`${EMOJIS.INFO} ${kind_title} (rerrolagem)`)
       .setDescription(
         `**${newRoll.character.name}**${newRoll.character.nameNative ? ` (${newRoll.character.nameNative})` : ''}`
       )
-      .setImage(newRoll.character.imageUrl)
       .addFields([
         { name: 'Expira', value: format_relative_time(newRoll.expiresAt), inline: true },
         { name: 'Rolls restantes', value: `${rollsRemaining}/5`, inline: true },
@@ -247,6 +248,10 @@ export async function handleWaifuButton(interaction: ButtonInteraction): Promise
           inline: true,
         },
       ])
+
+    if (image_url) {
+      embed.setImage(image_url)
+    }
 
     if (watchers.userIds.length > 0) {
       const preview = watchers.userIds.slice(0, 10).map((id) => `<@${id}>`).join(' ')

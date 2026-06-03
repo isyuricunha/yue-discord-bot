@@ -13,6 +13,7 @@ import type { Command } from '../index'
 
 import { waifuService } from '../../services/waifu.service'
 import { safe_reply_ephemeral } from '../../utils/interaction'
+import { normalize_http_url } from '../../utils/http_url'
 
 function format_relative_time(date: Date): string {
   const unix = Math.floor(date.getTime() / 1000)
@@ -61,11 +62,11 @@ export const waifuCommand: Command = {
       characterId: roll.character.id,
     })
 
+    const image_url = normalize_http_url(roll.character.imageUrl)
     const embed = new EmbedBuilder()
       .setColor(COLORS.INFO)
       .setTitle(`${EMOJIS.INFO} Waifu`)
       .setDescription(`**${roll.character.name}**${roll.character.nameNative ? ` (${roll.character.nameNative})` : ''}`)
-      .setImage(roll.character.imageUrl)
       .addFields([
         { name: 'Expira', value: format_relative_time(roll.expiresAt), inline: true },
         { name: 'Rolls restantes', value: `${roll_res.rollsRemaining}/5`, inline: true },
@@ -76,6 +77,10 @@ export const waifuCommand: Command = {
           inline: true,
         },
       ])
+
+    if (image_url) {
+      embed.setImage(image_url)
+    }
 
     if (watchers.userIds.length > 0) {
       const preview = watchers.userIds.slice(0, 10).map((id) => `<@${id}>`).join(' ')

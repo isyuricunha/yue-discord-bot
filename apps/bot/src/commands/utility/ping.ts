@@ -34,5 +34,3 @@ export const pingCommand: Command = {
     await interaction.editReply({ embeds: [embed], content: undefined })
   },
 }
-
-export default pingCommand

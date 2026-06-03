@@ -51,7 +51,10 @@ services:
       NODE_ENV: production
       REDIS_URL: "${REDIS_URL:-redis://:${REDIS_PASSWORD:-redispassword}@redis:6379}"
       LAVALINK_NODES: "${LAVALINK_NODES-}"
+      LAVALINK_DISABLED_NODES: "${LAVALINK_DISABLED_NODES-}"
       OPENAI_API_KEY: "${OPENAI_API_KEY-}"
+      OPENAI_MODERATION_IMAGE_MAX_BYTES: "${OPENAI_MODERATION_IMAGE_MAX_BYTES:-20971520}"
+      OPENAI_MODERATION_IMAGE_PAYLOAD_MAX_BYTES: "${OPENAI_MODERATION_IMAGE_PAYLOAD_MAX_BYTES:-47185920}"
 
     volumes:
       - ./groq_system_prompt.txt:/app/prompts/groq_system_prompt.txt:ro

@@ -17,8 +17,3 @@ export interface ModuleCard {
   icon: React.ReactNode
   category: ModuleCategory
 }
-
-export interface GuildModulesResponse {
-  guild: Guild
-  modules: ModuleCard[]
-}

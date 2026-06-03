@@ -20,7 +20,7 @@ const ALLOWED_DOMAINS = [
 
 const ALLOWED_EXTENSIONS = ['gif', 'png', 'jpg', 'jpeg', 'webp', 'mp4']
 
-export function validate_media_url(raw: string | null | undefined): boolean {
+function validate_media_url(raw: string | null | undefined): boolean {
   if (!raw) return false
   let url: URL
   try {

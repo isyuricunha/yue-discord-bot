@@ -95,31 +95,6 @@ export async function getBirthday(userId: string): Promise<user_birthday | null>
 }
 
 /**
- * Delete user birthday
- */
-export async function deleteBirthday(userId: string): Promise<void> {
-  await prisma.userBirthday.delete({
-    where: {
-      userId,
-    },
-  }).catch(() => {
-    // Ignore if not found
-  });
-}
-
-/**
- * Get birthdays by day and month (for finding today's birthdays)
- */
-export async function getBirthdaysByDate(day: number, month: number): Promise<user_birthday[]> {
-  return prisma.userBirthday.findMany({
-    where: {
-      day,
-      month,
-    },
-  });
-}
-
-/**
  * Get upcoming birthdays in the next N days for a guild
  */
 export async function getUpcomingBirthdays(
@@ -223,73 +198,3 @@ function getDaysUntil(year: number, month: number, day: number): number {
     return Math.ceil((birthdayDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
   }
 }
-
-/**
- * Get guild birthday configuration
- */
-export async function getBirthdayConfig(guildId: string): Promise<{
-  enabled: boolean;
-  channelId: string | null;
-  roleId: string | null;
-} | null> {
-  const config = await prisma.guildConfig.findUnique({
-    where: {
-      guildId,
-    },
-    select: {
-      birthdayEnabled: true,
-      birthdayChannelId: true,
-      birthdayRoleId: true,
-    },
-  });
-  
-  if (!config) return null;
-  
-  return {
-    enabled: config.birthdayEnabled ?? true,
-    channelId: config.birthdayChannelId,
-    roleId: config.birthdayRoleId,
-  };
-}
-
-/**
- * Update guild birthday configuration
- */
-export async function updateBirthdayConfig(
-  guildId: string,
-  data: {
-    enabled?: boolean;
-    channelId?: string | null;
-    roleId?: string | null;
-  }
-): Promise<void> {
-  await prisma.guildConfig.upsert({
-    where: {
-      guildId,
-    },
-    update: {
-      birthdayEnabled: data.enabled,
-      birthdayChannelId: data.channelId,
-      birthdayRoleId: data.roleId,
-    },
-    create: {
-      guildId,
-      birthdayEnabled: data.enabled ?? true,
-      birthdayChannelId: data.channelId,
-      birthdayRoleId: data.roleId,
-    },
-  });
-}
-
-export const birthdayService = {
-  isValidBirthday,
-  formatBirthdayDayMonth,
-  calculateAge,
-  setBirthday,
-  getBirthday,
-  deleteBirthday,
-  getBirthdaysByDate,
-  getUpcomingBirthdays,
-  getBirthdayConfig,
-  updateBirthdayConfig,
-};

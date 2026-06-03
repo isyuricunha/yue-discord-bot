@@ -1,11 +1,66 @@
 import { Kazagumo, Plugins } from 'kazagumo';
 import { Connectors } from 'shoukaku';
+import type { NodeOption } from 'shoukaku';
 import { Client, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js';
 
 import { logger } from '../utils/logger';
 import { getSendableChannel } from '../utils/discord';
 import { djModeService } from './dj_mode.service';
-import { is_lavalink_player_not_found_error } from '../utils/safe_error';
+import { is_lavalink_player_not_found_error, safe_error_details } from '../utils/safe_error';
+
+type raw_lavalink_node = {
+  name?: unknown
+  url?: unknown
+  auth?: unknown
+  secure?: unknown
+  enabled?: unknown
+}
+
+type lavalink_node = Pick<NodeOption, 'name' | 'url' | 'auth' | 'secure'>
+
+function parse_disabled_node_names(value: string | undefined): Set<string> {
+  if (!value) return new Set()
+  return new Set(
+    value
+      .split(',')
+      .map((name) => name.trim().toLowerCase())
+      .filter(Boolean)
+  )
+}
+
+function normalize_lavalink_nodes(raw_nodes: unknown[], disabled_names: Set<string>): lavalink_node[] {
+  const nodes: lavalink_node[] = []
+
+  for (const raw of raw_nodes) {
+    const node = raw as raw_lavalink_node | null
+    if (!node || typeof node !== 'object') {
+      logger.warn({ node: raw }, 'Ignoring invalid Lavalink node entry')
+      continue
+    }
+
+    const name = typeof node.name === 'string' ? node.name.trim() : ''
+    const url = typeof node.url === 'string' ? node.url.trim() : ''
+    if (!name || !url) {
+      logger.warn({ node: { name, hasUrl: Boolean(url) } }, 'Ignoring Lavalink node missing name or url')
+      continue
+    }
+
+    if (node.enabled === false || disabled_names.has(name.toLowerCase())) {
+      logger.info({ node: name }, 'Lavalink node disabled by configuration')
+      continue
+    }
+
+    const auth = typeof node.auth === 'string' && node.auth.length > 0 ? node.auth : undefined
+    nodes.push({
+      name,
+      url,
+      auth: auth ?? '',
+      secure: node.secure === true,
+    })
+  }
+
+  return nodes
+}
 
 class MusicService {
   public kazagumo: Kazagumo;
@@ -22,12 +77,10 @@ class MusicService {
       logger.error({ err: error }, 'Failed to parse LAVALINK_NODES env variable. Ensure it is valid JSON.');
     }
 
-    const nodes = rawNodes.map((node) => ({
-      name: node.name,
-      url: node.url,
-      auth: node.auth,
-      secure: node.secure ?? false,
-    }));
+    const nodes = normalize_lavalink_nodes(
+      rawNodes,
+      parse_disabled_node_names(process.env.LAVALINK_DISABLED_NODES)
+    );
 
     if (nodes.length === 0) {
       logger.warn('No Lavalink nodes configured. Music system will not be functional.');
@@ -62,7 +115,7 @@ class MusicService {
     });
 
     this.kazagumo.shoukaku.on('error', (name, error) => {
-      logger.error({ node: name, err: error }, `Lavalink Node [${name}] encountered an error.`);
+      logger.error({ node: name, err: safe_error_details(error) }, `Lavalink Node [${name}] encountered an error.`);
     });
 
     this.kazagumo.shoukaku.on('close', (name, code, reason) => {
@@ -137,7 +190,7 @@ class MusicService {
           components: [controls],
         });
       } catch (error) {
-        logger.warn({ err: error, guild_id: player.guildId, channel_id: text_channel_id }, 'Falha ao anunciar tocando agora');
+        logger.warn({ err: safe_error_details(error), guild_id: player.guildId, channel_id: text_channel_id }, 'Falha ao anunciar tocando agora');
       }
     });
 
@@ -158,13 +211,13 @@ class MusicService {
       logger.info({ guild_id: player.guildId }, 'Player inativo, destruindo reprodução...');
       void player.destroy().catch((error: unknown) => {
         if (is_lavalink_player_not_found_error(error)) return
-        logger.warn({ err: error, guild_id: player.guildId }, 'Falha ao destruir player (playerEmpty)')
+        logger.warn({ err: safe_error_details(error), guild_id: player.guildId }, 'Falha ao destruir player (playerEmpty)')
       })
     });
 
     // @ts-expect-error – kazagumo playerError event type is not typed correctly
     this.kazagumo.on('playerError', (player, type, error) => {
-      logger.error({ guild_id: player.guildId, err: error, type }, 'Erro ocorreu no Player de Música.');
+      logger.error({ guild_id: player.guildId, err: safe_error_details(error), type }, 'Erro ocorreu no Player de Música.');
     });
 
     this.kazagumo.on('playerDestroy', (player) => {

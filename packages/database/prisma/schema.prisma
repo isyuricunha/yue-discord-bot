@@ -261,6 +261,8 @@ model Giveaway {
 
   @@index([publicId])
   @@index([guildId, ended])
+  @@index([ended, cancelled, suspended, endsAt])
+  @@index([ended, cancelled, suspended, messageId, startsAt, createdAt])
   @@map("giveaways")
 }
 

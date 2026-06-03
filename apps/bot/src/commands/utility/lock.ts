@@ -4,6 +4,7 @@ import { logger } from '../../utils/logger';
 import { COLORS, EMOJIS } from '@yuebot/shared';
 import type { Command } from '../index';
 import { safe_reply_ephemeral } from '../../utils/interaction'
+import { safe_error_details } from '../../utils/safe_error';
 
 export const lockCommand: Command = {
   data: new SlashCommandBuilder()
@@ -43,6 +44,27 @@ export const lockCommand: Command = {
     }
 
     try {
+      if (!interaction.memberPermissions?.has(PermissionFlagsBits.ManageChannels)) {
+        await safe_reply_ephemeral(interaction, {
+          content: `${EMOJIS.ERROR} Você precisa da permissão Gerenciar Canais para usar este comando.`,
+        })
+        return;
+      }
+
+      const botMember =
+        interaction.guild.members.me ??
+        (interaction.client.user
+          ? await interaction.guild.members.fetch(interaction.client.user.id).catch(() => null)
+          : null);
+      const botPermissions = botMember ? targetChannel.permissionsFor(botMember) : null;
+
+      if (!botPermissions?.has(PermissionFlagsBits.ManageChannels)) {
+        await safe_reply_ephemeral(interaction, {
+          content: `${EMOJIS.ERROR} Eu preciso da permissão Gerenciar Canais neste canal para trancá-lo.`,
+        })
+        return;
+      }
+
       // Remover permissão SEND_MESSAGES do @everyone
       await targetChannel.permissionOverwrites.edit(interaction.guild.roles.everyone, {
         SendMessages: false,
@@ -68,13 +90,29 @@ export const lockCommand: Command = {
         .setFooter({ text: `Por: ${interaction.user.tag}` })
         .setTimestamp();
 
-      await targetChannel.send({ embeds: [lockEmbed] });
+      await targetChannel.send({ embeds: [lockEmbed] }).catch((sendError) => {
+        logger.warn(
+          {
+            err: safe_error_details(sendError),
+            guildId: interaction.guild?.id,
+            channelId: targetChannel.id,
+          },
+          'Lock: canal trancado, mas não foi possível enviar aviso no canal'
+        )
+      });
 
       logger.info(
         `Lock: ${targetChannel.name} trancado por ${interaction.user.tag} em ${interaction.guild.name}`
       );
     } catch (error) {
-      logger.error({ error }, 'Erro ao trancar canal');
+      logger.error(
+        {
+          err: safe_error_details(error),
+          guildId: interaction.guild.id,
+          channelId: targetChannel.id,
+        },
+        'Erro ao trancar canal'
+      );
       await safe_reply_ephemeral(interaction, {
         content: `${EMOJIS.ERROR} Erro ao trancar o canal. Verifique se tenho permissões suficientes.`,
       })

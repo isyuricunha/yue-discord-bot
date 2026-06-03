@@ -498,5 +498,3 @@ export const estatisticasCommand: Command = {
     }
   },
 };
-
-export default estatisticasCommand;

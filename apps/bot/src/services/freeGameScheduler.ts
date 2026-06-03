@@ -6,6 +6,7 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
 import { getSendableChannel } from '../utils/discord'
+import { normalize_http_url } from '../utils/http_url'
 import {
   gamerPowerService,
   GAMERPOWER_PLATFORMS,
@@ -13,8 +14,6 @@ import {
   getGiveawayUrl,
   type GamerPowerGiveaway,
 } from './gamerpower.service'
-import { Queue, Worker, Job } from 'bullmq'
-import { get_redis_connection } from './queue.connection'
 
 // ============================================
 // Configuration - Scheduler interval (in minutes)
@@ -170,6 +169,7 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
   const typeName = getTypeName(giveaway.type)
 
   const url = getGiveawayUrl(giveaway)
+  const image_url = normalize_http_url(giveaway.image)
 
   const embed = new EmbedBuilder()
     .setColor(getEmbedColorByType(giveaway.type))
@@ -202,8 +202,11 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
         inline: true,
       }
     )
-    .setImage(giveaway.image)
     .setTimestamp()
+
+  if (image_url) {
+    embed.setImage(image_url)
+  }
 
   return embed
 }
@@ -214,31 +217,10 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
 
 export class FreeGameScheduler {
   private client: Client
-  private queue: Queue
-  private worker: Worker
   private intervalCheck: NodeJS.Timeout | null = null
 
   constructor(client: Client) {
     this.client = client
-
-    // Initialize BullMQ queue
-    const redis_connection = get_redis_connection()
-    this.queue = new Queue('freegame-queue', { connection: redis_connection as any })
-
-    // Create worker for processing jobs
-    this.worker = new Worker(
-      'freegame-queue',
-      async (job: Job) => {
-        if (job.name === 'check-giveaways') {
-          await this.processGuildNotifications()
-        }
-      },
-      { connection: redis_connection as any }
-    )
-
-    this.worker.on('failed', (job, err) => {
-      logger.error({ err, jobId: job?.id }, '❌ Erro no Worker do FreeGame Scheduler')
-    })
   }
 
   /**
@@ -275,8 +257,6 @@ export class FreeGameScheduler {
       clearInterval(this.intervalCheck)
       this.intervalCheck = null
     }
-    await this.worker.close()
-    await this.queue.close()
     logger.info('🎮 FreeGame scheduler parado')
   }
 
@@ -383,6 +363,14 @@ export class FreeGameScheduler {
     const roleMention = roleIds.length > 0 
       ? roleIds.map((id) => (id === config.guildId || id === 'everyone' || id === '@everyone') ? '@everyone' : `<@&${id}>`).join(' ') 
       : null
+    const mentionRoleIds = roleIds.filter((id) => id !== config.guildId && id !== 'everyone' && id !== '@everyone')
+    const allowEveryone = roleIds.some((id) => id === config.guildId || id === 'everyone' || id === '@everyone')
+    const allowedMentions = roleIds.length > 0
+      ? {
+          ...(mentionRoleIds.length > 0 ? { roles: mentionRoleIds } : {}),
+          parse: allowEveryone ? ['everyone' as const] : [],
+        }
+      : undefined
 
     // Limitar a 3 notificações por execução para evitar spam
     const giveawaysToNotify = newGiveaways.slice(0, 3)
@@ -403,7 +391,7 @@ export class FreeGameScheduler {
           content: roleMention || undefined,
           embeds: [embed],
           components: [row],
-          allowedMentions: roleIds.length > 0 ? { roles: roleIds } : undefined,
+          allowedMentions,
         })
 
         // Registrar giveaway como anunciado

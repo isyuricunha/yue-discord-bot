@@ -225,13 +225,24 @@ export class GiveawayScheduler {
 
       await this.publishPendingGiveaways(now)
       
-      // Buscar sorteios que devem ser finalizados / Agendados hoje
+      const schedulingHorizon = new Date(now.getTime() + 24 * 60 * 60 * 1000)
+
+      // Buscar apenas sorteios publicados que vencem em breve. Agendar todo o histórico ativo
+      // a cada 15s torna a consulta cara e pode estourar timeout do Prisma.
       const liveGiveaways = await prisma.giveaway.findMany({
         where: {
           ended: false,
           cancelled: false,
           suspended: false,
+          messageId: { not: null },
+          endsAt: { lte: schedulingHorizon },
         },
+        select: {
+          id: true,
+          endsAt: true,
+        },
+        orderBy: [{ endsAt: 'asc' }],
+        take: 100,
       })
 
       for (const giveaway of liveGiveaways) {
@@ -260,7 +271,8 @@ export class GiveawayScheduler {
             { 
               jobId,
               delay: delayed > 0 ? delayed : 0, 
-              removeOnComplete: true 
+              removeOnComplete: true,
+              removeOnFail: true,
             }
           )
           logger.info(`Agendando Job BullMQ para finalização do sorteio: ${giveaway.id} em ${delayed}ms`)

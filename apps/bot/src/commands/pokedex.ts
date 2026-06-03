@@ -3,6 +3,9 @@ import type { ChatInputCommandInteraction } from 'discord.js'
 import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import type { Command } from './index'
+import { logger } from '../utils/logger'
+import { safe_error_details } from '../utils/safe_error'
+import { normalize_http_url } from '../utils/http_url'
 
 // Função para buscar pokemon na PokeAPI
 async function fetchPokemon(nameOrId: string) {
@@ -25,7 +28,7 @@ async function fetchPokemon(nameOrId: string) {
     const data = await response.json()
     return data
   } catch (error) {
-    console.error('Error fetching pokemon:', error)
+    logger.warn({ err: safe_error_details(error), nameOrId }, 'Pokedex: erro ao buscar Pokémon')
     return null
   }
 }
@@ -182,11 +185,18 @@ export const pokedexCommand: Command = {
       )?.flavor_text || 'Sem descrição disponível.'
 
       // Cria embed com as informações
+      const thumbnail = normalize_http_url(
+        (pokemon as any).sprites.other?.['official-artwork']?.front_default || (pokemon as any).sprites.front_default
+      )
+
       const embed = new EmbedBuilder()
         .setColor(COLORS.INFO)
         .setTitle(`#${(pokemon as any).id} ${(pokemon as any).name.charAt(0).toUpperCase() + (pokemon as any).name.slice(1)}`)
         .setDescription(flavorText.replace(/\f/g, ' '))
-        .setThumbnail((pokemon as any).sprites.other?.['official-artwork']?.front_default || (pokemon as any).sprites.front_default)
+
+      if (thumbnail) {
+        embed.setThumbnail(thumbnail)
+      }
 
       // Adiciona campos básicos
       embed.addFields(
@@ -246,7 +256,7 @@ export const pokedexCommand: Command = {
             }
           }
         } catch (e) {
-          console.error('Error fetching evolution data:', e)
+          logger.warn({ err: safe_error_details(e), pokemon: (pokemon as any).name }, 'Pokedex: erro ao buscar evolução')
         }
       }
 
@@ -258,7 +268,7 @@ export const pokedexCommand: Command = {
       await interaction.editReply({ embeds: [embed] })
 
     } catch (error) {
-      console.error('Error in pokedex command:', error)
+      logger.error({ err: safe_error_details(error), query: pokemonNameOpt }, 'Pokedex: erro ao executar comando')
       await interaction.editReply({
         content: `${EMOJIS.ERROR} Ocorreu um erro ao buscar os dados do Pokémon. Tente novamente mais tarde.`
       })

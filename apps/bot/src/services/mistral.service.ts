@@ -34,6 +34,7 @@ type mistral_completion_response = {
 type mistral_key_state = {
 	api_key: string;
 	agent_id: string | null;
+	image_agent_id: string | null;
 	cooldown_until_ms: number;
 };
 
@@ -46,6 +47,7 @@ type mistral_message = {
 
 export type mistral_completion_input = {
 	user_prompt: string;
+	prefer_image_generation?: boolean;
 	history?: Array<{
 		role: "user" | "assistant";
 		content: string;
@@ -100,6 +102,17 @@ function env_agent_id_by_index(index: number): string | null {
 			: index === 1
 				? process.env.MISTRAL_AGENT_ID_FALLBACK_1
 				: process.env.MISTRAL_AGENT_ID_FALLBACK_2;
+	const trimmed = typeof raw === "string" ? raw.trim() : "";
+	return trimmed ? trimmed : null;
+}
+
+function env_image_agent_id_by_index(index: number): string | null {
+	const raw =
+		index === 0
+			? process.env.MISTRAL_IMAGE_AGENT_ID
+			: index === 1
+				? process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_1
+				: process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_2;
 	const trimmed = typeof raw === "string" ? raw.trim() : "";
 	return trimmed ? trimmed : null;
 }
@@ -202,8 +215,11 @@ type tool_file_chunk = {
 	type?: "tool_file";
 	tool?: string;
 	fileId?: string;
+	file_id?: string;
 	fileName?: string | null;
+	file_name?: string | null;
 	fileType?: string | null;
+	file_type?: string | null;
 };
 
 type tool_execution_entry = {
@@ -225,6 +241,33 @@ function is_tool_file_chunk(chunk: unknown): chunk is tool_file_chunk {
 	if (!chunk || typeof chunk !== "object") return false;
 	const record = chunk as Record<string, unknown>;
 	return record.type === "tool_file";
+}
+
+function tool_file_id(chunk: tool_file_chunk): string {
+	const camel = typeof chunk.fileId === "string" ? chunk.fileId.trim() : "";
+	if (camel) return camel;
+	const snake = typeof chunk.file_id === "string" ? chunk.file_id.trim() : "";
+	return snake;
+}
+
+function tool_file_name(chunk: tool_file_chunk): string | null {
+	if (typeof chunk.fileName === "string" && chunk.fileName.trim().length > 0) {
+		return chunk.fileName.trim();
+	}
+	if (typeof chunk.file_name === "string" && chunk.file_name.trim().length > 0) {
+		return chunk.file_name.trim();
+	}
+	return null;
+}
+
+function tool_file_type(chunk: tool_file_chunk): string | null {
+	if (typeof chunk.fileType === "string" && chunk.fileType.trim().length > 0) {
+		return chunk.fileType.trim();
+	}
+	if (typeof chunk.file_type === "string" && chunk.file_type.trim().length > 0) {
+		return chunk.file_type.trim();
+	}
+	return null;
 }
 
 function is_tool_execution_entry(
@@ -382,6 +425,17 @@ function detect_file_from_magic(
 
 function normalize_ext(input: string): string {
 	const trimmed = input.trim().toLowerCase();
+	const mime_ext = {
+		"image/png": "png",
+		"image/jpeg": "jpg",
+		"image/jpg": "jpg",
+		"image/gif": "gif",
+		"image/webp": "webp",
+		"application/pdf": "pdf",
+	} as const;
+	if (Object.prototype.hasOwnProperty.call(mime_ext, trimmed)) {
+		return mime_ext[trimmed as keyof typeof mime_ext];
+	}
 	const no_dot = trimmed.startsWith(".") ? trimmed.slice(1) : trimmed;
 	return no_dot;
 }
@@ -490,7 +544,11 @@ export class MistralClient {
 
 	constructor(
 		input: {
-			keys: Array<{ api_key: string; agent_id: string | null }>;
+			keys: Array<{
+				api_key: string;
+				agent_id: string | null;
+				image_agent_id?: string | null;
+			}>;
 			clients: mistral_sdk_client[];
 		},
 		deps: mistral_client_deps = {}
@@ -504,11 +562,12 @@ export class MistralClient {
 			);
 		}
 
-		this.keys = input.keys.map((k) => ({
-			api_key: k.api_key,
-			agent_id: k.agent_id,
-			cooldown_until_ms: 0,
-		}));
+			this.keys = input.keys.map((k) => ({
+				api_key: k.api_key,
+				agent_id: k.agent_id,
+				image_agent_id: k.image_agent_id ?? null,
+				cooldown_until_ms: 0,
+			}));
 		this.clients = input.clients;
 		this.system_prompt = deps.system_prompt ?? load_mistral_system_prompt;
 		this.model = deps.model ?? env_model;
@@ -519,10 +578,11 @@ export class MistralClient {
 
 	static from_env(deps: mistral_client_deps = {}): MistralClient {
 		const keys = env_keys();
-		const key_defs = keys.map((api_key, index) => ({
-			api_key,
-			agent_id: env_agent_id_by_index(index),
-		}));
+			const key_defs = keys.map((api_key, index) => ({
+				api_key,
+				agent_id: env_agent_id_by_index(index),
+				image_agent_id: env_image_agent_id_by_index(index),
+			}));
 
 		const clients = (deps.clients ?? []).length
 			? deps.clients
@@ -593,11 +653,14 @@ export class MistralClient {
 				continue;
 			}
 
-			attempted.add(key_index);
-			const client = this.clients[key_index]!;
-			const agent_id = this.keys[key_index]!.agent_id;
+				attempted.add(key_index);
+				const client = this.clients[key_index]!;
+				const key_state = this.keys[key_index]!;
+				const agent_id = input.prefer_image_generation
+					? (key_state.image_agent_id ?? key_state.agent_id)
+					: key_state.agent_id;
 
-			const llm_debug_enabled = process.env.LLM_DEBUG === "1";
+				const llm_debug_enabled = process.env.LLM_DEBUG === "1";
 
 			try {
 				const messages: mistral_message[] = agent_id
@@ -611,11 +674,15 @@ export class MistralClient {
 				if (llm_debug_enabled) {
 					logger.debug(
 						{
-							llm: {
-								provider: "mistral",
-								mode: agent_id ? "agent" : "chat",
-								model: agent_id ? null : this.model(),
-							},
+								llm: {
+									provider: "mistral",
+									mode: agent_id
+										? input.prefer_image_generation
+											? "image_agent"
+											: "agent"
+										: "chat",
+									model: agent_id ? null : this.model(),
+								},
 						},
 						"LLM request dispatched"
 					);
@@ -647,9 +714,9 @@ export class MistralClient {
 						store: false,
 					})) as { outputs?: conversation_output_entry[] };
 
-					const outputs = Array.isArray(conversation.outputs)
-						? conversation.outputs
-						: [];
+						const outputs = Array.isArray(conversation.outputs)
+							? conversation.outputs
+							: [];
 
 					if (llm_debug_enabled) {
 						const summary = summarize_tool_executions(outputs);
@@ -661,56 +728,61 @@ export class MistralClient {
 						}
 					}
 
-					const last_output = [...outputs]
-						.reverse()
-						.find((o) => o && o.type === "message.output");
+						const last_output = [...outputs]
+							.reverse()
+							.find((o) => o && o.type === "message.output");
 
-					const raw_content = last_output?.content;
-					const content = extract_text_content(raw_content);
-					const suffix = assistant_already_has_sources_section(content)
-						? ""
-						: build_sources_suffix(raw_content);
-					const results_suffix = build_search_results_suffix(outputs, content);
-					const merged = `${content}${results_suffix}${suffix}`;
-					const trimmed = merged.trim();
-					if (!trimmed) {
-						throw new MistralApiError(
-							"Mistral API returned empty response",
-							502,
-							conversation,
-							null
+						const raw_content = last_output?.content;
+						const content = extract_text_content(raw_content);
+						const suffix = assistant_already_has_sources_section(content)
+							? ""
+							: build_sources_suffix(raw_content);
+						const results_suffix = build_search_results_suffix(outputs, content);
+						const merged = `${content}${results_suffix}${suffix}`;
+						const trimmed = merged.trim();
+
+						const chunks = outputs.flatMap((output) =>
+							output?.type === "message.output" && Array.isArray(output.content)
+								? output.content
+								: []
 						);
-					}
+						const file_chunks = chunks.filter(is_tool_file_chunk);
+						const attachments: mistral_completion_result["attachments"] = [];
 
-					const chunks = Array.isArray(raw_content) ? raw_content : [];
-					const file_chunks = chunks.filter(is_tool_file_chunk);
-					const attachments: mistral_completion_result["attachments"] = [];
+						for (const chunk of file_chunks) {
+							const file_id = tool_file_id(chunk);
+							if (!file_id) continue;
 
-					for (const chunk of file_chunks) {
-						const file_id =
-							typeof chunk.fileId === "string" ? chunk.fileId : "";
-						if (!file_id) continue;
-
-						const stream = await client.files.download({ fileId: file_id });
-						const data = await stream_to_buffer(stream);
-						const meta = infer_file_meta({
-							file_id,
-							file_name:
-								typeof chunk.fileName === "string" ? chunk.fileName : null,
-							file_type:
-								typeof chunk.fileType === "string" ? chunk.fileType : null,
-							data,
-						});
+							const stream = await client.files.download({ fileId: file_id });
+							const data = await stream_to_buffer(stream);
+							const meta = infer_file_meta({
+								file_id,
+								file_name: tool_file_name(chunk),
+								file_type: tool_file_type(chunk),
+								data,
+							});
 						attachments.push({
 							filename: meta.filename,
 							content_type: meta.content_type,
 							data,
-						});
-					}
+							});
+						}
 
-					return attachments && attachments.length > 0
-						? { content: trimmed, attachments }
-						: { content: trimmed };
+						const final_content =
+							trimmed ||
+							(attachments && attachments.length > 0 ? "Imagem gerada." : "");
+						if (!final_content) {
+							throw new MistralApiError(
+								"Mistral API returned empty response",
+								502,
+								conversation,
+								null
+							);
+						}
+
+						return attachments && attachments.length > 0
+							? { content: final_content, attachments }
+							: { content: final_content };
 				}
 
 				const res = (await client.chat.complete({
@@ -783,7 +855,11 @@ export class MistralClient {
 }
 
 export function create_mistral_client_for_tests(input: {
-	keys: Array<{ api_key: string; agent_id: string | null }>;
+	keys: Array<{
+		api_key: string;
+		agent_id: string | null;
+		image_agent_id?: string | null;
+	}>;
 	clients: mistral_sdk_client[];
 	system_prompt?: () => Promise<string>;
 	model?: () => string;

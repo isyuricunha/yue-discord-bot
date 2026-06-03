@@ -92,18 +92,3 @@ export function Tooltip({
     </div>
   )
 }
-
-// Simpler version for inline use
-export function TooltipInline({
-  children,
-  content
-}: {
-  children: React.ReactNode
-  content: string
-}) {
-  return (
-    <Tooltip content={content} position="top">
-      {children}
-    </Tooltip>
-  )
-}

@@ -6,6 +6,7 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 import type { Command } from '../index'
 
 import { waifuService } from '../../services/waifu.service'
+import { normalize_http_url } from '../../utils/http_url'
 
 export const infocasamentoCommand: Command = {
   data: new SlashCommandBuilder()
@@ -44,6 +45,7 @@ export const infocasamentoCommand: Command = {
 
     const value = typeof (c as { value?: unknown }).value === 'number' ? ((c as { value: number }).value as number) : null
     const claimed_value = typeof (res as { claimedValue?: unknown }).claimedValue === 'number' ? (res as { claimedValue: number }).claimedValue : null
+    const image_url = normalize_http_url(c.imageUrl)
 
     const embed = new EmbedBuilder()
       .setColor(COLORS.INFO)
@@ -55,7 +57,10 @@ export const infocasamentoCommand: Command = {
             ? `Casado com: <@${res.claimedByUserId}>` + (claimed_value !== null ? ` (**${claimed_value}** pts)` : '')
             : 'Status: disponível')
       )
-      .setImage(c.imageUrl)
+
+    if (image_url) {
+      embed.setImage(image_url)
+    }
 
     await interaction.editReply({ embeds: [embed] })
   },

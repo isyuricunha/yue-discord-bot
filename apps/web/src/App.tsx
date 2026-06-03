@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useEffect } from 'react'
 import { useAuthStore } from './store/auth'
 import LoginPage from './pages/Login'
+import TokenLoginPage from './pages/TokenLogin'
 import ExtrasPage from './pages/Extras'
 import ExtrasHomePage from './pages/extras/ExtrasHome'
 import ExtrasAboutPage from './pages/extras/ExtrasAbout'
@@ -66,6 +67,10 @@ function App() {
             path="/login"
             element={!isAuthResolved || !isAuthenticated ? <LoginPage /> : <Navigate to="/" />}
           />
+          <Route
+            path="/token-login"
+            element={!isAuthResolved || !isAuthenticated ? <TokenLoginPage /> : <Navigate to="/" />}
+          />
 
           <Route element={<PublicShell />}>
             <Route path="/extras" element={<ExtrasPage />}>
@@ -109,7 +114,6 @@ function App() {
             <Route path="/guild/:guildId/xp" element={<XpLevelsPage />} />
             <Route path="/guild/:guildId/autorole" element={<AutorolePage />} />
             <Route path="/guild/:guildId/tickets" element={<TicketsPage />} />
-            <Route path="/guild/:guildId/music" element={<MusicPage />} />
             <Route path="/guild/:guildId/suggestions" element={<SuggestionsPage />} />
             <Route path="/guild/:guildId/reaction-roles" element={<ReactionRolesPage />} />
             <Route path="/guild/:guildId/starboard" element={<StarboardPage />} />

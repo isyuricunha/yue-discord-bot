@@ -258,6 +258,86 @@ test("mistral: agent tool outputs include citations and downloaded files", async
 	assert.deepEqual(result.attachments?.[0]?.data, png_bytes);
 });
 
+test("mistral: image agent downloads snake_case tool files without text output", async () => {
+	const png_bytes = Buffer.from([0x89, 0x50, 0x4e, 0x47]);
+	const make_stream = (buf: Buffer): ReadableStream<Uint8Array> =>
+		new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(new Uint8Array(buf));
+				controller.close();
+			},
+		});
+
+	const agent_ids: string[] = [];
+
+	const client = create_mistral_client_for_tests({
+		keys: [
+			{
+				api_key: "key-1",
+				agent_id: "agent-default",
+				image_agent_id: "agent-image",
+			},
+		],
+		clients: [
+			{
+				chat: {
+					complete: async () => {
+						throw new Error("should not be called");
+					},
+				},
+				agents: {
+					complete: async () => {
+						throw new Error("should not be called");
+					},
+				},
+				beta: {
+					conversations: {
+						start: async (req: any) => {
+							agent_ids.push(req.agentId);
+							return {
+								outputs: [
+									{
+										type: "message.output",
+										content: [
+											{
+												type: "tool_file",
+												tool: "image_generation",
+												file_id: "file-image-1",
+												file_name: "generated",
+												file_type: "image/png",
+											},
+										],
+									},
+								],
+							};
+						},
+					},
+				},
+				files: {
+					download: async (req: any) => {
+						assert.equal(req.fileId, "file-image-1");
+						return make_stream(png_bytes);
+					},
+				},
+			},
+		],
+		now_ms: () => 0,
+		system_prompt: async () => "SYSTEM_PROMPT",
+	});
+
+	const result = await client.create_completion({
+		user_prompt: "gere uma imagem",
+		prefer_image_generation: true,
+	});
+
+	assert.deepEqual(agent_ids, ["agent-image"]);
+	assert.equal(result.content, "Imagem gerada.");
+	assert.equal(result.attachments?.length ?? 0, 1);
+	assert.equal(result.attachments?.[0]?.filename, "generated.png");
+	assert.equal(result.attachments?.[0]?.content_type, "image/png");
+	assert.deepEqual(result.attachments?.[0]?.data, png_bytes);
+});
+
 test("mistral: does not duplicate Fontes section when assistant already includes it", async () => {
 	const client = create_mistral_client_for_tests({
 		keys: [{ api_key: "key-1", agent_id: "agent-1" }],

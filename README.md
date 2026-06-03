@@ -218,6 +218,8 @@ Enable AI features by providing API keys:
 **Mistral AI** (primary):
 
 - `MISTRAL_API_KEY` - Your Mistral API key
+- `MISTRAL_AGENT_ID` - Optional Mistral agent ID for tool-enabled conversations
+- `MISTRAL_IMAGE_AGENT_ID` - Optional Mistral agent ID configured with the `image_generation` connector for chat image generation
 - `MISTRAL_MODEL` - Model to use (default: `mistral-small-latest`)
 - `MISTRAL_TEMPERATURE` - Temperature for responses (default: `0.2`)
 - `MISTRAL_MAX_TOKENS` - Max tokens per response (default: `512`)
@@ -232,14 +234,19 @@ Enable AI features by providing API keys:
 **OpenAI** (auto-moderation):
 
 - `OPENAI_API_KEY` - Your OpenAI API key for AI-powered moderation
+- `OPENAI_MODERATION_IMAGE_MAX_BYTES` - Max size downloaded per image before moderation (default: `20971520`)
+- `OPENAI_MODERATION_IMAGE_PAYLOAD_MAX_BYTES` - Max image payload sent to moderation per request (default: `47185920`)
 
 #### Music Features (Optional)
 
 For music functionality, configure Lavalink:
 
-```json
+```env
 LAVALINK_NODES='[{"name": "Node 1", "url": "localhost:2333", "auth": "youshallnotpass", "secure": false}]'
+LAVALINK_DISABLED_NODES="Node 1,Old Public Node"
 ```
+
+Set `enabled: false` on a node entry, or list node names in `LAVALINK_DISABLED_NODES`, to keep unstable external Lavalink nodes out of the runtime connection pool.
 
 #### Admin Configuration
 

@@ -1,4 +1,4 @@
-export type ddg_web_search_hit = {
+type ddg_web_search_hit = {
   text: string
   url: string
 }

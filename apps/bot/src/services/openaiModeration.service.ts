@@ -29,6 +29,13 @@ type ModerationInputItem =
   | { type: 'text'; text: string }
   | { type: 'image_url'; image_url: { url: string } };
 
+type prepared_moderation_image = {
+  url: string
+  source_url: string
+  mime_type: string
+  byte_length: number
+}
+
 interface ModerationResult {
   flagged: boolean;
   /** The categories that exceeded the configured threshold. */
@@ -54,6 +61,54 @@ type openai_moderation_error_summary = {
   status?: number
   code?: string
   message: string
+}
+
+const supported_image_mime_types = new Set([
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+  'image/gif',
+])
+
+const image_mime_by_ext = new Map([
+  ['.png', 'image/png'],
+  ['.jpg', 'image/jpeg'],
+  ['.jpeg', 'image/jpeg'],
+  ['.webp', 'image/webp'],
+  ['.gif', 'image/gif'],
+])
+
+function parse_positive_int_env(name: string, fallback: number, min: number, max: number): number {
+  const raw = process.env[name]
+  if (!raw) return fallback
+
+  const parsed = Number.parseInt(raw, 10)
+  if (!Number.isFinite(parsed)) return fallback
+  return Math.min(max, Math.max(min, parsed))
+}
+
+export function infer_openai_moderation_image_mime_type(url: string, content_type?: string | null): string | null {
+  const normalized_content_type = typeof content_type === 'string' ? content_type.split(';')[0]?.trim().toLowerCase() : null
+  if (normalized_content_type && supported_image_mime_types.has(normalized_content_type)) {
+    return normalized_content_type
+  }
+
+  try {
+    const parsed = new URL(url)
+    const pathname = parsed.pathname.toLowerCase()
+    for (const [ext, mime_type] of image_mime_by_ext.entries()) {
+      if (pathname.endsWith(ext)) return mime_type
+    }
+
+    const format = parsed.searchParams.get('format')?.toLowerCase()
+    if (format === 'jpg' || format === 'jpeg') return 'image/jpeg'
+    if (format === 'png') return 'image/png'
+    if (format === 'webp') return 'image/webp'
+    if (format === 'gif') return 'image/gif'
+    return null
+  } catch {
+    return null
+  }
 }
 
 export function normalize_openai_moderation_image_url(url: string): string | null {
@@ -131,6 +186,107 @@ function summarize_openai_moderation_error(error: unknown): openai_moderation_er
   return { kind: 'unknown', code, status, message: details.message }
 }
 
+async function fetch_image_as_data_url(url: string, max_bytes: number): Promise<prepared_moderation_image | null> {
+  const response = await axios.get<ArrayBuffer>(url, {
+    responseType: 'arraybuffer',
+    timeout: 8_000,
+    maxContentLength: max_bytes,
+    maxBodyLength: max_bytes,
+    headers: {
+      Accept: 'image/png,image/jpeg,image/webp,image/gif',
+    },
+    validateStatus: (status) => status >= 200 && status < 300,
+  })
+
+  const content_length_header = response.headers['content-length']
+  const content_length = typeof content_length_header === 'string' ? Number.parseInt(content_length_header, 10) : NaN
+  if (Number.isFinite(content_length) && content_length > max_bytes) {
+    return null
+  }
+
+  const buffer = Buffer.isBuffer(response.data) ? response.data : Buffer.from(response.data)
+  if (buffer.byteLength === 0 || buffer.byteLength > max_bytes) {
+    return null
+  }
+
+  const content_type_header = response.headers['content-type']
+  const content_type = Array.isArray(content_type_header) ? content_type_header[0] : content_type_header
+  const mime_type = infer_openai_moderation_image_mime_type(
+    url,
+    typeof content_type === 'string' ? content_type : null
+  )
+  if (!mime_type) {
+    return null
+  }
+
+  return {
+    url: `data:${mime_type};base64,${buffer.toString('base64')}`,
+    source_url: url,
+    mime_type,
+    byte_length: buffer.byteLength,
+  }
+}
+
+function safe_url_host(value: string): string | null {
+  try {
+    return new URL(value).host
+  } catch {
+    return null
+  }
+}
+
+async function prepare_openai_moderation_images(urls: string[]): Promise<{
+  images: prepared_moderation_image[]
+  dropped: number
+}> {
+  const max_image_bytes = parse_positive_int_env(
+    'OPENAI_MODERATION_IMAGE_MAX_BYTES',
+    20 * 1024 * 1024,
+    64 * 1024,
+    50 * 1024 * 1024,
+  )
+  const max_payload_bytes = parse_positive_int_env(
+    'OPENAI_MODERATION_IMAGE_PAYLOAD_MAX_BYTES',
+    45 * 1024 * 1024,
+    1 * 1024 * 1024,
+    50 * 1024 * 1024,
+  )
+
+  const images: prepared_moderation_image[] = []
+  let dropped = 0
+  let payload_bytes = 0
+
+  for (const url of urls) {
+    try {
+      const image = await fetch_image_as_data_url(url, max_image_bytes)
+      if (!image) {
+        dropped += 1
+        continue
+      }
+
+      const next_payload_bytes = payload_bytes + Buffer.byteLength(image.url, 'utf8')
+      if (next_payload_bytes > max_payload_bytes) {
+        dropped += 1
+        continue
+      }
+
+      images.push(image)
+      payload_bytes = next_payload_bytes
+    } catch (error) {
+      dropped += 1
+      logger.warn(
+        {
+          err: safe_error_details(error),
+          image_host: safe_url_host(url),
+        },
+        '[OpenAI Moderation] image download failed, dropping image from moderation request'
+      )
+    }
+  }
+
+  return { images, dropped }
+}
+
 class OpenAiModerationService {
   private readonly model = 'omni-moderation-latest';
   private readonly endpoint = 'https://api.openai.com/v1/moderations';
@@ -172,6 +328,10 @@ class OpenAiModerationService {
     const normalized_text = text.trim().length > 0 ? text.substring(0, 10_000) : ''
     const normalized_images_result = normalize_openai_moderation_image_urls(imageUrls)
     const normalized_images = normalized_images_result.ok
+    const prepared_images_result = normalized_images.length > 0
+      ? await prepare_openai_moderation_images(normalized_images)
+      : { images: [], dropped: 0 }
+    const prepared_images = prepared_images_result.images
 
     const input: ModerationInputItem[] = [];
 
@@ -180,8 +340,9 @@ class OpenAiModerationService {
       input.push({ type: 'text', text: normalized_text });
     }
 
-    // Include each image URL (max 10 images per request — API limit)
-    for (const url of normalized_images) {
+    // Include each image as a validated data URL. This avoids 400s when provider URLs are not fetchable by OpenAI.
+    for (const image of prepared_images) {
+      const url = image.url
       input.push({ type: 'image_url', image_url: { url } });
     }
 
@@ -190,7 +351,8 @@ class OpenAiModerationService {
         text_present: Boolean(normalized_text),
         image_urls_collected: imageUrls.length,
         image_urls_sent: normalized_images.length,
-        image_urls_dropped: normalized_images_result.dropped,
+        image_urls_prepared: prepared_images.length,
+        image_urls_dropped: normalized_images_result.dropped + prepared_images_result.dropped,
       },
       '[automod.ai] openai moderation input prepared',
     )
@@ -251,7 +413,7 @@ class OpenAiModerationService {
       logger.debug(
         {
           input_items: input.length,
-          has_images: normalized_images.length > 0,
+          has_images: prepared_images.length > 0,
           ...summarize_scores(result.category_scores),
         },
         '[automod.ai] openai moderation response received',
@@ -261,7 +423,7 @@ class OpenAiModerationService {
     } catch (error) {
       const summary = summarize_openai_moderation_error(error)
 
-      if (summary.kind === 'bad_request' && normalized_images.length > 0) {
+      if (summary.kind === 'bad_request' && prepared_images.length > 0) {
         const text_only_input: ModerationInputItem[] = normalized_text ? [{ type: 'text', text: normalized_text }] : []
         if (text_only_input.length > 0) {
           try {
@@ -282,12 +444,12 @@ class OpenAiModerationService {
           if (!result) return { flagged: false, triggeredCategories: [], scores: {} };
           return run_scoring(result)
         } catch (retry_error) {
-          log_failure(retry_error, { attempt: 'retry_timeout', input_items: input.length, has_images: normalized_images.length > 0 })
+          log_failure(retry_error, { attempt: 'retry_timeout', input_items: input.length, has_images: prepared_images.length > 0 })
           return { flagged: false, triggeredCategories: [], scores: {} };
         }
       }
 
-      log_failure(error, { attempt: 'primary', input_items: input.length, has_images: normalized_images.length > 0 })
+      log_failure(error, { attempt: 'primary', input_items: input.length, has_images: prepared_images.length > 0 })
       return { flagged: false, triggeredCategories: [], scores: {} };
     }
   }

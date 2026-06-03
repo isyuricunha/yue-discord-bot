@@ -14,14 +14,14 @@
     "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && tsc --noEmit"
   },
   "dependencies": {
-    "@mistralai/mistralai": "^2.2.1",
-    "@napi-rs/canvas": "^0.1.99",
+    "@mistralai/mistralai": "^2.2.5",
+    "@napi-rs/canvas": "^1.0.0",
     "@yuebot/database": "workspace:*",
     "@yuebot/shared": "workspace:*",
-    "axios": "^1.15.2",
-    "bullmq": "^5.76.1",
-    "discord.js": "^14.26.3",
-    "ioredis": "5.10.1",
+    "axios": "^1.16.1",
+    "bullmq": "^5.78.0",
+    "discord.js": "^14.26.4",
+    "ioredis": "5.11.0",
     "kazagumo": "^3.4.3",
     "luxon": "^3.7.2",
     "pino": "^10.3.1",
@@ -29,13 +29,13 @@
     "png-chunk-text": "^1.0.0",
     "png-chunks-encode": "^1.0.0",
     "png-chunks-extract": "^1.0.0",
-    "redis": "^5.12.1",
+    "redis": "^6.0.0",
     "shoukaku": "^4.3.0"
   },
   "devDependencies": {
-    "@types/node": "^25.6.0",
+    "@types/node": "^25.9.1",
     "tsup": "^8.5.1",
-    "tsx": "^4.21.0",
+    "tsx": "^4.22.4",
     "typescript": "^6.0.3"
   }
 }

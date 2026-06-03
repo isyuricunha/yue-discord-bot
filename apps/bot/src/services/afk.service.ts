@@ -70,32 +70,8 @@ export async function getAfk(userId: string, guildId: string): Promise<user_afk 
   });
 }
 
-export async function checkAfk(userId: string, guildId: string): Promise<boolean> {
-  const afk = await prisma.userAfk.findUnique({
-    where: {
-      userId_guildId: {
-        userId,
-        guildId,
-      },
-    },
-  });
-
-  return afk !== null && afk.isAfk;
-}
-
-export async function getAfkByUserId(userId: string): Promise<user_afk[]> {
-  return prisma.userAfk.findMany({
-    where: {
-      userId,
-      isAfk: true,
-    },
-  });
-}
-
 export const afkService = {
   setAfk,
   removeAfk,
   getAfk,
-  checkAfk,
-  getAfkByUserId,
 };

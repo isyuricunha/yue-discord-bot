@@ -1,4 +1,4 @@
-import { createClient } from 'redis'
+import { createClient, type RedisClientType } from 'redis'
  
 import { logger } from '../utils/logger'
 
@@ -51,7 +51,7 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
   private readonly ttl_seconds: number
   private readonly max_messages: number
   private readonly max_message_chars: number
-  private client: ReturnType<typeof createClient> | null = null
+  private client: RedisClientType | null = null
   private has_logged_connection = false
 
   constructor(input?: {
@@ -100,7 +100,7 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
     return `${this.key_prefix}${key}`
   }
 
-  private async get_client() {
+  private async get_client(): Promise<RedisClientType> {
     if (this.client) {
       const is_open = (this.client as any).isOpen
       if (is_open === false) {
@@ -110,8 +110,8 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
       }
     }
 
-    const connect_timeout_ms = Math.max(100, parse_int_env(process.env.REDIS_CONNECT_TIMEOUT_MS, 800))
-    const command_timeout_ms = Math.max(100, parse_int_env(process.env.REDIS_COMMAND_TIMEOUT_MS, 800))
+    const connect_timeout_ms = Math.max(100, parse_int_env(process.env.REDIS_CONNECT_TIMEOUT_MS, 3000))
+    const command_timeout_ms = Math.max(100, parse_int_env(process.env.REDIS_COMMAND_TIMEOUT_MS, 3000))
 
     const client = createClient({
       url: this.redis_url,
@@ -166,7 +166,7 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
     return typeof message === 'string' && message.toLowerCase().includes('client is closed')
   }
 
-  private async run_redis_command<T>(label: string, command: (client: ReturnType<typeof createClient>) => Promise<T>): Promise<T> {
+  private async run_redis_command<T>(label: string, command: (client: RedisClientType) => Promise<T>): Promise<T> {
     const run = async (): Promise<T> => {
       const client = await this.get_client()
       const command_timeout_ms = Number((client as any).__command_timeout_ms) || 0
@@ -194,7 +194,10 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
   }
 
   async get_history(key: string): Promise<conversation_message[]> {
-    const raw = await this.run_redis_command('Redis GET', (client) => client.get(this.build_key(key)))
+    const raw = await this.run_redis_command(
+      'Redis GET',
+      (client) => client.sendCommand(['GET', this.build_key(key)]) as Promise<string | Buffer | null>
+    )
     if (!raw) return []
 
     try {
@@ -213,7 +216,10 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
   }
 
   async get_last_activity_ms(key: string): Promise<number | null> {
-    const raw = await this.run_redis_command('Redis GET', (client) => client.get(this.build_key(key)))
+    const raw = await this.run_redis_command(
+      'Redis GET',
+      (client) => client.sendCommand(['GET', this.build_key(key)]) as Promise<string | Buffer | null>
+    )
     if (!raw) return null
 
     try {
@@ -236,10 +242,13 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
       last_activity_ms: now_ms(),
     }
 
-    await this.run_redis_command('Redis SET', (client) => client.set(redis_key, JSON.stringify(payload), { EX: this.ttl_seconds }))
+    await this.run_redis_command(
+      'Redis SET',
+      (client) => client.sendCommand(['SET', redis_key, JSON.stringify(payload), 'EX', String(this.ttl_seconds)])
+    )
   }
 
   async clear(key: string): Promise<void> {
-    await this.run_redis_command('Redis DEL', (client) => client.del(this.build_key(key)))
+    await this.run_redis_command('Redis DEL', (client) => client.sendCommand(['DEL', this.build_key(key)]))
   }
 }

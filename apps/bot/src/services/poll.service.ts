@@ -10,7 +10,7 @@ export type poll_option = {
   votes: number;
 };
 
-export type create_poll_data = {
+type create_poll_data = {
   guildId: string;
   channelId: string;
   messageId: string;
@@ -21,7 +21,7 @@ export type create_poll_data = {
   createdBy: string;
 };
 
-export async function createPoll(data: create_poll_data) {
+async function createPoll(data: create_poll_data) {
   const poll = await prisma.poll.create({
     data: {
       guildId: data.guildId,
@@ -38,7 +38,7 @@ export async function createPoll(data: create_poll_data) {
   return poll;
 }
 
-export async function getPollByMessageId(messageId: string) {
+async function getPollByMessageId(messageId: string) {
   return prisma.poll.findUnique({
     where: { messageId },
     include: {
@@ -47,7 +47,7 @@ export async function getPollByMessageId(messageId: string) {
   });
 }
 
-export async function getPollById(pollId: string) {
+async function getPollById(pollId: string) {
   return prisma.poll.findUnique({
     where: { id: pollId },
     include: {
@@ -56,7 +56,7 @@ export async function getPollById(pollId: string) {
   });
 }
 
-export async function vote(pollId: string, userId: string, optionIds: number[], multiVote: boolean) {
+async function vote(pollId: string, userId: string, optionIds: number[], multiVote: boolean) {
   const poll = await prisma.poll.findUnique({
     where: { id: pollId },
   });
@@ -183,7 +183,7 @@ export async function vote(pollId: string, userId: string, optionIds: number[], 
   return options;
 }
 
-export async function removeVote(pollId: string, userId: string, optionId: number) {
+async function removeVote(pollId: string, userId: string, optionId: number) {
   const poll = await prisma.poll.findUnique({
     where: { id: pollId },
   });
@@ -237,7 +237,7 @@ export async function removeVote(pollId: string, userId: string, optionId: numbe
   return options;
 }
 
-export async function endPoll(messageId: string) {
+async function endPoll(messageId: string) {
   const poll = await prisma.poll.findUnique({
     where: { messageId },
     include: {
@@ -263,7 +263,7 @@ export async function endPoll(messageId: string) {
   return updatedPoll;
 }
 
-export async function sendPollExpirationNotification(
+async function sendPollExpirationNotification(
   client: { channels: { fetch: (id: string) => Promise<unknown> } },
   pollData: {
     id: string;
@@ -305,7 +305,7 @@ export async function sendPollExpirationNotification(
   }
 }
 
-export function buildPollResultsEmbed(poll: {
+function buildPollResultsEmbed(poll: {
   question: string;
   options: poll_option[];
   multiVote: boolean;
@@ -338,7 +338,7 @@ export function buildPollResultsEmbed(poll: {
   return embed;
 }
 
-export async function handlePollReactionAdd(
+async function handlePollReactionAdd(
   messageId: string,
   userId: string,
   emoji: string
@@ -371,7 +371,7 @@ export async function handlePollReactionAdd(
   }
 }
 
-export async function handlePollReactionRemove(
+async function handlePollReactionRemove(
   messageId: string,
   userId: string,
   emoji: string
@@ -404,7 +404,7 @@ export async function handlePollReactionRemove(
   }
 }
 
-export async function updatePollMessage(poll: {
+async function updatePollMessage(poll: {
   messageId: string;
   channelId: string;
   question: string;
