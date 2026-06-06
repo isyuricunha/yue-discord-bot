@@ -31,6 +31,7 @@ type inventory_use_result =
     }
 
 type tx_client = Prisma.TransactionClient
+type inventory_reader = Pick<Prisma.TransactionClient, 'inventoryItem'>
 
 async function with_serializable_retry<T>(fn: (tx: tx_client) => Promise<T>, max_attempts = 5): Promise<T> {
   let attempt = 0
@@ -452,8 +453,11 @@ class InventoryService {
     return updated.count > 0
   }
 
-  async get_active_xp_boost_multiplier(input: { userId: string; guildId: string; now: Date }): Promise<number> {
-    const rows = await prisma.inventoryItem.findMany({
+  async get_active_xp_boost_multiplier(
+    input: { userId: string; guildId: string; now: Date },
+    database: inventory_reader = prisma,
+  ): Promise<number> {
+    const rows = await database.inventoryItem.findMany({
       where: {
         userId: input.userId,
         kind: 'xp_boost',

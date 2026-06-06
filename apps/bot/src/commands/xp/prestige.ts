@@ -1,9 +1,9 @@
 import { SlashCommandBuilder, EmbedBuilder } from 'discord.js';
 import type { ChatInputCommandInteraction } from 'discord.js';
-import { prisma } from '@yuebot/database';
 import { COLORS, EMOJIS } from '@yuebot/shared';
 import type { Command } from '../index';
 import { safe_reply_ephemeral } from '../../utils/interaction';
+import { with_serializable_retry } from '../../utils/prisma-transaction';
 
 export const prestigeCommand: Command = {
   data: new SlashCommandBuilder()
@@ -23,37 +23,53 @@ export const prestigeCommand: Command = {
     const { user, guild } = interaction;
     const PRESTIGE_COST_LEVEL = 100; // Define minimum level to prestige
 
-    const entry = await prisma.guildXpMember.findUnique({
-      where: {
-        userId_guildId: {
-          userId: user.id,
-          guildId: guild.id,
-        },
-      },
-    });
-
-    if (!entry || entry.level < PRESTIGE_COST_LEVEL) {
-      await safe_reply_ephemeral(interaction, {
-        content: `${EMOJIS.ERROR} Você precisa estar no mínimo no nível **${PRESTIGE_COST_LEVEL}** para usar o Prestígio. (Nível Atual: **${entry?.level ?? 0}**)`,
-      });
-      return;
-    }
-
     try {
-      // Prestígio resetará o Nível e XP (exceto global) iterando o valor de prestige em database
-      await prisma.guildXpMember.update({
-        where: { id: entry.id },
-        data: {
-          xp: 0,
-          level: 0,
-          prestige: { increment: 1 },
-        },
+      const result = await with_serializable_retry(async (transaction) => {
+        const entry = await transaction.guildXpMember.findUnique({
+          where: {
+            userId_guildId: {
+              userId: user.id,
+              guildId: guild.id,
+            },
+          },
+        });
+
+        if (!entry || entry.level < PRESTIGE_COST_LEVEL) {
+          return {
+            success: false as const,
+            current_level: entry?.level ?? 0,
+          };
+        }
+
+        const updated = await transaction.guildXpMember.update({
+          where: { id: entry.id },
+          data: {
+            xp: 0,
+            level: 0,
+            prestige: { increment: 1 },
+          },
+          select: {
+            prestige: true,
+          },
+        });
+
+        return {
+          success: true as const,
+          prestige: updated.prestige,
+        };
       });
+
+      if (!result.success) {
+        await safe_reply_ephemeral(interaction, {
+          content: `${EMOJIS.ERROR} Você precisa estar no mínimo no nível **${PRESTIGE_COST_LEVEL}** para usar o Prestígio. (Nível Atual: **${result.current_level}**)`,
+        });
+        return;
+      }
 
       const embed = new EmbedBuilder()
         .setColor(COLORS.SUCCESS)
         .setTitle(`🌟 Prestígio Alcançado!`)
-        .setDescription(`Você sacrificou todo seu XP Local no servidor e alcançou o nível de prestígio **${entry.prestige + 1}**! Seus níveis começaram de novo, mas suas bordas no perfil ficarão impressionantes.`)
+        .setDescription(`Você sacrificou todo seu XP Local no servidor e alcançou o nível de prestígio **${result.prestige}**! Seus níveis começaram de novo, mas suas bordas no perfil ficarão impressionantes.`)
         .setThumbnail(user.displayAvatarURL())
         .setTimestamp();
 

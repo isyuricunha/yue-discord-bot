@@ -3,6 +3,7 @@ import { prisma, Prisma } from '@yuebot/database';
 import type { GuildXpConfig } from '@yuebot/database';
 import { pick_discord_message_template_variant, render_discord_message_template } from '@yuebot/shared';
 import { logger } from '../utils/logger';
+import { with_serializable_retry } from '../utils/prisma-transaction';
 import { inventoryService } from './inventory.service'
 
 const XP_TRANSFER_TAX_PERCENT = 10; // 10% tax on XP transfers
@@ -138,7 +139,7 @@ class XpService {
     }
 
     try {
-      const result = await prisma.$transaction(async (tx) => {
+      const result = await with_serializable_retry(async (tx) => {
         // Get sender's XP
         const fromMember = await tx.guildXpMember.findUnique({
           where: {
@@ -231,7 +232,10 @@ class XpService {
     }
   }
 
-  private async get_xp_boost_multiplier(input: { guild_id: string; user_id: string; now: Date }): Promise<number> {
+  private async get_xp_boost_multiplier(
+    input: { guild_id: string; user_id: string; now: Date },
+    database: Pick<Prisma.TransactionClient, 'inventoryItem'> = prisma,
+  ): Promise<number> {
     const key = `${input.guild_id}:${input.user_id}`
     const cached = this.xp_boost_cache.get(key)
     const now_ms = input.now.getTime()
@@ -245,12 +249,13 @@ class XpService {
         userId: input.user_id,
         guildId: input.guild_id,
         now: input.now,
-      })
+      }, database)
 
       const safe = Number.isFinite(multiplier) && multiplier > 1 ? multiplier : 1
       this.xp_boost_cache.set(key, { multiplier: safe, timestamp: now_ms })
       return safe
-    } catch {
+    } catch (error) {
+      if (database !== prisma) throw error
       this.xp_boost_cache.set(key, { multiplier: 1, timestamp: now_ms })
       return 1
     }
@@ -305,25 +310,6 @@ class XpService {
 
     const message_hash = normalized;
 
-    const existing = await prisma.guildXpMember.findUnique({
-      where: {
-        userId_guildId: {
-          userId: user_id,
-          guildId: guild_id,
-        },
-      },
-    });
-
-    if (existing?.lastMessageHash && existing.lastMessageHash === message_hash) return;
-
-    if (existing?.lastMessageAt) {
-      const delta_seconds = (now.getTime() - existing.lastMessageAt.getTime()) / 1000;
-
-      // "humanamente possível": chars/7 segundos mínimos
-      const min_seconds = content.length / config.typingCps;
-      if (delta_seconds < min_seconds) return;
-    }
-
     const base_xp = config.xpMode === 'flat' 
       ? config.xpPerMessage 
       : compute_message_xp(reduced.length, {
@@ -340,26 +326,6 @@ class XpService {
       }
     }
 
-    // Check for daily first message bonus
-    let daily_bonus_xp = 0;
-    if (config.dailyXpBonusEnabled && config.dailyXpBonusAmount > 0) {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      if (existing?.lastMessageAt) {
-        const lastMessageDay = new Date(existing.lastMessageAt);
-        lastMessageDay.setHours(0, 0, 0, 0);
-        
-        if (lastMessageDay.getTime() < today.getTime()) {
-          // First message of the day!
-          daily_bonus_xp = config.dailyXpBonusAmount;
-        }
-      } else {
-        // First message ever
-        daily_bonus_xp = config.dailyXpBonusAmount;
-      }
-    }
-
     let multiplier = 1;
     if (member) {
       for (const [role_id, value] of Object.entries(config.roleXpMultipliers)) {
@@ -369,16 +335,87 @@ class XpService {
       }
     }
 
-    const xp_boost_multiplier = await this.get_xp_boost_multiplier({ guild_id, user_id, now })
-    const combined_multiplier = multiplier * xp_boost_multiplier
+    const result = await with_serializable_retry(async (transaction) => {
+      const existing = await transaction.guildXpMember.findUnique({
+        where: {
+          userId_guildId: {
+            userId: user_id,
+            guildId: guild_id,
+          },
+        },
+      });
 
-    const xp_cap_with_multiplier = Math.max(1, Math.round(config.xpCap * combined_multiplier));
-    const xp_gain = Math.min(
-      Math.round((base_xp + bonus_xp + daily_bonus_xp) * combined_multiplier), 
-      xp_cap_with_multiplier
-    );
-    if (xp_gain <= 0) {
-      await prisma.guildXpMember.upsert({
+      if (existing?.lastMessageHash === message_hash) {
+        return { awarded: false as const };
+      }
+
+      if (existing?.lastMessageAt) {
+        const delta_seconds = (now.getTime() - existing.lastMessageAt.getTime()) / 1000;
+        const min_seconds = content.length / config.typingCps;
+
+        if (delta_seconds < min_seconds) {
+          return { awarded: false as const };
+        }
+      }
+
+      let daily_bonus_xp = 0;
+      if (config.dailyXpBonusEnabled && config.dailyXpBonusAmount > 0) {
+        const today = new Date(now);
+        today.setHours(0, 0, 0, 0);
+
+        if (existing?.lastMessageAt) {
+          const last_message_day = new Date(existing.lastMessageAt);
+          last_message_day.setHours(0, 0, 0, 0);
+
+          if (last_message_day.getTime() < today.getTime()) {
+            daily_bonus_xp = config.dailyXpBonusAmount;
+          }
+        } else {
+          daily_bonus_xp = config.dailyXpBonusAmount;
+        }
+      }
+
+      const xp_boost_multiplier = await this.get_xp_boost_multiplier(
+        { guild_id, user_id, now },
+        transaction,
+      )
+      const combined_multiplier = multiplier * xp_boost_multiplier
+      const xp_cap_with_multiplier = Math.max(1, Math.round(config.xpCap * combined_multiplier));
+      const xp_gain = Math.min(
+        Math.round((base_xp + bonus_xp + daily_bonus_xp) * combined_multiplier),
+        xp_cap_with_multiplier,
+      );
+
+      if (xp_gain <= 0) {
+        await transaction.guildXpMember.upsert({
+          where: {
+            userId_guildId: {
+              userId: user_id,
+              guildId: guild_id,
+            },
+          },
+          update: {
+            lastMessageHash: message_hash,
+            lastMessageAt: now,
+          },
+          create: {
+            userId: user_id,
+            guildId: guild_id,
+            xp: 0,
+            level: 0,
+            lastMessageHash: message_hash,
+            lastMessageAt: now,
+          },
+        });
+        return { awarded: false as const };
+      }
+
+      const current_xp = existing?.xp ?? 0;
+      const new_xp = current_xp + xp_gain;
+      const previous_level = existing?.level ?? compute_level_from_xp(current_xp);
+      const new_level = compute_level_from_xp(new_xp);
+
+      const updated = await transaction.guildXpMember.upsert({
         where: {
           userId_guildId: {
             userId: user_id,
@@ -386,79 +423,57 @@ class XpService {
           },
         },
         update: {
+          xp: new_xp,
+          level: new_level,
           lastMessageHash: message_hash,
           lastMessageAt: now,
         },
         create: {
           userId: user_id,
           guildId: guild_id,
-          xp: 0,
-          level: 0,
+          xp: new_xp,
+          level: new_level,
           lastMessageHash: message_hash,
           lastMessageAt: now,
         },
       });
-      return;
-    }
 
-    const current_xp = existing?.xp ?? 0;
-    const new_xp = current_xp + xp_gain;
+      const global_existing = await transaction.globalXpMember.findUnique({
+        where: { userId: user_id },
+        select: { xp: true },
+      });
 
-    const previous_level = existing?.level ?? compute_level_from_xp(current_xp);
-    const new_level = compute_level_from_xp(new_xp);
+      const global_xp = (global_existing?.xp ?? 0) + xp_gain;
+      const global_level = compute_level_from_xp(global_xp);
 
-    const updated = await prisma.guildXpMember.upsert({
-      where: {
-        userId_guildId: {
-          userId: user_id,
-          guildId: guild_id,
+      await transaction.globalXpMember.upsert({
+        where: { userId: user_id },
+        update: {
+          username: message.author.username,
+          avatar: message.author.avatar,
+          xp: global_xp,
+          level: global_level,
         },
-      },
-      update: {
-        xp: new_xp,
-        level: new_level,
-        lastMessageHash: message_hash,
-        lastMessageAt: now,
-      },
-      create: {
-        userId: user_id,
-        guildId: guild_id,
-        xp: new_xp,
-        level: new_level,
-        lastMessageHash: message_hash,
-        lastMessageAt: now,
-      },
+        create: {
+          userId: user_id,
+          username: message.author.username,
+          avatar: message.author.avatar,
+          xp: global_xp,
+          level: global_level,
+        },
+      });
+
+      return {
+        awarded: true as const,
+        previous_level,
+        updated,
+      };
     });
 
-    const global_existing = await prisma.globalXpMember.findUnique({
-      where: { userId: user_id },
-      select: { xp: true },
-    });
-
-    const global_xp = (global_existing?.xp ?? 0) + xp_gain;
-    const global_level = compute_level_from_xp(global_xp);
-
-    await prisma.globalXpMember.upsert({
-      where: { userId: user_id },
-      update: {
-        username: message.author.username,
-        avatar: message.author.avatar,
-        xp: global_xp,
-        level: global_level,
-      },
-      create: {
-        userId: user_id,
-        username: message.author.username,
-        avatar: message.author.avatar,
-        xp: global_xp,
-        level: global_level,
-      },
-    });
-
-    if (new_level > previous_level) {
-      await this.handle_level_up(message, updated.level, {
+    if (result.awarded && result.updated.level > result.previous_level) {
+      await this.handle_level_up(message, result.updated.level, {
         config,
-        xpMember: updated,
+        xpMember: result.updated,
       });
     }
   }

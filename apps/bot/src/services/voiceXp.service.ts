@@ -2,6 +2,7 @@ import { VoiceState, EmbedBuilder } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { getSendableChannel } from '../utils/discord'
+import { with_serializable_retry } from '../utils/prisma-transaction'
 import { compute_level_from_xp, xpService } from './xp.service'
 
 class VoiceXpService {
@@ -146,43 +147,49 @@ class VoiceXpService {
 
       if (earnedXp <= 0) return
 
-      const existingRecord = await prisma.guildXpMember.findUnique({
-         where: { userId_guildId: { userId, guildId } }
-      })
+      const result = await with_serializable_retry(async (transaction) => {
+        const existing_record = await transaction.guildXpMember.findUnique({
+          where: { userId_guildId: { userId, guildId } },
+        })
+        const current_xp = existing_record?.xp ?? 0
+        const new_xp = current_xp + earnedXp
+        const current_level = existing_record?.level ?? compute_level_from_xp(current_xp)
+        const new_level = compute_level_from_xp(new_xp)
 
-      const currentXp = existingRecord?.xp ?? 0
-      const newXp = currentXp + earnedXp
+        const updated_member = await transaction.guildXpMember.upsert({
+          where: { userId_guildId: { userId, guildId } },
+          create: {
+            userId,
+            guildId,
+            xp: new_xp,
+            level: new_level,
+            prestige: 0,
+            lastVoiceXpAt: new Date(),
+          },
+          update: {
+            xp: new_xp,
+            level: new_level,
+            lastVoiceXpAt: new Date(),
+          },
+        })
 
-      const currentLevel = existingRecord?.level ?? compute_level_from_xp(currentXp)
-      const newLevel = compute_level_from_xp(newXp)
-
-      const updatedMember = await prisma.guildXpMember.upsert({
-        where: { userId_guildId: { userId, guildId } },
-        create: {
-          userId,
-          guildId,
-          xp: newXp,
-          level: newLevel,
-          prestige: 0,
-          lastVoiceXpAt: new Date()
-        },
-        update: {
-          xp: newXp,
-          level: newLevel,
-          lastVoiceXpAt: new Date()
+        return {
+          current_level,
+          new_level,
+          updated_member,
         }
       })
 
       // Level up Check using identical system logic
-      if (newLevel > currentLevel) {
+      if (result.new_level > result.current_level) {
         if (newState.member) {
           await xpService.handle_level_up({
             author: newState.member.user,
             member: newState.member,
             guild: newState.guild,
-          }, newLevel, {
+          }, result.new_level, {
             config,
-            xpMember: updatedMember,
+            xpMember: result.updated_member,
           })
         }
       }
