@@ -1,0 +1,2 @@
+-- RenameIndex
+ALTER INDEX "giveaways_ended_cancelled_suspended_messageId_startsAt_createdA" RENAME TO "giveaways_ended_cancelled_suspended_messageId_startsAt_crea_idx";
