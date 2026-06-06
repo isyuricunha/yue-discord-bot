@@ -94,30 +94,31 @@ export async function coinflipRoutes(fastify: FastifyInstance) {
   fastify.get('/coinflip/stats/me', { preHandler: [fastify.authenticate] }, async (request) => {
     const user = request.user
 
-    const played = await prisma.coinflipGame.count({
-      where: {
-        status: 'completed',
-        OR: [{ challengerId: user.userId }, { opponentId: user.userId }],
-      },
-    })
+    const [played, wins, wins_sum, losses_sum] = await Promise.all([
+      prisma.coinflipGame.count({
+        where: {
+          status: 'completed',
+          OR: [{ challengerId: user.userId }, { opponentId: user.userId }],
+        },
+      }),
+      prisma.coinflipGame.count({
+        where: { status: 'completed', winnerId: user.userId },
+      }),
+      prisma.coinflipGame.aggregate({
+        where: { status: 'completed', winnerId: user.userId },
+        _sum: { betAmount: true },
+      }),
+      prisma.coinflipGame.aggregate({
+        where: {
+          status: 'completed',
+          winnerId: { not: user.userId },
+          OR: [{ challengerId: user.userId }, { opponentId: user.userId }],
+        },
+        _sum: { betAmount: true },
+      }),
+    ])
 
-    const wins = await prisma.coinflipGame.count({ where: { status: 'completed', winnerId: user.userId } })
     const losses = Math.max(0, played - wins)
-
-    const wins_sum = await prisma.coinflipGame.aggregate({
-      where: { status: 'completed', winnerId: user.userId },
-      _sum: { betAmount: true },
-    })
-
-    const losses_sum = await prisma.coinflipGame.aggregate({
-      where: {
-        status: 'completed',
-        winnerId: { not: user.userId },
-        OR: [{ challengerId: user.userId }, { opponentId: user.userId }],
-      },
-      _sum: { betAmount: true },
-    })
-
     const won = wins_sum._sum.betAmount ?? 0n
     const lost = losses_sum._sum.betAmount ?? 0n
 

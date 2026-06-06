@@ -24,10 +24,10 @@ This file tracks the repository-wide performance audit and its implementation mi
 - [x] Reuse XP configuration and updated member state during level-up processing, removing up to three redundant queries.
 - [x] Serialize XP message, voice, transfer, and prestige writes with bounded conflict retries.
 - [x] Synchronize startup guild records with bounded concurrency and completion telemetry.
+- [x] Parallelize guild overview and coinflip statistics queries while reusing loaded activity data.
 
 ## Next Milestones
 
-- [ ] Parallelize independent API statistics and dashboard queries.
 - [ ] Review command cooldown cleanup so it does not issue unnecessary deletes per invocation.
 - [ ] Match high-frequency queries to database indexes and add migrations only where evidence supports them.
 - [ ] Continue page-by-page web query and render profiling after the route-splitting baseline.
