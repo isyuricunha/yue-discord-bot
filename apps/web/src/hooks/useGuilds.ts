@@ -37,13 +37,14 @@ export function useGuilds(options: UseGuildsOptions = {}): UseGuildsResult {
   const API_URL = getApiUrl()
   const clientId = getDiscordClientId()
 
-  // Validate environment variables
+  // Validate the required API configuration. The Discord client id is optional here:
+  // without it we can still list guilds, only the invite URL stays unavailable.
   useEffect(() => {
-    if (!API_URL || !clientId) {
+    if (!API_URL) {
       console.error('Environment variables missing for guilds')
       setInternalError(new Error('Configuração do painel incompleta'))
     }
-  }, [API_URL, clientId])
+  }, [API_URL])
 
   // Build invite URL
   const buildInviteUrl = useCallback((clientId: string): string => {
