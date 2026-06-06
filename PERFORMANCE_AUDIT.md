@@ -19,10 +19,10 @@ This file tracks the repository-wide performance audit and its implementation mi
 - [x] Validate the web milestone with lint, type-check, tests, build, and browser rendering.
 - [x] Cache keyword trigger reads per guild with concurrent-load deduplication and explicit invalidation.
 - [x] Cache suggestion configuration reads with bounded staleness and a per-guild invalidation hook.
+- [x] Batch AFK mention lookups into one query while preserving mention order.
 
 ## Next Milestones
 
-- [ ] Batch AFK mention lookups instead of querying mentioned users sequentially.
 - [ ] Reduce per-message autorole pending-work database reads.
 - [ ] Review XP message processing queries and transaction boundaries.
 - [ ] Parallelize independent bot startup guild synchronization operations with bounded concurrency.

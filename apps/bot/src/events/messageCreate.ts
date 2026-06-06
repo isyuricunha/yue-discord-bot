@@ -14,7 +14,7 @@ import { suggestionService } from "../services/suggestion.service";
 import { customCommandService } from "../services/customCommand.service";
 import { keywordTriggerService } from "../services/keywordTrigger.service";
 import { xpService } from "../services/xp.service";
-import { afkService } from "../services/afk.service";
+import { afkService, findFirstActiveAfk } from "../services/afk.service";
 import { MistralError } from "@mistralai/mistralai/models/errors";
 import { MistralApiError } from "../services/mistral.service";
 import { COLORS, EMOJIS } from "@yuebot/shared";
@@ -161,35 +161,41 @@ export async function handleMessageCreate(message: Message) {
 	// Verificar se alguém mencionou um usuário AFK
 	if (message.mentions.users.size > 0) {
 		try {
-			for (const [_, mentionedUser] of message.mentions.users) {
-				if (mentionedUser.id === message.author.id) continue; // Não mostrar para si mesmo
-				if (mentionedUser.bot) continue;
+			const mentionedUsers = Array.from(message.mentions.users.values()).filter(
+				(user) => user.id !== message.author.id && !user.bot
+			);
+			const mentionedUserIds = mentionedUsers.map((user) => user.id);
+			const mentionedAfks = await afkService.getAfks(
+				mentionedUserIds,
+				guildId
+			);
+			const mentionedAfk = findFirstActiveAfk(
+				mentionedUserIds,
+				mentionedAfks
+			);
 
-				const mentionedAfk = await afkService.getAfk(mentionedUser.id, guildId);
-				if (mentionedAfk && mentionedAfk.isAfk) {
-					const startedAtTimestamp = Math.floor(new Date(mentionedAfk.startedAt).getTime() / 1000);
+			if (mentionedAfk) {
+				const startedAtTimestamp = Math.floor(new Date(mentionedAfk.startedAt).getTime() / 1000);
 
-					const embed = new EmbedBuilder()
-						.setColor(COLORS.WARNING)
-						.setTitle(`${EMOJIS.WARNING} Usuário AFK`)
-						.setDescription(`<@${mentionedUser.id}> está ausente no momento.`)
-						.addFields([
-							{
-								name: 'Está AFK desde',
-								value: `<t:${startedAtTimestamp}:f>`,
-								inline: true,
-							},
-							{
-								name: 'Motivo',
-								value: mentionedAfk.reason || 'Sem motivo definido',
-								inline: true,
-							},
-						])
-						.setFooter({ text: 'O usuário será notificado quando voltar.' });
+				const embed = new EmbedBuilder()
+					.setColor(COLORS.WARNING)
+					.setTitle(`${EMOJIS.WARNING} Usuário AFK`)
+					.setDescription(`<@${mentionedAfk.userId}> está ausente no momento.`)
+					.addFields([
+						{
+							name: 'Está AFK desde',
+							value: `<t:${startedAtTimestamp}:f>`,
+							inline: true,
+						},
+						{
+							name: 'Motivo',
+							value: mentionedAfk.reason || 'Sem motivo definido',
+							inline: true,
+						},
+					])
+					.setFooter({ text: 'O usuário será notificado quando voltar.' });
 
-					await message.reply({ embeds: [embed] }).catch(() => null);
-					break; // Só mostrar uma vez por mensagem
-				}
+				await message.reply({ embeds: [embed] }).catch(() => null);
 			}
 		} catch (error) {
 			logger.error(
