@@ -17,6 +17,7 @@ import { EMOJIS } from '@yuebot/shared'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
 import { safe_defer_ephemeral, safe_reply_ephemeral } from '../utils/interaction'
+import { GuildResourceCache } from '../utils/guild_resource_cache'
 
 import { CONFIG } from '../config'
 
@@ -31,6 +32,8 @@ type suggestion_status = 'pending' | 'accepted' | 'denied'
 type vote_kind = 'up' | 'down'
 
 type decide_kind = 'accept' | 'deny'
+
+const DEFAULT_CONFIG_CACHE_TTL_MS = 10_000
 
 async function get_text_channel(guild: Guild, channel_id: string | null): Promise<GuildTextBasedChannel | null> {
   if (!channel_id) return null
@@ -51,6 +54,13 @@ function normalize_config(row: { enabled: boolean; channelId: string | null; log
     channelId: row?.channelId ?? null,
     logChannelId: row?.logChannelId ?? null,
   }
+}
+
+function parse_config_cache_ttl_ms(value: string | undefined): number {
+  if (!value) return DEFAULT_CONFIG_CACHE_TTL_MS
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed < 0) return DEFAULT_CONFIG_CACHE_TTL_MS
+  return parsed
 }
 
 function status_color(status: suggestion_status): number {
@@ -172,18 +182,38 @@ function parse_modal_custom_id(custom_id: string): { decision: decide_kind; sugg
   return { decision, suggestionId }
 }
 
-class SuggestionService {
-  async get_config(guild_id: string): Promise<suggestion_config> {
-    const row = await prisma.suggestionConfig.findUnique({
-      where: { guildId: guild_id },
-      select: {
-        enabled: true,
-        channelId: true,
-        logChannelId: true,
-      },
-    })
+async function load_suggestion_config(guild_id: string): Promise<suggestion_config> {
+  const row = await prisma.suggestionConfig.findUnique({
+    where: { guildId: guild_id },
+    select: {
+      enabled: true,
+      channelId: true,
+      logChannelId: true,
+    },
+  })
 
-    return normalize_config(row)
+  return normalize_config(row)
+}
+
+export class SuggestionConfigCache extends GuildResourceCache<suggestion_config> {}
+
+const suggestion_config_cache = new SuggestionConfigCache(load_suggestion_config, {
+  cache_ttl_ms: parse_config_cache_ttl_ms(process.env.SUGGESTION_CONFIG_CACHE_TTL_MS),
+})
+
+export class SuggestionService {
+  constructor(private readonly config_cache: SuggestionConfigCache = suggestion_config_cache) {}
+
+  async get_config(guild_id: string): Promise<suggestion_config> {
+    return this.config_cache.get(guild_id)
+  }
+
+  clear_config_cache() {
+    this.config_cache.clear()
+  }
+
+  invalidate_config(guild_id: string) {
+    this.config_cache.invalidate(guild_id)
   }
 
   async handle_message(message: Message): Promise<boolean> {

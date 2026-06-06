@@ -18,10 +18,10 @@ This file tracks the repository-wide performance audit and its implementation mi
 - [x] Keep the application and public shells visible while route chunks load.
 - [x] Validate the web milestone with lint, type-check, tests, build, and browser rendering.
 - [x] Cache keyword trigger reads per guild with concurrent-load deduplication and explicit invalidation.
+- [x] Cache suggestion configuration reads with bounded staleness and a per-guild invalidation hook.
 
 ## Next Milestones
 
-- [ ] Cache suggestion configuration reads with bounded staleness and explicit invalidation.
 - [ ] Batch AFK mention lookups instead of querying mentioned users sequentially.
 - [ ] Reduce per-message autorole pending-work database reads.
 - [ ] Review XP message processing queries and transaction boundaries.

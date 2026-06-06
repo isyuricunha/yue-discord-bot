@@ -211,6 +211,7 @@ YueBot uses multiple environment files for different purposes:
 - `REDIS_URL` - Redis connection string (e.g., `redis://localhost:6379`)
 - `REDIS_PASSWORD` - Redis password if required
 - `KEYWORD_TRIGGER_CACHE_TTL_MS` - Bot keyword trigger cache lifetime in milliseconds (default: `10000`; set to `0` to disable stored entries)
+- `SUGGESTION_CONFIG_CACHE_TTL_MS` - Bot suggestion config cache lifetime in milliseconds (default: `10000`; set to `0` to disable stored entries)
 
 #### AI Services (Optional)
 
