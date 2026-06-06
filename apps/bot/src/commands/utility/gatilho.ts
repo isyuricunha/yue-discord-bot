@@ -176,6 +176,7 @@ export const gatilhoCommand: Command = {
             `${EMOJIS.ERROR} URL de mídia inválida ou domínio não suportado para Embed direto. ` +
             `Links de YouTube/Spotify são aceitos, mas URLs de imagem/GIF devem ser de domínios confiáveis.`,
         })
+        return
       }
 
       await safe_defer_ephemeral(interaction)
@@ -226,8 +227,18 @@ export const gatilhoCommand: Command = {
       const new_keywords_input = interaction.options.getString('novas-palavras')
       const raw_url = interaction.options.getString('url')?.trim()
       const content = interaction.options.getString('texto')?.trim()
+      const channel_option = interaction.options.get('canal')
       const channel = interaction.options.getChannel('canal')
       const responder = interaction.options.getBoolean('responder')
+
+      if (raw_url && !keywordTriggerService.validate_media_url(raw_url)) {
+        await safe_reply_ephemeral(interaction, {
+          content:
+            `${EMOJIS.ERROR} URL de mídia inválida ou domínio não suportado para Embed direto. ` +
+            `Links de YouTube/Spotify são aceitos, mas URLs de imagem/GIF devem ser de domínios confiáveis.`,
+        })
+        return
+      }
 
       await safe_defer_ephemeral(interaction)
 
@@ -238,7 +249,7 @@ export const gatilhoCommand: Command = {
           new_keywords_input ? parse_keywords(new_keywords_input) : undefined,
           raw_url !== undefined ? raw_url || null : undefined,
           content !== undefined ? content || null : undefined,
-          channel?.id ?? null,
+          channel_option ? channel?.id ?? null : undefined,
           responder
         )
 

@@ -1,6 +1,6 @@
 import { EmbedBuilder } from 'discord.js'
 import type { Message } from 'discord.js'
-import { prisma } from '@yuebot/database'
+import { prisma, Prisma } from '@yuebot/database'
 import { COLORS } from '@yuebot/shared'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
@@ -41,6 +41,17 @@ function validate_media_url(raw: string | null | undefined): boolean {
   const path_without_query = url.pathname.split('?')[0] ?? ''
   const ext = path_without_query.split('.').pop()?.toLowerCase() ?? ''
   return ALLOWED_EXTENSIONS.includes(ext)
+}
+
+export function build_remove_trigger_where(guild_id: string, keyword: string): Prisma.KeywordTriggerWhereInput {
+  const normalized_keyword = keyword.toLowerCase().trim()
+  return {
+    guildId: guild_id,
+    OR: [
+      { keyword: normalized_keyword },
+      { keywords: { has: normalized_keyword } },
+    ],
+  }
 }
 
 async function get_triggers(guild_id: string) {
@@ -97,7 +108,7 @@ async function update_trigger(
 
   if (!existing) return null
 
-  const update_data: any = {}
+  const update_data: Prisma.KeywordTriggerUpdateInput = {}
 
   if (keywords !== undefined && keywords.length > 0) {
     update_data.keyword = keywords[0]
@@ -117,10 +128,7 @@ async function update_trigger(
 
 async function remove_trigger(guild_id: string, keyword: string) {
   return prisma.keywordTrigger.deleteMany({
-    where: {
-      guildId: guild_id,
-      keyword: keyword.toLowerCase().trim(),
-    },
+    where: build_remove_trigger_where(guild_id, keyword),
   })
 }
 
