@@ -1,8 +1,9 @@
-import type { FastifyPluginAsync } from 'fastify'
-import { prisma } from '@yuebot/database'
+import type { FastifyBaseLogger, FastifyInstance, FastifyPluginAsync, FastifyReply } from 'fastify'
+import { prisma, Prisma } from '@yuebot/database'
 import { z } from 'zod'
 import { can_access_guild } from '../utils/guild_access'
 import { is_guild_admin } from '../internal/bot_internal_api'
+import { validation_error_details } from '../utils/validation_error'
 
 const ALLOWED_DOMAINS = [
   'tenor.com',
@@ -39,7 +40,8 @@ function validate_media_url(raw: string | null | undefined): boolean {
   return ALLOWED_EXTENSIONS.includes(ext)
 }
 
-const paramsSchema = z.object({ guildId: z.string() })
+const paramsSchema = z.object({ guildId: z.string().min(1) })
+const triggerParamsSchema = z.object({ guildId: z.string().min(1), triggerId: z.string().min(1) })
 
 function parseKeywords(input: string | string[]): string[] {
   if (Array.isArray(input)) {
@@ -76,20 +78,52 @@ const updateTriggerSchema = z.object({
   replyToUser: z.boolean().optional(),
 })
 
-export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
+type triggers_db = {
+  keywordTrigger: Pick<
+    typeof prisma.keywordTrigger,
+    'findMany' | 'findFirst' | 'findUnique' | 'create' | 'update' | 'delete'
+  >
+}
+
+type admin_check = (guildId: string, userId: string, log: FastifyBaseLogger) => Promise<{ isAdmin: boolean }>
+
+type triggers_route_deps = {
+  db: triggers_db
+  isGuildAdmin: admin_check
+}
+
+function send_validation_error(
+  fastify: FastifyInstance,
+  reply: FastifyReply,
+  error: { flatten: () => unknown },
+) {
+  const details = validation_error_details(fastify, error)
+  return reply.code(400).send(details ? { error: 'Invalid request', details } : { error: 'Invalid request' })
+}
+
+export function createTriggersRoutes(overrides: Partial<triggers_route_deps> = {}): FastifyPluginAsync {
+  const deps: triggers_route_deps = {
+    db: overrides.db ?? prisma,
+    isGuildAdmin: overrides.isGuildAdmin ?? is_guild_admin,
+  }
+
+  return async function triggersRoutes(fastify) {
   // GET /:guildId/triggers
   fastify.get(
     '/:guildId/triggers',
     { preHandler: [fastify.authenticate] },
     async (request, reply) => {
-      const { guildId } = paramsSchema.parse(request.params)
+      const parsedParams = paramsSchema.safeParse(request.params)
+      if (!parsedParams.success) return send_validation_error(fastify, reply, parsedParams.error)
+
+      const { guildId } = parsedParams.data
       const user = request.user
 
       if (!can_access_guild(user, guildId)) {
         return reply.code(403).send({ error: 'Forbidden' })
       }
 
-      const triggers = await prisma.keywordTrigger.findMany({
+      const triggers = await deps.db.keywordTrigger.findMany({
         where: { guildId },
         orderBy: { createdAt: 'desc' },
       })
@@ -103,19 +137,25 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
     '/:guildId/triggers',
     { preHandler: [fastify.authenticate] },
     async (request, reply) => {
-      const { guildId } = paramsSchema.parse(request.params)
+      const parsedParams = paramsSchema.safeParse(request.params)
+      if (!parsedParams.success) return send_validation_error(fastify, reply, parsedParams.error)
+
+      const { guildId } = parsedParams.data
       const user = request.user
 
       if (!can_access_guild(user, guildId)) {
         return reply.code(403).send({ error: 'Forbidden' })
       }
 
-      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      const { isAdmin } = await deps.isGuildAdmin(guildId, user.userId, request.log)
       if (!user.isOwner && !isAdmin) {
         return reply.code(403).send({ error: 'Você precisa da permissão Gerenciar Servidor.' })
       }
 
-      const body = createTriggerSchema.parse(request.body)
+      const parsedBody = createTriggerSchema.safeParse(request.body)
+      if (!parsedBody.success) return send_validation_error(fastify, reply, parsedBody.error)
+
+      const body = parsedBody.data
 
       if (body.mediaUrl && !validate_media_url(body.mediaUrl)) {
         return reply.code(400).send({
@@ -132,7 +172,7 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Validate uniqueness for all keywords
       for (const keyword of keywords) {
-        const existing = await prisma.keywordTrigger.findFirst({
+        const existing = await deps.db.keywordTrigger.findFirst({
           where: {
             guildId,
             OR: [
@@ -152,7 +192,7 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(400).send({ error: 'Você precisa informar pelo menos uma URL ou um Texto.' })
       }
 
-      const trigger = await prisma.keywordTrigger.create({
+      const trigger = await deps.db.keywordTrigger.create({
         data: {
           guildId,
           keyword: keywords[0],
@@ -174,21 +214,25 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
     '/:guildId/triggers/:triggerId',
     { preHandler: [fastify.authenticate] },
     async (request, reply) => {
-      const { guildId, triggerId } = z
-        .object({ guildId: z.string(), triggerId: z.string() })
-        .parse(request.params)
+      const parsedParams = triggerParamsSchema.safeParse(request.params)
+      if (!parsedParams.success) return send_validation_error(fastify, reply, parsedParams.error)
+
+      const { guildId, triggerId } = parsedParams.data
       const user = request.user
 
       if (!can_access_guild(user, guildId)) {
         return reply.code(403).send({ error: 'Forbidden' })
       }
 
-      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      const { isAdmin } = await deps.isGuildAdmin(guildId, user.userId, request.log)
       if (!user.isOwner && !isAdmin) {
         return reply.code(403).send({ error: 'Você precisa da permissão Gerenciar Servidor.' })
       }
 
-      const body = updateTriggerSchema.parse(request.body)
+      const parsedBody = updateTriggerSchema.safeParse(request.body)
+      if (!parsedBody.success) return send_validation_error(fastify, reply, parsedBody.error)
+
+      const body = parsedBody.data
 
       if (body.mediaUrl && !validate_media_url(body.mediaUrl)) {
         return reply.code(400).send({
@@ -197,7 +241,7 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
         })
       }
 
-      const existing_trigger = await prisma.keywordTrigger.findUnique({
+      const existing_trigger = await deps.db.keywordTrigger.findUnique({
         where: { id: triggerId },
       })
 
@@ -213,7 +257,7 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
 
       // Validate uniqueness for all keywords
       for (const keyword of keywords) {
-        const existing = await prisma.keywordTrigger.findFirst({
+        const existing = await deps.db.keywordTrigger.findFirst({
           where: {
             guildId,
             id: { not: triggerId },
@@ -233,10 +277,9 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(400).send({ error: 'Você precisa informar pelo menos uma URL ou um Texto.' })
       }
 
-      const update_data: any = {
+      const update_data: Prisma.KeywordTriggerUpdateInput = {
         keyword: keywords[0],
         keywords,
-        updatedAt: new Date(),
       }
 
       if (body.mediaUrl !== undefined) update_data.mediaUrl = body.mediaUrl || null
@@ -244,7 +287,7 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
       if (body.channelId !== undefined) update_data.channelId = body.channelId || null
       if (body.replyToUser !== undefined) update_data.replyToUser = body.replyToUser
 
-      const trigger = await prisma.keywordTrigger.update({
+      const trigger = await deps.db.keywordTrigger.update({
         where: { id: triggerId },
         data: update_data,
       })
@@ -258,21 +301,22 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
     '/:guildId/triggers/:triggerId',
     { preHandler: [fastify.authenticate] },
     async (request, reply) => {
-      const { guildId, triggerId } = z
-        .object({ guildId: z.string(), triggerId: z.string() })
-        .parse(request.params)
+      const parsedParams = triggerParamsSchema.safeParse(request.params)
+      if (!parsedParams.success) return send_validation_error(fastify, reply, parsedParams.error)
+
+      const { guildId, triggerId } = parsedParams.data
       const user = request.user
 
       if (!can_access_guild(user, guildId)) {
         return reply.code(403).send({ error: 'Forbidden' })
       }
 
-      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
+      const { isAdmin } = await deps.isGuildAdmin(guildId, user.userId, request.log)
       if (!user.isOwner && !isAdmin) {
         return reply.code(403).send({ error: 'Você precisa da permissão Gerenciar Servidor.' })
       }
 
-      const trigger = await prisma.keywordTrigger.findUnique({
+      const trigger = await deps.db.keywordTrigger.findUnique({
         where: { id: triggerId },
       })
 
@@ -280,9 +324,12 @@ export const triggersRoutes: FastifyPluginAsync = async (fastify) => {
         return reply.code(404).send({ error: 'Gatilho não encontrado.' })
       }
 
-      await prisma.keywordTrigger.delete({ where: { id: triggerId } })
+      await deps.db.keywordTrigger.delete({ where: { id: triggerId } })
 
       return reply.code(204).send()
     }
   )
 }
+}
+
+export const triggersRoutes = createTriggersRoutes()
