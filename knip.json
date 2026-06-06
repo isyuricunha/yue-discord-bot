@@ -9,6 +9,7 @@
   ],
   "workspaces": {
     "apps/api": {
+      "entry": ["src/**/*.test.ts"],
       "project": ["src/**/*.{ts,tsx}"]
     },
     "apps/bot": {

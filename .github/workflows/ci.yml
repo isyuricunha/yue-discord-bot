@@ -30,7 +30,7 @@ on:
 
 jobs:
   checks:
-    name: lint, type-check, build
+    name: lint, type-check, test, build
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -84,6 +84,9 @@ jobs:
 
       - name: Type-check
         run: pnpm type-check
+
+      - name: Test
+        run: pnpm test
 
       - name: Build
         run: pnpm build
