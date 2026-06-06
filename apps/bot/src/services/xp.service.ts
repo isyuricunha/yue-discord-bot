@@ -16,7 +16,7 @@ function remove_repeated_characters(content: string): string {
   return content.replace(/(.)\1+/g, '$1');
 }
 
-function normalize_xp_config(config: GuildXpConfig | null) {
+export function normalize_xp_config(config: GuildXpConfig | null) {
   return {
     enabled: config?.enabled ?? true,
     xpMode: config?.xpMode ?? 'formula',
@@ -35,6 +35,10 @@ function normalize_xp_config(config: GuildXpConfig | null) {
     ignoredChannelIds: (config?.ignoredChannelIds as string[] | undefined) ?? [],
     ignoredRoleIds: (config?.ignoredRoleIds as string[] | undefined) ?? [],
     roleXpMultipliers: (config?.roleXpMultipliers as Record<string, number> | undefined) ?? {},
+    rewardMode: config?.rewardMode ?? 'stack',
+    levelUpEnabled: config?.levelUpEnabled ?? true,
+    levelUpChannelId: config?.levelUpChannelId ?? null,
+    levelUpMessage: config?.levelUpMessage ?? null,
   };
 }
 
@@ -54,7 +58,7 @@ function compute_message_xp(unique_length: number, opts: { xpDivisorMin: number;
   return Math.min(raw, Math.max(1, opts.xpCap));
 }
 
-function compute_level_from_xp(xp: number): number {
+export function compute_level_from_xp(xp: number): number {
   // Loritta wiki: cada nível são 1000 XP.
   return Math.floor(xp / 1000);
 }
@@ -69,6 +73,23 @@ function compute_next_level_info(input: { xp: number; level: number }) {
     requiredXp: required_xp,
   };
 }
+
+type XpLevelUpConfig = Pick<
+  ReturnType<typeof normalize_xp_config>,
+  'rewardMode' | 'levelUpEnabled' | 'levelUpChannelId' | 'levelUpMessage'
+>;
+
+type XpLevelUpMember = {
+  xp: number;
+  updatedAt: Date;
+};
+
+type XpLevelUpSource = Pick<Message, 'author' | 'guild' | 'member'>;
+
+type XpLevelUpContext = {
+  config?: XpLevelUpConfig;
+  xpMember?: XpLevelUpMember;
+};
 
 class XpService {
   private config_cache: Map<string, { config: GuildXpConfig | null; timestamp: number }> = new Map();
@@ -435,16 +456,24 @@ class XpService {
     });
 
     if (new_level > previous_level) {
-      await this.handle_level_up(message, updated.level);
+      await this.handle_level_up(message, updated.level, {
+        config,
+        xpMember: updated,
+      });
     }
   }
 
-  private async handle_level_up(message: Message, new_level: number): Promise<void> {
+  async handle_level_up(
+    message: XpLevelUpSource,
+    new_level: number,
+    context: XpLevelUpContext = {},
+  ): Promise<void> {
     if (!message.guild || !message.member) return;
 
     const guild_id = message.guild.id;
 
     try {
+      const config = context.config ?? normalize_xp_config(await this.get_guild_xp_config(guild_id));
       const rewards = await prisma.guildLevelRoleReward.findMany({
         where: {
           guildId: guild_id,
@@ -454,8 +483,7 @@ class XpService {
       });
 
       if (rewards.length > 0) {
-        const config = await prisma.guildXpConfig.findUnique({ where: { guildId: guild_id } });
-        const reward_mode = config?.rewardMode ?? 'stack';
+        const reward_mode = config.rewardMode;
 
         if (reward_mode === 'highest') {
           const highest = rewards[rewards.length - 1];
@@ -480,26 +508,26 @@ class XpService {
         }
       }
 
-      const config = await prisma.guildXpConfig.findUnique({ where: { guildId: guild_id } });
-      const level_up_enabled = config?.levelUpEnabled ?? true;
-      const channel_id = config?.levelUpChannelId;
-      const template = config?.levelUpMessage;
+      const level_up_enabled = config.levelUpEnabled;
+      const channel_id = config.levelUpChannelId;
+      const template = config.levelUpMessage;
 
       if (level_up_enabled && channel_id) {
         const channel = await message.guild.channels.fetch(channel_id).catch(() => null);
         if (channel && channel.isTextBased()) {
-          const xp_row = await prisma.guildXpMember.findUnique({
-            where: {
-              userId_guildId: {
-                userId: message.author.id,
-                guildId: guild_id,
+          const xp_row = context.xpMember
+            ?? await prisma.guildXpMember.findUnique({
+              where: {
+                userId_guildId: {
+                  userId: message.author.id,
+                  guildId: guild_id,
+                },
               },
-            },
-            select: {
-              xp: true,
-              updatedAt: true,
-            },
-          });
+              select: {
+                xp: true,
+                updatedAt: true,
+              },
+            });
 
           const xp_value = xp_row?.xp ?? new_level * 1000;
 

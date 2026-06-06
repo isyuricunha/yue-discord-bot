@@ -21,10 +21,11 @@ This file tracks the repository-wide performance audit and its implementation mi
 - [x] Cache suggestion configuration reads with bounded staleness and a per-guild invalidation hook.
 - [x] Batch AFK mention lookups into one query while preserving mention order.
 - [x] Index first-message autorole pendings in memory with startup hydration and database fallback.
+- [x] Reuse XP configuration and updated member state during level-up processing, removing up to three redundant queries.
 
 ## Next Milestones
 
-- [ ] Review XP message processing queries and transaction boundaries.
+- [ ] Review XP message processing transaction boundaries and concurrent increment safety.
 - [ ] Parallelize independent bot startup guild synchronization operations with bounded concurrency.
 - [ ] Parallelize independent API statistics and dashboard queries.
 - [ ] Review command cooldown cleanup so it does not issue unnecessary deletes per invocation.

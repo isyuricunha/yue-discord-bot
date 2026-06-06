@@ -2,6 +2,7 @@ import { VoiceState, EmbedBuilder } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { getSendableChannel } from '../utils/discord'
+import { compute_level_from_xp, xpService } from './xp.service'
 
 class VoiceXpService {
   // O dicionário local fará cache de timestamps de entrada para evitar query intensa no banco em conexões curtas
@@ -152,11 +153,6 @@ class VoiceXpService {
       const currentXp = existingRecord?.xp ?? 0
       const newXp = currentXp + earnedXp
 
-      // Use the standard 1000 threshold level-up logic
-      const compute_level_from_xp = (xp: number) => {
-         return Math.floor(xp / 1000);
-      }
-      
       const currentLevel = existingRecord?.level ?? compute_level_from_xp(currentXp)
       const newLevel = compute_level_from_xp(newXp)
 
@@ -179,17 +175,15 @@ class VoiceXpService {
 
       // Level up Check using identical system logic
       if (newLevel > currentLevel) {
-        const { xpService } = await import('./xp.service');
-        
-        // Emulate a message internally to fire handle_level_up
-        // Since handle_level_up expects a Message and Member, we inject minimal context.
         if (newState.member) {
-          const fakeMessage = {
-             author: newState.member.user,
-             member: newState.member,
-             guild: newState.guild,
-          } as any;
-          await xpService['handle_level_up'](fakeMessage, newLevel);
+          await xpService.handle_level_up({
+            author: newState.member.user,
+            member: newState.member,
+            guild: newState.guild,
+          }, newLevel, {
+            config,
+            xpMember: updatedMember,
+          })
         }
       }
     } catch (error) {
