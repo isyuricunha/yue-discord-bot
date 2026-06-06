@@ -1,8 +1,9 @@
-import { useMemo } from 'react'
+import { Suspense, useMemo } from 'react'
 import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { cn } from '../../lib/cn'
 import { Seo } from '../seo/seo'
+import { RouteLoading } from './route_loading'
 
 function nav_link_class({ isActive }: { isActive: boolean }) {
   return cn(
@@ -44,7 +45,9 @@ export function PublicShell() {
       </header>
 
       <main className={cn('px-5 py-6', 'animate-fadeIn')} key={content_key}>
-        <Outlet />
+        <Suspense fallback={<RouteLoading />}>
+          <Outlet />
+        </Suspense>
       </main>
 
       <footer className="border-t border-border/80 bg-window">

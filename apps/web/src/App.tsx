@@ -1,52 +1,53 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { useAuthStore } from './store/auth'
-import LoginPage from './pages/Login'
-import TokenLoginPage from './pages/TokenLogin'
-import ExtrasPage from './pages/Extras'
-import ExtrasHomePage from './pages/extras/ExtrasHome'
-import ExtrasAboutPage from './pages/extras/ExtrasAbout'
-import ExtrasModerationPage from './pages/extras/ExtrasModeration'
-import ExtrasCommandsPage from './pages/extras/ExtrasCommands'
-import ExtrasPlaceholdersPage from './pages/extras/ExtrasPlaceholders'
-import ExtrasBanAppealPage from './pages/extras/ExtrasBanAppeal'
-import TermsPage from './pages/Terms'
-import PrivacyPage from './pages/Privacy'
-import DashboardPage from './pages/Dashboard'
-import GuildPage from './pages/Guild'
-import OverviewPage from './pages/Overview'
-import ModLogsPage from './pages/ModLogs'
-import AuditLogsPage from './pages/AuditLogs'
-import CommandsPage from './pages/Commands'
-import MembersPage from './pages/Members'
-import MemberDetailsPage from './pages/MemberDetails'
-import GiveawaysPage from './pages/Giveaways'
-import GiveawayDetailsPage from './pages/GiveawayDetails'
-import CreateGiveawayPage from './pages/CreateGiveaway'
-import GiveawayEntryEditPage from './pages/GiveawayEntryEdit'
-import SettingsPage from './pages/Settings'
-import ModerationPage from './pages/Moderation'
-import AutoModPage from './pages/AutoMod'
-import AntiRaidPage from './pages/AntiRaid'
-import WelcomePage from './pages/Welcome'
-import XpLevelsPage from './pages/XpLevels'
-import AutorolePage from './pages/Autorole'
-import TicketsPage from './pages/Tickets'
-import SetupWizardPage from './pages/SetupWizard'
-import SuggestionsPage from './pages/Suggestions'
-import ReactionRolesPage from './pages/ReactionRoles'
-import StarboardPage from './pages/Starboard'
-import BadgesPage from './pages/Badges'
-import FanArtsPage from './pages/FanArts'
-import EconomyPage from './pages/Economy'
-import CoinflipPage from './pages/Coinflip'
-import OwnerPage from './pages/Owner'
-import MusicPage from './pages/Music'
-import CustomCommandsPage from './pages/CustomCommands'
-import KeywordTriggersPage from './pages/KeywordTriggers'
-import FreeGamesPage from './pages/FreeGames'
-import { AppShell, PublicShell, RequireAuth, RequireOwner } from './components/layout'
+import { AppShell, PublicShell, RequireAuth, RequireOwner, RouteLoading } from './components/layout'
 import ErrorBoundary from './components/error_boundary'
+
+const LoginPage = lazy(() => import('./pages/Login'))
+const TokenLoginPage = lazy(() => import('./pages/TokenLogin'))
+const ExtrasPage = lazy(() => import('./pages/Extras'))
+const ExtrasHomePage = lazy(() => import('./pages/extras/ExtrasHome'))
+const ExtrasAboutPage = lazy(() => import('./pages/extras/ExtrasAbout'))
+const ExtrasModerationPage = lazy(() => import('./pages/extras/ExtrasModeration'))
+const ExtrasCommandsPage = lazy(() => import('./pages/extras/ExtrasCommands'))
+const ExtrasPlaceholdersPage = lazy(() => import('./pages/extras/ExtrasPlaceholders'))
+const ExtrasBanAppealPage = lazy(() => import('./pages/extras/ExtrasBanAppeal'))
+const TermsPage = lazy(() => import('./pages/Terms'))
+const PrivacyPage = lazy(() => import('./pages/Privacy'))
+const DashboardPage = lazy(() => import('./pages/Dashboard'))
+const GuildPage = lazy(() => import('./pages/Guild'))
+const OverviewPage = lazy(() => import('./pages/Overview'))
+const ModLogsPage = lazy(() => import('./pages/ModLogs'))
+const AuditLogsPage = lazy(() => import('./pages/AuditLogs'))
+const CommandsPage = lazy(() => import('./pages/Commands'))
+const MembersPage = lazy(() => import('./pages/Members'))
+const MemberDetailsPage = lazy(() => import('./pages/MemberDetails'))
+const GiveawaysPage = lazy(() => import('./pages/Giveaways'))
+const GiveawayDetailsPage = lazy(() => import('./pages/GiveawayDetails'))
+const CreateGiveawayPage = lazy(() => import('./pages/CreateGiveaway'))
+const GiveawayEntryEditPage = lazy(() => import('./pages/GiveawayEntryEdit'))
+const SettingsPage = lazy(() => import('./pages/Settings'))
+const ModerationPage = lazy(() => import('./pages/Moderation'))
+const AutoModPage = lazy(() => import('./pages/AutoMod'))
+const AntiRaidPage = lazy(() => import('./pages/AntiRaid'))
+const WelcomePage = lazy(() => import('./pages/Welcome'))
+const XpLevelsPage = lazy(() => import('./pages/XpLevels'))
+const AutorolePage = lazy(() => import('./pages/Autorole'))
+const TicketsPage = lazy(() => import('./pages/Tickets'))
+const SetupWizardPage = lazy(() => import('./pages/SetupWizard'))
+const SuggestionsPage = lazy(() => import('./pages/Suggestions'))
+const ReactionRolesPage = lazy(() => import('./pages/ReactionRoles'))
+const StarboardPage = lazy(() => import('./pages/Starboard'))
+const BadgesPage = lazy(() => import('./pages/Badges'))
+const FanArtsPage = lazy(() => import('./pages/FanArts'))
+const EconomyPage = lazy(() => import('./pages/Economy'))
+const CoinflipPage = lazy(() => import('./pages/Coinflip'))
+const OwnerPage = lazy(() => import('./pages/Owner'))
+const MusicPage = lazy(() => import('./pages/Music'))
+const CustomCommandsPage = lazy(() => import('./pages/CustomCommands'))
+const KeywordTriggersPage = lazy(() => import('./pages/KeywordTriggers'))
+const FreeGamesPage = lazy(() => import('./pages/FreeGames'))
 
 function App() {
   const { user, isLoading, initialize } = useAuthStore()
@@ -65,11 +66,27 @@ function App() {
         <Routes>
           <Route
             path="/login"
-            element={!isAuthResolved || !isAuthenticated ? <LoginPage /> : <Navigate to="/" />}
+            element={
+              !isAuthResolved || !isAuthenticated ? (
+                <Suspense fallback={<RouteLoading fullScreen />}>
+                  <LoginPage />
+                </Suspense>
+              ) : (
+                <Navigate to="/" />
+              )
+            }
           />
           <Route
             path="/token-login"
-            element={!isAuthResolved || !isAuthenticated ? <TokenLoginPage /> : <Navigate to="/" />}
+            element={
+              !isAuthResolved || !isAuthenticated ? (
+                <Suspense fallback={<RouteLoading fullScreen />}>
+                  <TokenLoginPage />
+                </Suspense>
+              ) : (
+                <Navigate to="/" />
+              )
+            }
           />
 
           <Route element={<PublicShell />}>

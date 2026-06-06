@@ -3,7 +3,7 @@
  *
  * @returns {JSX.Element} Estrutura principal da aplicação
  */
-import { useEffect, useMemo, useState } from 'react'
+import { Suspense, useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation } from 'react-router-dom'
 
 import { cn } from '../../lib/cn'
@@ -13,6 +13,7 @@ import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
 import { CommandPalette } from '../command_palette'
 import { useKeyboardShortcuts } from '../../hooks/use_keyboard'
+import { RouteLoading } from './route_loading'
 
 const STORAGE_KEY = 'yuebot-sidebar-collapsed'
 
@@ -48,7 +49,9 @@ export function AppShell() {
           <div className="scrollbar-yue min-h-0 flex-1 overflow-y-auto">
             <Topbar />
             <main id="main-content" className={cn('px-4 py-5 sm:px-5', 'animate-fadeIn')} key={content_key} tabIndex={-1}>
-              <Outlet />
+              <Suspense fallback={<RouteLoading />}>
+                <Outlet />
+              </Suspense>
             </main>
           </div>
         </div>
