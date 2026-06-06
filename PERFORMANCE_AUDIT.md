@@ -20,10 +20,10 @@ This file tracks the repository-wide performance audit and its implementation mi
 - [x] Cache keyword trigger reads per guild with concurrent-load deduplication and explicit invalidation.
 - [x] Cache suggestion configuration reads with bounded staleness and a per-guild invalidation hook.
 - [x] Batch AFK mention lookups into one query while preserving mention order.
+- [x] Index first-message autorole pendings in memory with startup hydration and database fallback.
 
 ## Next Milestones
 
-- [ ] Reduce per-message autorole pending-work database reads.
 - [ ] Review XP message processing queries and transaction boundaries.
 - [ ] Parallelize independent bot startup guild synchronization operations with bounded concurrency.
 - [ ] Parallelize independent API statistics and dashboard queries.

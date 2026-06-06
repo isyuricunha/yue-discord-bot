@@ -1,6 +1,7 @@
 import type { Guild, GuildMember, Message } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
+import { AutorolePendingIndex } from './autorole_pending_index'
 
 type autorole_config = {
   enabled: boolean
@@ -23,6 +24,12 @@ function normalize_config(config: { enabled: boolean; delaySeconds: number; only
 class AutoroleService {
   private config_cache: Map<string, { config: autorole_config; timestamp: number }> = new Map()
   private readonly CACHE_TTL = 5 * 60 * 1000
+  private readonly pending_first_message_index = new AutorolePendingIndex(
+    () => prisma.guildAutorolePending.findMany({
+      where: { waitForFirstMessage: true },
+      select: { guildId: true, userId: true },
+    })
+  )
 
   private async get_guild_config(guild_id: string): Promise<autorole_config> {
     const cached = this.config_cache.get(guild_id)
@@ -72,6 +79,10 @@ class AutoroleService {
     this.config_cache.delete(guild_id)
   }
 
+  async initialize_pending_index(): Promise<void> {
+    await this.pending_first_message_index.initialize()
+  }
+
   private async upsert_pending(input: {
     guildId: string
     userId: string
@@ -103,6 +114,8 @@ class AutoroleService {
         lastError: input.lastError ?? null,
       },
     })
+
+    this.pending_first_message_index.mark(guildId, userId, waitForFirstMessage)
   }
 
   private async try_apply_roles(guild: Guild, user_id: string, role_ids: string[]): Promise<void> {
@@ -190,6 +203,7 @@ class AutoroleService {
           userId: user_id,
         },
       })
+      this.pending_first_message_index.mark(guild_id, user_id, false)
     } catch (error) {
       const err = error as Error
       logger.warn({ err, guildId: guild_id, userId: user_id }, 'Falha ao aplicar autorole imediato; criando pendência')
@@ -213,6 +227,19 @@ class AutoroleService {
 
     logger.debug({ guildId: guild_id, userId: user_id }, 'handle_message chamado para autorole')
 
+    try {
+      const is_waiting = await this.pending_first_message_index.isWaiting(guild_id, user_id)
+      if (!is_waiting) {
+        logger.debug({ guildId: guild_id, userId: user_id }, 'Nenhuma pendência de autorole aguardando primeira mensagem')
+        return
+      }
+    } catch (error) {
+      logger.warn(
+        { error, guildId: guild_id, userId: user_id },
+        'Failed to query autorole index; falling back to database'
+      )
+    }
+
     const pending = await prisma.guildAutorolePending.findUnique({
       where: {
         guildId_userId: {
@@ -227,6 +254,7 @@ class AutoroleService {
     })
 
     if (!pending?.waitForFirstMessage) {
+      this.pending_first_message_index.mark(guild_id, user_id, false)
       logger.debug({ guildId: guild_id, userId: user_id }, 'Nenhuma pendência de autorole aguardando primeira mensagem')
       return
     }
@@ -243,6 +271,7 @@ class AutoroleService {
           userId: user_id,
         },
       })
+      this.pending_first_message_index.mark(guild_id, user_id, false)
       return
     }
 
@@ -255,6 +284,7 @@ class AutoroleService {
         await this.try_apply_roles(message.guild, user_id, config.roleIds)
         logger.info({ guildId: guild_id, userId: user_id, roleIds: config.roleIds }, 'Autorole aplicado com sucesso')
         await prisma.guildAutorolePending.delete({ where: { id: pending.id } })
+        this.pending_first_message_index.mark(guild_id, user_id, false)
       } catch (error) {
         const err = error as Error
         logger.warn({ err, guildId: guild_id, userId: user_id }, 'Falha ao aplicar autorole após primeira mensagem')

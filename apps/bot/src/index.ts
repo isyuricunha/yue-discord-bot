@@ -6,6 +6,7 @@ import { GiveawayScheduler } from "./services/giveawayScheduler";
 import { FreeGameScheduler } from "./services/freeGameScheduler";
 import { WarnExpirationService } from "./services/warnExpirationService";
 import { AutoroleScheduler } from "./services/autoroleScheduler";
+import { autoroleService } from "./services/autorole.service";
 import { ScheduledEventScheduler } from "./services/scheduledEventScheduler";
 import { InventoryExpirationScheduler } from "./services/inventoryExpirationScheduler";
 import { AniListWatchlistScheduler } from "./services/anilistWatchlistScheduler";
@@ -144,6 +145,15 @@ client.once("clientReady", async () => {
 
 	await prune_stale_guilds_from_database(client);
 	await sync_guilds_to_database(client);
+
+	try {
+		await autoroleService.initialize_pending_index();
+	} catch (error) {
+		logger.warn(
+			{ error },
+			"Failed to initialize autorole index; messages will fall back to the database"
+		);
+	}
 
 	initModerationPersistenceService(client);
 	initPunishmentRoleService(client);
