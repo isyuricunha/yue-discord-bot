@@ -17,10 +17,10 @@ This file tracks the repository-wide performance audit and its implementation mi
 - [x] Split web pages into route-level chunks without changing routes or features.
 - [x] Keep the application and public shells visible while route chunks load.
 - [x] Validate the web milestone with lint, type-check, tests, build, and browser rendering.
+- [x] Cache keyword trigger reads per guild with concurrent-load deduplication and explicit invalidation.
 
 ## Next Milestones
 
-- [ ] Cache keyword trigger reads with bounded staleness and explicit invalidation.
 - [ ] Cache suggestion configuration reads with bounded staleness and explicit invalidation.
 - [ ] Batch AFK mention lookups instead of querying mentioned users sequentially.
 - [ ] Reduce per-message autorole pending-work database reads.

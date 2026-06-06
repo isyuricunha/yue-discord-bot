@@ -5,6 +5,23 @@ import { COLORS } from '@yuebot/shared'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
 
+type keyword_trigger = Prisma.KeywordTriggerGetPayload<Record<string, never>>
+
+type keyword_trigger_cache_entry = {
+  triggers: keyword_trigger[]
+  expires_at: number
+}
+
+type keyword_trigger_in_flight_entry = {
+  token: symbol
+  promise: Promise<keyword_trigger[]>
+}
+
+type keyword_trigger_loader = (guild_id: string) => Promise<keyword_trigger[]>
+
+const DEFAULT_CACHE_TTL_MS = 10_000
+const MAX_CACHE_ENTRIES = 500
+
 const ALLOWED_DOMAINS = [
   'tenor.com',
   'giphy.com',
@@ -19,6 +36,87 @@ const ALLOWED_DOMAINS = [
 ]
 
 const ALLOWED_EXTENSIONS = ['gif', 'png', 'jpg', 'jpeg', 'webp', 'mp4']
+
+function parse_cache_ttl_ms(value: string | undefined): number {
+  if (!value) return DEFAULT_CACHE_TTL_MS
+  const parsed = Number.parseInt(value, 10)
+  if (!Number.isFinite(parsed) || parsed < 0) return DEFAULT_CACHE_TTL_MS
+  return parsed
+}
+
+export class KeywordTriggerCache {
+  private readonly cache = new Map<string, keyword_trigger_cache_entry>()
+  private readonly in_flight = new Map<string, keyword_trigger_in_flight_entry>()
+  private readonly cache_ttl_ms: number
+
+  constructor(
+    private readonly load_triggers: keyword_trigger_loader,
+    options: { cache_ttl_ms?: number } = {}
+  ) {
+    this.cache_ttl_ms = options.cache_ttl_ms
+      ?? parse_cache_ttl_ms(process.env.KEYWORD_TRIGGER_CACHE_TTL_MS)
+  }
+
+  clear() {
+    this.cache.clear()
+    this.in_flight.clear()
+  }
+
+  invalidate(guild_id: string) {
+    this.cache.delete(guild_id)
+    this.in_flight.delete(guild_id)
+  }
+
+  async get(guild_id: string): Promise<keyword_trigger[]> {
+    if (this.cache_ttl_ms > 0) {
+      const cached = this.cache.get(guild_id)
+      if (cached && cached.expires_at > Date.now()) {
+        return cached.triggers
+      }
+    }
+
+    const existing_load = this.in_flight.get(guild_id)
+    if (existing_load) return existing_load.promise
+
+    const token = Symbol(guild_id)
+    const promise = this.load_triggers(guild_id)
+      .then((triggers) => {
+        const current_load = this.in_flight.get(guild_id)
+        if (this.cache_ttl_ms > 0 && current_load?.token === token) {
+          this.cache.set(guild_id, {
+            triggers,
+            expires_at: Date.now() + this.cache_ttl_ms,
+          })
+          this.prune_cache()
+        }
+        return triggers
+      })
+      .finally(() => {
+        if (this.in_flight.get(guild_id)?.token === token) {
+          this.in_flight.delete(guild_id)
+        }
+      })
+
+    this.in_flight.set(guild_id, { token, promise })
+    return promise
+  }
+
+  private prune_cache() {
+    const now = Date.now()
+
+    for (const [guild_id, entry] of this.cache.entries()) {
+      if (entry.expires_at <= now) {
+        this.cache.delete(guild_id)
+      }
+    }
+
+    while (this.cache.size > MAX_CACHE_ENTRIES) {
+      const first = this.cache.keys().next()
+      if (first.done) break
+      this.cache.delete(first.value)
+    }
+  }
+}
 
 function validate_media_url(raw: string | null | undefined): boolean {
   if (!raw) return false
@@ -54,11 +152,17 @@ export function build_remove_trigger_where(guild_id: string, keyword: string): P
   }
 }
 
-async function get_triggers(guild_id: string) {
+async function load_triggers(guild_id: string): Promise<keyword_trigger[]> {
   return prisma.keywordTrigger.findMany({
     where: { guildId: guild_id },
     orderBy: { createdAt: 'desc' },
   })
+}
+
+const trigger_cache = new KeywordTriggerCache(load_triggers)
+
+async function get_triggers(guild_id: string) {
+  return trigger_cache.get(guild_id)
 }
 
 async function add_trigger(
@@ -73,7 +177,7 @@ async function add_trigger(
   const keyword_list = Array.isArray(keywords) ? keywords : [keywords]
   const primary_keyword = keyword_list[0]
 
-  return prisma.keywordTrigger.create({
+  const trigger = await prisma.keywordTrigger.create({
     data: {
       guildId: guild_id,
       keyword: primary_keyword,
@@ -85,6 +189,9 @@ async function add_trigger(
       replyToUser: reply_to_user,
     },
   })
+
+  trigger_cache.invalidate(guild_id)
+  return trigger
 }
 
 async function update_trigger(
@@ -120,16 +227,24 @@ async function update_trigger(
   if (channel_id !== undefined) update_data.channelId = channel_id
   if (reply_to_user !== undefined) update_data.replyToUser = reply_to_user
 
-  return prisma.keywordTrigger.update({
+  const trigger = await prisma.keywordTrigger.update({
     where: { id: existing.id },
     data: update_data
   })
+
+  trigger_cache.invalidate(guild_id)
+  return trigger
 }
 
 async function remove_trigger(guild_id: string, keyword: string) {
-  return prisma.keywordTrigger.deleteMany({
+  const result = await prisma.keywordTrigger.deleteMany({
     where: build_remove_trigger_where(guild_id, keyword),
   })
+
+  if (result.count > 0) {
+    trigger_cache.invalidate(guild_id)
+  }
+  return result
 }
 
 async function handle_message(message: Message): Promise<boolean> {
@@ -203,4 +318,6 @@ export const keywordTriggerService = {
   remove_trigger,
   handle_message,
   validate_media_url,
+  clear_cache: () => trigger_cache.clear(),
+  invalidate_guild: (guild_id: string) => trigger_cache.invalidate(guild_id),
 }
