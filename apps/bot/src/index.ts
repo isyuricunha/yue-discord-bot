@@ -22,11 +22,13 @@ import { initDjModeService, djModeService } from "./services/dj_mode.service";
 import { antiRaidService } from "./services/antiRaid.service";
 import type { Command, ContextMenuCommand } from "./commands";
 import { start_internal_api } from "./internal/api";
+import { map_with_concurrency } from "./utils/concurrency";
 let internal_server: ReturnType<typeof start_internal_api> | null = null;
 let giveawayScheduler: GiveawayScheduler | null = null;
 let aniListWatchlistScheduler: AniListWatchlistScheduler | null = null;
 let pollExpirationScheduler: PollExpirationScheduler | null = null;
 let freeGameScheduler: FreeGameScheduler | null = null;
+const GUILD_SYNC_CONCURRENCY = 5;
 
 // Extend Client to include commands collection
 declare module "discord.js" {
@@ -89,12 +91,18 @@ async function prune_stale_guilds_from_database(discord_client: Client) {
 
 async function sync_guilds_to_database(discord_client: Client) {
 	const guilds = Array.from(discord_client.guilds.cache.values());
+	const started_at = Date.now();
+	let failed_count = 0;
 
 	logger.info(
-		`🔄 Sincronizando ${guilds.length} guild(s) no banco de dados...`
+		{
+			guildCount: guilds.length,
+			concurrency: GUILD_SYNC_CONCURRENCY,
+		},
+		"🔄 Sincronizando guilds no banco de dados..."
 	);
 
-	for (const guild of guilds) {
+	await map_with_concurrency(guilds, GUILD_SYNC_CONCURRENCY, async (guild) => {
 		try {
 			await prisma.guild.upsert({
 				where: { id: guild.id },
@@ -111,14 +119,22 @@ async function sync_guilds_to_database(discord_client: Client) {
 				},
 			});
 		} catch (error) {
+			failed_count += 1;
 			logger.error(
 				{ error, guildId: guild.id },
 				"❌ Erro ao sincronizar guild no banco"
 			);
 		}
-	}
+	});
 
-	logger.info("✅ Sincronização de guilds concluída");
+	logger.info(
+		{
+			guildCount: guilds.length,
+			failedCount: failed_count,
+			durationMs: Date.now() - started_at,
+		},
+		"✅ Sincronização de guilds concluída"
+	);
 }
 
 // Event: Bot ready
