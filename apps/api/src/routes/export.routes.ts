@@ -3,6 +3,7 @@ import { prisma, Prisma } from '@yuebot/database'
 import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
 import { is_guild_admin } from '../internal/bot_internal_api'
+import { parse_query_integer } from '../utils/pagination'
 
 function escape_csv_cell(input: unknown): string {
   const raw = input === null || input === undefined ? '' : String(input)
@@ -14,12 +15,6 @@ function escape_csv_cell(input: unknown): string {
   const safe = needs_injection_mitigation ? `'${raw}` : raw
   const escaped = safe.replace(/"/g, '""')
   return `"${escaped}"`
-}
-
-function clamp_take(input: string | undefined, fallback: number, max: number) {
-  const parsed = Number.parseInt(String(input ?? ''), 10)
-  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
-  return Math.min(parsed, max)
 }
 
 export async function exportRoutes(fastify: FastifyInstance) {
@@ -166,7 +161,7 @@ export async function exportRoutes(fastify: FastifyInstance) {
         where.action = action
       }
 
-      const take = clamp_take(limit, 1000, 5000)
+      const take = parse_query_integer(limit, { fallback: 1000, min: 1, max: 5000 })
 
       const modlogs = await prisma.modLog.findMany({
         where,

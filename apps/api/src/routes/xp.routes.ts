@@ -3,6 +3,7 @@ import { prisma } from '@yuebot/database';
 import { globalXpResetSchema } from '@yuebot/shared';
 import { CONFIG } from '../config';
 import { is_owner } from '../utils/permissions';
+import { parse_pagination_query } from '../utils/pagination';
 import { validation_error_details } from '../utils/validation_error';
 
 export default async function xpRoutes(fastify: FastifyInstance) {
@@ -31,12 +32,12 @@ export default async function xpRoutes(fastify: FastifyInstance) {
   fastify.get('/global-leaderboard', {
     preHandler: [fastify.authenticate],
   }, async (request) => {
-    const { limit = 25, offset = 0 } = request.query as { limit?: number; offset?: number };
+    const { limit, offset } = parse_pagination_query(request.query, { defaultLimit: 25, maxLimit: 100 });
 
     const rows = await prisma.globalXpMember.findMany({
       orderBy: [{ xp: 'desc' }, { updatedAt: 'asc' }],
-      take: Number(limit),
-      skip: Number(offset),
+      take: limit,
+      skip: offset,
     });
 
     const total = await prisma.globalXpMember.count();
@@ -47,7 +48,7 @@ export default async function xpRoutes(fastify: FastifyInstance) {
       avatar: row.avatar ?? null,
       xp: row.xp,
       level: row.level,
-      position: Number(offset) + index + 1,
+      position: offset + index + 1,
     }));
 
     return { success: true, leaderboard, total };

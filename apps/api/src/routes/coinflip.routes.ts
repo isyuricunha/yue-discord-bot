@@ -10,6 +10,7 @@ import {
 import { randomInt } from 'node:crypto'
 
 import { validation_error_details } from '../utils/validation_error'
+import { parse_pagination_query } from '../utils/pagination'
 
 type coin_side = 'heads' | 'tails'
 
@@ -133,14 +134,14 @@ export async function coinflipRoutes(fastify: FastifyInstance) {
 
   fastify.get('/coinflip/games', { preHandler: [fastify.authenticate] }, async (request) => {
     const user = request.user
-    const { limit = 50, offset = 0, status } = request.query as {
+    const query = request.query as {
       limit?: number
       offset?: number
       status?: 'pending' | 'declined' | 'completed'
     }
 
-    const take = Math.min(Math.max(Number(limit), 1), 200)
-    const skip = Math.max(Number(offset), 0)
+    const { limit: take, offset: skip } = parse_pagination_query(query, { defaultLimit: 50, maxLimit: 200 })
+    const { status } = query
 
     const where = {
       ...(status ? { status } : {}),

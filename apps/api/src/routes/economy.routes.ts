@@ -4,6 +4,7 @@ import { economyAdminAdjustSchema, economyTransferSchema } from '@yuebot/shared'
 import { is_guild_admin } from '../internal/bot_internal_api'
 
 import { validation_error_details } from '../utils/validation_error'
+import { parse_pagination_query } from '../utils/pagination'
 
 function is_owner(fastify: FastifyInstance, user_id: string): boolean {
   const allowlist = fastify.config?.admin?.ownerUserIds as string[] | undefined
@@ -59,10 +60,7 @@ export async function economyRoutes(fastify: FastifyInstance) {
 
   fastify.get('/economy/transactions', { preHandler: [fastify.authenticate] }, async (request) => {
     const user = request.user
-    const { limit = 50, offset = 0 } = request.query as { limit?: number; offset?: number }
-
-    const take = Math.min(Math.max(Number(limit), 1), 200)
-    const skip = Math.max(Number(offset), 0)
+    const { limit: take, offset: skip } = parse_pagination_query(request.query, { defaultLimit: 50, maxLimit: 200 })
 
     const where = {
       OR: [{ fromUserId: user.userId }, { toUserId: user.userId }],

@@ -4,6 +4,7 @@ import { Prisma } from '@yuebot/database'
 import { badgeUpsertSchema, userBadgeGrantSchema, userBadgeRevokeSchema } from '@yuebot/shared'
 import { validation_error_details } from '../utils/validation_error'
 import { is_owner } from '../utils/permissions'
+import { parse_pagination_query } from '../utils/pagination'
 
 function require_badge_admin(fastify: FastifyInstance, user_id: string): boolean {
   if (is_owner(user_id)) return true
@@ -42,7 +43,7 @@ export async function badgesRoutes(fastify: FastifyInstance) {
     }
 
     const { badgeId } = request.params as { badgeId: string }
-    const { limit = 50, offset = 0 } = request.query as { limit?: number; offset?: number }
+    const { limit, offset } = parse_pagination_query(request.query, { defaultLimit: 50, maxLimit: 200 })
 
     const badge = await prisma.badge.findUnique({ where: { id: badgeId } })
     if (!badge) return reply.code(404).send({ error: 'Badge not found' })
@@ -53,8 +54,8 @@ export async function badgesRoutes(fastify: FastifyInstance) {
         OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
       },
       orderBy: [{ grantedAt: 'desc' }],
-      take: Math.min(Number(limit), 200),
-      skip: Number(offset),
+      take: limit,
+      skip: offset,
       include: {
         user: { select: { id: true, username: true, avatar: true } },
       },

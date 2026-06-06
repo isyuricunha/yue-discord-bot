@@ -3,6 +3,7 @@ import { prisma, Prisma } from '@yuebot/database'
 import { fanArtReviewSchema, fanArtStatusSchema, fanArtSubmitSchema } from '@yuebot/shared'
 import { validation_error_details } from '../utils/validation_error'
 import { is_owner } from '../utils/permissions'
+import { parse_pagination_query } from '../utils/pagination'
 
 function require_fanart_reviewer(fastify: FastifyInstance, user_id: string): boolean {
   if (is_owner(user_id)) return true
@@ -26,13 +27,13 @@ export async function fanartsRoutes(fastify: FastifyInstance) {
   fastify.get('/fanarts', {
     preHandler: [fastify.authenticate],
   }, async (request) => {
-    const { limit = 30, offset = 0 } = request.query as { limit?: number; offset?: number }
+    const { limit, offset } = parse_pagination_query(request.query, { defaultLimit: 30, maxLimit: 100 })
 
     const rows = await prisma.fanArt.findMany({
       where: { status: 'approved' },
       orderBy: [{ createdAt: 'desc' }],
-      take: Math.min(Number(limit), 100),
-      skip: Number(offset),
+      take: limit,
+      skip: offset,
       include: {
         user: { select: { id: true, username: true, avatar: true } },
       },
@@ -87,13 +88,13 @@ export async function fanartsRoutes(fastify: FastifyInstance) {
       return reply.code(403).send(get_fanart_reviewer_forbidden_error(fastify, request.user.isOwner))
     }
 
-    const { limit = 50, offset = 0 } = request.query as { limit?: number; offset?: number }
+    const { limit, offset } = parse_pagination_query(request.query, { defaultLimit: 50, maxLimit: 100 })
 
     const rows = await prisma.fanArt.findMany({
       where: { status: 'pending' },
       orderBy: [{ createdAt: 'asc' }],
-      take: Math.min(Number(limit), 100),
-      skip: Number(offset),
+      take: limit,
+      skip: offset,
       include: {
         user: { select: { id: true, username: true, avatar: true } },
       },

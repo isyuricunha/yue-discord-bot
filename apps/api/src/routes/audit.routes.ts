@@ -4,18 +4,7 @@ import { prisma, Prisma } from '@yuebot/database'
 import { can_access_guild } from '../utils/guild_access'
 import { is_guild_admin } from '../internal/bot_internal_api'
 import { safe_error_details } from '../utils/safe_error'
-
-function clamp_take(input: string | undefined, fallback: number, max: number) {
-  const parsed = Number.parseInt(String(input ?? ''), 10)
-  if (!Number.isFinite(parsed) || parsed <= 0) return fallback
-  return Math.min(parsed, max)
-}
-
-function clamp_skip(input: string | undefined) {
-  const parsed = Number.parseInt(String(input ?? ''), 10)
-  if (!Number.isFinite(parsed) || parsed < 0) return 0
-  return parsed
-}
+import { parse_pagination_query } from '../utils/pagination'
 
 export async function auditRoutes(fastify: FastifyInstance) {
   fastify.get('/guilds/:guildId/audit', { preHandler: [fastify.authenticate] }, async (request, reply) => {
@@ -33,15 +22,7 @@ export async function auditRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const {
-      limit = '50',
-      offset = '0',
-      action,
-      actorUserId,
-      targetUserId,
-      targetChannelId,
-      targetMessageId,
-    } = request.query as {
+    const query = request.query as {
       limit?: string
       offset?: string
       action?: string
@@ -51,8 +32,8 @@ export async function auditRoutes(fastify: FastifyInstance) {
       targetMessageId?: string
     }
 
-    const take = clamp_take(limit, 50, 200)
-    const skip = clamp_skip(offset)
+    const { limit: take, offset: skip } = parse_pagination_query(query, { defaultLimit: 50, maxLimit: 200 })
+    const { action, actorUserId, targetUserId, targetChannelId, targetMessageId } = query
 
     const where: Prisma.AuditLogWhereInput = {
       guildId,

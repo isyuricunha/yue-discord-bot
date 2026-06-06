@@ -39,6 +39,7 @@ import { safe_error_details } from '../utils/safe_error'
 import { can_access_guild } from '../utils/guild_access'
 import { validation_error_details } from '../utils/validation_error'
 import { public_error_message } from '../utils/public_error'
+import { parse_pagination_query } from '../utils/pagination'
 
 export default async function guildRoutes(fastify: FastifyInstance) {
   const message_rate_limit = new Map<string, { count: number; windowStart: number }>();
@@ -1005,7 +1006,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string };
-    const { limit = 50, offset = 0 } = request.query as { limit?: number; offset?: number };
+    const { limit, offset } = parse_pagination_query(request.query, { defaultLimit: 50, maxLimit: 200 });
     const user = request.user;
 
     if (!can_access_guild(user, guildId)) {
@@ -1020,8 +1021,8 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const logs = await prisma.modLog.findMany({
       where: { guildId },
       orderBy: { createdAt: 'desc' },
-      take: Number(limit),
-      skip: Number(offset),
+      take: limit,
+      skip: offset,
     });
 
     const ids_to_resolve = Array.from(
@@ -2420,7 +2421,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     preHandler: [fastify.authenticate],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string };
-    const { limit = 25, offset = 0 } = request.query as { limit?: number; offset?: number };
+    const { limit, offset } = parse_pagination_query(request.query, { defaultLimit: 25, maxLimit: 100 });
     const user = request.user;
 
     if (!can_access_guild(user, guildId)) {
@@ -2435,8 +2436,8 @@ export default async function guildRoutes(fastify: FastifyInstance) {
     const rows = await prisma.guildXpMember.findMany({
       where: { guildId },
       orderBy: [{ xp: 'desc' }, { updatedAt: 'asc' }],
-      take: Number(limit),
-      skip: Number(offset),
+      take: limit,
+      skip: offset,
     });
 
     const total = await prisma.guildXpMember.count({ where: { guildId } });
@@ -2459,7 +2460,7 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         avatar: info?.avatar ?? null,
         xp: row.xp,
         level: row.level,
-        position: Number(offset) + index + 1,
+        position: offset + index + 1,
       };
     });
 
