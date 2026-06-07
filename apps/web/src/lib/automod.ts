@@ -7,7 +7,7 @@ export type automod_action = 'delete' | 'warn' | 'mute' | 'kick' | 'ban'
 export const action_label: Record<automod_action, string> = {
   delete: 'Deletar',
   warn: 'Avisar',
-  mute: 'Silenciar',
+  mute: 'Timeout',
   kick: 'Expulsar',
   ban: 'Banir',
 }
@@ -15,14 +15,17 @@ export const action_label: Record<automod_action, string> = {
 export const action_description: Record<automod_action, string> = {
   delete: 'Remove a mensagem. Não aplica punição ao usuário.',
   warn: 'Remove a mensagem e registra 1 warn no usuário (pode contar para thresholds).',
-  mute: 'Remove a mensagem e aplica timeout de 5 minutos no usuário.',
+  mute: 'Remove a mensagem e aplica um timeout no usuário.',
   kick: 'Remove a mensagem e expulsa o usuário do servidor.',
   ban: 'Remove a mensagem e bane o usuário do servidor.',
 }
 
-export function describe_action(value: unknown) {
+export function describe_action(value: unknown, timeout_duration?: string) {
   const key = value as automod_action
   if (!key || !(key in action_description)) return ''
+  if (key === 'mute' && timeout_duration) {
+    return `Remove a mensagem e aplica timeout de ${timeout_duration} no usuário.`
+  }
   return action_description[key]
 }
 

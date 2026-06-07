@@ -28,13 +28,13 @@ This file tracks the repository-wide performance audit and its implementation mi
 - [x] Move API credential validation to runtime startup so isolated tests remain CI-safe.
 - [x] Add the AutoMod link-safety configuration contract, domain normalization, and additive migration.
 - [x] Enforce link policies before other message handlers with local fallback, configurable punishments, and notices.
+- [x] Add responsive dashboard controls for link policies, trusted domains, notices, and timeout validation.
 
 ## Next Milestones
 
 - [ ] Review command cooldown cleanup so it does not issue unnecessary deletes per invocation.
 - [ ] Match high-frequency queries to database indexes and add migrations only where evidence supports them.
 - [ ] Continue page-by-page web query and render profiling after the route-splitting baseline.
-- [ ] Complete dashboard controls for AutoMod link safety policies.
 
 ## Validation Policy
 

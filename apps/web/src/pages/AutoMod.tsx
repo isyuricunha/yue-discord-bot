@@ -2,13 +2,28 @@ import { useMemo, useRef, useState } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
-import { Save, Plus, Trash2, Shield, AlertTriangle, Link as LinkIcon, BrainCircuit } from 'lucide-react'
+import {
+  AlertTriangle,
+  Ban,
+  Bell,
+  BrainCircuit,
+  FileWarning,
+  Link as LinkIcon,
+  MicOff,
+  Plus,
+  Save,
+  Shield,
+  Trash2,
+  Trash2 as TrashIcon,
+  UserRoundX,
+} from 'lucide-react'
+import { normalize_link_domain } from '@yuebot/shared'
 
 import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch, PageHeader, ModuleLayout } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
-import { Ban, FileWarning, MicOff, Trash2 as TrashIcon } from 'lucide-react'
+import { validate_timeout_duration } from '../lib/duration'
 import {
   action_label,
   action_description,
@@ -48,6 +63,11 @@ interface GuildConfig {
   bannedDomains: string[]
   allowedDomains: string[]
   linkAction: string
+  linkTimeoutDuration: string
+  linkNoRoleEnabled: boolean
+  linkNoRoleAction: string
+  linkNoRoleTimeoutDuration: string
+  linkNotifyEnabled: boolean
   aiModerationEnabled: boolean
   aiModerationAction: string
   aiModerationLevel: ai_moderation_level
@@ -59,14 +79,26 @@ export default function AutoModPage() {
 
   const [newWord, setNewWord] = useState('')
   const [newWordAction, setNewWordAction] = useState('warn')
-  const [newDomain, setNewDomain] = useState('')
+  const [newBlockedDomain, setNewBlockedDomain] = useState('')
+  const [newTrustedDomain, setNewTrustedDomain] = useState('')
   const [config, setConfig] = useState<Partial<GuildConfig>>({})
   const initial_config_ref = useRef<Partial<GuildConfig> | null>(null)
 
   const caps_action = String(config.capsAction ?? 'warn')
   const link_action = String(config.linkAction ?? 'delete')
+  const link_timeout_duration = String(config.linkTimeoutDuration ?? '5m')
+  const link_no_role_action = String(config.linkNoRoleAction ?? 'mute')
+  const link_no_role_timeout_duration = String(config.linkNoRoleTimeoutDuration ?? '10m')
   const ai_action = String(config.aiModerationAction ?? 'delete')
   const ai_level = (config.aiModerationLevel ?? 'medio') as ai_moderation_level
+  const link_timeout_validation = validate_timeout_duration(link_timeout_duration)
+  const link_no_role_timeout_validation = validate_timeout_duration(link_no_role_timeout_duration)
+  const has_link_timeout_error =
+    (Boolean(config.linkFilterEnabled) && link_action === 'mute' && Boolean(link_timeout_validation.error)) ||
+    (Boolean(config.linkNoRoleEnabled) &&
+      link_no_role_action === 'mute' &&
+      Boolean(link_no_role_timeout_validation.error))
+  const link_protection_enabled = Boolean(config.linkFilterEnabled) || Boolean(config.linkNoRoleEnabled)
 
   const {
     isLoading,
@@ -88,6 +120,11 @@ export default function AutoModPage() {
         bannedDomains: [],
         allowedDomains: [],
         linkAction: 'delete',
+        linkTimeoutDuration: '5m',
+        linkNoRoleEnabled: false,
+        linkNoRoleAction: 'mute',
+        linkNoRoleTimeoutDuration: '10m',
+        linkNotifyEnabled: true,
         aiModerationEnabled: false,
         aiModerationAction: 'delete',
         aiModerationLevel: 'medio',
@@ -129,7 +166,18 @@ export default function AutoModPage() {
   })
 
   const handleSave = () => {
-    mutation.mutate(config)
+    if (has_link_timeout_error) {
+      toast_error('Corrija a duração do timeout antes de salvar.')
+      return
+    }
+
+    mutation.mutate({
+      ...config,
+      linkTimeoutDuration: link_timeout_validation.error ? '5m' : link_timeout_validation.normalized,
+      linkNoRoleTimeoutDuration: link_no_role_timeout_validation.error
+        ? '10m'
+        : link_no_role_timeout_validation.normalized,
+    })
   }
 
   const is_disabled = isLoading || isError || mutation.isPending
@@ -147,17 +195,37 @@ export default function AutoModPage() {
     setConfig({ ...config, bannedWords })
   }
 
-  const addDomain = () => {
-    if (!newDomain.trim()) return
-    const bannedDomains = [...(config.bannedDomains || []), newDomain]
-    setConfig({ ...config, bannedDomains })
-    setNewDomain('')
+  const addDomain = (kind: 'blocked' | 'trusted') => {
+    const rawDomain = kind === 'blocked' ? newBlockedDomain : newTrustedDomain
+    const domain = normalize_link_domain(rawDomain)
+    if (!domain) {
+      toast_error('Informe um domínio válido, como exemplo.com.')
+      return
+    }
+
+    const targetKey = kind === 'blocked' ? 'bannedDomains' : 'allowedDomains'
+    const oppositeKey = kind === 'blocked' ? 'allowedDomains' : 'bannedDomains'
+    const current = config[targetKey] || []
+    if (current.includes(domain)) {
+      toast_error('Esse domínio já está na lista.')
+      return
+    }
+
+    setConfig({
+      ...config,
+      [targetKey]: [...current, domain],
+      [oppositeKey]: (config[oppositeKey] || []).filter((item) => item !== domain),
+    })
+
+    if (kind === 'blocked') setNewBlockedDomain('')
+    else setNewTrustedDomain('')
   }
 
-  const removeDomain = (index: number) => {
-    const bannedDomains = [...(config.bannedDomains || [])]
-    bannedDomains.splice(index, 1)
-    setConfig({ ...config, bannedDomains })
+  const removeDomain = (kind: 'blocked' | 'trusted', index: number) => {
+    const key = kind === 'blocked' ? 'bannedDomains' : 'allowedDomains'
+    const domains = [...(config[key] || [])]
+    domains.splice(index, 1)
+    setConfig({ ...config, [key]: domains })
   }
 
   return (
@@ -172,7 +240,7 @@ export default function AutoModPage() {
           <Button
             onClick={handleSave}
             isLoading={mutation.isPending}
-            disabled={is_disabled || !has_changes}
+            disabled={is_disabled || !has_changes || has_link_timeout_error}
             className="shrink-0"
           >
             <Save className="h-4 w-4" />
@@ -239,7 +307,7 @@ export default function AutoModPage() {
                 <Select value={newWordAction} onValueChange={(value) => setNewWordAction(value)}>
                   <option value="delete">Deletar</option>
                   <option value="warn">Avisar</option>
-                  <option value="mute">Silenciar</option>
+                  <option value="mute">Timeout</option>
                   <option value="kick">Expulsar</option>
                   <option value="ban">Banir</option>
                 </Select>
@@ -340,7 +408,7 @@ export default function AutoModPage() {
                   >
                     <option value="delete">Deletar</option>
                     <option value="warn">Avisar</option>
-                    <option value="mute">Silenciar</option>
+                    <option value="mute">Timeout</option>
                     <option value="kick">Expulsar</option>
                     <option value="ban">Banir</option>
                   </Select>
@@ -353,91 +421,274 @@ export default function AutoModPage() {
       </Card>
 
       <Card>
-        <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <LinkIcon className="h-5 w-5 text-accent" />
-              <div>
-                <div className="text-sm font-semibold">Filtro de links</div>
-                <div className="text-xs text-muted-foreground">Bloquear ou punir mensagens com links</div>
+        <CardContent className="space-y-5 p-6">
+          <div className="flex items-center gap-3">
+            <LinkIcon className="h-5 w-5 text-accent" />
+            <div>
+              <div className="text-sm font-semibold">Proteção de links</div>
+              <div className="text-xs text-muted-foreground">
+                Detecta links localmente, sem consultar serviços externos.
               </div>
             </div>
-
-            <Switch
-              checked={Boolean(config.linkFilterEnabled)}
-              onCheckedChange={(checked) => setConfig({ ...config, linkFilterEnabled: checked })}
-              label="Habilitar filtro de links"
-              disabled={isLoading}
-            />
           </div>
 
-          {Boolean(config.linkFilterEnabled) && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between gap-4 rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-                <div className="text-sm">
-                  <div className="font-medium">Bloquear todos os links</div>
-                  <div className="text-xs text-muted-foreground">Exceto domínios permitidos</div>
-                </div>
-                <Switch
-                  checked={Boolean(config.linkBlockAll)}
-                  onCheckedChange={(checked) => setConfig({ ...config, linkBlockAll: checked })}
-                  label="Bloquear todos os links"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="space-y-4 border-t border-border/70 pt-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <UserRoundX className="h-5 w-5 text-accent" />
                 <div>
-                  <div className="text-sm font-medium">Ação ao detectar link</div>
-                  <div className="mt-2">
-                    <Select
-                      value={link_action}
-                      onValueChange={(value) => setConfig({ ...config, linkAction: value })}
-                    >
-                      <option value="delete">Deletar</option>
-                      <option value="warn">Avisar</option>
-                      <option value="mute">Silenciar</option>
-                      <option value="kick">Expulsar</option>
-                      <option value="ban">Banir</option>
-                    </Select>
-                    <div className="mt-2 text-xs text-muted-foreground">{describe_action(link_action)}</div>
+                  <div className="text-sm font-semibold">Membros sem cargos</div>
+                  <div className="text-xs text-muted-foreground">
+                    Bloqueia links de membros que possuem apenas o cargo @everyone.
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="text-sm font-medium">Domínios bloqueados</div>
-                <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
-                  <Input
-                    value={newDomain}
-                    onChange={(e) => setNewDomain(e.target.value)}
-                    placeholder="exemplo.com"
-                    onKeyDown={(e) => e.key === 'Enter' && addDomain()}
-                  />
-                  <Button variant="outline" onClick={addDomain} className="px-0" aria-label="Adicionar domínio">
-                    <Plus className="h-5 w-5" />
-                  </Button>
+              <Switch
+                checked={Boolean(config.linkNoRoleEnabled)}
+                onCheckedChange={(checked) => setConfig({ ...config, linkNoRoleEnabled: checked })}
+                label="Bloquear links de membros sem cargos"
+                disabled={isLoading}
+              />
+            </div>
+
+            {Boolean(config.linkNoRoleEnabled) && (
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <div className="text-sm font-medium">Ação</div>
+                  <div className="mt-2">
+                    <Select
+                      value={link_no_role_action}
+                      onValueChange={(value) => setConfig({ ...config, linkNoRoleAction: value })}
+                    >
+                      <option value="delete">Deletar</option>
+                      <option value="warn">Avisar</option>
+                      <option value="mute">Timeout</option>
+                      <option value="kick">Expulsar</option>
+                      <option value="ban">Banir</option>
+                    </Select>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      {describe_action(link_no_role_action, link_no_role_timeout_duration)}
+                    </div>
+                  </div>
                 </div>
 
-                <div className="space-y-2">
-                  {(config.bannedDomains || []).map((domain, index) => (
-                    <div key={index} className="flex items-center justify-between rounded-xl border border-border/70 bg-surface/40 px-4 py-3">
-                      <span className="truncate font-mono text-sm">{domain}</span>
-                      <Button variant="ghost" size="sm" onClick={() => removeDomain(index)} aria-label="Remover domínio">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                {link_no_role_action === 'mute' && (
+                  <div>
+                    <div className="text-sm font-medium">Duração do timeout</div>
+                    <div className="mt-2">
+                      <Input
+                        value={link_no_role_timeout_duration}
+                        onChange={(event) =>
+                          setConfig({ ...config, linkNoRoleTimeoutDuration: event.target.value })
+                        }
+                        placeholder="10m"
+                        className={link_no_role_timeout_validation.error ? 'border-red-500/60 focus-visible:ring-red-500/30 focus-visible:border-red-500/60' : undefined}
+                      />
+                      <div className={link_no_role_timeout_validation.error ? 'mt-2 text-xs text-red-500' : 'mt-2 text-xs text-muted-foreground'}>
+                        {link_no_role_timeout_validation.error ?? 'Use 30s, 5m, 2h, 1d ou 1w. Máximo: 28d.'}
+                      </div>
                     </div>
-                  ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
 
-                  {!isLoading && (config.bannedDomains || []).length === 0 && (
-                    <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
-                      Nenhum domínio bloqueado
-                    </div>
-                  )}
-
-                  {isLoading && <Skeleton className="h-12 w-full" />}
+          <div className="space-y-4 border-t border-border/70 pt-5">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="text-sm font-semibold">Política de domínios</div>
+                <div className="text-xs text-muted-foreground">
+                  Bloqueie domínios específicos ou todos os links fora da lista confiável.
                 </div>
               </div>
+
+              <Switch
+                checked={Boolean(config.linkFilterEnabled)}
+                onCheckedChange={(checked) => setConfig({ ...config, linkFilterEnabled: checked })}
+                label="Habilitar política de domínios"
+                disabled={isLoading}
+              />
+            </div>
+
+            {Boolean(config.linkFilterEnabled) && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between gap-4 border border-border/70 bg-surface/40 px-4 py-3">
+                  <div className="text-sm">
+                    <div className="font-medium">Bloquear todos os links</div>
+                    <div className="text-xs text-muted-foreground">Domínios confiáveis continuam permitidos.</div>
+                  </div>
+                  <Switch
+                    checked={Boolean(config.linkBlockAll)}
+                    onCheckedChange={(checked) => setConfig({ ...config, linkBlockAll: checked })}
+                    label="Bloquear todos os links"
+                    disabled={isLoading}
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div>
+                    <div className="text-sm font-medium">Ação</div>
+                    <div className="mt-2">
+                      <Select
+                        value={link_action}
+                        onValueChange={(value) => setConfig({ ...config, linkAction: value })}
+                      >
+                        <option value="delete">Deletar</option>
+                        <option value="warn">Avisar</option>
+                        <option value="mute">Timeout</option>
+                        <option value="kick">Expulsar</option>
+                        <option value="ban">Banir</option>
+                      </Select>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        {describe_action(link_action, link_timeout_duration)}
+                      </div>
+                    </div>
+                  </div>
+
+                  {link_action === 'mute' && (
+                    <div>
+                      <div className="text-sm font-medium">Duração do timeout</div>
+                      <div className="mt-2">
+                        <Input
+                          value={link_timeout_duration}
+                          onChange={(event) =>
+                            setConfig({ ...config, linkTimeoutDuration: event.target.value })
+                          }
+                          placeholder="5m"
+                          className={link_timeout_validation.error ? 'border-red-500/60 focus-visible:ring-red-500/30 focus-visible:border-red-500/60' : undefined}
+                        />
+                        <div className={link_timeout_validation.error ? 'mt-2 text-xs text-red-500' : 'mt-2 text-xs text-muted-foreground'}>
+                          {link_timeout_validation.error ?? 'Use 30s, 5m, 2h, 1d ou 1w. Máximo: 28d.'}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {Boolean(config.linkFilterEnabled) && (
+            <div className="space-y-3 border-t border-border/70 pt-5">
+              <div>
+                <div className="text-sm font-medium">Domínios bloqueados</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  O domínio e todos os seus subdomínios serão bloqueados.
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
+                <Input
+                  value={newBlockedDomain}
+                  onChange={(event) => setNewBlockedDomain(event.target.value)}
+                  placeholder="steamgifts.com"
+                  onKeyDown={(event) => event.key === 'Enter' && addDomain('blocked')}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => addDomain('blocked')}
+                  className="px-0"
+                  aria-label="Adicionar domínio bloqueado"
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {(config.bannedDomains || []).map((domain, index) => (
+                  <div key={domain} className="flex items-center justify-between border border-border/70 bg-surface/40 px-4 py-3">
+                    <span className="truncate font-mono text-sm">{domain}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeDomain('blocked', index)}
+                      aria-label={`Remover ${domain} dos domínios bloqueados`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+
+                {!isLoading && (config.bannedDomains || []).length === 0 && (
+                  <div className="border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                    Nenhum domínio bloqueado.
+                  </div>
+                )}
+
+                {isLoading && <Skeleton className="h-12 w-full" />}
+              </div>
+            </div>
+          )}
+
+          {link_protection_enabled && (
+            <div className="space-y-3 border-t border-border/70 pt-5">
+              <div>
+                <div className="text-sm font-medium">Domínios confiáveis</div>
+                <div className="mt-1 text-xs text-muted-foreground">
+                  Estes domínios e seus subdomínios não serão bloqueados pelas regras acima.
+                </div>
+              </div>
+              <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_44px]">
+                <Input
+                  value={newTrustedDomain}
+                  onChange={(event) => setNewTrustedDomain(event.target.value)}
+                  placeholder="discord.com"
+                  onKeyDown={(event) => event.key === 'Enter' && addDomain('trusted')}
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => addDomain('trusted')}
+                  className="px-0"
+                  aria-label="Adicionar domínio confiável"
+                >
+                  <Plus className="h-5 w-5" />
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {(config.allowedDomains || []).map((domain, index) => (
+                  <div key={domain} className="flex items-center justify-between border border-border/70 bg-surface/40 px-4 py-3">
+                    <span className="truncate font-mono text-sm">{domain}</span>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => removeDomain('trusted', index)}
+                      aria-label={`Remover ${domain} dos domínios confiáveis`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+
+                {!isLoading && (config.allowedDomains || []).length === 0 && (
+                  <div className="border border-border/70 bg-surface/40 px-4 py-4 text-center text-sm text-muted-foreground">
+                    Nenhum domínio confiável.
+                  </div>
+                )}
+
+                {isLoading && <Skeleton className="h-12 w-full" />}
+              </div>
+            </div>
+          )}
+
+          {link_protection_enabled && (
+            <div className="flex items-center justify-between gap-4 border-t border-border/70 pt-5">
+              <div className="flex items-center gap-3">
+                <Bell className="h-5 w-5 text-accent" />
+                <div>
+                  <div className="text-sm font-semibold">Aviso no canal</div>
+                  <div className="text-xs text-muted-foreground">
+                    Publica um aviso mencionando o usuário depois de remover a mensagem.
+                  </div>
+                </div>
+              </div>
+              <Switch
+                checked={Boolean(config.linkNotifyEnabled)}
+                onCheckedChange={(checked) => setConfig({ ...config, linkNotifyEnabled: checked })}
+                label="Publicar aviso no canal"
+                disabled={isLoading}
+              />
             </div>
           )}
         </CardContent>
@@ -478,7 +729,7 @@ export default function AutoModPage() {
                     >
                       <option value="delete">Deletar</option>
                       <option value="warn">Avisar</option>
-                      <option value="mute">Silenciar</option>
+                      <option value="mute">Timeout</option>
                       <option value="kick">Expulsar</option>
                       <option value="ban">Banir</option>
                     </Select>
