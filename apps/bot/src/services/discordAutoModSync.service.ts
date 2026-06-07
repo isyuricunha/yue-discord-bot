@@ -9,6 +9,11 @@ import {
 import { prisma } from '@yuebot/database';
 import type { GuildConfig, Prisma } from '@yuebot/database';
 import { logger } from '../utils/logger';
+import {
+  NATIVE_ALL_LINKS_REGEX,
+  build_native_blocked_domain_patterns,
+  can_sync_native_link_rule,
+} from './automod.native_links';
 
 export class DiscordAutoModSyncService {
   /**
@@ -84,8 +89,6 @@ export class DiscordAutoModSyncService {
     // O Discord permite no máximo 1000 palavras por regra
     const safeKeywords = keywordFilter.slice(0, 1000);
 
-    const actionType = this.mapConfigActionToDiscordAction(rawBannedWords[0]?.action || 'delete');
-
     const options: AutoModerationRuleCreateOptions = {
       name: this.WORD_RULE_NAME,
       eventType: AutoModerationRuleEventType.MessageSend,
@@ -122,24 +125,30 @@ export class DiscordAutoModSyncService {
    * Usar Regex no native Discord permite barrar links.
    */
   private async syncLinkRule(guild: Guild, config: GuildConfig, existingRuleId?: string) {
+    const trustedDomains = this.parseStringList(config.allowedDomains);
+
+    // Discord allow-list entries are message substrings, not hostname boundaries.
+    // Local evaluation remains authoritative whenever trusted domains are configured.
+    if (!can_sync_native_link_rule(trustedDomains)) {
+      if (existingRuleId) {
+        await guild.autoModerationRules.delete(existingRuleId).catch((err) => {
+          logger.error({ err }, 'AutoMod Link Sync Delete failed.');
+        });
+      }
+      return;
+    }
+
     let regexPatterns: string[] = [];
 
     if (config.linkBlockAll) {
-       // Block ALL links mode (using Regex to find ANY link), unless it comes from Allowed Domains
-       // Como o AutoMod nativo tem "AllowList", podemos usar Regex global pra Link e pôr os allowList.
-       
-       // Regex genérico que identifica qualquer estrutura URL.
-       regexPatterns.push(`(https?:\\/\\/)?(www\\.)?[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z0-9()]{1,6}\\b([-a-zA-Z0-9()@:%_\\+.~#?&//=]*)`);
-       
-       const allowedDomains = (config.allowedDomains as string[]) || [];
+       regexPatterns.push(NATIVE_ALL_LINKS_REGEX);
        
        const options: AutoModerationRuleCreateOptions = {
         name: this.LINK_RULE_NAME,
         eventType: AutoModerationRuleEventType.MessageSend,
         triggerType: AutoModerationRuleTriggerType.Keyword, // Regex usa o trigger de Keyword no V2 API do Discord
         triggerMetadata: {
-          regexPatterns: regexPatterns.slice(0, 10), // Limite Discord: 10 padrões de Regex
-          allowList: allowedDomains.map(d => `*${d}*`).slice(0, 100) // Domínios seguros goes here
+          regexPatterns,
         },
         actions: [
           {
@@ -157,22 +166,25 @@ export class DiscordAutoModSyncService {
       await this.saveOrUpdateRule(guild, options, existingRuleId);
 
     } else {
-       // Banned domains Only form
-       const bannedDomains = (config.bannedDomains as string[]) || [];
+       const bannedDomains = this.parseStringList(config.bannedDomains);
 
        if (!bannedDomains || bannedDomains.length === 0) {
           if (existingRuleId) await guild.autoModerationRules.delete(existingRuleId).catch(() => {});
           return;
        }
 
-       const keywordFilter = bannedDomains.map(w => `*${w}*`);
+       regexPatterns = build_native_blocked_domain_patterns(bannedDomains);
+       if (regexPatterns.length === 0) {
+          if (existingRuleId) await guild.autoModerationRules.delete(existingRuleId).catch(() => {});
+          return;
+       }
 
        const options: AutoModerationRuleCreateOptions = {
         name: this.LINK_RULE_NAME,
         eventType: AutoModerationRuleEventType.MessageSend,
         triggerType: AutoModerationRuleTriggerType.Keyword,
         triggerMetadata: {
-          keywordFilter: keywordFilter.slice(0, 1000)
+          regexPatterns,
         },
         actions: [
           {
@@ -214,10 +226,8 @@ export class DiscordAutoModSyncService {
     return [];
   }
 
-  // Identifica a Engine de Punição
-  private mapConfigActionToDiscordAction(action: string): AutoModerationActionType {
-    // Nós sempre faremos o Discord BLOQUEAR a Message e a consequencia do Banco de Dados
-    // (Warn, Mute, Ban) será capturada através do Listener no 'autoModerationActionExecution'.
-    return AutoModerationActionType.BlockMessage;
+  private parseStringList(value: Prisma.JsonValue): string[] {
+    if (!Array.isArray(value)) return [];
+    return value.filter((item): item is string => typeof item === 'string');
   }
 }
