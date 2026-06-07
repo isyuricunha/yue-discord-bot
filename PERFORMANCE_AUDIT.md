@@ -25,6 +25,7 @@ This file tracks the repository-wide performance audit and its implementation mi
 - [x] Serialize XP message, voice, transfer, and prestige writes with bounded conflict retries.
 - [x] Synchronize startup guild records with bounded concurrency and completion telemetry.
 - [x] Parallelize guild overview and coinflip statistics queries while reusing loaded activity data.
+- [x] Move API credential validation to runtime startup so isolated tests remain CI-safe.
 
 ## Next Milestones
 

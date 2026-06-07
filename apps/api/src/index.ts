@@ -6,7 +6,7 @@ import jwt from '@fastify/jwt';
 import rateLimit from '@fastify/rate-limit';
 import Redis from 'ioredis';
 import type { FastifyReply, FastifyRequest } from 'fastify';
-import { CONFIG } from './config';
+import { assert_api_runtime_env, CONFIG } from './config';
 import { prisma } from '@yuebot/database';
 import authRoutes from './routes/auth';
 import guildRoutes from './routes/guilds';
@@ -25,6 +25,8 @@ import { ownerRoutes } from './routes/owner.routes'
 import { auditRoutes } from './routes/audit.routes'
 import { triggersRoutes } from './routes/triggers.routes'
 import { safe_error_details } from './utils/safe_error'
+
+assert_api_runtime_env();
 
 const app = Fastify({
   trustProxy: CONFIG.api.trustProxy,

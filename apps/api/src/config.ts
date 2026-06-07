@@ -1,5 +1,13 @@
 import { load_env } from '@yuebot/shared';
 
+const REQUIRED_RUNTIME_ENV_VARS = [
+  'DISCORD_CLIENT_ID',
+  'DISCORD_CLIENT_SECRET',
+  'JWT_SECRET',
+  'DATABASE_URL',
+  'INTERNAL_API_SECRET',
+] as const;
+
 function parse_csv_env(value: string | undefined) {
   return (value ?? '')
     .split(',')
@@ -31,18 +39,18 @@ export const CONFIG = {
   internalApi: {
     host: process.env.BOT_INTERNAL_API_HOST || process.env.BOT_INTERNAL_HOST || '127.0.0.1',
     port: parse_int_env(process.env.BOT_INTERNAL_PORT, 3100),
-    secret: process.env.INTERNAL_API_SECRET!,
+    secret: process.env.INTERNAL_API_SECRET || '',
   },
   cors: {
     origins: parse_csv_env(process.env.CORS_ORIGINS),
   },
   discord: {
-    clientId: process.env.DISCORD_CLIENT_ID!,
-    clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+    clientId: process.env.DISCORD_CLIENT_ID || '',
+    clientSecret: process.env.DISCORD_CLIENT_SECRET || '',
     redirectUri: process.env.DISCORD_REDIRECT_URI || 'http://localhost:3000/api/auth/callback',
   },
   jwt: {
-    secret: process.env.JWT_SECRET!,
+    secret: process.env.JWT_SECRET || '',
     expiresIn: process.env.JWT_EXPIRES_IN || '7d',
   },
   cookies: {
@@ -60,7 +68,7 @@ export const CONFIG = {
     ownerUserIds: parse_csv_env(process.env.OWNER_USER_IDS),
   },
   database: {
-    url: process.env.DATABASE_URL!,
+    url: process.env.DATABASE_URL || '',
   },
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
@@ -72,33 +80,44 @@ export const CONFIG = {
   environment: process.env.NODE_ENV || 'development',
 } as const;
 
-if (CONFIG.environment === 'production') {
-  const has_web_url = Boolean(process.env.WEB_URL || process.env.FRONTEND_URL)
-  if (!has_web_url) {
-    throw new Error('WEB_URL (or FRONTEND_URL) must be set in production')
+export function get_api_runtime_env_errors(env: NodeJS.ProcessEnv): string[] {
+  const errors: string[] = [];
+  const missing = REQUIRED_RUNTIME_ENV_VARS.filter((key) => !env[key]);
+
+  if (missing.length > 0) {
+    errors.push(`Missing required environment variables: ${missing.join(', ')}`);
   }
 
-  if (!process.env.DISCORD_REDIRECT_URI) {
-    throw new Error('DISCORD_REDIRECT_URI must be set in production')
+  if (env.JWT_SECRET && env.JWT_SECRET.length < 32) {
+    errors.push('JWT_SECRET must be at least 32 characters long');
   }
+
+  if (env.INTERNAL_API_SECRET && env.INTERNAL_API_SECRET.length < 32) {
+    errors.push('INTERNAL_API_SECRET must be at least 32 characters long');
+  }
+
+  if (env.NODE_ENV === 'production') {
+    if (!env.WEB_URL && !env.FRONTEND_URL) {
+      errors.push('WEB_URL (or FRONTEND_URL) must be set in production');
+    }
+
+    if (!env.DISCORD_REDIRECT_URI) {
+      errors.push('DISCORD_REDIRECT_URI must be set in production');
+    }
+  }
+
+  const cookieSameSite = env.COOKIE_SAMESITE || 'lax';
+  const cookieSecure = parse_boolean_env(env.COOKIE_SECURE, env.NODE_ENV === 'production');
+  if (cookieSameSite === 'none' && !cookieSecure) {
+    errors.push('COOKIE_SAMESITE=none requires COOKIE_SECURE=true');
+  }
+
+  return errors;
 }
 
-// Validação
-const requiredVars = ['DISCORD_CLIENT_ID', 'DISCORD_CLIENT_SECRET', 'JWT_SECRET', 'DATABASE_URL', 'INTERNAL_API_SECRET'];
-const missing = requiredVars.filter((key) => !process.env[key]);
-
-if (missing.length > 0) {
-  throw new Error(`Variáveis de ambiente faltando: ${missing.join(', ')}`);
-}
-
-if (CONFIG.jwt.secret.length < 32) {
-  throw new Error('JWT_SECRET deve ter no mínimo 32 caracteres');
-}
-
-if (CONFIG.internalApi.secret.length < 32) {
-  throw new Error('INTERNAL_API_SECRET deve ter no mínimo 32 caracteres');
-}
-
-if (CONFIG.cookies.sameSite === 'none' && !CONFIG.cookies.secure) {
-  throw new Error('COOKIE_SAMESITE=none requer COOKIE_SECURE=true (exigência dos browsers)');
+export function assert_api_runtime_env(env: NodeJS.ProcessEnv = process.env): void {
+  const errors = get_api_runtime_env_errors(env);
+  if (errors.length > 0) {
+    throw new Error(errors.join('\n'));
+  }
 }
