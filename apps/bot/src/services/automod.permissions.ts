@@ -7,13 +7,13 @@ export function required_channel_permissions_for_automod_action(action: automod_
     case 'delete':
       return [PermissionFlagsBits.ManageMessages]
     case 'warn':
-      return []
+      return [PermissionFlagsBits.ManageMessages]
     case 'mute':
-      return [PermissionFlagsBits.ModerateMembers]
+      return [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.ModerateMembers]
     case 'kick':
-      return [PermissionFlagsBits.KickMembers]
+      return [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.KickMembers]
     case 'ban':
-      return [PermissionFlagsBits.BanMembers]
+      return [PermissionFlagsBits.ManageMessages, PermissionFlagsBits.BanMembers]
   }
 }
 

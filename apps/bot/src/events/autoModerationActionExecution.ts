@@ -4,7 +4,14 @@ import type { Prisma } from "@yuebot/database";
 import { logger } from "../utils/logger";
 import { moderationLogService } from "../services/moderationLog.service";
 import { WarnService } from "../services/warnService";
-import { find_first_banned_word_match } from "@yuebot/shared";
+import {
+    discord_timeout_max_ms,
+    EMOJIS,
+    find_first_banned_word_match,
+    parseDurationMs,
+} from "@yuebot/shared";
+import { check_automod_link_message, type automod_action } from "../services/automod.links";
+import { getSendableChannel } from "../utils/discord";
 
 export async function handleAutoModerationActionExecution(
 	execution: AutoModerationActionExecution
@@ -23,15 +30,19 @@ export async function handleAutoModerationActionExecution(
 		);
 
         // Obter configuração do painel
-		const config = await prisma.guildConfig.findUnique({
+        const config = await prisma.guildConfig.findUnique({
 			where: { guildId: guild.id },
 		});
 		if (!config) return;
 
+        const member = await guild.members.fetch(userId).catch(() => null);
+        if (!member) return;
+
         // 1. Identificando Regra no Cache do Discord
         const autoModRule = execution.autoModerationRule;
         let ruleContext = 'automod';
-        let actionToApply = 'delete';
+        let actionToApply: automod_action = 'delete';
+        let timeoutDuration = '5m';
         let reason = 'Bloqueado por AutoMod (Regra Nativa)';
 
         if (autoModRule?.triggerMetadata?.keywordFilter) {
@@ -44,20 +55,44 @@ export async function handleAutoModerationActionExecution(
             if (matchedContent && ruleContext === 'word') {
                  const match = find_first_banned_word_match(matchedContent, bannedWords);
                  if (match) {
-                     actionToApply = match.entry.action;
+                     actionToApply = normalizeAction(match.entry.action, 'warn');
                      reason = `Palavra proibida: "${match.entry.word}"`;
                  }
             } else if (ruleContext === 'link') {
-                actionToApply = config.linkAction || 'delete';
-                reason = 'Link não autorizado (Anti-Link)';
+                const linkCheck = check_automod_link_message({
+                    content: matchedContent || '',
+                    memberHasRoles: member.roles.cache.some((role) => role.id !== guild.id),
+                    config,
+                });
+                actionToApply = linkCheck.violated
+                    ? linkCheck.action
+                    : normalizeAction(config.linkAction, 'delete');
+                timeoutDuration = linkCheck.violated
+                    ? (linkCheck.duration ?? config.linkTimeoutDuration)
+                    : config.linkTimeoutDuration;
+                reason = linkCheck.violated
+                    ? linkCheck.reason
+                    : 'Link não autorizado (Anti-Link)';
             } else {
                 actionToApply = 'warn'; // Base fallback
             }
         } 
         else if (autoModRule?.triggerMetadata?.regexPatterns) {
             ruleContext = 'link';
-            actionToApply = config.linkAction || 'delete';
-            reason = 'Link não autorizado (Anti-Link)';
+            const linkCheck = check_automod_link_message({
+                content: execution.content || execution.matchedContent || '',
+                memberHasRoles: member.roles.cache.some((role) => role.id !== guild.id),
+                config,
+            });
+            actionToApply = linkCheck.violated
+                ? linkCheck.action
+                : normalizeAction(config.linkAction, 'delete');
+            timeoutDuration = linkCheck.violated
+                ? (linkCheck.duration ?? config.linkTimeoutDuration)
+                : config.linkTimeoutDuration;
+            reason = linkCheck.violated
+                ? linkCheck.reason
+                : 'Link não autorizado (Anti-Link)';
         }
 
         const metadata: Prisma.InputJsonValue = {
@@ -77,18 +112,29 @@ export async function handleAutoModerationActionExecution(
             deleted: true,
         };
 
-        const member = await guild.members.fetch(userId).catch(() => null);
-        if (!member) return;
-
         // O Discord JÁ BLOQUEOU (BlockMessage) a mensagem. Nosso dever agora
         // é aplicar a penalidade que está configurada no painel internamente (Warn, Mute, Kick, Ban).
+
+        if (ruleContext === 'link' && config.linkNotifyEnabled) {
+            const channel = guild.channels.cache.get(execution.channelId)
+                ?? await guild.channels.fetch(execution.channelId).catch(() => null);
+            const notificationChannel = getSendableChannel(channel);
+            if (notificationChannel) {
+                await notificationChannel.send({
+                    content: `${EMOJIS.WARNING} <@${member.id}>, sua mensagem foi removida: ${reason}`,
+                    allowedMentions: { users: [member.id], parse: [] },
+                }).catch((error) => {
+                    logger.warn({ error, guildId: guild.id, channelId: execution.channelId }, 'Failed to send AutoMod link notice');
+                });
+            }
+        }
 
         switch (actionToApply) {
             case 'warn':
               await applyWarn(member, reason, metadata, config.warnThresholds);
               break;
             case 'mute':
-              await applyMute(member, '5m', reason, metadata);
+              await applyMute(member, timeoutDuration, reason, metadata);
               break;
             case 'kick':
               await applyKick(member, reason, metadata);
@@ -110,7 +156,7 @@ export async function handleAutoModerationActionExecution(
               staff: member.client.user!,
               punishment: actionToApply,
               reason: `${reason} | ${execution.content ? execution.content.substring(0, 100) : ''}`,
-              duration: actionToApply === 'mute' ? '5m' : '',
+              duration: actionToApply === 'mute' ? timeoutDuration : '',
             });
         }
 
@@ -120,6 +166,13 @@ export async function handleAutoModerationActionExecution(
 }
 
 // Helpers para punição espelhados do antigo automodService
+
+function normalizeAction(value: string, fallback: automod_action): automod_action {
+    if (value === 'delete' || value === 'warn' || value === 'mute' || value === 'kick' || value === 'ban') {
+        return value;
+    }
+    return fallback;
+}
 
 async function applyWarn(member: import("discord.js").GuildMember, reason: string, metadata: Prisma.InputJsonValue, warnThresholds: Prisma.JsonValue): Promise<void> {
     const updated = await prisma.guildMember.upsert({
@@ -151,22 +204,46 @@ async function applyWarn(member: import("discord.js").GuildMember, reason: strin
 }
 
 async function applyMute(member: import("discord.js").GuildMember, duration: string, reason: string, metadata: Prisma.InputJsonValue): Promise<void> {
-    const ms = 5 * 60 * 1000;
-    await member.timeout(ms, `[AutoMod Nativo] ${reason}`).catch(() => {});
+    const ms = parseDurationMs(duration, {
+        maxMs: discord_timeout_max_ms,
+        clampToMax: true,
+    }) ?? 5 * 60 * 1000;
+    await member.timeout(ms, `[AutoMod Nativo] ${reason}`);
     await generateLog(member, 'mute', reason, metadata, duration);
 }
 
 async function applyKick(member: import("discord.js").GuildMember, reason: string, metadata: Prisma.InputJsonValue): Promise<void> {
-    await member.kick(`[AutoMod Nativo] ${reason}`).catch(() => {});
+    await member.kick(`[AutoMod Nativo] ${reason}`);
     await generateLog(member, 'kick', reason, metadata);
 }
 
 async function applyBan(member: import("discord.js").GuildMember, reason: string, metadata: Prisma.InputJsonValue): Promise<void> {
-    await member.ban({ reason: `[AutoMod Nativo] ${reason}` }).catch(() => {});
+    await member.ban({ reason: `[AutoMod Nativo] ${reason}` });
     await generateLog(member, 'ban', reason, metadata);
 }
 
 async function generateLog(member: import("discord.js").GuildMember, action: string, reason: string, metadata: Prisma.InputJsonValue, duration?: string) {
+    await prisma.guildMember.upsert({
+        where: {
+          userId_guildId: {
+            userId: member.id,
+            guildId: member.guild.id,
+          },
+        },
+        update: {
+          username: member.user.username,
+          avatar: member.user.avatar,
+          joinedAt: member.joinedAt ?? new Date(),
+        },
+        create: {
+          userId: member.id,
+          guildId: member.guild.id,
+          username: member.user.username,
+          avatar: member.user.avatar,
+          joinedAt: member.joinedAt ?? new Date(),
+        },
+    });
+
     await prisma.modLog.create({
         data: {
           guildId: member.guild.id,

@@ -14,6 +14,7 @@ import {
   save_app_description_settings,
 } from '../services/app_description.service'
 import { DiscordAutoModSyncService } from '../services/discordAutoModSync.service'
+import { autoModService } from '../services/automod.service'
 import { musicService } from '../services/music.service'
 import { logger } from '../utils/logger';
 import { is_lavalink_player_not_found_error, safe_error_details } from '../utils/safe_error';
@@ -730,6 +731,7 @@ export function start_internal_api(client: Client, options: internal_api_options
 
         const automod_sync_params = extract_automod_sync_params(url.pathname);
         if (automod_sync_params) {
+          autoModService.clearCache(automod_sync_params.guildId);
           const syncService = new DiscordAutoModSyncService(client);
           await syncService.syncGuild(automod_sync_params.guildId);
 

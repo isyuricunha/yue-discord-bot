@@ -14,9 +14,17 @@ test('required_channel_permissions_for_automod_action: includes ManageMessages a
   assert.ok(required.includes(PermissionFlagsBits.ManageMessages))
 })
 
-test('required_channel_permissions_for_automod_action: warn requires no channel permissions', () => {
+test('required_channel_permissions_for_automod_action: warn still requires message deletion', () => {
   const required = required_channel_permissions_for_automod_action('warn')
-  assert.deepEqual(required, [])
+  assert.deepEqual(required, [PermissionFlagsBits.ManageMessages])
+})
+
+test('required_channel_permissions_for_automod_action: punishments also require message deletion', () => {
+  const required = required_channel_permissions_for_automod_action('mute')
+  assert.deepEqual(required, [
+    PermissionFlagsBits.ManageMessages,
+    PermissionFlagsBits.ModerateMembers,
+  ])
 })
 
 test('can_apply_automod_action: ok when all permissions present', () => {

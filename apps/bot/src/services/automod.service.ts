@@ -5,7 +5,6 @@ import type { GuildConfig } from '@yuebot/database';
 import type { Prisma } from '@yuebot/database';
 import { logger } from '../utils/logger';
 import { discord_timeout_max_ms, EMOJIS, find_first_banned_word_match, parseDurationMs } from '@yuebot/shared';
-import { isShortUrl, expandUrl } from '../utils/urlExpander';
 import { getSendableChannel } from '../utils/discord';
 import { moderationLogService } from './moderationLog.service';
 import { WarnService } from './warnService';
@@ -14,11 +13,14 @@ import { extract_ai_moderation_image_urls } from './automod.ai_images'
 import { build_ai_moderation_thresholds } from './automod.ai_thresholds'
 import { can_apply_automod_action, required_channel_permissions_for_automod_action } from './automod.permissions'
 import { safe_error_details } from '../utils/safe_error'
+import { check_automod_link_message, type automod_action } from './automod.links'
 
 interface AutoModResult {
   violated: boolean;
   reason?: string;
   action?: string;
+  duration?: string;
+  notify?: boolean;
   rule?: 'word' | 'caps' | 'link' | 'ai';
   details?: Prisma.InputJsonValue;
 }
@@ -101,9 +103,26 @@ class AutoModService {
     const member = message.member;
     if (!member) return false;
 
-    // Verificar whitelists (roles e canais)
-    if (this.isWhitelisted(member, message.channel.id, config)) {
-      return false;
+    const isAnyRuleWhitelisted = this.isWhitelisted(member, message.channel.id, config)
+
+    if (
+      (config.linkFilterEnabled || config.linkNoRoleEnabled) &&
+      !this.isWhitelisted(member, message.channel.id, config, 'link')
+    ) {
+      const linkCheck = check_automod_link_message({
+        content: message.content,
+        memberHasRoles: member.roles.cache.some((role) => role.id !== message.guild!.id),
+        config,
+      })
+
+      if (linkCheck.violated) {
+        await this.handleViolation(message, member, {
+          ...linkCheck,
+          rule: 'link',
+          notify: config.linkNotifyEnabled,
+        })
+        return true
+      }
     }
 
     // O Discord AutoMod nativo lida com Palavras Bloqueadas e Links.
@@ -111,7 +130,7 @@ class AutoModService {
     // já que o Discord nativo não possui regra de % de Maiúsculas.
     
     // Verificar CAPS
-    if (config.capsEnabled) {
+    if (config.capsEnabled && !this.isWhitelisted(member, message.channel.id, config, 'caps')) {
       const capsCheck = this.checkCaps(message.content, config);
       if (capsCheck.violated) {
         await this.handleViolation(message, member, capsCheck);
@@ -120,7 +139,7 @@ class AutoModService {
     }
 
     // Verificar AI Moderation (OpenAI)
-    if (config.aiModerationEnabled) {
+    if (config.aiModerationEnabled && !isAnyRuleWhitelisted) {
       if (!process.env.OPENAI_API_KEY) {
         logger.debug(
           {
@@ -163,32 +182,32 @@ class AutoModService {
     }
   }
 
-  private isWhitelisted(member: GuildMember, channelId: string, config: GuildConfig): boolean {
-    // Verificar se o canal está na whitelist
-    const wordWhitelistChannels = normalize_string_array(config.wordFilterWhitelistChannels);
-    const capsWhitelistChannels = normalize_string_array(config.capsWhitelistChannels);
-    const linkWhitelistChannels = normalize_string_array(config.linkWhitelistChannels);
+  private isWhitelisted(
+    member: GuildMember,
+    channelId: string,
+    config: GuildConfig,
+    rule?: 'word' | 'caps' | 'link',
+  ): boolean {
+    const channelWhitelists = {
+      word: normalize_string_array(config.wordFilterWhitelistChannels),
+      caps: normalize_string_array(config.capsWhitelistChannels),
+      link: normalize_string_array(config.linkWhitelistChannels),
+    }
+    const roleWhitelists = {
+      word: normalize_string_array(config.wordFilterWhitelistRoles),
+      caps: normalize_string_array(config.capsWhitelistRoles),
+      link: normalize_string_array(config.linkWhitelistRoles),
+    }
+    const rules = rule ? [rule] : (['word', 'caps', 'link'] as const)
 
-    const channelWhitelisted =
-      wordWhitelistChannels.includes(channelId) ||
-      capsWhitelistChannels.includes(channelId) ||
-      linkWhitelistChannels.includes(channelId);
+    const channelWhitelisted = rules.some((ruleName) => channelWhitelists[ruleName].includes(channelId))
 
     if (channelWhitelisted) return true;
 
-    // Verificar se o membro tem role na whitelist
     const memberRoles = member.roles.cache.map(r => r.id);
-    
-    const wordWhitelistRoles = normalize_string_array(config.wordFilterWhitelistRoles);
-    const capsWhitelistRoles = normalize_string_array(config.capsWhitelistRoles);
-    const linkWhitelistRoles = normalize_string_array(config.linkWhitelistRoles);
-
-    const roleWhitelisted = memberRoles.some(
-      roleId =>
-        wordWhitelistRoles.includes(roleId) ||
-        capsWhitelistRoles.includes(roleId) ||
-        linkWhitelistRoles.includes(roleId)
-    );
+    const roleWhitelisted = memberRoles.some((roleId) =>
+      rules.some((ruleName) => roleWhitelists[ruleName].includes(roleId))
+    )
 
     return roleWhitelisted;
   }
@@ -349,26 +368,25 @@ class AutoModService {
         return
       }
 
-      const action = (result.action || 'delete') as 'delete' | 'warn' | 'mute' | 'kick' | 'ban'
-      const permissions_check = can_apply_automod_action(action, bot_permissions)
-      if (!permissions_check.ok) {
-        const missing = permissions_check.missing
-        const required = required_channel_permissions_for_automod_action(action)
+      const requestedAction = (result.action || 'delete') as automod_action
+      const permissionsCheck = can_apply_automod_action(requestedAction, bot_permissions)
+      const canDelete = !permissionsCheck.missing.includes(PermissionFlagsBits.ManageMessages)
+      if (!canDelete) {
+        const required = required_channel_permissions_for_automod_action(requestedAction)
 
         logger.warn(
           {
             guild_id: guild.id,
             channel_id: message.channel.id,
-            action,
+            action: requestedAction,
             required_permissions_count: required.length,
-            missing_permissions_count: missing.length,
+            missing_permissions_count: permissionsCheck.missing.length,
           },
-          'AutoMod: missing permissions, cannot apply action',
+          'AutoMod: missing ManageMessages permission, cannot remove message',
         )
         return
       }
 
-      // Deletar mensagem
       let deleted = false
       try {
         await message.delete();
@@ -380,9 +398,22 @@ class AutoModService {
             guild_id: guild.id,
             channel_id: message.channel.id,
             message_id: message.id,
-            action,
+            action: requestedAction,
           },
           'AutoMod: failed to delete message',
+        )
+      }
+
+      const action = permissionsCheck.ok ? requestedAction : 'delete'
+      if (action !== requestedAction) {
+        logger.warn(
+          {
+            guild_id: guild.id,
+            channel_id: message.channel.id,
+            requested_action: requestedAction,
+            missing_permissions_count: permissionsCheck.missing.length,
+          },
+          'AutoMod: message removed but configured punishment could not be applied',
         )
       }
 
@@ -390,6 +421,8 @@ class AutoModService {
         source: 'automod',
         rule: result.rule,
         action,
+        requestedAction,
+        duration: result.duration ?? null,
         details: result.details ?? null,
         message: {
           id: message.id,
@@ -419,7 +452,7 @@ class AutoModService {
           await this.applyWarn(member, reason, metadata);
           break;
         case 'mute':
-          await this.applyMute(member, '5m', reason, metadata);
+          await this.applyMute(member, result.duration ?? '5m', reason, metadata);
           break;
         case 'kick':
           await this.applyKick(member, reason, metadata);
@@ -432,7 +465,7 @@ class AutoModService {
           break;
       }
 
-      const notificationChannel = getSendableChannel(message.channel);
+      const notificationChannel = result.notify === false ? null : getSendableChannel(message.channel);
       if (notificationChannel) {
         try {
           const action_text = deleted ? 'sua mensagem foi removida' : 'sua mensagem foi sinalizada pelo AutoMod'
@@ -461,7 +494,7 @@ class AutoModService {
           staff: member.client.user!,
           punishment: action,
           reason: `${reason}${message_excerpt ? ` | ${message_excerpt}` : ''}`,
-          duration: action === 'mute' ? '5m' : '',
+          duration: action === 'mute' ? (result.duration ?? '5m') : '',
         })
       }
 

@@ -118,6 +118,16 @@ export async function handleMessageCreate(message: Message) {
 	const userId = message.author.id;
 	const guildId = message.guild.id;
 
+	try {
+		const deleted_by_automod = await autoModService.checkMessage(message);
+		if (deleted_by_automod) return;
+	} catch (error) {
+		logger.error(
+			{ err: safe_error_details(error) },
+			"AutoMod failed on messageCreate"
+		);
+	}
+
 	// Verificar e remover AFK quando o usuário enviar uma mensagem
 	try {
 		const existingAfk = await afkService.getAfk(userId, guildId);
@@ -241,17 +251,6 @@ export async function handleMessageCreate(message: Message) {
 		logger.error(
 			{ err: safe_error_details(error) },
 			"KeywordTrigger service failed on messageCreate"
-		);
-	}
-
-	try {
-		// Verificar AutoMod
-		const deleted_by_automod = await autoModService.checkMessage(message);
-		if (deleted_by_automod) return;
-	} catch (error) {
-		logger.error(
-			{ err: safe_error_details(error) },
-			"AutoMod failed on messageCreate"
 		);
 	}
 
