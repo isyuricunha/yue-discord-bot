@@ -505,6 +505,11 @@ export default async function guildRoutes(fastify: FastifyInstance) {
           bannedDomains: true,
           allowedDomains: true,
           linkAction: true,
+          linkTimeoutDuration: true,
+          linkNoRoleEnabled: true,
+          linkNoRoleAction: true,
+          linkNoRoleTimeoutDuration: true,
+          linkNotifyEnabled: true,
           linkWhitelistChannels: true,
           linkWhitelistRoles: true,
 
@@ -588,6 +593,13 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         ...(input.bannedDomains !== undefined ? { bannedDomains: input.bannedDomains } : {}),
         ...(input.allowedDomains !== undefined ? { allowedDomains: input.allowedDomains } : {}),
         ...(input.linkAction !== undefined ? { linkAction: input.linkAction } : {}),
+        ...(input.linkTimeoutDuration !== undefined ? { linkTimeoutDuration: input.linkTimeoutDuration } : {}),
+        ...(input.linkNoRoleEnabled !== undefined ? { linkNoRoleEnabled: input.linkNoRoleEnabled } : {}),
+        ...(input.linkNoRoleAction !== undefined ? { linkNoRoleAction: input.linkNoRoleAction } : {}),
+        ...(input.linkNoRoleTimeoutDuration !== undefined
+          ? { linkNoRoleTimeoutDuration: input.linkNoRoleTimeoutDuration }
+          : {}),
+        ...(input.linkNotifyEnabled !== undefined ? { linkNotifyEnabled: input.linkNotifyEnabled } : {}),
         ...(input.linkWhitelistChannels !== undefined ? { linkWhitelistChannels: input.linkWhitelistChannels } : {}),
         ...(input.linkWhitelistRoles !== undefined ? { linkWhitelistRoles: input.linkWhitelistRoles } : {}),
 
@@ -623,6 +635,11 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         bannedDomains: input.bannedDomains ?? [],
         allowedDomains: input.allowedDomains ?? [],
         linkAction: input.linkAction ?? 'delete',
+        linkTimeoutDuration: input.linkTimeoutDuration ?? '5m',
+        linkNoRoleEnabled: input.linkNoRoleEnabled ?? false,
+        linkNoRoleAction: input.linkNoRoleAction ?? 'mute',
+        linkNoRoleTimeoutDuration: input.linkNoRoleTimeoutDuration ?? '10m',
+        linkNotifyEnabled: input.linkNotifyEnabled ?? true,
         linkWhitelistChannels: input.linkWhitelistChannels ?? [],
         linkWhitelistRoles: input.linkWhitelistRoles ?? [],
 
@@ -655,6 +672,11 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         bannedDomains: true,
         allowedDomains: true,
         linkAction: true,
+        linkTimeoutDuration: true,
+        linkNoRoleEnabled: true,
+        linkNoRoleAction: true,
+        linkNoRoleTimeoutDuration: true,
+        linkNotifyEnabled: true,
         linkWhitelistChannels: true,
         linkWhitelistRoles: true,
 
@@ -843,6 +865,15 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         ...(configData.bannedDomains !== undefined ? { bannedDomains: configData.bannedDomains } : {}),
         ...(configData.allowedDomains !== undefined ? { allowedDomains: configData.allowedDomains } : {}),
         linkAction: configData.linkAction,
+        ...(configData.linkTimeoutDuration !== undefined
+          ? { linkTimeoutDuration: configData.linkTimeoutDuration }
+          : {}),
+        ...(configData.linkNoRoleEnabled !== undefined ? { linkNoRoleEnabled: configData.linkNoRoleEnabled } : {}),
+        ...(configData.linkNoRoleAction !== undefined ? { linkNoRoleAction: configData.linkNoRoleAction } : {}),
+        ...(configData.linkNoRoleTimeoutDuration !== undefined
+          ? { linkNoRoleTimeoutDuration: configData.linkNoRoleTimeoutDuration }
+          : {}),
+        ...(configData.linkNotifyEnabled !== undefined ? { linkNotifyEnabled: configData.linkNotifyEnabled } : {}),
         ...(configData.linkWhitelistChannels !== undefined
           ? { linkWhitelistChannels: configData.linkWhitelistChannels }
           : {}),
@@ -891,6 +922,11 @@ export default async function guildRoutes(fastify: FastifyInstance) {
         bannedDomains: configData.bannedDomains || [],
         allowedDomains: configData.allowedDomains || [],
         linkAction: configData.linkAction || 'delete',
+        linkTimeoutDuration: configData.linkTimeoutDuration || '5m',
+        linkNoRoleEnabled: configData.linkNoRoleEnabled || false,
+        linkNoRoleAction: configData.linkNoRoleAction || 'mute',
+        linkNoRoleTimeoutDuration: configData.linkNoRoleTimeoutDuration || '10m',
+        linkNotifyEnabled: configData.linkNotifyEnabled ?? true,
         linkWhitelistChannels: configData.linkWhitelistChannels || [],
         linkWhitelistRoles: configData.linkWhitelistRoles || [],
         modLogChannelId: configData.modLogChannelId,

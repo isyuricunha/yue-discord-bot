@@ -1,5 +1,31 @@
 import { z } from 'zod';
-import { duration_regex } from '../duration';
+import { discord_timeout_max_ms, duration_regex, parseDurationMs } from '../duration';
+import { normalize_link_domain } from '../automod_links';
+
+const automodActionSchema = z.enum(['warn', 'mute', 'kick', 'ban', 'delete'])
+
+const discordTimeoutDurationSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(duration_regex)
+  .refine(
+    (value) => parseDurationMs(value, { maxMs: discord_timeout_max_ms, clampToMax: false }) !== null,
+    'Timeout duration must not exceed 28 days',
+  )
+
+const linkDomainSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(253)
+  .transform((value) => normalize_link_domain(value))
+  .refine((value): value is string => value !== null, 'Invalid domain')
+
+const linkDomainListSchema = z
+  .array(linkDomainSchema)
+  .max(200)
+  .transform((domains) => Array.from(new Set(domains)))
 
 // Moderation validators
 export const banSchema = z.object({
@@ -141,7 +167,7 @@ export const autoModConfigSchema = z.object({
   wordFilterEnabled: z.boolean().optional(),
   bannedWords: z.array(z.object({
     word: z.string(),
-    action: z.enum(['warn', 'mute', 'kick', 'ban', 'delete']),
+    action: automodActionSchema,
   })).optional(),
   wordFilterWhitelistChannels: z.array(z.string()).optional(),
   wordFilterWhitelistRoles: z.array(z.string()).optional(),
@@ -149,15 +175,20 @@ export const autoModConfigSchema = z.object({
   capsEnabled: z.boolean().optional(),
   capsThreshold: z.number().min(0).max(100).optional(),
   capsMinLength: z.number().min(1).optional(),
-  capsAction: z.enum(['warn', 'mute', 'kick', 'ban', 'delete']).optional(),
+  capsAction: automodActionSchema.optional(),
   capsWhitelistChannels: z.array(z.string()).optional(),
   capsWhitelistRoles: z.array(z.string()).optional(),
 
   linkFilterEnabled: z.boolean().optional(),
   linkBlockAll: z.boolean().optional(),
-  bannedDomains: z.array(z.string()).optional(),
-  allowedDomains: z.array(z.string()).optional(),
-  linkAction: z.enum(['warn', 'mute', 'kick', 'ban', 'delete']).optional(),
+  bannedDomains: linkDomainListSchema.optional(),
+  allowedDomains: linkDomainListSchema.optional(),
+  linkAction: automodActionSchema.optional(),
+  linkTimeoutDuration: discordTimeoutDurationSchema.optional(),
+  linkNoRoleEnabled: z.boolean().optional(),
+  linkNoRoleAction: automodActionSchema.optional(),
+  linkNoRoleTimeoutDuration: discordTimeoutDurationSchema.optional(),
+  linkNotifyEnabled: z.boolean().optional(),
   linkWhitelistChannels: z.array(z.string()).optional(),
   linkWhitelistRoles: z.array(z.string()).optional(),
 
@@ -169,7 +200,7 @@ export const autoModConfigSchema = z.object({
   timezone: z.string().min(1).optional(),
 
   aiModerationEnabled: z.boolean().optional(),
-  aiModerationAction: z.enum(['delete', 'warn', 'mute', 'kick', 'ban']).optional(),
+  aiModerationAction: automodActionSchema.optional(),
   aiModerationLevel: z.enum(['permissivo', 'brando', 'medio', 'rigoroso', 'maximo']).optional(),
 });
 
@@ -210,7 +241,7 @@ export const guildAutomodConfigSchema = z.object({
     .array(
       z.object({
         word: z.string(),
-        action: z.enum(['warn', 'mute', 'kick', 'ban', 'delete']),
+        action: automodActionSchema,
       })
     )
     .optional(),
@@ -220,15 +251,20 @@ export const guildAutomodConfigSchema = z.object({
   capsEnabled: z.boolean().optional(),
   capsThreshold: z.number().min(0).max(100).optional(),
   capsMinLength: z.number().min(1).optional(),
-  capsAction: z.enum(['warn', 'mute', 'kick', 'ban', 'delete']).optional(),
+  capsAction: automodActionSchema.optional(),
   capsWhitelistChannels: z.array(z.string()).optional(),
   capsWhitelistRoles: z.array(z.string()).optional(),
 
   linkFilterEnabled: z.boolean().optional(),
   linkBlockAll: z.boolean().optional(),
-  bannedDomains: z.array(z.string()).optional(),
-  allowedDomains: z.array(z.string()).optional(),
-  linkAction: z.enum(['warn', 'mute', 'kick', 'ban', 'delete']).optional(),
+  bannedDomains: linkDomainListSchema.optional(),
+  allowedDomains: linkDomainListSchema.optional(),
+  linkAction: automodActionSchema.optional(),
+  linkTimeoutDuration: discordTimeoutDurationSchema.optional(),
+  linkNoRoleEnabled: z.boolean().optional(),
+  linkNoRoleAction: automodActionSchema.optional(),
+  linkNoRoleTimeoutDuration: discordTimeoutDurationSchema.optional(),
+  linkNotifyEnabled: z.boolean().optional(),
   linkWhitelistChannels: z.array(z.string()).optional(),
   linkWhitelistRoles: z.array(z.string()).optional(),
 
@@ -236,7 +272,7 @@ export const guildAutomodConfigSchema = z.object({
   warnExpiration: z.number().int().min(1).optional(),
 
   aiModerationEnabled: z.boolean().optional(),
-  aiModerationAction: z.enum(['delete', 'warn', 'mute', 'kick', 'ban']).optional(),
+  aiModerationAction: automodActionSchema.optional(),
   aiModerationLevel: z.enum(['permissivo', 'brando', 'medio', 'rigoroso', 'maximo']).optional(),
   aiModerationThresholds: z.record(z.string(), z.number().min(0).max(1)).optional(),
 })

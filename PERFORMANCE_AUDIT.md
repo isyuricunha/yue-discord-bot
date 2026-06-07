@@ -26,12 +26,14 @@ This file tracks the repository-wide performance audit and its implementation mi
 - [x] Synchronize startup guild records with bounded concurrency and completion telemetry.
 - [x] Parallelize guild overview and coinflip statistics queries while reusing loaded activity data.
 - [x] Move API credential validation to runtime startup so isolated tests remain CI-safe.
+- [x] Add the AutoMod link-safety configuration contract, domain normalization, and additive migration.
 
 ## Next Milestones
 
 - [ ] Review command cooldown cleanup so it does not issue unnecessary deletes per invocation.
 - [ ] Match high-frequency queries to database indexes and add migrations only where evidence supports them.
 - [ ] Continue page-by-page web query and render profiling after the route-splitting baseline.
+- [ ] Complete AutoMod enforcement and dashboard controls for link safety policies.
 
 ## Validation Policy
 
