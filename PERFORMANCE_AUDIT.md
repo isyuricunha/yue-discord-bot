@@ -30,6 +30,7 @@ This file tracks the repository-wide performance audit and its implementation mi
 - [x] Enforce link policies before other message handlers with local fallback, configurable punishments, and notices.
 - [x] Add responsive dashboard controls for link policies, trusted domains, notices, and timeout validation.
 - [x] Preserve exact hostname boundaries when mirroring link rules to Discord AutoMod.
+- [x] Remove the unused network-based URL expander and redundant AFK export.
 
 ## Next Milestones
 

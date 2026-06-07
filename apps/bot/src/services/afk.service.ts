@@ -116,7 +116,3 @@ export function removeAfk(userId: string, guildId: string): Promise<user_afk | n
 export function getAfk(userId: string, guildId: string): Promise<user_afk | null> {
   return afkService.getAfk(userId, guildId);
 }
-
-export function getAfks(userIds: string[], guildId: string): Promise<user_afk[]> {
-  return afkService.getAfks(userIds, guildId);
-}
