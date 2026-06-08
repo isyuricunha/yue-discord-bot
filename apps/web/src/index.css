@@ -36,12 +36,13 @@
   --yu-bg-showcase-backdrop: #0f0f0f;
   --yu-bg-showcase-overlay: rgba(0, 0, 0, 0.55);
 
-  --yu-text-primary: #e8d4a0;
-  --yu-text-strong: #fff1c7;
+  --yu-text-primary: #e0e0e0;
+  --yu-text-strong: #ffffff;
   --yu-text-normal: #e0e0e0;
-  --yu-text-secondary: #d4b483;
-  --yu-text-muted: #9f8f6b;
-  --yu-text-dim: #6f6654;
+  --yu-text-secondary: #c9b98f;
+  --yu-text-accent: #e8d4a0;
+  --yu-text-muted: #8f846d;
+  --yu-text-dim: #625b4a;
   --yu-text-disabled: #4a4a4a;
   --yu-text-on-accent: #000000;
 
@@ -53,19 +54,20 @@
   --yu-link: #ffa726;
   --yu-link-hover: #ff9800;
   --yu-link-active: #ff9800;
-  --yu-accent: #ffa726;
-  --yu-accent-hover: #ff9800;
-  --yu-accent-active: #cc7a00;
+  --yu-accent: #c98218;
+  --yu-accent-hover: #ffa726;
+  --yu-accent-active: #9f6410;
   --yu-accent-dark: #8b5a00;
-  --yu-accent-soft: rgba(255, 167, 38, 0.16);
-  --yu-accent-softer: rgba(255, 167, 38, 0.08);
-  --yu-accent-border: rgba(255, 167, 38, 0.34);
-  --yu-accent-glow: rgba(255, 167, 38, 0.18);
+  --yu-accent-soft: rgba(201, 130, 24, 0.16);
+  --yu-accent-softer: rgba(201, 130, 24, 0.08);
+  --yu-accent-border: rgba(255, 167, 38, 0.30);
+  --yu-accent-glow: rgba(255, 167, 38, 0.16);
 
-  --yu-border-faint: rgba(255, 167, 38, 0.06);
-  --yu-border-subtle: rgba(255, 167, 38, 0.10);
-  --yu-border-default: rgba(255, 167, 38, 0.18);
-  --yu-border-strong: rgba(255, 167, 38, 0.30);
+  --yu-border-faint: rgba(255, 255, 255, 0.04);
+  --yu-border-subtle: rgba(255, 255, 255, 0.07);
+  --yu-border-default: rgba(255, 255, 255, 0.11);
+  --yu-border-strong: rgba(255, 167, 38, 0.28);
+  --yu-border-accent: rgba(255, 167, 38, 0.30);
   --yu-border-neutral: rgba(255, 255, 255, 0.08);
   --yu-border-neutral-strong: rgba(255, 255, 255, 0.14);
 
@@ -102,8 +104,8 @@
   --yu-tooltip-shadow: var(--yu-shadow-sm);
   --yu-overlay: rgba(0, 0, 0, 0.55);
   --yu-inner-border: inset 0 0 0 1px rgba(255, 167, 38, 0.06);
-  --yu-focus-glow: 0 0 0 2px rgba(255, 167, 38, 0.24);
-  --yu-accent-glow-shadow: 0 0 28px rgba(255, 167, 38, 0.16);
+  --yu-focus-glow: 0 0 0 2px rgba(255, 167, 38, 0.22);
+  --yu-accent-glow-shadow: 0 0 24px rgba(201, 130, 24, 0.14);
   --yu-success-glow-shadow: 0 0 20px rgba(139, 195, 74, 0.14);
 
   --yu-radius-xs: 6px;
@@ -121,8 +123,8 @@
   --yu-radius-popover: 16px;
   --yu-radius-pill: 999px;
 
-  --yu-font-sans: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, "Helvetica Neue", Arial, sans-serif;
-  --yu-font-mono: Consolas, ui-monospace, SFMono-Regular, Menlo, Monaco, "Liberation Mono", monospace;
+  --yu-font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --yu-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --yu-font-size-base: 16px;
   --yu-font-size-medium: 15px;
   --yu-font-size-small: 14px;
@@ -148,18 +150,18 @@
   --yu-duration-slow: 260ms;
   --yu-ease: cubic-bezier(0.2, 0, 0, 1);
 
-  --syntax-fg: #e8d4a0;
+  --syntax-fg: #e0e0e0;
   --syntax-comment: #7f755f;
   --syntax-keyword: #ffb74d;
-  --syntax-keyword-alt: #ffa726;
+  --syntax-keyword-alt: #d79a35;
   --syntax-string: #d4b483;
   --syntax-number: #c7a45d;
-  --syntax-boolean: #ffa726;
-  --syntax-constant: #ffcc80;
+  --syntax-boolean: #d79a35;
+  --syntax-constant: #e8d4a0;
   --syntax-function: #ffd180;
   --syntax-method: #ffd180;
   --syntax-variable: #e0e0e0;
-  --syntax-parameter: #e8d4a0;
+  --syntax-parameter: #c9b98f;
   --syntax-property: #f0c36a;
   --syntax-class: #d6a84f;
   --syntax-interface: #d6a84f;
@@ -195,13 +197,13 @@
   --yu-rgb-tooltip: 15 15 15;
   --yu-rgb-chip: 18 18 18;
   --yu-rgb-foreground: 224 224 224;
-  --yu-rgb-strong: 255 241 199;
-  --yu-rgb-muted: 159 143 107;
-  --yu-rgb-dim: 111 102 84;
-  --yu-rgb-border: 70 60 42;
-  --yu-rgb-accent: 255 167 38;
-  --yu-rgb-accent-hover: 255 152 0;
-  --yu-rgb-accent-active: 204 122 0;
+  --yu-rgb-strong: 255 255 255;
+  --yu-rgb-muted: 143 132 109;
+  --yu-rgb-dim: 98 91 74;
+  --yu-rgb-border: 38 38 38;
+  --yu-rgb-accent: 201 130 24;
+  --yu-rgb-accent-hover: 255 167 38;
+  --yu-rgb-accent-active: 159 100 16;
   --yu-rgb-accent-foreground: 0 0 0;
   --yu-rgb-success: 139 195 74;
   --yu-rgb-agent: 199 164 93;

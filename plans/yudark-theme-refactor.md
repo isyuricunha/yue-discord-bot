@@ -13,11 +13,27 @@
 - [x] Run local browser rendered-state verification for the web app.
 - [x] Self-review the final diff for imports, exports, theme selectors, and CSS variable coverage.
 
+## Milestone 2 - YuDark spec refinement
+
+- [x] Re-scan the existing YuDark token layer before editing.
+- [x] Read Tailwind CSS theme/directive documentation for the current styling stack.
+- [x] Refine YuDark text tokens so normal text is neutral soft gray and warm gold is emphasis-only.
+- [x] Refine YuDark accent tokens so primary actions use dark orange-yellow by default with brighter hover.
+- [x] Refine YuDark border tokens so common borders are neutral and accent borders are reserved for focus/selected states.
+- [x] Prefer Inter and JetBrains Mono in the YuDark font stacks without adding new dependencies.
+- [x] Update syntax color tokens to the neutral/warm YuDark palette.
+- [x] Run lint, type-check, tests, and build for the web package after refinement.
+- [x] Run rendered-state browser verification after refinement.
+- [x] Self-review the refinement diff for imports, exports, selectors, variables, and component behavior.
+
 ## Validation Notes
 
 - Web validation passed with `pnpm --filter @yuebot/web lint`, `type-check`, `test`, and `build`.
-- Browser state checks passed on `/login` and `/extras`: `data-theme="yudark"`, `--yu-bg-canvas: #000000`, `--yu-accent: #ffa726`, and rounded surfaces were present.
+- Initial browser state checks passed on `/login` and `/extras`: `data-theme="yudark"`, `--yu-bg-canvas: #000000`, `--yu-accent: #ffa726`, and rounded surfaces were present.
 - In-app browser screenshot capture timed out twice, so verification used computed rendered styles and visible page text instead of saved screenshots.
+- Refinement validation passed with `pnpm --filter @yuebot/web lint`, `type-check`, `test`, and `build`.
+- Refinement browser checks passed on `/login`: `data-theme="yudark"`, `--yu-bg-canvas: #000000`, `--yu-text-primary: #e0e0e0`, `--yu-text-accent: #e8d4a0`, `--yu-accent: #c98218`, `--yu-accent-hover: #ffa726`, `--yu-border-default: rgba(255, 255, 255, 0.11)`, true-black body background, neutral body text, dark-accent primary button, and rounded near-black surfaces.
+- Refinement browser checks passed on `/extras`: `data-theme="yudark"`, true-black canvas, near-black header/card surfaces, neutral header border, dark-accent token, and rounded website cards. A viewport screenshot was captured for visual sanity.
 
 ## Follow-up Candidates
 
