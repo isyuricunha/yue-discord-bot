@@ -39,7 +39,7 @@ export function AppShell() {
   const content_key = useMemo(() => location.pathname, [location.pathname])
 
   return (
-    <div data-theme="yu-dark" className="h-screen overflow-hidden bg-canvas text-foreground">
+    <div data-theme="yudark" className="h-screen overflow-hidden bg-canvas text-foreground">
       <Seo />
 
       <div className="relative flex h-full">

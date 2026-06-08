@@ -1,4 +1,5 @@
-const color = (name) => `rgb(var(--cursor-rgb-${name}) / <alpha-value>)`
+const color = (name) => `rgb(var(--yu-rgb-${name}) / <alpha-value>)`
+const soft = (name, alpha = '0.18') => `rgb(var(--yu-rgb-${name}) / ${alpha})`
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -31,37 +32,37 @@ export default {
           foreground: color('accent-foreground'),
           hover: color('accent-hover'),
           active: color('accent-active'),
-          soft: 'rgb(var(--cursor-rgb-accent) / 0.18)',
+          soft: soft('accent'),
         },
         action: {
           DEFAULT: color('accent'),
           foreground: color('accent-foreground'),
-          soft: 'rgb(var(--cursor-rgb-accent) / 0.18)',
+          soft: soft('accent'),
         },
         success: {
           DEFAULT: color('success'),
-          soft: 'rgb(var(--cursor-rgb-success) / 0.18)',
+          soft: soft('success'),
         },
         agent: {
           DEFAULT: color('agent'),
-          soft: 'rgb(var(--cursor-rgb-agent) / 0.18)',
+          soft: soft('agent'),
         },
         info: {
           DEFAULT: color('info'),
           hover: color('info-hover'),
-          soft: 'rgb(var(--cursor-rgb-info) / 0.18)',
+          soft: soft('info'),
         },
         destructive: {
           DEFAULT: color('danger'),
-          soft: 'rgb(var(--cursor-rgb-danger) / 0.18)',
+          soft: soft('danger'),
         },
         danger: {
           DEFAULT: color('danger'),
-          soft: 'rgb(var(--cursor-rgb-danger) / 0.18)',
+          soft: soft('danger'),
         },
         warning: {
           DEFAULT: color('accent'),
-          soft: 'rgb(var(--cursor-rgb-accent) / 0.18)',
+          soft: soft('accent'),
         },
         'muted-foreground': color('muted'),
         muted: {
@@ -109,29 +110,33 @@ export default {
         },
       },
       borderRadius: {
-        xs: 'var(--cursor-radius-xs)',
-        sm: 'var(--cursor-radius-sm)',
-        md: 'var(--cursor-radius-md)',
-        lg: 'var(--cursor-radius-lg)',
-        xl: 'var(--cursor-radius-card)',
-        '2xl': 'var(--cursor-radius-card)',
-        '3xl': 'var(--cursor-radius-xl)',
-        button: 'var(--cursor-radius-button)',
-        input: 'var(--cursor-radius-input)',
-        card: 'var(--cursor-radius-card)',
-        modal: 'var(--cursor-radius-modal)',
-        popover: 'var(--cursor-radius-popover)',
+        xs: 'var(--yu-radius-xs)',
+        sm: 'var(--yu-radius-sm)',
+        md: 'var(--yu-radius-md)',
+        lg: 'var(--yu-radius-lg)',
+        xl: 'var(--yu-radius-card)',
+        '2xl': 'var(--yu-radius-xl)',
+        '3xl': 'var(--yu-radius-2xl)',
+        button: 'var(--yu-radius-button)',
+        input: 'var(--yu-radius-input)',
+        card: 'var(--yu-radius-card)',
+        modal: 'var(--yu-radius-modal)',
+        popover: 'var(--yu-radius-popover)',
       },
       boxShadow: {
-        cursorSm: 'var(--cursor-shadow-sm)',
-        cursorMd: 'var(--cursor-shadow-md)',
-        cursorLg: 'var(--cursor-shadow-lg)',
-        window: 'var(--cursor-window-shadow)',
-        floating: 'var(--cursor-floating-shadow)',
-        tooltip: 'var(--cursor-tooltip-shadow)',
-        innerBorder: 'var(--cursor-inner-border)',
-        focusGlow: 'var(--cursor-focus-glow)',
-        yellowGlow: 'var(--cursor-yellow-glow)',
+        cursorSm: 'var(--yu-shadow-sm)',
+        cursorMd: 'var(--yu-shadow-md)',
+        cursorLg: 'var(--yu-shadow-lg)',
+        yudarkSm: 'var(--yu-shadow-sm)',
+        yudarkMd: 'var(--yu-shadow-md)',
+        yudarkLg: 'var(--yu-shadow-lg)',
+        window: 'var(--yu-window-shadow)',
+        floating: 'var(--yu-floating-shadow)',
+        tooltip: 'var(--yu-tooltip-shadow)',
+        innerBorder: 'var(--yu-inner-border)',
+        focusGlow: 'var(--yu-focus-glow)',
+        yellowGlow: 'var(--yu-accent-glow-shadow)',
+        accentGlow: 'var(--yu-accent-glow-shadow)',
       },
       keyframes: {
         fadeIn: {

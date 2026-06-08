@@ -47,7 +47,7 @@ export default function LoginPage() {
   return (
     <>
       <Seo />
-      <div data-theme="yu-dark" className="flex min-h-screen flex-col bg-canvas">
+      <div data-theme="yudark" className="flex min-h-screen flex-col bg-canvas">
         <div className="flex min-h-screen flex-col">
           {/* Header com logo e navegação */}
           <header className="flex w-full items-center justify-between px-6 py-5" role="banner">
@@ -140,7 +140,7 @@ export default function LoginPage() {
                   <Button
                     onClick={handleLogin}
                     size="lg"
-                    className="w-full gap-2 !border-[#5865F2]/40 !bg-[#5865F2] !text-white shadow-[0_0_24px_rgba(88,101,242,0.16)] transition-colors hover:!bg-[#4752C4]"
+                    className="w-full gap-2"
                     isLoading={isLoginLoading}
                     disabled={isLoginLoading || !API_URL}
                     aria-label="Entrar com Discord para acessar o painel de controle"

@@ -28,7 +28,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
     render(): ReactNode {
         if (this.state.hasError) {
             return (
-                <div data-theme="yu-dark" className="flex min-h-screen items-center justify-center bg-canvas p-4 text-foreground">
+                <div data-theme="yudark" className="flex min-h-screen items-center justify-center bg-canvas p-4 text-foreground">
                     <div className="cursor-card w-full max-w-md p-6 text-center">
                         <h1 className="mb-4 text-xl font-semibold">Something went wrong</h1>
                         <p className="mb-6 text-sm text-muted-foreground">

@@ -10,7 +10,7 @@ export function RouteLoading({ fullScreen = false }: { fullScreen?: boolean }) {
   if (!fullScreen) return content
 
   return (
-    <div data-theme="yu-dark" className="min-h-screen bg-canvas text-foreground">
+    <div data-theme="yudark" className="min-h-screen bg-canvas text-foreground">
       {content}
     </div>
   )

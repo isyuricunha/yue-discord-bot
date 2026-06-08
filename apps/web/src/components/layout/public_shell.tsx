@@ -18,7 +18,7 @@ export function PublicShell() {
   const content_key = useMemo(() => location.pathname, [location.pathname])
 
   return (
-    <div data-theme="yu-dark" className="min-h-screen bg-canvas text-foreground">
+    <div data-theme="yudark" className="min-h-screen bg-canvas text-foreground">
       <Seo />
 
       <header className="sticky top-0 z-20 border-b border-border/80 bg-window">

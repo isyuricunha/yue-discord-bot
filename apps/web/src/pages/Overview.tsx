@@ -261,11 +261,11 @@ export default function OverviewPage() {
                         <stop offset="95%" stopColor="var(--cursor-accent-navy)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.10)" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--yu-border-default)" vertical={false} />
                     <XAxis dataKey="date" stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--cursor-bg-popover)', borderColor: 'rgba(255,255,255,0.10)', borderRadius: '14px', boxShadow: 'var(--cursor-floating-shadow)' }}
+                      contentStyle={{ backgroundColor: 'var(--cursor-bg-popover)', borderColor: 'var(--yu-border-default)', borderRadius: 'var(--yu-radius-popover)', boxShadow: 'var(--cursor-floating-shadow)' }}
                       itemStyle={{ color: 'var(--cursor-text-primary)' }}
                     />
                     <Area type="monotone" dataKey="newMembers" name="Novos Membros" stroke="var(--cursor-accent-navy)" fillOpacity={1} fill="url(#colorMembers)" />
@@ -291,11 +291,11 @@ export default function OverviewPage() {
                         <stop offset="95%" stopColor="var(--cursor-accent-red)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.10)" vertical={false} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--yu-border-default)" vertical={false} />
                     <XAxis dataKey="date" stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
                     <YAxis stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
                     <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--cursor-bg-popover)', borderColor: 'rgba(255,255,255,0.10)', borderRadius: '14px', boxShadow: 'var(--cursor-floating-shadow)' }}
+                      contentStyle={{ backgroundColor: 'var(--cursor-bg-popover)', borderColor: 'var(--yu-border-default)', borderRadius: 'var(--yu-radius-popover)', boxShadow: 'var(--cursor-floating-shadow)' }}
                       itemStyle={{ color: 'var(--cursor-text-primary)' }}
                     />
                     <Area type="monotone" dataKey="economy" name="Transações Globais" stroke="var(--cursor-accent-yellow)" fillOpacity={1} fill="url(#colorEcon)" />
