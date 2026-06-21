@@ -21,8 +21,9 @@ COPY groq_system_prompt.txt ./groq_system_prompt.txt
 # Install all dependencies
 RUN pnpm install --frozen-lockfile
 
-# Build packages primeiro (ordem importa!)
+# Build packages first (order matters)
 RUN pnpm --filter @yuebot/shared build
+RUN pnpm --filter @yuebot/livepix build
 RUN pnpm --filter @yuebot/database build
 
 # Build apps
@@ -53,6 +54,7 @@ WORKDIR /app
 # Copy package files
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages/database/package.json ./packages/database/
+COPY packages/livepix/package.json ./packages/livepix/
 COPY packages/shared/package.json ./packages/shared/
 COPY apps/api/package.json ./apps/api/
 COPY apps/bot/package.json ./apps/bot/
@@ -63,6 +65,7 @@ RUN pnpm install --prod --frozen-lockfile
 
 # Copy built files from builder
 COPY --from=builder /app/packages/database/dist ./packages/database/dist
+COPY --from=builder /app/packages/livepix/dist ./packages/livepix/dist
 COPY --from=builder /app/packages/shared/dist ./packages/shared/dist
 COPY --from=builder /app/apps/api/dist ./apps/api/dist
 COPY --from=builder /app/apps/bot/dist ./apps/bot/dist
