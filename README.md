@@ -248,7 +248,7 @@ Required when `LIVEPIX_ENABLED=true`:
 - `LIVEPIX_CLIENT_ID` - LivePix OAuth application client ID
 - `LIVEPIX_CLIENT_SECRET` - LivePix OAuth application client secret
 - `LIVEPIX_OAUTH_REDIRECT_URI` - Public API callback URL, for example `https://api.example.com/api/livepix/oauth/callback`
-- `LIVEPIX_WEBHOOK_URL` - Public API webhook URL, for example `https://api.example.com/api/livepix/webhook`
+- `LIVEPIX_WEBHOOK_URL` - Public API webhook URL used for deployment validation and operator display, for example `https://yuebot.yuricunha.com/api/livepix/webhook`
 - `LIVEPIX_PAYMENT_RETURN_URL` - Public return URL passed to LivePix payment creation, for example `https://api.example.com/api/livepix/return`
 - `LIVEPIX_TOKEN_ENCRYPTION_KEY` - 32-byte secret used to encrypt LivePix access tokens and checkout URLs at rest. It can be a 64-character hex string, base64 that decodes to 32 bytes, or a raw 32-byte string.
 
@@ -258,6 +258,8 @@ Optional:
 
 Operational notes:
 
+- Configure the application-level notification URL manually in the LivePix application dashboard before accepting payments. For Yue production, set it to `https://yuebot.yuricunha.com/api/livepix/webhook`.
+- Yue relies on the LivePix application dashboard notification URL to receive webhook events from connected users. It does not call the per-user `GET /v2/webhooks` or `POST /v2/webhooks` APIs during account connection, dashboard loading, checkout creation, or normal startup.
 - The bot needs Discord `Manage Roles`, and the supporter role must be below the bot's highest role.
 - Plans are one-time payments in BRL cents with a fixed duration in days. Recurring subscriptions are not implemented.
 - Users do not link Discord accounts to LivePix. Yue correlates checkout rows by provider payment reference, then fetches the payment from the connected account before granting roles.

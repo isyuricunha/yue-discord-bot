@@ -9,7 +9,7 @@
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "test": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && node --test --import tsx src/**/*.test.ts",
+    "test": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && node --test --import tsx \"src/**/*.test.ts\"",
     "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database db:generate && pnpm --filter @yuebot/database build && tsc --noEmit"
   },
   "dependencies": {
