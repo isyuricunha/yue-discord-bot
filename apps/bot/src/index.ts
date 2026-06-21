@@ -11,6 +11,7 @@ import { ScheduledEventScheduler } from "./services/scheduledEventScheduler";
 import { InventoryExpirationScheduler } from "./services/inventoryExpirationScheduler";
 import { AniListWatchlistScheduler } from "./services/anilistWatchlistScheduler";
 import { PollExpirationScheduler } from "./services/pollExpirationScheduler";
+import { SupportScheduler } from "./services/support/supportScheduler";
 import { initModerationPersistenceService } from "./services/moderationPersistence.service";
 import { initPunishmentRoleService } from "./services/punishmentRole.service";
 import { get_llm_client } from "./services/llm_client_singleton";
@@ -28,6 +29,7 @@ let giveawayScheduler: GiveawayScheduler | null = null;
 let aniListWatchlistScheduler: AniListWatchlistScheduler | null = null;
 let pollExpirationScheduler: PollExpirationScheduler | null = null;
 let freeGameScheduler: FreeGameScheduler | null = null;
+let supportScheduler: SupportScheduler | null = null;
 const GUILD_SYNC_CONCURRENCY = 5;
 
 // Extend Client to include commands collection
@@ -228,6 +230,10 @@ client.once("clientReady", async () => {
 	// Iniciar scheduler de jogos grátis
 	freeGameScheduler = new FreeGameScheduler(client);
 	freeGameScheduler.start();
+
+	// Iniciar scheduler de apoios LivePix
+	supportScheduler = new SupportScheduler(client);
+	supportScheduler.start();
 });
 
 // Event: Guild create (bot joins server)
@@ -403,6 +409,7 @@ process.on("SIGINT", async () => {
   await aniListWatchlistScheduler?.stop();
   pollExpirationScheduler?.stop();
   await freeGameScheduler?.stop();
+  supportScheduler?.stop();
 	client.destroy();
 	await prisma.$disconnect();
 	process.exit(0);
@@ -415,6 +422,7 @@ process.on("SIGTERM", async () => {
   await aniListWatchlistScheduler?.stop();
   pollExpirationScheduler?.stop();
   await freeGameScheduler?.stop();
+  supportScheduler?.stop();
 	client.destroy();
 	await prisma.$disconnect();
 	process.exit(0);

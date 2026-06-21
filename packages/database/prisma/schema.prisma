@@ -37,6 +37,12 @@ model Guild {
   starboardPosts              StarboardPost[]
   suggestionConfig            SuggestionConfig?
   suggestions                 Suggestion[]
+  supportAuditEvents          SupportAuditEvent[]
+  supportConfig               GuildSupportConfig?
+  supportEntitlements         SupportEntitlement[]
+  supportOAuthStates          SupportOAuthState[]
+  supportPayments             SupportPayment[]
+  supportPlans                SupportPlan[]
   ticketConfig                TicketConfig?
   tickets                     Ticket[]
   waifuClaims                 WaifuClaim[]
@@ -45,17 +51,19 @@ model Guild {
   waifuWishlists              WaifuWishlist[]
   customCommands              CustomCommand[]
   dailyRewardConfig           GuildDailyRewardConfig?
-  polls                      Poll[]
-  commandCooldowns           GuildCommandCooldown[]
-  freeGameNotifications      FreeGameNotification[]
-  freeGameGiveaways          FreeGameGiveaway[]
-  keywordTriggers            KeywordTrigger[]
+  polls                       Poll[]
+  commandCooldowns            GuildCommandCooldown[]
+  freeGameNotifications       FreeGameNotification[]
+  freeGameGiveaways           FreeGameGiveaway[]
+  keywordTriggers             KeywordTrigger[]
+  livePixConnection           LivePixConnection?
+  livePixWebhookEvents        LivePixWebhookEvent[]
 
   @@map("guilds")
 }
 
 model GuildDjConfig {
-  id                String   @id @default(cuid())
+  id                 String   @id @default(cuid())
   guildId            String   @unique
   enabled            Boolean  @default(false)
   voiceChannelId     String?
@@ -70,23 +78,23 @@ model GuildDjConfig {
 }
 
 model GuildAntiRaidConfig {
-  id                    String   @id @default(cuid())
-  guildId               String   @unique
-  enabled               Boolean  @default(false)
-  joinThreshold         Int      @default(10)
-  joinTimeWindow        Int      @default(60)
-  action                String   @default("mute")
-  duration              Int      @default(10)
-  exemptRoles           Json     @default("[]")
-  exemptChannels        Json     @default("[]")
-  cooldown              Int      @default(300)
+  id                    String    @id @default(cuid())
+  guildId               String    @unique
+  enabled               Boolean   @default(false)
+  joinThreshold         Int       @default(10)
+  joinTimeWindow        Int       @default(60)
+  action                String    @default("mute")
+  duration              Int       @default(10)
+  exemptRoles           Json      @default("[]")
+  exemptChannels        Json      @default("[]")
+  cooldown              Int       @default(300)
   notificationChannelId String?
-  raidActive            Boolean  @default(false)
+  raidActive            Boolean   @default(false)
   lastRaidAt            DateTime?
-  locked                Boolean  @default(false)
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
-  guild                 Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  locked                Boolean   @default(false)
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  guild                 Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@map("guild_anti_raid_configs")
 }
@@ -134,15 +142,15 @@ model GuildConfig {
   welcomeMessage              String?
   modLogMessage               String?
   reportMessage               String?
-  announcementChannelId              String?
-  aiModerationEnabled                Boolean  @default(false)
-  aiModerationAction                 String   @default("delete")
-  aiModerationLevel                  String   @default("medio")
-  aiModerationThresholds             Json     @default("{}")
+  announcementChannelId       String?
+  aiModerationEnabled         Boolean  @default(false)
+  aiModerationAction          String   @default("delete")
+  aiModerationLevel           String   @default("medio")
+  aiModerationThresholds      Json     @default("{}")
   birthdayChannelId           String?
   birthdayRoleId              String?
   birthdayEnabled             Boolean  @default(true)
-  guild                              Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  guild                       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@map("guild_configs")
 }
@@ -232,8 +240,8 @@ model AuditLog {
 }
 
 model Giveaway {
-  id              String           @id @default(cuid())
-  publicId        String?          @unique
+  id              String                   @id @default(cuid())
+  publicId        String?                  @unique
   guildId         String
   title           String
   description     String
@@ -241,20 +249,20 @@ model Giveaway {
   messageId       String?
   creatorId       String
   requiredRoleId  String?
-  emojiId         String?          @default("🎉")
+  emojiId         String?                  @default("🎉")
   maxWinners      Int
-  format          String           @default("reaction")
+  format          String                   @default("reaction")
   availableItems  Json?
   minChoices      Int?
   maxChoices      Int?
   startsAt        DateTime?
   endsAt          DateTime
-  ended           Boolean          @default(false)
-  cancelled       Boolean          @default(false)
-  createdAt       DateTime         @default(now())
-  updatedAt       DateTime         @updatedAt
+  ended           Boolean                  @default(false)
+  cancelled       Boolean                  @default(false)
+  createdAt       DateTime                 @default(now())
+  updatedAt       DateTime                 @updatedAt
   requiredRoleIds Json?
-  suspended       Boolean          @default(false)
+  suspended       Boolean                  @default(false)
   roleChances     Json?
   minXP           Int?
   minLevel        Int?
@@ -262,7 +270,7 @@ model Giveaway {
   entries         GiveawayEntry[]
   winners         GiveawayWinner[]
   entryEditTokens GiveawayEntryEditToken[]
-  guild           Guild            @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  guild           Guild                    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@index([publicId])
   @@index([guildId, ended])
@@ -304,15 +312,15 @@ model GiveawayWinner {
 }
 
 model GiveawayEntryEditToken {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   giveawayId String
   userId     String
-  token      String   @unique
+  token      String    @unique
   expiresAt  DateTime
   usedAt     DateTime?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
-  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  giveaway   Giveaway  @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
 
   @@unique([giveawayId, userId])
   @@index([expiresAt])
@@ -374,46 +382,46 @@ model Session {
 }
 
 model GuildXpConfig {
-  id                String   @id @default(cuid())
-  guildId           String   @unique
-  enabled           Boolean  @default(true)
-  
+  id      String  @id @default(cuid())
+  guildId String  @unique
+  enabled Boolean @default(true)
+
   // XP Mode: 'formula' (divisor-based) or 'flat' (fixed amount per message)
-  xpMode            String   @default("formula")
-  
+  xpMode String @default("formula")
+
   // Flat XP per message (used when xpMode = 'flat')
-  xpPerMessage      Int      @default(1)
-  
+  xpPerMessage Int @default(1)
+
   // XP per voice minute (replaces voiceXpRate which was per 10 minutes)
-  xpPerVoiceMinute  Int      @default(1)
-  
+  xpPerVoiceMinute Int @default(1)
+
   // Bonus XP for messages exceeding minimum length
-  xpBonusMinLength  Int      @default(0)
-  xpBonusAmount     Int      @default(0)
-  
+  xpBonusMinLength Int @default(0)
+  xpBonusAmount    Int @default(0)
+
   // Daily XP bonus for first message of the day
   dailyXpBonusEnabled Boolean @default(false)
   dailyXpBonusAmount  Int     @default(0)
-  
+
   // Legacy fields (kept for backwards compatibility)
-  minMessageLength  Int      @default(5)
-  minUniqueLength   Int      @default(12)
-  typingCps         Int      @default(7)
-  xpDivisorMin      Int      @default(7)
-  xpDivisorMax      Int      @default(4)
-  xpCap             Int      @default(35)
-  ignoredChannelIds Json     @default("[]")
-  ignoredRoleIds    Json     @default("[]")
-  roleXpMultipliers Json     @default("{}")
-  rewardMode        String   @default("stack")
-  levelUpEnabled    Boolean  @default(true)
-  levelUpChannelId  String?
-  levelUpMessage    String?
-  voiceXpEnabled    Boolean  @default(false)
-  voiceXpRate       Int      @default(10) // Deprecated: kept for backwards compatibility
-  voiceXpNotificationsEnabled Boolean @default(true)
-  updatedAt         DateTime @updatedAt
-  guild             Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  minMessageLength            Int      @default(5)
+  minUniqueLength             Int      @default(12)
+  typingCps                   Int      @default(7)
+  xpDivisorMin                Int      @default(7)
+  xpDivisorMax                Int      @default(4)
+  xpCap                       Int      @default(35)
+  ignoredChannelIds           Json     @default("[]")
+  ignoredRoleIds              Json     @default("[]")
+  roleXpMultipliers           Json     @default("{}")
+  rewardMode                  String   @default("stack")
+  levelUpEnabled              Boolean  @default(true)
+  levelUpChannelId            String?
+  levelUpMessage              String?
+  voiceXpEnabled              Boolean  @default(false)
+  voiceXpRate                 Int      @default(10) // Deprecated: kept for backwards compatibility
+  voiceXpNotificationsEnabled Boolean  @default(true)
+  updatedAt                   DateTime @updatedAt
+  guild                       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@map("guild_xp_configs")
 }
@@ -540,6 +548,196 @@ model Ticket {
   @@map("tickets")
 }
 
+model GuildSupportConfig {
+  id                  String             @id @default(cuid())
+  guildId             String             @unique
+  enabled             Boolean            @default(false)
+  title               String             @default("Apoios")
+  description         String             @default("Escolha um plano para apoiar este servidor.")
+  reminderEnabled     Boolean            @default(true)
+  reminderDaysBefore  Int                @default(3)
+  livePixConnectionId String?            @unique
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  guild               Guild              @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  livePixConnection   LivePixConnection? @relation("GuildSupportConfigConnection", fields: [livePixConnectionId], references: [id], onDelete: SetNull)
+
+  @@index([guildId, enabled])
+  @@map("guild_support_configs")
+}
+
+model LivePixConnection {
+  id                         String                  @id @default(cuid())
+  guildId                    String                  @unique
+  mode                       LivePixConnectionMode
+  providerAccountId          String
+  providerAccountUsername    String?
+  providerAccountDisplayName String?
+  providerAccountAvatar      String?
+  encryptedAccessToken       String?
+  encryptedRefreshToken      String?
+  tokenExpiresAt             DateTime?
+  grantedScopes              String[]                @default([])
+  status                     LivePixConnectionStatus @default(CONNECTED)
+  connectedByUserId          String
+  providerWebhookId          String?
+  connectedAt                DateTime                @default(now())
+  disconnectedAt             DateTime?
+  lastErrorCode              String?
+  updatedAt                  DateTime                @updatedAt
+  guild                      Guild                   @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  supportConfig              GuildSupportConfig?     @relation("GuildSupportConfigConnection")
+  payments                   SupportPayment[]
+
+  @@index([providerAccountId])
+  @@index([status, tokenExpiresAt])
+  @@map("livepix_connections")
+}
+
+model SupportPlan {
+  id           String               @id @default(cuid())
+  guildId      String
+  name         String
+  description  String               @db.Text
+  amountCents  Int
+  durationDays Int
+  roleId       String
+  enabled      Boolean              @default(true)
+  sortOrder    Int                  @default(0)
+  archivedAt   DateTime?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  guild        Guild                @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  payments     SupportPayment[]
+  entitlements SupportEntitlement[]
+
+  @@index([guildId, archivedAt, enabled, sortOrder])
+  @@index([guildId, roleId])
+  @@map("support_plans")
+}
+
+model SupportPayment {
+  id                      String                @id @default(cuid())
+  publicId                String                @unique
+  guildId                 String
+  userId                  String
+  planId                  String?
+  livePixConnectionId     String?
+  providerAccountId       String
+  livePixReference        String                @unique
+  livePixPaymentId        String?               @unique
+  checkoutUrlEncrypted    String?
+  pendingKey              String?               @unique
+  planNameSnapshot        String
+  planDescriptionSnapshot String?               @db.Text
+  amountCentsSnapshot     Int
+  durationDaysSnapshot    Int
+  roleIdSnapshot          String
+  currency                String                @default("BRL")
+  status                  SupportPaymentStatus  @default(CREATING)
+  roleSyncStatus          SupportRoleSyncStatus @default(PENDING)
+  providerCreatedAt       DateTime?
+  confirmedAt             DateTime?
+  fulfilledAt             DateTime?
+  lastVerifiedAt          DateTime?
+  failureCode             String?
+  mismatchCode            String?
+  createdAt               DateTime              @default(now())
+  updatedAt               DateTime              @updatedAt
+  guild                   Guild                 @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  plan                    SupportPlan?          @relation(fields: [planId], references: [id], onDelete: SetNull)
+  livePixConnection       LivePixConnection?    @relation(fields: [livePixConnectionId], references: [id], onDelete: SetNull)
+  webhookEvents           LivePixWebhookEvent[]
+  auditEvents             SupportAuditEvent[]
+
+  @@index([guildId, userId, status, createdAt])
+  @@index([guildId, createdAt])
+  @@index([status, createdAt])
+  @@index([roleSyncStatus, updatedAt])
+  @@map("support_payments")
+}
+
+model SupportEntitlement {
+  id             String                   @id @default(cuid())
+  guildId        String
+  userId         String
+  roleId         String
+  latestPlanId   String?
+  status         SupportEntitlementStatus @default(ACTIVE)
+  startsAt       DateTime
+  expiresAt      DateTime
+  lastReminderAt DateTime?
+  lastRoleSyncAt DateTime?
+  roleSyncStatus SupportRoleSyncStatus    @default(PENDING)
+  revokedAt      DateTime?
+  revokedReason  String?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  guild          Guild                    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  latestPlan     SupportPlan?             @relation(fields: [latestPlanId], references: [id], onDelete: SetNull)
+
+  @@unique([guildId, userId, roleId])
+  @@index([guildId, status, expiresAt])
+  @@index([guildId, userId, status])
+  @@index([roleSyncStatus, updatedAt])
+  @@map("support_entitlements")
+}
+
+model SupportOAuthState {
+  id        String    @id @default(cuid())
+  stateHash String    @unique
+  guildId   String
+  userId    String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  guild     Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@index([guildId, userId, expiresAt])
+  @@index([expiresAt])
+  @@map("support_oauth_states")
+}
+
+model LivePixWebhookEvent {
+  id               String                    @id @default(cuid())
+  dedupeKey        String                    @unique
+  clientId         String?
+  event            String
+  resourceType     String
+  resourceId       String?
+  reference        String?
+  guildId          String?
+  supportPaymentId String?
+  status           LivePixWebhookEventStatus @default(RECEIVED)
+  failureCode      String?
+  createdAt        DateTime                  @default(now())
+  processedAt      DateTime?
+  guild            Guild?                    @relation(fields: [guildId], references: [id], onDelete: SetNull)
+  supportPayment   SupportPayment?           @relation(fields: [supportPaymentId], references: [id], onDelete: SetNull)
+
+  @@index([guildId, createdAt])
+  @@index([reference])
+  @@index([status, createdAt])
+  @@map("livepix_webhook_events")
+}
+
+model SupportAuditEvent {
+  id               String          @id @default(cuid())
+  guildId          String
+  userId           String?
+  supportPaymentId String?
+  action           String
+  metadata         Json?
+  createdAt        DateTime        @default(now())
+  guild            Guild           @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  supportPayment   SupportPayment? @relation(fields: [supportPaymentId], references: [id], onDelete: SetNull)
+
+  @@index([guildId, createdAt])
+  @@index([guildId, action, createdAt])
+  @@index([supportPaymentId])
+  @@map("support_audit_events")
+}
+
 model SuggestionConfig {
   id           String   @id @default(cuid())
   guildId      String   @unique
@@ -593,20 +791,20 @@ model SuggestionVote {
 }
 
 model Poll {
-  id          String      @id @default(cuid())
-  guildId     String
-  channelId   String
-  messageId   String      @unique
-  question    String
-  options     Json
-  multiVote   Boolean     @default(false)
-  endsAt      DateTime
-  ended       Boolean     @default(false)
-  createdBy   String
-  createdAt   DateTime    @default(now())
-  updatedAt   DateTime    @updatedAt
-  votes       PollVote[]
-  guild       Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  id        String     @id @default(cuid())
+  guildId   String
+  channelId String
+  messageId String     @unique
+  question  String
+  options   Json
+  multiVote Boolean    @default(false)
+  endsAt    DateTime
+  ended     Boolean    @default(false)
+  createdBy String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  votes     PollVote[]
+  guild     Guild      @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@index([guildId, ended])
   @@index([endsAt])
@@ -614,12 +812,12 @@ model Poll {
 }
 
 model PollVote {
-  id         String   @id @default(cuid())
-  pollId     String
-  userId     String
-  optionIds  Json
-  votedAt    DateTime @default(now())
-  poll       Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  pollId    String
+  userId    String
+  optionIds Json
+  votedAt   DateTime @default(now())
+  poll      Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
 
   @@unique([pollId, userId])
   @@index([pollId])
@@ -777,14 +975,14 @@ model AniListNotificationChannel {
 }
 
 model Wallet {
-  userId             String    @id
-  balance            BigInt    @default(0)
-  bankBalance        BigInt    @default(0)
-  lastInterestAt     DateTime  @default(now())
+  userId              String   @id
+  balance             BigInt   @default(0)
+  bankBalance         BigInt   @default(0)
+  lastInterestAt      DateTime @default(now())
   totalInterestEarned BigInt   @default(0)
-  createdAt          DateTime  @default(now())
-  updatedAt          DateTime  @updatedAt
-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("wallets")
 }
@@ -1090,26 +1288,69 @@ enum GuildCommandType {
   context
 }
 
+enum LivePixConnectionMode {
+  OAUTH
+  OWNER
+}
+
+enum LivePixConnectionStatus {
+  CONNECTED
+  REAUTH_REQUIRED
+  DISCONNECTED
+  ERROR
+}
+
+enum SupportPaymentStatus {
+  CREATING
+  PENDING
+  CONFIRMED
+  FULFILLED
+  FAILED
+  MISMATCH
+  CANCELLED
+  EXPIRED
+}
+
+enum SupportEntitlementStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum SupportRoleSyncStatus {
+  PENDING
+  SYNCED
+  FAILED
+}
+
+enum LivePixWebhookEventStatus {
+  RECEIVED
+  IGNORED
+  PROCESSED
+  RETRYABLE_FAILURE
+  PERMANENT_FAILURE
+}
+
 enum AniListMediaType {
   anime
   manga
 }
 
 model Pet {
-  id                String    @id @default(cuid())
+  id                String   @id @default(cuid())
   userId            String
   name              String
   species           String
-  level             Int       @default(1)
-  xp                Int       @default(0)
-  hunger            Int       @default(100) // 0-100
-  energy            Int       @default(100) // 0-100
-  happiness         Int       @default(100) // 0-100
-  hygiene           Int       @default(100) // 0-100 (optional expansion)
-  lastInteractionAt DateTime  @default(now())
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  level             Int      @default(1)
+  xp                Int      @default(0)
+  hunger            Int      @default(100) // 0-100
+  energy            Int      @default(100) // 0-100
+  happiness         Int      @default(100) // 0-100
+  hygiene           Int      @default(100) // 0-100 (optional expansion)
+  lastInteractionAt DateTime @default(now())
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("pets")
@@ -1146,15 +1387,15 @@ model UserDailyReward {
 }
 
 model GuildDailyRewardConfig {
-  id              String   @id @default(cuid())
-  guildId         String   @unique
-  enabled         Boolean  @default(true)
-  rewardAmount    BigInt   @default(0)
-  streakBonus     BigInt   @default(0)
-  maxStreakBonus  Int      @default(30)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  guild           Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  id             String   @id @default(cuid())
+  guildId        String   @unique
+  enabled        Boolean  @default(true)
+  rewardAmount   BigInt   @default(0)
+  streakBonus    BigInt   @default(0)
+  maxStreakBonus Int      @default(30)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  guild          Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@map("guild_daily_reward_configs")
 }
@@ -1175,13 +1416,13 @@ model UserAfk {
 
 // Command cooldowns per guild
 model GuildCommandCooldown {
-  id          String   @id @default(cuid())
-  guildId     String
-  commandName String
-  cooldownSeconds Int    @default(0) // 0 = no cooldown
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  id              String   @id @default(cuid())
+  guildId         String
+  commandName     String
+  cooldownSeconds Int      @default(0) // 0 = no cooldown
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  guild           Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@unique([guildId, commandName])
   @@index([guildId])
@@ -1203,13 +1444,13 @@ model UserCommandCooldown {
 
 // User birthday (global - not per guild)
 model UserBirthday {
-  id          String   @id @default(cuid())
-  userId      String   @unique
-  day         Int      // 1-31
-  month       Int      // 1-12
-  year        Int?     // Optional - can be null for privacy
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  day       Int // 1-31
+  month     Int // 1-12
+  year      Int? // Optional - can be null for privacy
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([day, month])
   @@map("user_birthdays")
@@ -1249,18 +1490,18 @@ model FreeGameGiveaway {
 }
 
 model KeywordTrigger {
-  id        String   @id @default(cuid())
-  guildId   String
+  id          String   @id @default(cuid())
+  guildId     String
   /// @deprecated Use keywords instead - maintained for backwards compatibility
-  keyword   String?  @db.Text
-  keywords  String[] @default([])
-  mediaUrl  String?
-  content   String?
-  channelId String?
-  createdBy String
-  createdAt DateTime @default(now())
-  replyToUser Boolean @default(true)
-  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  keyword     String?  @db.Text
+  keywords    String[] @default([])
+  mediaUrl    String?
+  content     String?
+  channelId   String?
+  createdBy   String
+  createdAt   DateTime @default(now())
+  replyToUser Boolean  @default(true)
+  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@index([guildId])
   @@map("keyword_triggers")

@@ -404,6 +404,52 @@ export const ticketPanelPublishSchema = z.object({
   channelId: z.string().min(1),
 });
 
+export const supportConfigUpdateSchema = z.object({
+  enabled: z.boolean().optional(),
+  title: z.string().trim().min(1).max(100).optional(),
+  description: z.string().trim().min(1).max(1200).optional(),
+  reminderEnabled: z.boolean().optional(),
+  reminderDaysBefore: z.coerce.number().int().min(1).max(30).optional(),
+});
+
+export const supportPlanCreateSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  description: z.string().trim().min(1).max(1000),
+  amountCents: z.coerce.number().int().min(100).max(10_000_000),
+  durationDays: z.coerce.number().int().min(1).max(3650),
+  roleId: z.string().min(1),
+  enabled: z.boolean().optional(),
+  sortOrder: z.coerce.number().int().min(0).max(10_000).optional(),
+});
+
+export const supportPlanUpdateSchema = supportPlanCreateSchema.partial().extend({
+  archived: z.boolean().optional(),
+});
+
+export const supportPlansReorderSchema = z.object({
+  planIds: z.array(z.string().min(1)).min(1).max(25),
+});
+
+export const supportPaymentListQuerySchema = z.object({
+  status: z
+    .enum(['CREATING', 'PENDING', 'CONFIRMED', 'FULFILLED', 'FAILED', 'MISMATCH', 'CANCELLED', 'EXPIRED'])
+    .optional(),
+  userId: z.string().min(1).max(32).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  cursor: z.string().min(1).optional(),
+});
+
+export const supportEntitlementListQuerySchema = z.object({
+  status: z.enum(['ACTIVE', 'EXPIRED', 'REVOKED']).optional(),
+  userId: z.string().min(1).max(32).optional(),
+  limit: z.coerce.number().int().min(1).max(100).optional(),
+  cursor: z.string().min(1).optional(),
+});
+
+export const supportEntitlementRevokeSchema = z.object({
+  reason: z.string().trim().max(500).optional(),
+});
+
 export const suggestionConfigSchema = z.object({
   enabled: z.boolean().optional(),
 
@@ -550,6 +596,13 @@ export type GuildXpConfigInput = z.infer<typeof guildXpConfigSchema>;
 export type GuildAutoroleConfigInput = z.infer<typeof guildAutoroleConfigSchema>;
 export type TicketConfigInput = z.infer<typeof ticketConfigSchema>;
 export type TicketPanelPublishInput = z.infer<typeof ticketPanelPublishSchema>;
+export type SupportConfigUpdateInput = z.infer<typeof supportConfigUpdateSchema>;
+export type SupportPlanCreateInput = z.infer<typeof supportPlanCreateSchema>;
+export type SupportPlanUpdateInput = z.infer<typeof supportPlanUpdateSchema>;
+export type SupportPlansReorderInput = z.infer<typeof supportPlansReorderSchema>;
+export type SupportPaymentListQueryInput = z.infer<typeof supportPaymentListQuerySchema>;
+export type SupportEntitlementListQueryInput = z.infer<typeof supportEntitlementListQuerySchema>;
+export type SupportEntitlementRevokeInput = z.infer<typeof supportEntitlementRevokeSchema>;
 export type SuggestionConfigInput = z.infer<typeof suggestionConfigSchema>;
 export type ReactionRoleItemInput = z.infer<typeof reactionRoleItemSchema>;
 export type ReactionRolePanelUpsertInput = z.infer<typeof reactionRolePanelUpsertSchema>;

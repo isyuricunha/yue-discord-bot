@@ -150,6 +150,29 @@ type admin_check_response = {
   isAdmin: boolean
 }
 
+type support_role_validation_response = {
+  valid: boolean
+  reason: string | null
+  role: {
+    id: string
+    name: string
+    color: number
+    position: number
+    managed: boolean
+  } | null
+}
+
+type support_payment_fulfillment_response = {
+  success: true
+  status: 'pending' | 'fulfilled' | 'already_fulfilled' | 'role_sync_failed' | 'mismatch' | 'connection_error'
+  message: string
+}
+
+type support_entitlement_sync_response = {
+  success: true
+  status: 'synced' | 'removed' | 'failed' | 'not_found'
+}
+
 type bot_permissions_response = {
   permissions: {
     viewAuditLog: boolean
@@ -652,4 +675,48 @@ export async function execute_music_action(guild_id: string, body: music_action_
     method: 'POST',
     body: JSON.stringify(body),
   })
+}
+
+export async function validate_support_role(
+  input: { guildId: string; roleId: string },
+  log: FastifyBaseLogger
+) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${input.guildId}/support/roles/validate`
+  return (await fetch_json_with_timeout_ms(url, log, 10_000, {
+    method: 'POST',
+    body: JSON.stringify({ roleId: input.roleId }),
+  })) as support_role_validation_response
+}
+
+export async function verify_and_fulfill_support_payment(
+  input: { guildId: string; paymentId: string },
+  log: FastifyBaseLogger
+) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${input.guildId}/support/payments/${input.paymentId}/verify`
+  return (await fetch_json_with_timeout_ms(url, log, 20_000, {
+    method: 'POST',
+    body: '{}',
+  })) as support_payment_fulfillment_response
+}
+
+export async function sync_support_entitlement_role(
+  input: { guildId: string; entitlementId: string },
+  log: FastifyBaseLogger
+) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${input.guildId}/support/entitlements/${input.entitlementId}/sync`
+  return (await fetch_json_with_timeout_ms(url, log, 20_000, {
+    method: 'POST',
+    body: '{}',
+  })) as support_entitlement_sync_response
+}
+
+export async function remove_support_entitlement_role(
+  input: { guildId: string; entitlementId: string },
+  log: FastifyBaseLogger
+) {
+  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${input.guildId}/support/entitlements/${input.entitlementId}/remove-role`
+  return (await fetch_json_with_timeout_ms(url, log, 20_000, {
+    method: 'POST',
+    body: '{}',
+  })) as support_entitlement_sync_response
 }

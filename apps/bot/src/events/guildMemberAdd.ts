@@ -5,6 +5,7 @@ import { getPunishmentRoleService } from '../services/punishmentRole.service'
 import { welcomeService } from '../services/welcome.service'
 import { antiRaidService } from '../services/antiRaid.service'
 import { afkService } from '../services/afk.service'
+import { supportService } from '../services/support/support.service'
 import { logger } from '../utils/logger'
 
 export async function handleGuildMemberAdd(member: GuildMember) {
@@ -40,6 +41,12 @@ export async function handleGuildMemberAdd(member: GuildMember) {
     await autoroleService.handle_member_add(member)
   } catch (error) {
     logger.error({ error }, 'Erro ao processar autorole (guildMemberAdd)')
+  }
+
+  try {
+    await supportService.restore_member_entitlements(member)
+  } catch (error) {
+    logger.error({ error }, 'Erro ao restaurar apoios ativos (guildMemberAdd)')
   }
 
   try {

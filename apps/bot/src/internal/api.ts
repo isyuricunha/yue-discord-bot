@@ -7,6 +7,7 @@ import { CONFIG } from '../config';
 import { moderationLogService } from '../services/moderationLog.service';
 import { ticketService } from '../services/ticket.service';
 import { reactionRoleService } from '../services/reactionRole.service'
+import { supportService } from '../services/support/support.service'
 import { apply_presence, normalize_presence_body } from '../services/presence.service'
 import {
   apply_app_description,
@@ -56,6 +57,10 @@ type ticket_panel_publish_body = {
 type reaction_role_panel_publish_body = {
   moderatorId: string
   channelId: string
+}
+
+type support_role_validate_body = {
+  roleId: string
 }
 
 type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
@@ -271,6 +276,24 @@ function extract_music_action_params(pathname: string) {
   return { guildId: match[1] }
 }
 
+function extract_support_role_validate_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/support\/roles\/validate$/)
+  if (!match) return null
+  return { guildId: match[1] }
+}
+
+function extract_support_payment_verify_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/support\/payments\/([^/]+)\/verify$/)
+  if (!match) return null
+  return { guildId: match[1], paymentId: match[2] }
+}
+
+function extract_support_entitlement_params(pathname: string) {
+  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/support\/entitlements\/([^/]+)\/(sync|remove-role)$/)
+  if (!match) return null
+  return { guildId: match[1], entitlementId: match[2], action: match[3] as 'sync' | 'remove-role' }
+}
+
 function extract_guild_leave_params(pathname: string) {
   const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/leave$/)
   if (!match) return null
@@ -315,6 +338,12 @@ function is_valid_reaction_role_panel_publish_body(body: unknown): body is react
   if (typeof b.moderatorId !== 'string' || b.moderatorId.trim().length === 0) return false
   if (typeof b.channelId !== 'string' || b.channelId.trim().length === 0) return false
   return true
+}
+
+function is_valid_support_role_validate_body(body: unknown): body is support_role_validate_body {
+  if (!body || typeof body !== 'object') return false
+  const b = body as Record<string, unknown>
+  return typeof b.roleId === 'string' && b.roleId.trim().length > 0
 }
 
 function normalize_profile_sync_body(body: unknown): profile_sync_body | null {
@@ -736,6 +765,41 @@ export function start_internal_api(client: Client, options: internal_api_options
           await syncService.syncGuild(automod_sync_params.guildId);
 
           return send_json(res, 200, { success: true });
+        }
+
+        const support_role_validate = extract_support_role_validate_params(url.pathname)
+        if (support_role_validate) {
+          const body = await read_json_body(req).catch(() => null)
+          if (!is_valid_support_role_validate_body(body)) {
+            return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
+          }
+
+          const guild = await client.guilds.fetch(support_role_validate.guildId).catch(() => null)
+          if (!guild) {
+            return send_json(res, 404, { error: 'Guild not found' } satisfies api_error_body)
+          }
+
+          const result = await supportService.validate_support_role(guild, body.roleId)
+          return send_json(res, 200, result)
+        }
+
+        const support_payment_verify = extract_support_payment_verify_params(url.pathname)
+        if (support_payment_verify) {
+          const result = await supportService.verify_and_fulfill_payment(
+            client,
+            support_payment_verify.guildId,
+            support_payment_verify.paymentId
+          )
+          return send_json(res, 200, result)
+        }
+
+        const support_entitlement = extract_support_entitlement_params(url.pathname)
+        if (support_entitlement) {
+          const result =
+            support_entitlement.action === 'sync'
+              ? await supportService.sync_entitlement_role(client, support_entitlement.entitlementId)
+              : await supportService.remove_entitlement_role(client, support_entitlement.entitlementId)
+          return send_json(res, 200, result)
         }
 
         const ticket_panel_params = extract_ticket_panel_publish_params(url.pathname)

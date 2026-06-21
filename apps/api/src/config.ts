@@ -1,4 +1,5 @@
 import { load_env } from '@yuebot/shared';
+import { parse_livepix_encryption_key } from '@yuebot/livepix';
 
 const REQUIRED_RUNTIME_ENV_VARS = [
   'DISCORD_CLIENT_ID',
@@ -73,6 +74,15 @@ export const CONFIG = {
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
   },
+  livePix: {
+    enabled: parse_boolean_env(process.env.LIVEPIX_ENABLED, false),
+    clientId: process.env.LIVEPIX_CLIENT_ID || '',
+    clientSecret: process.env.LIVEPIX_CLIENT_SECRET || '',
+    oauthRedirectUri: process.env.LIVEPIX_OAUTH_REDIRECT_URI || '',
+    webhookUrl: process.env.LIVEPIX_WEBHOOK_URL || '',
+    tokenEncryptionKey: process.env.LIVEPIX_TOKEN_ENCRYPTION_KEY || '',
+    ownerGuildIds: parse_csv_env(process.env.LIVEPIX_OWNER_GUILD_IDS),
+  },
   rateLimit: {
     max: parse_int_env(process.env.RATE_LIMIT_MAX, 100),
     timeWindowMs: parse_int_env(process.env.RATE_LIMIT_TIME_WINDOW, 60 * 1000),
@@ -103,6 +113,28 @@ export function get_api_runtime_env_errors(env: NodeJS.ProcessEnv): string[] {
 
     if (!env.DISCORD_REDIRECT_URI) {
       errors.push('DISCORD_REDIRECT_URI must be set in production');
+    }
+  }
+
+  if (parse_boolean_env(env.LIVEPIX_ENABLED, false)) {
+    const livePixMissing = [
+      'LIVEPIX_CLIENT_ID',
+      'LIVEPIX_CLIENT_SECRET',
+      'LIVEPIX_OAUTH_REDIRECT_URI',
+      'LIVEPIX_WEBHOOK_URL',
+      'LIVEPIX_TOKEN_ENCRYPTION_KEY',
+    ].filter((key) => !env[key])
+
+    if (livePixMissing.length > 0) {
+      errors.push(`Missing required LivePix environment variables: ${livePixMissing.join(', ')}`)
+    }
+
+    if (env.LIVEPIX_TOKEN_ENCRYPTION_KEY) {
+      try {
+        parse_livepix_encryption_key(env.LIVEPIX_TOKEN_ENCRYPTION_KEY)
+      } catch {
+        errors.push('LIVEPIX_TOKEN_ENCRYPTION_KEY must decode to 32 bytes')
+      }
     }
   }
 

@@ -4,19 +4,20 @@
   "private": true,
   "main": "./dist/index.js",
   "scripts": {
-    "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && tsx watch src/index.ts",
-    "build": "tsup",
+    "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && tsx watch src/index.ts",
+    "build": "pnpm --filter @yuebot/livepix build && tsup",
     "start": "node dist/index.js",
     "deploy-commands": "tsx src/bin/deploy-commands.ts",
-    "test": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && node --test --import tsx src/**/*.test.ts",
+    "test": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && node --test --import tsx src/**/*.test.ts",
     "clean": "rm -rf dist",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && tsc --noEmit"
+    "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && tsc --noEmit"
   },
   "dependencies": {
     "@mistralai/mistralai": "^2.2.5",
     "@napi-rs/canvas": "^1.0.0",
     "@yuebot/database": "workspace:*",
+    "@yuebot/livepix": "workspace:*",
     "@yuebot/shared": "workspace:*",
     "axios": "^1.17.0",
     "bullmq": "^5.78.0",

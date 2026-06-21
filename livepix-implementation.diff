@@ -1,0 +1,1544 @@
+diff --git a/.env.docker.example b/.env.docker.example
+index f562db1..e9953d6 100644
+--- a/.env.docker.example
++++ b/.env.docker.example
+@@ -43,6 +43,16 @@ API_URL=https://api.example.com
+ VITE_API_URL=
+ VITE_DISCORD_CLIENT_ID=1434271732507611289
+ 
++# LivePix support payments (optional)
++LIVEPIX_ENABLED=false
++LIVEPIX_CLIENT_ID=
++LIVEPIX_CLIENT_SECRET=
++LIVEPIX_OAUTH_REDIRECT_URI=https://api.example.com/api/livepix/oauth/callback
++LIVEPIX_WEBHOOK_URL=https://api.example.com/api/livepix/webhook
++LIVEPIX_PAYMENT_RETURN_URL=https://api.example.com/api/livepix/return
++LIVEPIX_TOKEN_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
++LIVEPIX_OWNER_GUILD_IDS=
++
+ # Redis (opcional)
+ REDIS_URL=redis://localhost:6379
+ REDIS_PASSWORD=
+diff --git a/.env.example b/.env.example
+index 409d6e7..3a46ded 100644
+--- a/.env.example
++++ b/.env.example
+@@ -76,6 +76,16 @@ FRONTEND_URL=http://localhost:5173
+ # OAuth2
+ DISCORD_REDIRECT_URI=http://localhost:3000/api/auth/callback
+ 
++# LivePix support payments (optional)
++LIVEPIX_ENABLED=false
++LIVEPIX_CLIENT_ID=
++LIVEPIX_CLIENT_SECRET=
++LIVEPIX_OAUTH_REDIRECT_URI=http://localhost:3000/api/livepix/oauth/callback
++LIVEPIX_WEBHOOK_URL=http://localhost:3000/api/livepix/webhook
++LIVEPIX_PAYMENT_RETURN_URL=http://localhost:3000/api/livepix/return
++LIVEPIX_TOKEN_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
++LIVEPIX_OWNER_GUILD_IDS=
++
+ # Environment
+ NODE_ENV=development
+ 
+diff --git a/.env.local.example b/.env.local.example
+index 86576ed..9eb523f 100644
+--- a/.env.local.example
++++ b/.env.local.example
+@@ -52,6 +52,16 @@ API_URL=http://localhost:3000
+ FRONTEND_URL=http://localhost:5173
+ DISCORD_REDIRECT_URI=http://localhost:3000/api/auth/callback
+ 
++# LivePix support payments (optional)
++LIVEPIX_ENABLED=false
++LIVEPIX_CLIENT_ID=
++LIVEPIX_CLIENT_SECRET=
++LIVEPIX_OAUTH_REDIRECT_URI=http://localhost:3000/api/livepix/oauth/callback
++LIVEPIX_WEBHOOK_URL=http://localhost:3000/api/livepix/webhook
++LIVEPIX_PAYMENT_RETURN_URL=http://localhost:3000/api/livepix/return
++LIVEPIX_TOKEN_ENCRYPTION_KEY=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
++LIVEPIX_OWNER_GUILD_IDS=
++
+ # Web UI (Vite build-time)
+ VITE_API_URL=http://localhost:3000
+ VITE_DISCORD_CLIENT_ID=1434271732507611289
+diff --git a/README.md b/README.md
+index 61251e9..a9e5155 100644
+--- a/README.md
++++ b/README.md
+@@ -239,6 +239,32 @@ Enable AI features by providing API keys:
+ - `OPENAI_MODERATION_IMAGE_MAX_BYTES` - Max size downloaded per image before moderation (default: `20971520`)
+ - `OPENAI_MODERATION_IMAGE_PAYLOAD_MAX_BYTES` - Max image payload sent to moderation per request (default: `47185920`)
+ 
++#### LivePix Support Payments (Optional)
++
++LivePix support payments are configured per guild from the web panel under **Suporte > Apoios**. Members use `/apoiar` in Discord, choose one of the guild-defined plans, and receive the configured role only after Yue verifies the LivePix payment with the connected LivePix account.
++
++Required when `LIVEPIX_ENABLED=true`:
++
++- `LIVEPIX_CLIENT_ID` - LivePix OAuth application client ID
++- `LIVEPIX_CLIENT_SECRET` - LivePix OAuth application client secret
++- `LIVEPIX_OAUTH_REDIRECT_URI` - Public API callback URL, for example `https://api.example.com/api/livepix/oauth/callback`
++- `LIVEPIX_WEBHOOK_URL` - Public API webhook URL, for example `https://api.example.com/api/livepix/webhook`
++- `LIVEPIX_PAYMENT_RETURN_URL` - Public return URL passed to LivePix payment creation, for example `https://api.example.com/api/livepix/return`
++- `LIVEPIX_TOKEN_ENCRYPTION_KEY` - 32-byte secret used to encrypt LivePix access tokens and checkout URLs at rest. It can be a 64-character hex string, base64 that decodes to 32 bytes, or a raw 32-byte string.
++
++Optional:
++
++- `LIVEPIX_OWNER_GUILD_IDS` - Comma-separated guild IDs allowed to use the bot owner's LivePix credentials instead of guild OAuth.
++
++Operational notes:
++
++- The bot needs Discord `Manage Roles`, and the supporter role must be below the bot's highest role.
++- Plans are one-time payments in BRL cents with a fixed duration in days. Recurring subscriptions are not implemented.
++- Users do not link Discord accounts to LivePix. Yue correlates checkout rows by provider payment reference, then fetches the payment from the connected account before granting roles.
++- Webhooks are deduplicated and sanitized before persistence. Raw webhook bodies, access tokens, and checkout URLs are not exposed in API responses.
++- OAuth access tokens are encrypted at rest. If an OAuth token expires, reconnect the LivePix account from the dashboard.
++- If role synchronization fails because of permissions or hierarchy, fix the Discord role setup and use the dashboard retry action.
++
+ #### Music Features (Optional)
+ 
+ For music functionality, configure Lavalink:
+diff --git a/apps/api/package.json b/apps/api/package.json
+index de35848..844fc01 100644
+--- a/apps/api/package.json
++++ b/apps/api/package.json
+@@ -4,13 +4,13 @@
+   "private": true,
+   "main": "./dist/index.js",
+   "scripts": {
+-    "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && tsx watch src/index.ts",
+-    "build": "tsup",
++    "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && tsx watch src/index.ts",
++    "build": "pnpm --filter @yuebot/livepix build && tsup",
+     "start": "node dist/index.js",
+     "clean": "rm -rf dist",
+     "lint": "eslint \"src/**/*.{ts,tsx}\"",
+-    "test": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && node --test --import tsx src/**/*.test.ts",
+-    "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database db:generate && pnpm --filter @yuebot/database build && tsc --noEmit"
++    "test": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && node --test --import tsx src/**/*.test.ts",
++    "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database db:generate && pnpm --filter @yuebot/database build && tsc --noEmit"
+   },
+   "dependencies": {
+     "@fastify/cookie": "^11.0.2",
+@@ -19,6 +19,7 @@
+     "@fastify/jwt": "^10.1.0",
+     "@fastify/rate-limit": "^10.3.0",
+     "@yuebot/database": "workspace:*",
++    "@yuebot/livepix": "workspace:*",
+     "@yuebot/shared": "workspace:*",
+     "axios": "^1.17.0",
+     "fastify": "^5.8.5",
+diff --git a/apps/api/src/config.ts b/apps/api/src/config.ts
+index f150c09..a2c644b 100644
+--- a/apps/api/src/config.ts
++++ b/apps/api/src/config.ts
+@@ -1,4 +1,5 @@
+ import { load_env } from '@yuebot/shared';
++import { parse_livepix_encryption_key } from '@yuebot/livepix';
+ 
+ const REQUIRED_RUNTIME_ENV_VARS = [
+   'DISCORD_CLIENT_ID',
+@@ -73,6 +74,15 @@ export const CONFIG = {
+   redis: {
+     url: process.env.REDIS_URL || 'redis://localhost:6379',
+   },
++  livePix: {
++    enabled: parse_boolean_env(process.env.LIVEPIX_ENABLED, false),
++    clientId: process.env.LIVEPIX_CLIENT_ID || '',
++    clientSecret: process.env.LIVEPIX_CLIENT_SECRET || '',
++    oauthRedirectUri: process.env.LIVEPIX_OAUTH_REDIRECT_URI || '',
++    webhookUrl: process.env.LIVEPIX_WEBHOOK_URL || '',
++    tokenEncryptionKey: process.env.LIVEPIX_TOKEN_ENCRYPTION_KEY || '',
++    ownerGuildIds: parse_csv_env(process.env.LIVEPIX_OWNER_GUILD_IDS),
++  },
+   rateLimit: {
+     max: parse_int_env(process.env.RATE_LIMIT_MAX, 100),
+     timeWindowMs: parse_int_env(process.env.RATE_LIMIT_TIME_WINDOW, 60 * 1000),
+@@ -106,6 +116,28 @@ export function get_api_runtime_env_errors(env: NodeJS.ProcessEnv): string[] {
+     }
+   }
+ 
++  if (parse_boolean_env(env.LIVEPIX_ENABLED, false)) {
++    const livePixMissing = [
++      'LIVEPIX_CLIENT_ID',
++      'LIVEPIX_CLIENT_SECRET',
++      'LIVEPIX_OAUTH_REDIRECT_URI',
++      'LIVEPIX_WEBHOOK_URL',
++      'LIVEPIX_TOKEN_ENCRYPTION_KEY',
++    ].filter((key) => !env[key])
++
++    if (livePixMissing.length > 0) {
++      errors.push(`Missing required LivePix environment variables: ${livePixMissing.join(', ')}`)
++    }
++
++    if (env.LIVEPIX_TOKEN_ENCRYPTION_KEY) {
++      try {
++        parse_livepix_encryption_key(env.LIVEPIX_TOKEN_ENCRYPTION_KEY)
++      } catch {
++        errors.push('LIVEPIX_TOKEN_ENCRYPTION_KEY must decode to 32 bytes')
++      }
++    }
++  }
++
+   const cookieSameSite = env.COOKIE_SAMESITE || 'lax';
+   const cookieSecure = parse_boolean_env(env.COOKIE_SECURE, env.NODE_ENV === 'production');
+   if (cookieSameSite === 'none' && !cookieSecure) {
+diff --git a/apps/api/src/index.ts b/apps/api/src/index.ts
+index 4716350..8d49d25 100644
+--- a/apps/api/src/index.ts
++++ b/apps/api/src/index.ts
+@@ -24,6 +24,8 @@ import { coinflipRoutes } from './routes/coinflip.routes'
+ import { ownerRoutes } from './routes/owner.routes'
+ import { auditRoutes } from './routes/audit.routes'
+ import { triggersRoutes } from './routes/triggers.routes'
++import { supportRoutes } from './routes/support.routes'
++import { livePixRoutes } from './routes/livepix.routes'
+ import { safe_error_details } from './utils/safe_error'
+ 
+ assert_api_runtime_env();
+@@ -264,6 +266,7 @@ app.register(authRoutes, { prefix: '/api/auth' });
+ 
+ // Guild routes
+ app.register(guildRoutes, { prefix: '/api/guilds' });
++app.register(supportRoutes, { prefix: '/api/guilds' });
+ 
+ // XP routes
+ app.register(xpRoutes, { prefix: '/api/xp' });
+@@ -303,6 +306,9 @@ app.register(triggersRoutes, { prefix: '/api/guilds' })
+ // Owner routes
+ app.register(ownerRoutes, { prefix: '/api' })
+ 
++// LivePix public callback, return and webhook routes
++app.register(livePixRoutes, { prefix: '/api' })
++
+ // Start server
+ const start = async () => {
+   try {
+diff --git a/apps/api/src/internal/bot_internal_api.ts b/apps/api/src/internal/bot_internal_api.ts
+index 467d91f..d402641 100644
+--- a/apps/api/src/internal/bot_internal_api.ts
++++ b/apps/api/src/internal/bot_internal_api.ts
+@@ -150,6 +150,29 @@ type admin_check_response = {
+   isAdmin: boolean
+ }
+ 
++type support_role_validation_response = {
++  valid: boolean
++  reason: string | null
++  role: {
++    id: string
++    name: string
++    color: number
++    position: number
++    managed: boolean
++  } | null
++}
++
++type support_payment_fulfillment_response = {
++  success: true
++  status: 'pending' | 'fulfilled' | 'already_fulfilled' | 'role_sync_failed' | 'mismatch' | 'connection_error'
++  message: string
++}
++
++type support_entitlement_sync_response = {
++  success: true
++  status: 'synced' | 'removed' | 'failed' | 'not_found'
++}
++
+ type bot_permissions_response = {
+   permissions: {
+     viewAuditLog: boolean
+@@ -653,3 +676,47 @@ export async function execute_music_action(guild_id: string, body: music_action_
+     body: JSON.stringify(body),
+   })
+ }
++
++export async function validate_support_role(
++  input: { guildId: string; roleId: string },
++  log: FastifyBaseLogger
++) {
++  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${input.guildId}/support/roles/validate`
++  return (await fetch_json_with_timeout_ms(url, log, 10_000, {
++    method: 'POST',
++    body: JSON.stringify({ roleId: input.roleId }),
++  })) as support_role_validation_response
++}
++
++export async function verify_and_fulfill_support_payment(
++  input: { guildId: string; paymentId: string },
++  log: FastifyBaseLogger
++) {
++  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${input.guildId}/support/payments/${input.paymentId}/verify`
++  return (await fetch_json_with_timeout_ms(url, log, 20_000, {
++    method: 'POST',
++    body: '{}',
++  })) as support_payment_fulfillment_response
++}
++
++export async function sync_support_entitlement_role(
++  input: { guildId: string; entitlementId: string },
++  log: FastifyBaseLogger
++) {
++  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${input.guildId}/support/entitlements/${input.entitlementId}/sync`
++  return (await fetch_json_with_timeout_ms(url, log, 20_000, {
++    method: 'POST',
++    body: '{}',
++  })) as support_entitlement_sync_response
++}
++
++export async function remove_support_entitlement_role(
++  input: { guildId: string; entitlementId: string },
++  log: FastifyBaseLogger
++) {
++  const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${input.guildId}/support/entitlements/${input.entitlementId}/remove-role`
++  return (await fetch_json_with_timeout_ms(url, log, 20_000, {
++    method: 'POST',
++    body: '{}',
++  })) as support_entitlement_sync_response
++}
+diff --git a/apps/bot/package.json b/apps/bot/package.json
+index 4b04e48..2408e09 100644
+--- a/apps/bot/package.json
++++ b/apps/bot/package.json
+@@ -4,19 +4,20 @@
+   "private": true,
+   "main": "./dist/index.js",
+   "scripts": {
+-    "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && tsx watch src/index.ts",
+-    "build": "tsup",
++    "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && tsx watch src/index.ts",
++    "build": "pnpm --filter @yuebot/livepix build && tsup",
+     "start": "node dist/index.js",
+     "deploy-commands": "tsx src/bin/deploy-commands.ts",
+-    "test": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && node --test --import tsx src/**/*.test.ts",
++    "test": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && node --test --import tsx src/**/*.test.ts",
+     "clean": "rm -rf dist",
+     "lint": "eslint \"src/**/*.{ts,tsx}\"",
+-    "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && tsc --noEmit"
++    "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && tsc --noEmit"
+   },
+   "dependencies": {
+     "@mistralai/mistralai": "^2.2.5",
+     "@napi-rs/canvas": "^1.0.0",
+     "@yuebot/database": "workspace:*",
++    "@yuebot/livepix": "workspace:*",
+     "@yuebot/shared": "workspace:*",
+     "axios": "^1.17.0",
+     "bullmq": "^5.78.0",
+diff --git a/apps/bot/src/commands/index.ts b/apps/bot/src/commands/index.ts
+index aee7602..e913a1d 100644
+--- a/apps/bot/src/commands/index.ts
++++ b/apps/bot/src/commands/index.ts
+@@ -65,6 +65,7 @@ export async function loadCommands(client: Client): Promise<void> {
+   const { jogosGratisCommand } = await import('./utility/freegames')
+   const { gatilhoCommand } = await import('./utility/gatilho')
+   const { estatisticasCommand } = await import('./utility/estatisticas')
++  const { apoiarCommand } = await import('./utility/apoiar')
+   
+   // Import giveaway commands
+   const giveawayCommand = await import('./giveaway');
+@@ -165,6 +166,7 @@ export async function loadCommands(client: Client): Promise<void> {
+   commands.set(jogosGratisCommand.data.name, jogosGratisCommand)
+   commands.set(gatilhoCommand.data.name, gatilhoCommand)
+   commands.set(pingCommand.data.name, pingCommand)
++  commands.set(apoiarCommand.data.name, apoiarCommand)
+   commands.set(giveawayCommand.data.name, { data: giveawayCommand.data, execute: giveawayCommand.execute });
+   commands.set(giveawayListaCommand.data.name, { data: giveawayListaCommand.data, execute: giveawayListaCommand.execute });
+   commands.set(giveawayWizardCommand.data.name, { data: giveawayWizardCommand.data, execute: giveawayWizardCommand.execute });
+@@ -224,4 +226,4 @@ export async function loadContextMenuCommands(client: Client): Promise<void> {
+   commands.set(reportMessageCommand.data.name, reportMessageCommand)
+ 
+   client.contextMenuCommands = commands;
+-}
+\ No newline at end of file
++}
+diff --git a/apps/bot/src/config.ts b/apps/bot/src/config.ts
+index 8e078bf..6e54aaa 100644
+--- a/apps/bot/src/config.ts
++++ b/apps/bot/src/config.ts
+@@ -1,4 +1,5 @@
+ import { load_env } from '@yuebot/shared';
++import { parse_livepix_encryption_key } from '@yuebot/livepix';
+ 
+ load_env();
+ 
+@@ -16,6 +17,11 @@ function parse_csv_env(value: string | undefined) {
+     .filter(Boolean);
+ }
+ 
++function parse_boolean_env(value: string | undefined, fallback: boolean) {
++  if (value === undefined) return fallback
++  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
++}
++
+ function required_env(name: string): string {
+   const value = process.env[name]
+   if (!value) {
+@@ -61,6 +67,14 @@ export const CONFIG = {
+   redis: {
+     url: process.env.REDIS_URL || 'redis://localhost:6379',
+   },
++  livePix: {
++    enabled: parse_boolean_env(process.env.LIVEPIX_ENABLED, false),
++    clientId: process.env.LIVEPIX_CLIENT_ID || '',
++    clientSecret: process.env.LIVEPIX_CLIENT_SECRET || '',
++    paymentReturnUrl: process.env.LIVEPIX_PAYMENT_RETURN_URL || process.env.LIVEPIX_RETURN_URL || '',
++    tokenEncryptionKey: process.env.LIVEPIX_TOKEN_ENCRYPTION_KEY || '',
++    ownerGuildIds: parse_csv_env(process.env.LIVEPIX_OWNER_GUILD_IDS),
++  },
+ } as const;
+ 
+ export function assert_deploy_commands_env(): void {
+@@ -77,4 +91,26 @@ export function assert_bot_runtime_env(): void {
+   if ((process.env.INTERNAL_API_SECRET ?? '').length < 32) {
+     throw new Error('INTERNAL_API_SECRET deve ter no mínimo 32 caracteres')
+   }
++
++  if (parse_boolean_env(process.env.LIVEPIX_ENABLED, false)) {
++    const missing = [
++      'LIVEPIX_CLIENT_ID',
++      'LIVEPIX_CLIENT_SECRET',
++      'LIVEPIX_TOKEN_ENCRYPTION_KEY',
++    ].filter((key) => !process.env[key])
++
++    if (!process.env.LIVEPIX_PAYMENT_RETURN_URL && !process.env.LIVEPIX_RETURN_URL) {
++      missing.push('LIVEPIX_PAYMENT_RETURN_URL')
++    }
++
++    if (missing.length > 0) {
++      throw new Error(`Variáveis de ambiente LivePix faltando: ${missing.join(', ')}`)
++    }
++
++    try {
++      parse_livepix_encryption_key(process.env.LIVEPIX_TOKEN_ENCRYPTION_KEY ?? '')
++    } catch {
++      throw new Error('LIVEPIX_TOKEN_ENCRYPTION_KEY deve decodificar para 32 bytes')
++    }
++  }
+ }
+diff --git a/apps/bot/src/deploy-commands.ts b/apps/bot/src/deploy-commands.ts
+index 123e371..f26e5cb 100644
+--- a/apps/bot/src/deploy-commands.ts
++++ b/apps/bot/src/deploy-commands.ts
+@@ -37,6 +37,7 @@ async function loadCommandsForDeploy(): Promise<Command[]> {
+   const { jogosGratisCommand } = await import('./commands/utility/freegames');
+   const { gatilhoCommand } = await import('./commands/utility/gatilho');
+   const { pingCommand } = await import('./commands/utility/ping');
++  const { apoiarCommand } = await import('./commands/utility/apoiar');
+ 
+   // Import giveaway commands
+   const giveawayCommand = await import('./commands/giveaway');
+@@ -137,6 +138,7 @@ async function loadCommandsForDeploy(): Promise<Command[]> {
+   commands.push(jogosGratisCommand);
+   commands.push(gatilhoCommand);
+   commands.push(pingCommand);
++  commands.push(apoiarCommand);
+   commands.push({ data: giveawayCommand.data, execute: giveawayCommand.execute });
+   commands.push({ data: giveawayListaCommand.data, execute: giveawayListaCommand.execute });
+   commands.push({ data: giveawayWizardCommand.data, execute: giveawayWizardCommand.execute });
+diff --git a/apps/bot/src/events/guildMemberAdd.ts b/apps/bot/src/events/guildMemberAdd.ts
+index b7e0753..ae4bac7 100644
+--- a/apps/bot/src/events/guildMemberAdd.ts
++++ b/apps/bot/src/events/guildMemberAdd.ts
+@@ -5,6 +5,7 @@ import { getPunishmentRoleService } from '../services/punishmentRole.service'
+ import { welcomeService } from '../services/welcome.service'
+ import { antiRaidService } from '../services/antiRaid.service'
+ import { afkService } from '../services/afk.service'
++import { supportService } from '../services/support/support.service'
+ import { logger } from '../utils/logger'
+ 
+ export async function handleGuildMemberAdd(member: GuildMember) {
+@@ -42,6 +43,12 @@ export async function handleGuildMemberAdd(member: GuildMember) {
+     logger.error({ error }, 'Erro ao processar autorole (guildMemberAdd)')
+   }
+ 
++  try {
++    await supportService.restore_member_entitlements(member)
++  } catch (error) {
++    logger.error({ error }, 'Erro ao restaurar apoios ativos (guildMemberAdd)')
++  }
++
+   try {
+     await welcomeService.handle_member_add(member)
+   } catch (error) {
+diff --git a/apps/bot/src/events/interactionCreate.ts b/apps/bot/src/events/interactionCreate.ts
+index d8d5b55..b771286 100644
+--- a/apps/bot/src/events/interactionCreate.ts
++++ b/apps/bot/src/events/interactionCreate.ts
+@@ -390,6 +390,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
+     } else if (interaction.customId.startsWith('ticket:close:')) {
+       const { ticketService } = await import('../services/ticket.service');
+       await ticketService.handle_close_button(interaction);
++    } else if (interaction.customId.startsWith('support:')) {
++      const { supportService } = await import('../services/support/support.service')
++      await supportService.handle_button(interaction)
+     } else if (interaction.customId.startsWith('coinflip:')) {
+       const { handleCoinflipButton } = await import('../handlers/coinflipHandlers');
+       await handleCoinflipButton(interaction);
+@@ -425,6 +428,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
+     if (interaction.customId.startsWith('giveaway_items_')) {
+       const { handleGiveawayItemsSelect } = await import('../handlers/giveawayHandlers');
+       await handleGiveawayItemsSelect(interaction);
++    } else if (interaction.customId.startsWith('support:plan:')) {
++      const { supportService } = await import('../services/support/support.service')
++      await supportService.handle_plan_select(interaction)
+     } else if (interaction.customId.startsWith('wizard_format_')) {
+       const { handleFormatSelection } = await import('../commands/sorteio-wizard');
+       await handleFormatSelection(interaction);
+diff --git a/apps/bot/src/index.ts b/apps/bot/src/index.ts
+index 67968c4..033e7ca 100644
+--- a/apps/bot/src/index.ts
++++ b/apps/bot/src/index.ts
+@@ -11,6 +11,7 @@ import { ScheduledEventScheduler } from "./services/scheduledEventScheduler";
+ import { InventoryExpirationScheduler } from "./services/inventoryExpirationScheduler";
+ import { AniListWatchlistScheduler } from "./services/anilistWatchlistScheduler";
+ import { PollExpirationScheduler } from "./services/pollExpirationScheduler";
++import { SupportScheduler } from "./services/support/supportScheduler";
+ import { initModerationPersistenceService } from "./services/moderationPersistence.service";
+ import { initPunishmentRoleService } from "./services/punishmentRole.service";
+ import { get_llm_client } from "./services/llm_client_singleton";
+@@ -28,6 +29,7 @@ let giveawayScheduler: GiveawayScheduler | null = null;
+ let aniListWatchlistScheduler: AniListWatchlistScheduler | null = null;
+ let pollExpirationScheduler: PollExpirationScheduler | null = null;
+ let freeGameScheduler: FreeGameScheduler | null = null;
++let supportScheduler: SupportScheduler | null = null;
+ const GUILD_SYNC_CONCURRENCY = 5;
+ 
+ // Extend Client to include commands collection
+@@ -228,6 +230,10 @@ client.once("clientReady", async () => {
+ 	// Iniciar scheduler de jogos grátis
+ 	freeGameScheduler = new FreeGameScheduler(client);
+ 	freeGameScheduler.start();
++
++	// Iniciar scheduler de apoios LivePix
++	supportScheduler = new SupportScheduler(client);
++	supportScheduler.start();
+ });
+ 
+ // Event: Guild create (bot joins server)
+@@ -403,6 +409,7 @@ process.on("SIGINT", async () => {
+   await aniListWatchlistScheduler?.stop();
+   pollExpirationScheduler?.stop();
+   await freeGameScheduler?.stop();
++  supportScheduler?.stop();
+ 	client.destroy();
+ 	await prisma.$disconnect();
+ 	process.exit(0);
+@@ -415,6 +422,7 @@ process.on("SIGTERM", async () => {
+   await aniListWatchlistScheduler?.stop();
+   pollExpirationScheduler?.stop();
+   await freeGameScheduler?.stop();
++  supportScheduler?.stop();
+ 	client.destroy();
+ 	await prisma.$disconnect();
+ 	process.exit(0);
+diff --git a/apps/bot/src/internal/api.ts b/apps/bot/src/internal/api.ts
+index 66c9e03..01cde74 100644
+--- a/apps/bot/src/internal/api.ts
++++ b/apps/bot/src/internal/api.ts
+@@ -7,6 +7,7 @@ import { CONFIG } from '../config';
+ import { moderationLogService } from '../services/moderationLog.service';
+ import { ticketService } from '../services/ticket.service';
+ import { reactionRoleService } from '../services/reactionRole.service'
++import { supportService } from '../services/support/support.service'
+ import { apply_presence, normalize_presence_body } from '../services/presence.service'
+ import {
+   apply_app_description,
+@@ -58,6 +59,10 @@ type reaction_role_panel_publish_body = {
+   channelId: string
+ }
+ 
++type support_role_validate_body = {
++  roleId: string
++}
++
+ type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
+ 
+ type moderation_body = {
+@@ -271,6 +276,24 @@ function extract_music_action_params(pathname: string) {
+   return { guildId: match[1] }
+ }
+ 
++function extract_support_role_validate_params(pathname: string) {
++  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/support\/roles\/validate$/)
++  if (!match) return null
++  return { guildId: match[1] }
++}
++
++function extract_support_payment_verify_params(pathname: string) {
++  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/support\/payments\/([^/]+)\/verify$/)
++  if (!match) return null
++  return { guildId: match[1], paymentId: match[2] }
++}
++
++function extract_support_entitlement_params(pathname: string) {
++  const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/support\/entitlements\/([^/]+)\/(sync|remove-role)$/)
++  if (!match) return null
++  return { guildId: match[1], entitlementId: match[2], action: match[3] as 'sync' | 'remove-role' }
++}
++
+ function extract_guild_leave_params(pathname: string) {
+   const match = pathname.match(/^\/internal\/guilds\/([^/]+)\/leave$/)
+   if (!match) return null
+@@ -317,6 +340,12 @@ function is_valid_reaction_role_panel_publish_body(body: unknown): body is react
+   return true
+ }
+ 
++function is_valid_support_role_validate_body(body: unknown): body is support_role_validate_body {
++  if (!body || typeof body !== 'object') return false
++  const b = body as Record<string, unknown>
++  return typeof b.roleId === 'string' && b.roleId.trim().length > 0
++}
++
+ function normalize_profile_sync_body(body: unknown): profile_sync_body | null {
+   if (!body || typeof body !== 'object') return null
+   const b = body as Record<string, unknown>
+@@ -738,6 +767,41 @@ export function start_internal_api(client: Client, options: internal_api_options
+           return send_json(res, 200, { success: true });
+         }
+ 
++        const support_role_validate = extract_support_role_validate_params(url.pathname)
++        if (support_role_validate) {
++          const body = await read_json_body(req).catch(() => null)
++          if (!is_valid_support_role_validate_body(body)) {
++            return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
++          }
++
++          const guild = await client.guilds.fetch(support_role_validate.guildId).catch(() => null)
++          if (!guild) {
++            return send_json(res, 404, { error: 'Guild not found' } satisfies api_error_body)
++          }
++
++          const result = await supportService.validate_support_role(guild, body.roleId)
++          return send_json(res, 200, result)
++        }
++
++        const support_payment_verify = extract_support_payment_verify_params(url.pathname)
++        if (support_payment_verify) {
++          const result = await supportService.verify_and_fulfill_payment(
++            client,
++            support_payment_verify.guildId,
++            support_payment_verify.paymentId
++          )
++          return send_json(res, 200, result)
++        }
++
++        const support_entitlement = extract_support_entitlement_params(url.pathname)
++        if (support_entitlement) {
++          const result =
++            support_entitlement.action === 'sync'
++              ? await supportService.sync_entitlement_role(client, support_entitlement.entitlementId)
++              : await supportService.remove_entitlement_role(client, support_entitlement.entitlementId)
++          return send_json(res, 200, result)
++        }
++
+         const ticket_panel_params = extract_ticket_panel_publish_params(url.pathname)
+         if (ticket_panel_params) {
+           const body = await read_json_body(req).catch(() => null)
+diff --git a/apps/web/src/App.tsx b/apps/web/src/App.tsx
+index 4238045..85e3a01 100644
+--- a/apps/web/src/App.tsx
++++ b/apps/web/src/App.tsx
+@@ -35,6 +35,7 @@ const WelcomePage = lazy(() => import('./pages/Welcome'))
+ const XpLevelsPage = lazy(() => import('./pages/XpLevels'))
+ const AutorolePage = lazy(() => import('./pages/Autorole'))
+ const TicketsPage = lazy(() => import('./pages/Tickets'))
++const SupportPage = lazy(() => import('./pages/Support'))
+ const SetupWizardPage = lazy(() => import('./pages/SetupWizard'))
+ const SuggestionsPage = lazy(() => import('./pages/Suggestions'))
+ const ReactionRolesPage = lazy(() => import('./pages/ReactionRoles'))
+@@ -131,6 +132,7 @@ function App() {
+             <Route path="/guild/:guildId/xp" element={<XpLevelsPage />} />
+             <Route path="/guild/:guildId/autorole" element={<AutorolePage />} />
+             <Route path="/guild/:guildId/tickets" element={<TicketsPage />} />
++            <Route path="/guild/:guildId/support" element={<SupportPage />} />
+             <Route path="/guild/:guildId/suggestions" element={<SuggestionsPage />} />
+             <Route path="/guild/:guildId/reaction-roles" element={<ReactionRolesPage />} />
+             <Route path="/guild/:guildId/starboard" element={<StarboardPage />} />
+diff --git a/apps/web/src/components/layout/sidebar.tsx b/apps/web/src/components/layout/sidebar.tsx
+index 4dd85fe..f45578e 100644
+--- a/apps/web/src/components/layout/sidebar.tsx
++++ b/apps/web/src/components/layout/sidebar.tsx
+@@ -166,7 +166,10 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
+       },
+       {
+         title: 'Suporte',
+-        items: [{ to: `/guild/${guildId}/tickets`, label: 'Tickets', icon: <LifeBuoy className="h-4 w-4" /> }],
++        items: [
++          { to: `/guild/${guildId}/support`, label: 'Apoios', icon: <Heart className="h-4 w-4" /> },
++          { to: `/guild/${guildId}/tickets`, label: 'Tickets', icon: <LifeBuoy className="h-4 w-4" /> },
++        ],
+       },
+       {
+         title: 'Admin',
+diff --git a/apps/web/src/locales/pt-BR.json b/apps/web/src/locales/pt-BR.json
+index e5bfc76..5196910 100644
+--- a/apps/web/src/locales/pt-BR.json
++++ b/apps/web/src/locales/pt-BR.json
+@@ -23,5 +23,24 @@
+         "faq": "FAQ",
+         "placeholders": "Placeholders",
+         "guides": "Guias"
++    },
++    "support": {
++        "title": "Apoios",
++        "subtitle": "Planos, pagamentos LivePix e cargos temporários do servidor",
++        "module": "Módulo",
++        "livePix": "LivePix",
++        "plans": "Planos",
++        "payments": "Pagamentos recentes",
++        "entitlements": "Apoios ativos e expirados",
++        "connect": "Conectar LivePix",
++        "reconnect": "Reconectar LivePix",
++        "disconnect": "Desconectar",
++        "ownerMode": "Usar conta da instalação",
++        "save": "Salvar",
++        "createPlan": "Criar plano",
++        "editPlan": "Editar plano",
++        "verifyPayment": "Verificar",
++        "syncRole": "Sincronizar",
++        "revoke": "Revogar"
+     }
+-}
+\ No newline at end of file
++}
+diff --git a/apps/web/src/pages/guild/hooks/useGuildModules.tsx b/apps/web/src/pages/guild/hooks/useGuildModules.tsx
+index 6d0c842..62080b3 100644
+--- a/apps/web/src/pages/guild/hooks/useGuildModules.tsx
++++ b/apps/web/src/pages/guild/hooks/useGuildModules.tsx
+@@ -22,6 +22,7 @@ import {
+     ClipboardList,
+     Music,
+     TrendingUp,
++    Heart,
+ } from 'lucide-react'
+ import type { ModuleCard, ModuleCategory } from '../types'
+ 
+@@ -157,6 +158,13 @@ export function useGuildModules(guildId: string): UseGuildModulesResult {
+                 icon: <Music className="h-5 w-5" />,
+                 category: 'engagement',
+             },
++            {
++                to: `/guild/${guildId}/support`,
++                label: 'Apoios',
++                description: 'Planos e cargos via LivePix',
++                icon: <Heart className="h-5 w-5" />,
++                category: 'support',
++            },
+             {
+                 to: `/guild/${guildId}/tickets`,
+                 label: 'Tickets',
+diff --git a/packages/database/prisma/schema.prisma b/packages/database/prisma/schema.prisma
+index fb02131..84e5fce 100644
+--- a/packages/database/prisma/schema.prisma
++++ b/packages/database/prisma/schema.prisma
+@@ -37,6 +37,12 @@ model Guild {
+   starboardPosts              StarboardPost[]
+   suggestionConfig            SuggestionConfig?
+   suggestions                 Suggestion[]
++  supportAuditEvents          SupportAuditEvent[]
++  supportConfig               GuildSupportConfig?
++  supportEntitlements         SupportEntitlement[]
++  supportOAuthStates          SupportOAuthState[]
++  supportPayments             SupportPayment[]
++  supportPlans                SupportPlan[]
+   ticketConfig                TicketConfig?
+   tickets                     Ticket[]
+   waifuClaims                 WaifuClaim[]
+@@ -45,17 +51,19 @@ model Guild {
+   waifuWishlists              WaifuWishlist[]
+   customCommands              CustomCommand[]
+   dailyRewardConfig           GuildDailyRewardConfig?
+-  polls                      Poll[]
+-  commandCooldowns           GuildCommandCooldown[]
+-  freeGameNotifications      FreeGameNotification[]
+-  freeGameGiveaways          FreeGameGiveaway[]
+-  keywordTriggers            KeywordTrigger[]
++  polls                       Poll[]
++  commandCooldowns            GuildCommandCooldown[]
++  freeGameNotifications       FreeGameNotification[]
++  freeGameGiveaways           FreeGameGiveaway[]
++  keywordTriggers             KeywordTrigger[]
++  livePixConnection           LivePixConnection?
++  livePixWebhookEvents        LivePixWebhookEvent[]
+ 
+   @@map("guilds")
+ }
+ 
+ model GuildDjConfig {
+-  id                String   @id @default(cuid())
++  id                 String   @id @default(cuid())
+   guildId            String   @unique
+   enabled            Boolean  @default(false)
+   voiceChannelId     String?
+@@ -70,23 +78,23 @@ model GuildDjConfig {
+ }
+ 
+ model GuildAntiRaidConfig {
+-  id                    String   @id @default(cuid())
+-  guildId               String   @unique
+-  enabled               Boolean  @default(false)
+-  joinThreshold         Int      @default(10)
+-  joinTimeWindow        Int      @default(60)
+-  action                String   @default("mute")
+-  duration              Int      @default(10)
+-  exemptRoles           Json     @default("[]")
+-  exemptChannels        Json     @default("[]")
+-  cooldown              Int      @default(300)
++  id                    String    @id @default(cuid())
++  guildId               String    @unique
++  enabled               Boolean   @default(false)
++  joinThreshold         Int       @default(10)
++  joinTimeWindow        Int       @default(60)
++  action                String    @default("mute")
++  duration              Int       @default(10)
++  exemptRoles           Json      @default("[]")
++  exemptChannels        Json      @default("[]")
++  cooldown              Int       @default(300)
+   notificationChannelId String?
+-  raidActive            Boolean  @default(false)
++  raidActive            Boolean   @default(false)
+   lastRaidAt            DateTime?
+-  locked                Boolean  @default(false)
+-  createdAt             DateTime @default(now())
+-  updatedAt             DateTime @updatedAt
+-  guild                 Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  locked                Boolean   @default(false)
++  createdAt             DateTime  @default(now())
++  updatedAt             DateTime  @updatedAt
++  guild                 Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+ 
+   @@map("guild_anti_raid_configs")
+ }
+@@ -134,15 +142,15 @@ model GuildConfig {
+   welcomeMessage              String?
+   modLogMessage               String?
+   reportMessage               String?
+-  announcementChannelId              String?
+-  aiModerationEnabled                Boolean  @default(false)
+-  aiModerationAction                 String   @default("delete")
+-  aiModerationLevel                  String   @default("medio")
+-  aiModerationThresholds             Json     @default("{}")
++  announcementChannelId       String?
++  aiModerationEnabled         Boolean  @default(false)
++  aiModerationAction          String   @default("delete")
++  aiModerationLevel           String   @default("medio")
++  aiModerationThresholds      Json     @default("{}")
+   birthdayChannelId           String?
+   birthdayRoleId              String?
+   birthdayEnabled             Boolean  @default(true)
+-  guild                              Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  guild                       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+ 
+   @@map("guild_configs")
+ }
+@@ -232,8 +240,8 @@ model AuditLog {
+ }
+ 
+ model Giveaway {
+-  id              String           @id @default(cuid())
+-  publicId        String?          @unique
++  id              String                   @id @default(cuid())
++  publicId        String?                  @unique
+   guildId         String
+   title           String
+   description     String
+@@ -241,20 +249,20 @@ model Giveaway {
+   messageId       String?
+   creatorId       String
+   requiredRoleId  String?
+-  emojiId         String?          @default("🎉")
++  emojiId         String?                  @default("🎉")
+   maxWinners      Int
+-  format          String           @default("reaction")
++  format          String                   @default("reaction")
+   availableItems  Json?
+   minChoices      Int?
+   maxChoices      Int?
+   startsAt        DateTime?
+   endsAt          DateTime
+-  ended           Boolean          @default(false)
+-  cancelled       Boolean          @default(false)
+-  createdAt       DateTime         @default(now())
+-  updatedAt       DateTime         @updatedAt
++  ended           Boolean                  @default(false)
++  cancelled       Boolean                  @default(false)
++  createdAt       DateTime                 @default(now())
++  updatedAt       DateTime                 @updatedAt
+   requiredRoleIds Json?
+-  suspended       Boolean          @default(false)
++  suspended       Boolean                  @default(false)
+   roleChances     Json?
+   minXP           Int?
+   minLevel        Int?
+@@ -262,7 +270,7 @@ model Giveaway {
+   entries         GiveawayEntry[]
+   winners         GiveawayWinner[]
+   entryEditTokens GiveawayEntryEditToken[]
+-  guild           Guild            @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  guild           Guild                    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+ 
+   @@index([publicId])
+   @@index([guildId, ended])
+@@ -304,15 +312,15 @@ model GiveawayWinner {
+ }
+ 
+ model GiveawayEntryEditToken {
+-  id         String   @id @default(cuid())
++  id         String    @id @default(cuid())
+   giveawayId String
+   userId     String
+-  token      String   @unique
++  token      String    @unique
+   expiresAt  DateTime
+   usedAt     DateTime?
+-  createdAt  DateTime @default(now())
+-  updatedAt  DateTime @updatedAt
+-  giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
++  createdAt  DateTime  @default(now())
++  updatedAt  DateTime  @updatedAt
++  giveaway   Giveaway  @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
+ 
+   @@unique([giveawayId, userId])
+   @@index([expiresAt])
+@@ -374,46 +382,46 @@ model Session {
+ }
+ 
+ model GuildXpConfig {
+-  id                String   @id @default(cuid())
+-  guildId           String   @unique
+-  enabled           Boolean  @default(true)
+-  
++  id      String  @id @default(cuid())
++  guildId String  @unique
++  enabled Boolean @default(true)
++
+   // XP Mode: 'formula' (divisor-based) or 'flat' (fixed amount per message)
+-  xpMode            String   @default("formula")
+-  
++  xpMode String @default("formula")
++
+   // Flat XP per message (used when xpMode = 'flat')
+-  xpPerMessage      Int      @default(1)
+-  
++  xpPerMessage Int @default(1)
++
+   // XP per voice minute (replaces voiceXpRate which was per 10 minutes)
+-  xpPerVoiceMinute  Int      @default(1)
+-  
++  xpPerVoiceMinute Int @default(1)
++
+   // Bonus XP for messages exceeding minimum length
+-  xpBonusMinLength  Int      @default(0)
+-  xpBonusAmount     Int      @default(0)
+-  
++  xpBonusMinLength Int @default(0)
++  xpBonusAmount    Int @default(0)
++
+   // Daily XP bonus for first message of the day
+   dailyXpBonusEnabled Boolean @default(false)
+   dailyXpBonusAmount  Int     @default(0)
+-  
++
+   // Legacy fields (kept for backwards compatibility)
+-  minMessageLength  Int      @default(5)
+-  minUniqueLength   Int      @default(12)
+-  typingCps         Int      @default(7)
+-  xpDivisorMin      Int      @default(7)
+-  xpDivisorMax      Int      @default(4)
+-  xpCap             Int      @default(35)
+-  ignoredChannelIds Json     @default("[]")
+-  ignoredRoleIds    Json     @default("[]")
+-  roleXpMultipliers Json     @default("{}")
+-  rewardMode        String   @default("stack")
+-  levelUpEnabled    Boolean  @default(true)
+-  levelUpChannelId  String?
+-  levelUpMessage    String?
+-  voiceXpEnabled    Boolean  @default(false)
+-  voiceXpRate       Int      @default(10) // Deprecated: kept for backwards compatibility
+-  voiceXpNotificationsEnabled Boolean @default(true)
+-  updatedAt         DateTime @updatedAt
+-  guild             Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  minMessageLength            Int      @default(5)
++  minUniqueLength             Int      @default(12)
++  typingCps                   Int      @default(7)
++  xpDivisorMin                Int      @default(7)
++  xpDivisorMax                Int      @default(4)
++  xpCap                       Int      @default(35)
++  ignoredChannelIds           Json     @default("[]")
++  ignoredRoleIds              Json     @default("[]")
++  roleXpMultipliers           Json     @default("{}")
++  rewardMode                  String   @default("stack")
++  levelUpEnabled              Boolean  @default(true)
++  levelUpChannelId            String?
++  levelUpMessage              String?
++  voiceXpEnabled              Boolean  @default(false)
++  voiceXpRate                 Int      @default(10) // Deprecated: kept for backwards compatibility
++  voiceXpNotificationsEnabled Boolean  @default(true)
++  updatedAt                   DateTime @updatedAt
++  guild                       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+ 
+   @@map("guild_xp_configs")
+ }
+@@ -540,6 +548,196 @@ model Ticket {
+   @@map("tickets")
+ }
+ 
++model GuildSupportConfig {
++  id                  String             @id @default(cuid())
++  guildId             String             @unique
++  enabled             Boolean            @default(false)
++  title               String             @default("Apoios")
++  description         String             @default("Escolha um plano para apoiar este servidor.")
++  reminderEnabled     Boolean            @default(true)
++  reminderDaysBefore  Int                @default(3)
++  livePixConnectionId String?            @unique
++  createdAt           DateTime           @default(now())
++  updatedAt           DateTime           @updatedAt
++  guild               Guild              @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  livePixConnection   LivePixConnection? @relation("GuildSupportConfigConnection", fields: [livePixConnectionId], references: [id], onDelete: SetNull)
++
++  @@index([guildId, enabled])
++  @@map("guild_support_configs")
++}
++
++model LivePixConnection {
++  id                         String                  @id @default(cuid())
++  guildId                    String                  @unique
++  mode                       LivePixConnectionMode
++  providerAccountId          String
++  providerAccountUsername    String?
++  providerAccountDisplayName String?
++  providerAccountAvatar      String?
++  encryptedAccessToken       String?
++  encryptedRefreshToken      String?
++  tokenExpiresAt             DateTime?
++  grantedScopes              String[]                @default([])
++  status                     LivePixConnectionStatus @default(CONNECTED)
++  connectedByUserId          String
++  providerWebhookId          String?
++  connectedAt                DateTime                @default(now())
++  disconnectedAt             DateTime?
++  lastErrorCode              String?
++  updatedAt                  DateTime                @updatedAt
++  guild                      Guild                   @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  supportConfig              GuildSupportConfig?     @relation("GuildSupportConfigConnection")
++  payments                   SupportPayment[]
++
++  @@index([providerAccountId])
++  @@index([status, tokenExpiresAt])
++  @@map("livepix_connections")
++}
++
++model SupportPlan {
++  id           String               @id @default(cuid())
++  guildId      String
++  name         String
++  description  String               @db.Text
++  amountCents  Int
++  durationDays Int
++  roleId       String
++  enabled      Boolean              @default(true)
++  sortOrder    Int                  @default(0)
++  archivedAt   DateTime?
++  createdAt    DateTime             @default(now())
++  updatedAt    DateTime             @updatedAt
++  guild        Guild                @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  payments     SupportPayment[]
++  entitlements SupportEntitlement[]
++
++  @@index([guildId, archivedAt, enabled, sortOrder])
++  @@index([guildId, roleId])
++  @@map("support_plans")
++}
++
++model SupportPayment {
++  id                      String                @id @default(cuid())
++  publicId                String                @unique
++  guildId                 String
++  userId                  String
++  planId                  String?
++  livePixConnectionId     String?
++  providerAccountId       String
++  livePixReference        String                @unique
++  livePixPaymentId        String?               @unique
++  checkoutUrlEncrypted    String?
++  pendingKey              String?               @unique
++  planNameSnapshot        String
++  planDescriptionSnapshot String?               @db.Text
++  amountCentsSnapshot     Int
++  durationDaysSnapshot    Int
++  roleIdSnapshot          String
++  currency                String                @default("BRL")
++  status                  SupportPaymentStatus  @default(CREATING)
++  roleSyncStatus          SupportRoleSyncStatus @default(PENDING)
++  providerCreatedAt       DateTime?
++  confirmedAt             DateTime?
++  fulfilledAt             DateTime?
++  lastVerifiedAt          DateTime?
++  failureCode             String?
++  mismatchCode            String?
++  createdAt               DateTime              @default(now())
++  updatedAt               DateTime              @updatedAt
++  guild                   Guild                 @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  plan                    SupportPlan?          @relation(fields: [planId], references: [id], onDelete: SetNull)
++  livePixConnection       LivePixConnection?    @relation(fields: [livePixConnectionId], references: [id], onDelete: SetNull)
++  webhookEvents           LivePixWebhookEvent[]
++  auditEvents             SupportAuditEvent[]
++
++  @@index([guildId, userId, status, createdAt])
++  @@index([guildId, createdAt])
++  @@index([status, createdAt])
++  @@index([roleSyncStatus, updatedAt])
++  @@map("support_payments")
++}
++
++model SupportEntitlement {
++  id             String                   @id @default(cuid())
++  guildId        String
++  userId         String
++  roleId         String
++  latestPlanId   String?
++  status         SupportEntitlementStatus @default(ACTIVE)
++  startsAt       DateTime
++  expiresAt      DateTime
++  lastReminderAt DateTime?
++  lastRoleSyncAt DateTime?
++  roleSyncStatus SupportRoleSyncStatus    @default(PENDING)
++  revokedAt      DateTime?
++  revokedReason  String?
++  createdAt      DateTime                 @default(now())
++  updatedAt      DateTime                 @updatedAt
++  guild          Guild                    @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  latestPlan     SupportPlan?             @relation(fields: [latestPlanId], references: [id], onDelete: SetNull)
++
++  @@unique([guildId, userId, roleId])
++  @@index([guildId, status, expiresAt])
++  @@index([guildId, userId, status])
++  @@index([roleSyncStatus, updatedAt])
++  @@map("support_entitlements")
++}
++
++model SupportOAuthState {
++  id        String    @id @default(cuid())
++  stateHash String    @unique
++  guildId   String
++  userId    String
++  expiresAt DateTime
++  usedAt    DateTime?
++  createdAt DateTime  @default(now())
++  guild     Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
++
++  @@index([guildId, userId, expiresAt])
++  @@index([expiresAt])
++  @@map("support_oauth_states")
++}
++
++model LivePixWebhookEvent {
++  id               String                    @id @default(cuid())
++  dedupeKey        String                    @unique
++  clientId         String?
++  event            String
++  resourceType     String
++  resourceId       String?
++  reference        String?
++  guildId          String?
++  supportPaymentId String?
++  status           LivePixWebhookEventStatus @default(RECEIVED)
++  failureCode      String?
++  createdAt        DateTime                  @default(now())
++  processedAt      DateTime?
++  guild            Guild?                    @relation(fields: [guildId], references: [id], onDelete: SetNull)
++  supportPayment   SupportPayment?           @relation(fields: [supportPaymentId], references: [id], onDelete: SetNull)
++
++  @@index([guildId, createdAt])
++  @@index([reference])
++  @@index([status, createdAt])
++  @@map("livepix_webhook_events")
++}
++
++model SupportAuditEvent {
++  id               String          @id @default(cuid())
++  guildId          String
++  userId           String?
++  supportPaymentId String?
++  action           String
++  metadata         Json?
++  createdAt        DateTime        @default(now())
++  guild            Guild           @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  supportPayment   SupportPayment? @relation(fields: [supportPaymentId], references: [id], onDelete: SetNull)
++
++  @@index([guildId, createdAt])
++  @@index([guildId, action, createdAt])
++  @@index([supportPaymentId])
++  @@map("support_audit_events")
++}
++
+ model SuggestionConfig {
+   id           String   @id @default(cuid())
+   guildId      String   @unique
+@@ -593,20 +791,20 @@ model SuggestionVote {
+ }
+ 
+ model Poll {
+-  id          String      @id @default(cuid())
+-  guildId     String
+-  channelId   String
+-  messageId   String      @unique
+-  question    String
+-  options     Json
+-  multiVote   Boolean     @default(false)
+-  endsAt      DateTime
+-  ended       Boolean     @default(false)
+-  createdBy   String
+-  createdAt   DateTime    @default(now())
+-  updatedAt   DateTime    @updatedAt
+-  votes       PollVote[]
+-  guild       Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  id        String     @id @default(cuid())
++  guildId   String
++  channelId String
++  messageId String     @unique
++  question  String
++  options   Json
++  multiVote Boolean    @default(false)
++  endsAt    DateTime
++  ended     Boolean    @default(false)
++  createdBy String
++  createdAt DateTime   @default(now())
++  updatedAt DateTime   @updatedAt
++  votes     PollVote[]
++  guild     Guild      @relation(fields: [guildId], references: [id], onDelete: Cascade)
+ 
+   @@index([guildId, ended])
+   @@index([endsAt])
+@@ -614,12 +812,12 @@ model Poll {
+ }
+ 
+ model PollVote {
+-  id         String   @id @default(cuid())
+-  pollId     String
+-  userId     String
+-  optionIds  Json
+-  votedAt    DateTime @default(now())
+-  poll       Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
++  id        String   @id @default(cuid())
++  pollId    String
++  userId    String
++  optionIds Json
++  votedAt   DateTime @default(now())
++  poll      Poll     @relation(fields: [pollId], references: [id], onDelete: Cascade)
+ 
+   @@unique([pollId, userId])
+   @@index([pollId])
+@@ -777,14 +975,14 @@ model AniListNotificationChannel {
+ }
+ 
+ model Wallet {
+-  userId             String    @id
+-  balance            BigInt    @default(0)
+-  bankBalance        BigInt    @default(0)
+-  lastInterestAt     DateTime  @default(now())
++  userId              String   @id
++  balance             BigInt   @default(0)
++  bankBalance         BigInt   @default(0)
++  lastInterestAt      DateTime @default(now())
+   totalInterestEarned BigInt   @default(0)
+-  createdAt          DateTime  @default(now())
+-  updatedAt          DateTime  @updatedAt
+-  user               User      @relation(fields: [userId], references: [id], onDelete: Cascade)
++  createdAt           DateTime @default(now())
++  updatedAt           DateTime @updatedAt
++  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+   @@map("wallets")
+ }
+@@ -1090,26 +1288,69 @@ enum GuildCommandType {
+   context
+ }
+ 
++enum LivePixConnectionMode {
++  OAUTH
++  OWNER
++}
++
++enum LivePixConnectionStatus {
++  CONNECTED
++  REAUTH_REQUIRED
++  DISCONNECTED
++  ERROR
++}
++
++enum SupportPaymentStatus {
++  CREATING
++  PENDING
++  CONFIRMED
++  FULFILLED
++  FAILED
++  MISMATCH
++  CANCELLED
++  EXPIRED
++}
++
++enum SupportEntitlementStatus {
++  ACTIVE
++  EXPIRED
++  REVOKED
++}
++
++enum SupportRoleSyncStatus {
++  PENDING
++  SYNCED
++  FAILED
++}
++
++enum LivePixWebhookEventStatus {
++  RECEIVED
++  IGNORED
++  PROCESSED
++  RETRYABLE_FAILURE
++  PERMANENT_FAILURE
++}
++
+ enum AniListMediaType {
+   anime
+   manga
+ }
+ 
+ model Pet {
+-  id                String    @id @default(cuid())
++  id                String   @id @default(cuid())
+   userId            String
+   name              String
+   species           String
+-  level             Int       @default(1)
+-  xp                Int       @default(0)
+-  hunger            Int       @default(100) // 0-100
+-  energy            Int       @default(100) // 0-100
+-  happiness         Int       @default(100) // 0-100
+-  hygiene           Int       @default(100) // 0-100 (optional expansion)
+-  lastInteractionAt DateTime  @default(now())
+-  createdAt         DateTime  @default(now())
+-  updatedAt         DateTime  @updatedAt
+-  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
++  level             Int      @default(1)
++  xp                Int      @default(0)
++  hunger            Int      @default(100) // 0-100
++  energy            Int      @default(100) // 0-100
++  happiness         Int      @default(100) // 0-100
++  hygiene           Int      @default(100) // 0-100 (optional expansion)
++  lastInteractionAt DateTime @default(now())
++  createdAt         DateTime @default(now())
++  updatedAt         DateTime @updatedAt
++  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+ 
+   @@index([userId])
+   @@map("pets")
+@@ -1146,15 +1387,15 @@ model UserDailyReward {
+ }
+ 
+ model GuildDailyRewardConfig {
+-  id              String   @id @default(cuid())
+-  guildId         String   @unique
+-  enabled         Boolean  @default(true)
+-  rewardAmount    BigInt   @default(0)
+-  streakBonus     BigInt   @default(0)
+-  maxStreakBonus  Int      @default(30)
+-  createdAt       DateTime @default(now())
+-  updatedAt       DateTime @updatedAt
+-  guild           Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  id             String   @id @default(cuid())
++  guildId        String   @unique
++  enabled        Boolean  @default(true)
++  rewardAmount   BigInt   @default(0)
++  streakBonus    BigInt   @default(0)
++  maxStreakBonus Int      @default(30)
++  createdAt      DateTime @default(now())
++  updatedAt      DateTime @updatedAt
++  guild          Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+ 
+   @@map("guild_daily_reward_configs")
+ }
+@@ -1175,13 +1416,13 @@ model UserAfk {
+ 
+ // Command cooldowns per guild
+ model GuildCommandCooldown {
+-  id          String   @id @default(cuid())
+-  guildId     String
+-  commandName String
+-  cooldownSeconds Int    @default(0) // 0 = no cooldown
+-  createdAt   DateTime @default(now())
+-  updatedAt   DateTime @updatedAt
+-  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  id              String   @id @default(cuid())
++  guildId         String
++  commandName     String
++  cooldownSeconds Int      @default(0) // 0 = no cooldown
++  createdAt       DateTime @default(now())
++  updatedAt       DateTime @updatedAt
++  guild           Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+ 
+   @@unique([guildId, commandName])
+   @@index([guildId])
+@@ -1203,13 +1444,13 @@ model UserCommandCooldown {
+ 
+ // User birthday (global - not per guild)
+ model UserBirthday {
+-  id          String   @id @default(cuid())
+-  userId      String   @unique
+-  day         Int      // 1-31
+-  month       Int      // 1-12
+-  year        Int?     // Optional - can be null for privacy
+-  createdAt   DateTime @default(now())
+-  updatedAt   DateTime @updatedAt
++  id        String   @id @default(cuid())
++  userId    String   @unique
++  day       Int // 1-31
++  month     Int // 1-12
++  year      Int? // Optional - can be null for privacy
++  createdAt DateTime @default(now())
++  updatedAt DateTime @updatedAt
+ 
+   @@index([day, month])
+   @@map("user_birthdays")
+@@ -1249,18 +1490,18 @@ model FreeGameGiveaway {
+ }
+ 
+ model KeywordTrigger {
+-  id        String   @id @default(cuid())
+-  guildId   String
++  id          String   @id @default(cuid())
++  guildId     String
+   /// @deprecated Use keywords instead - maintained for backwards compatibility
+-  keyword   String?  @db.Text
+-  keywords  String[] @default([])
+-  mediaUrl  String?
+-  content   String?
+-  channelId String?
+-  createdBy String
+-  createdAt DateTime @default(now())
+-  replyToUser Boolean @default(true)
+-  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
++  keyword     String?  @db.Text
++  keywords    String[] @default([])
++  mediaUrl    String?
++  content     String?
++  channelId   String?
++  createdBy   String
++  createdAt   DateTime @default(now())
++  replyToUser Boolean  @default(true)
++  guild       Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+ 
+   @@index([guildId])
+   @@map("keyword_triggers")
+diff --git a/packages/shared/src/validators/index.ts b/packages/shared/src/validators/index.ts
+index 7292c5a..1fc40e4 100644
+--- a/packages/shared/src/validators/index.ts
++++ b/packages/shared/src/validators/index.ts
+@@ -404,6 +404,52 @@ export const ticketPanelPublishSchema = z.object({
+   channelId: z.string().min(1),
+ });
+ 
++export const supportConfigUpdateSchema = z.object({
++  enabled: z.boolean().optional(),
++  title: z.string().trim().min(1).max(100).optional(),
++  description: z.string().trim().min(1).max(1200).optional(),
++  reminderEnabled: z.boolean().optional(),
++  reminderDaysBefore: z.coerce.number().int().min(1).max(30).optional(),
++});
++
++export const supportPlanCreateSchema = z.object({
++  name: z.string().trim().min(1).max(80),
++  description: z.string().trim().min(1).max(1000),
++  amountCents: z.coerce.number().int().min(100).max(10_000_000),
++  durationDays: z.coerce.number().int().min(1).max(3650),
++  roleId: z.string().min(1),
++  enabled: z.boolean().optional(),
++  sortOrder: z.coerce.number().int().min(0).max(10_000).optional(),
++});
++
++export const supportPlanUpdateSchema = supportPlanCreateSchema.partial().extend({
++  archived: z.boolean().optional(),
++});
++
++export const supportPlansReorderSchema = z.object({
++  planIds: z.array(z.string().min(1)).min(1).max(25),
++});
++
++export const supportPaymentListQuerySchema = z.object({
++  status: z
++    .enum(['CREATING', 'PENDING', 'CONFIRMED', 'FULFILLED', 'FAILED', 'MISMATCH', 'CANCELLED', 'EXPIRED'])
++    .optional(),
++  userId: z.string().min(1).max(32).optional(),
++  limit: z.coerce.number().int().min(1).max(100).optional(),
++  cursor: z.string().min(1).optional(),
++});
++
++export const supportEntitlementListQuerySchema = z.object({
++  status: z.enum(['ACTIVE', 'EXPIRED', 'REVOKED']).optional(),
++  userId: z.string().min(1).max(32).optional(),
++  limit: z.coerce.number().int().min(1).max(100).optional(),
++  cursor: z.string().min(1).optional(),
++});
++
++export const supportEntitlementRevokeSchema = z.object({
++  reason: z.string().trim().max(500).optional(),
++});
++
+ export const suggestionConfigSchema = z.object({
+   enabled: z.boolean().optional(),
+ 
+@@ -550,6 +596,13 @@ export type GuildXpConfigInput = z.infer<typeof guildXpConfigSchema>;
+ export type GuildAutoroleConfigInput = z.infer<typeof guildAutoroleConfigSchema>;
+ export type TicketConfigInput = z.infer<typeof ticketConfigSchema>;
+ export type TicketPanelPublishInput = z.infer<typeof ticketPanelPublishSchema>;
++export type SupportConfigUpdateInput = z.infer<typeof supportConfigUpdateSchema>;
++export type SupportPlanCreateInput = z.infer<typeof supportPlanCreateSchema>;
++export type SupportPlanUpdateInput = z.infer<typeof supportPlanUpdateSchema>;
++export type SupportPlansReorderInput = z.infer<typeof supportPlansReorderSchema>;
++export type SupportPaymentListQueryInput = z.infer<typeof supportPaymentListQuerySchema>;
++export type SupportEntitlementListQueryInput = z.infer<typeof supportEntitlementListQuerySchema>;
++export type SupportEntitlementRevokeInput = z.infer<typeof supportEntitlementRevokeSchema>;
+ export type SuggestionConfigInput = z.infer<typeof suggestionConfigSchema>;
+ export type ReactionRoleItemInput = z.infer<typeof reactionRoleItemSchema>;
+ export type ReactionRolePanelUpsertInput = z.infer<typeof reactionRolePanelUpsertSchema>;
+diff --git a/pnpm-lock.yaml b/pnpm-lock.yaml
+index efc1858..d9cc599 100644
+--- a/pnpm-lock.yaml
++++ b/pnpm-lock.yaml
+@@ -79,6 +79,9 @@ importers:
+       '@yuebot/database':
+         specifier: workspace:*
+         version: link:../../packages/database
++      '@yuebot/livepix':
++        specifier: workspace:*
++        version: link:../../packages/livepix
+       '@yuebot/shared':
+         specifier: workspace:*
+         version: link:../../packages/shared
+@@ -122,6 +125,9 @@ importers:
+       '@yuebot/database':
+         specifier: workspace:*
+         version: link:../../packages/database
++      '@yuebot/livepix':
++        specifier: workspace:*
++        version: link:../../packages/livepix
+       '@yuebot/shared':
+         specifier: workspace:*
+         version: link:../../packages/shared
+@@ -294,6 +300,15 @@ importers:
+         specifier: ^6.0.3
+         version: 6.0.3
+ 
++  packages/livepix:
++    devDependencies:
++      '@types/node':
++        specifier: ^25.9.2
++        version: 25.9.2
++      typescript:
++        specifier: ^6.0.3
++        version: 6.0.3
++
+   packages/shared:
+     dependencies:
+       dotenv:

@@ -24,6 +24,8 @@ import { coinflipRoutes } from './routes/coinflip.routes'
 import { ownerRoutes } from './routes/owner.routes'
 import { auditRoutes } from './routes/audit.routes'
 import { triggersRoutes } from './routes/triggers.routes'
+import { supportRoutes } from './routes/support.routes'
+import { livePixRoutes } from './routes/livepix.routes'
 import { safe_error_details } from './utils/safe_error'
 
 assert_api_runtime_env();
@@ -264,6 +266,7 @@ app.register(authRoutes, { prefix: '/api/auth' });
 
 // Guild routes
 app.register(guildRoutes, { prefix: '/api/guilds' });
+app.register(supportRoutes, { prefix: '/api/guilds' });
 
 // XP routes
 app.register(xpRoutes, { prefix: '/api/xp' });
@@ -302,6 +305,9 @@ app.register(triggersRoutes, { prefix: '/api/guilds' })
 
 // Owner routes
 app.register(ownerRoutes, { prefix: '/api' })
+
+// LivePix public callback, return and webhook routes
+app.register(livePixRoutes, { prefix: '/api' })
 
 // Start server
 const start = async () => {

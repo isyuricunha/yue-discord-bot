@@ -22,6 +22,7 @@ import {
     ClipboardList,
     Music,
     TrendingUp,
+    Heart,
 } from 'lucide-react'
 import type { ModuleCard, ModuleCategory } from '../types'
 
@@ -156,6 +157,13 @@ export function useGuildModules(guildId: string): UseGuildModulesResult {
                 description: 'Player e playlists',
                 icon: <Music className="h-5 w-5" />,
                 category: 'engagement',
+            },
+            {
+                to: `/guild/${guildId}/support`,
+                label: 'Apoios',
+                description: 'Planos e cargos via LivePix',
+                icon: <Heart className="h-5 w-5" />,
+                category: 'support',
             },
             {
                 to: `/guild/${guildId}/tickets`,

@@ -37,6 +37,7 @@ async function loadCommandsForDeploy(): Promise<Command[]> {
   const { jogosGratisCommand } = await import('./commands/utility/freegames');
   const { gatilhoCommand } = await import('./commands/utility/gatilho');
   const { pingCommand } = await import('./commands/utility/ping');
+  const { apoiarCommand } = await import('./commands/utility/apoiar');
 
   // Import giveaway commands
   const giveawayCommand = await import('./commands/giveaway');
@@ -137,6 +138,7 @@ async function loadCommandsForDeploy(): Promise<Command[]> {
   commands.push(jogosGratisCommand);
   commands.push(gatilhoCommand);
   commands.push(pingCommand);
+  commands.push(apoiarCommand);
   commands.push({ data: giveawayCommand.data, execute: giveawayCommand.execute });
   commands.push({ data: giveawayListaCommand.data, execute: giveawayListaCommand.execute });
   commands.push({ data: giveawayWizardCommand.data, execute: giveawayWizardCommand.execute });

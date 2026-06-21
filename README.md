@@ -239,6 +239,32 @@ Enable AI features by providing API keys:
 - `OPENAI_MODERATION_IMAGE_MAX_BYTES` - Max size downloaded per image before moderation (default: `20971520`)
 - `OPENAI_MODERATION_IMAGE_PAYLOAD_MAX_BYTES` - Max image payload sent to moderation per request (default: `47185920`)
 
+#### LivePix Support Payments (Optional)
+
+LivePix support payments are configured per guild from the web panel under **Suporte > Apoios**. Members use `/apoiar` in Discord, choose one of the guild-defined plans, and receive the configured role only after Yue verifies the LivePix payment with the connected LivePix account.
+
+Required when `LIVEPIX_ENABLED=true`:
+
+- `LIVEPIX_CLIENT_ID` - LivePix OAuth application client ID
+- `LIVEPIX_CLIENT_SECRET` - LivePix OAuth application client secret
+- `LIVEPIX_OAUTH_REDIRECT_URI` - Public API callback URL, for example `https://api.example.com/api/livepix/oauth/callback`
+- `LIVEPIX_WEBHOOK_URL` - Public API webhook URL, for example `https://api.example.com/api/livepix/webhook`
+- `LIVEPIX_PAYMENT_RETURN_URL` - Public return URL passed to LivePix payment creation, for example `https://api.example.com/api/livepix/return`
+- `LIVEPIX_TOKEN_ENCRYPTION_KEY` - 32-byte secret used to encrypt LivePix access tokens and checkout URLs at rest. It can be a 64-character hex string, base64 that decodes to 32 bytes, or a raw 32-byte string.
+
+Optional:
+
+- `LIVEPIX_OWNER_GUILD_IDS` - Comma-separated guild IDs allowed to use the bot owner's LivePix credentials instead of guild OAuth.
+
+Operational notes:
+
+- The bot needs Discord `Manage Roles`, and the supporter role must be below the bot's highest role.
+- Plans are one-time payments in BRL cents with a fixed duration in days. Recurring subscriptions are not implemented.
+- Users do not link Discord accounts to LivePix. Yue correlates checkout rows by provider payment reference, then fetches the payment from the connected account before granting roles.
+- Webhooks are deduplicated and sanitized before persistence. Raw webhook bodies, access tokens, and checkout URLs are not exposed in API responses.
+- OAuth access tokens are encrypted at rest. If an OAuth token expires, reconnect the LivePix account from the dashboard.
+- If role synchronization fails because of permissions or hierarchy, fix the Discord role setup and use the dashboard retry action.
+
 #### Music Features (Optional)
 
 For music functionality, configure Lavalink:

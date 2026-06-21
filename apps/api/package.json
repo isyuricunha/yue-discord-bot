@@ -4,13 +4,13 @@
   "private": true,
   "main": "./dist/index.js",
   "scripts": {
-    "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && tsx watch src/index.ts",
-    "build": "tsup",
+    "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && tsx watch src/index.ts",
+    "build": "pnpm --filter @yuebot/livepix build && tsup",
     "start": "node dist/index.js",
     "clean": "rm -rf dist",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
-    "test": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database build && node --test --import tsx src/**/*.test.ts",
-    "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/database db:generate && pnpm --filter @yuebot/database build && tsc --noEmit"
+    "test": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && node --test --import tsx src/**/*.test.ts",
+    "type-check": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database db:generate && pnpm --filter @yuebot/database build && tsc --noEmit"
   },
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
@@ -19,6 +19,7 @@
     "@fastify/jwt": "^10.1.0",
     "@fastify/rate-limit": "^10.3.0",
     "@yuebot/database": "workspace:*",
+    "@yuebot/livepix": "workspace:*",
     "@yuebot/shared": "workspace:*",
     "axios": "^1.17.0",
     "fastify": "^5.8.5",

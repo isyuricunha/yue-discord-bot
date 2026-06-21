@@ -79,6 +79,9 @@ importers:
       '@yuebot/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@yuebot/livepix':
+        specifier: workspace:*
+        version: link:../../packages/livepix
       '@yuebot/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -122,6 +125,9 @@ importers:
       '@yuebot/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@yuebot/livepix':
+        specifier: workspace:*
+        version: link:../../packages/livepix
       '@yuebot/shared':
         specifier: workspace:*
         version: link:../../packages/shared
@@ -290,6 +296,15 @@ importers:
       tsx:
         specifier: ^4.22.4
         version: 4.22.4
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
+  packages/livepix:
+    devDependencies:
+      '@types/node':
+        specifier: ^25.9.2
+        version: 25.9.2
       typescript:
         specifier: ^6.0.3
         version: 6.0.3

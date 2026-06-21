@@ -390,6 +390,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
     } else if (interaction.customId.startsWith('ticket:close:')) {
       const { ticketService } = await import('../services/ticket.service');
       await ticketService.handle_close_button(interaction);
+    } else if (interaction.customId.startsWith('support:')) {
+      const { supportService } = await import('../services/support/support.service')
+      await supportService.handle_button(interaction)
     } else if (interaction.customId.startsWith('coinflip:')) {
       const { handleCoinflipButton } = await import('../handlers/coinflipHandlers');
       await handleCoinflipButton(interaction);
@@ -425,6 +428,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
     if (interaction.customId.startsWith('giveaway_items_')) {
       const { handleGiveawayItemsSelect } = await import('../handlers/giveawayHandlers');
       await handleGiveawayItemsSelect(interaction);
+    } else if (interaction.customId.startsWith('support:plan:')) {
+      const { supportService } = await import('../services/support/support.service')
+      await supportService.handle_plan_select(interaction)
     } else if (interaction.customId.startsWith('wizard_format_')) {
       const { handleFormatSelection } = await import('../commands/sorteio-wizard');
       await handleFormatSelection(interaction);

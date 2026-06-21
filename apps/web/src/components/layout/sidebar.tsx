@@ -166,7 +166,10 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
       },
       {
         title: 'Suporte',
-        items: [{ to: `/guild/${guildId}/tickets`, label: 'Tickets', icon: <LifeBuoy className="h-4 w-4" /> }],
+        items: [
+          { to: `/guild/${guildId}/support`, label: 'Apoios', icon: <Heart className="h-4 w-4" /> },
+          { to: `/guild/${guildId}/tickets`, label: 'Tickets', icon: <LifeBuoy className="h-4 w-4" /> },
+        ],
       },
       {
         title: 'Admin',

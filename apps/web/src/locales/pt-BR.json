@@ -23,5 +23,24 @@
         "faq": "FAQ",
         "placeholders": "Placeholders",
         "guides": "Guias"
+    },
+    "support": {
+        "title": "Apoios",
+        "subtitle": "Planos, pagamentos LivePix e cargos temporários do servidor",
+        "module": "Módulo",
+        "livePix": "LivePix",
+        "plans": "Planos",
+        "payments": "Pagamentos recentes",
+        "entitlements": "Apoios ativos e expirados",
+        "connect": "Conectar LivePix",
+        "reconnect": "Reconectar LivePix",
+        "disconnect": "Desconectar",
+        "ownerMode": "Usar conta da instalação",
+        "save": "Salvar",
+        "createPlan": "Criar plano",
+        "editPlan": "Editar plano",
+        "verifyPayment": "Verificar",
+        "syncRole": "Sincronizar",
+        "revoke": "Revogar"
     }
 }

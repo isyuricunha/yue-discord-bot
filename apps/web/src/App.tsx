@@ -35,6 +35,7 @@ const WelcomePage = lazy(() => import('./pages/Welcome'))
 const XpLevelsPage = lazy(() => import('./pages/XpLevels'))
 const AutorolePage = lazy(() => import('./pages/Autorole'))
 const TicketsPage = lazy(() => import('./pages/Tickets'))
+const SupportPage = lazy(() => import('./pages/Support'))
 const SetupWizardPage = lazy(() => import('./pages/SetupWizard'))
 const SuggestionsPage = lazy(() => import('./pages/Suggestions'))
 const ReactionRolesPage = lazy(() => import('./pages/ReactionRoles'))
@@ -131,6 +132,7 @@ function App() {
             <Route path="/guild/:guildId/xp" element={<XpLevelsPage />} />
             <Route path="/guild/:guildId/autorole" element={<AutorolePage />} />
             <Route path="/guild/:guildId/tickets" element={<TicketsPage />} />
+            <Route path="/guild/:guildId/support" element={<SupportPage />} />
             <Route path="/guild/:guildId/suggestions" element={<SuggestionsPage />} />
             <Route path="/guild/:guildId/reaction-roles" element={<ReactionRolesPage />} />
             <Route path="/guild/:guildId/starboard" element={<StarboardPage />} />

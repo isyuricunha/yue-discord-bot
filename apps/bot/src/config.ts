@@ -1,4 +1,5 @@
 import { load_env } from '@yuebot/shared';
+import { parse_livepix_encryption_key } from '@yuebot/livepix';
 
 load_env();
 
@@ -14,6 +15,11 @@ function parse_csv_env(value: string | undefined) {
     .split(',')
     .map((v) => v.trim())
     .filter(Boolean);
+}
+
+function parse_boolean_env(value: string | undefined, fallback: boolean) {
+  if (value === undefined) return fallback
+  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
 }
 
 function required_env(name: string): string {
@@ -61,6 +67,14 @@ export const CONFIG = {
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
   },
+  livePix: {
+    enabled: parse_boolean_env(process.env.LIVEPIX_ENABLED, false),
+    clientId: process.env.LIVEPIX_CLIENT_ID || '',
+    clientSecret: process.env.LIVEPIX_CLIENT_SECRET || '',
+    paymentReturnUrl: process.env.LIVEPIX_PAYMENT_RETURN_URL || process.env.LIVEPIX_RETURN_URL || '',
+    tokenEncryptionKey: process.env.LIVEPIX_TOKEN_ENCRYPTION_KEY || '',
+    ownerGuildIds: parse_csv_env(process.env.LIVEPIX_OWNER_GUILD_IDS),
+  },
 } as const;
 
 export function assert_deploy_commands_env(): void {
@@ -76,5 +90,27 @@ export function assert_bot_runtime_env(): void {
 
   if ((process.env.INTERNAL_API_SECRET ?? '').length < 32) {
     throw new Error('INTERNAL_API_SECRET deve ter no mínimo 32 caracteres')
+  }
+
+  if (parse_boolean_env(process.env.LIVEPIX_ENABLED, false)) {
+    const missing = [
+      'LIVEPIX_CLIENT_ID',
+      'LIVEPIX_CLIENT_SECRET',
+      'LIVEPIX_TOKEN_ENCRYPTION_KEY',
+    ].filter((key) => !process.env[key])
+
+    if (!process.env.LIVEPIX_PAYMENT_RETURN_URL && !process.env.LIVEPIX_RETURN_URL) {
+      missing.push('LIVEPIX_PAYMENT_RETURN_URL')
+    }
+
+    if (missing.length > 0) {
+      throw new Error(`Variáveis de ambiente LivePix faltando: ${missing.join(', ')}`)
+    }
+
+    try {
+      parse_livepix_encryption_key(process.env.LIVEPIX_TOKEN_ENCRYPTION_KEY ?? '')
+    } catch {
+      throw new Error('LIVEPIX_TOKEN_ENCRYPTION_KEY deve decodificar para 32 bytes')
+    }
   }
 }
