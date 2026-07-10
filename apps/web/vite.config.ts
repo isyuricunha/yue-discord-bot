@@ -44,5 +44,15 @@ export default defineConfig(({ mode }) => {
     preview: {
       headers: cspHeaders,
     },
+    test: {
+      globals: true,
+      environment: 'jsdom',
+      setupFiles: [path.resolve(__dirname, 'src/setup-tests.ts')],
+      server: {
+        deps: {
+          inline: ['@testing-library/react'],
+        },
+      },
+    },
   }
 })
