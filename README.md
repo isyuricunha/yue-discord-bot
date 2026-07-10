@@ -58,7 +58,7 @@ YueBot offers a wide variety of commands organized by category:
 
 ### AI Features
 
-- **Ask**: Chat with AI models (Mistral, Groq)
+- **Ask**: Chat with the configured Mistral runtime
 - **Auto-moderation**: AI-powered content moderation (requires OpenAI API key)
 
 ### Waifu Collection
@@ -112,7 +112,7 @@ YueBot offers a wide variety of commands organized by category:
 - **Discord**: Discord.js v14
 - **Package Manager**: pnpm
 - **Infrastructure**: Redis (for queues), Docker support
-- **AI Services**: Mistral AI, Groq, OpenAI (optional)
+- **AI Services**: Mistral AI, OpenAI (optional), and an optional OpenAI-compatible panel provider
 
 ## Quick Start
 
@@ -226,12 +226,21 @@ Enable AI features by providing API keys:
 - `MISTRAL_TEMPERATURE` - Temperature for responses (default: `0.2`)
 - `MISTRAL_MAX_TOKENS` - Max tokens per response (default: `512`)
 
-**Groq** (fallback):
+**Panel assistant (optional):**
 
-- `GROQ_API_KEY` - Your Groq API key
-- `GROQ_MODEL` - Model to use (default: `llama3-8b-8192`)
-- `GROQ_TEMPERATURE` - Temperature for responses (default: `0.2`)
-- `GROQ_MAX_TOKENS` - Max tokens per response (default: `512`)
+- `MISTRAL_PANEL_AGENT_ID` - Dedicated Mistral Agent for panel chat; configure it without connectors or tools
+- `CUSTOM_PROVIDER_BASE_URL` - Base URL of a generic OpenAI-compatible provider
+- `CUSTOM_PROVIDER_API_KEY` - Optional bearer key for that provider; it is never stored in the database
+- `PANEL_AI_CHAT_TIMEOUT_MS` - Panel chat timeout (default: `90000`, maximum: `180000`)
+- `CUSTOM_PROVIDER_MODEL_LIST_TIMEOUT_MS` - Manual model-list refresh timeout (fixed at five minutes)
+
+The Owner chooses the global panel runtime in **Admin → Ella no Painel**. The custom catalog is fetched only when requested, cached in the database, and keeps the previous catalog if a refresh fails. Guild Admins/Owners can use the panel chat, but cannot change its provider or model. The panel chat has no web, image, attachment, or tool access.
+
+### v3 breaking changes
+
+- Groq and all multi-key/round-robin Mistral fallback variables were removed.
+- Use one `MISTRAL_API_KEY` for Discord AI and rename any prompt mount to `prompts/system_prompt.txt`.
+- Conversation cache variables are now `AI_CONTEXT_*`; remove any `GROQ_CONTEXT_*` settings.
 
 **OpenAI** (auto-moderation):
 

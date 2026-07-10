@@ -57,7 +57,7 @@ services:
       OPENAI_MODERATION_IMAGE_PAYLOAD_MAX_BYTES: "${OPENAI_MODERATION_IMAGE_PAYLOAD_MAX_BYTES:-47185920}"
 
     volumes:
-      - ./groq_system_prompt.txt:/app/prompts/groq_system_prompt.txt:ro
+      - ./prompts/system_prompt.txt:/app/prompts/system_prompt.txt:ro
 
     healthcheck:
       test:

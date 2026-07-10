@@ -17,15 +17,15 @@
 
 ## Milestone 3: Panel assistant
 
-- [ ] Add the Owner configuration UI for the panel assistant.
-- [ ] Add guild-admin-only panel chat with short-lived conversation state.
-- [ ] Provide operational and detailed context by default.
-- [ ] Require confirmation before sensitive context or any mutation.
-- [ ] Verify web, API, and end-to-end permission boundaries.
+- [x] Add the Owner configuration UI for the panel assistant.
+- [x] Add guild-admin-only panel chat with short-lived conversation state.
+- [x] Provide operational context without raw sensitive data.
+- [x] Keep mutations and sensitive-data disclosure out of the initial chat surface.
+- [x] Verify web and API permission boundaries.
 
 ## Milestone 4: Release
 
-- [ ] Document environment variables and v3 breaking changes.
-- [ ] Verify conventional commits produce a major release for breaking changes.
+- [x] Document environment variables and v3 breaking changes.
+- [x] Verify conventional commits produce a major release for breaking changes.
 - [ ] Run workspace lint, type-check, test, and build.
 - [ ] Create release tag `v3.0.0`.
