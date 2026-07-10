@@ -1,15 +1,44 @@
-import type { FastifyInstance } from 'fastify'
+import type {
+  FastifyBaseLogger,
+  FastifyInstance,
+  FastifyPluginAsync,
+  FastifyReply,
+  FastifyRequest,
+} from 'fastify'
 import { prisma } from '@yuebot/database'
 
+import { CONFIG } from '../config'
 import { is_guild_admin } from '../internal/bot_internal_api'
 import { complete_panel_ai, type panel_ai_message } from '../services/panel_ai'
+import { build_panel_context, type panel_context_data } from '../services/panel_context'
+import { ConversationStore } from '../services/conversation_store'
+import { load_custom_provider_system_prompt } from '../services/prompt_loader'
 import { can_access_guild } from '../utils/guild_access'
 import { safe_error_details } from '../utils/safe_error'
 
-const conversation_store = new Map<string, { version: number; messages: panel_ai_message[]; expiresAt: number }>()
-const CONVERSATION_TTL_MS = 30 * 60 * 1000
 const MAX_MESSAGE_LENGTH = 4_000
-const MAX_HISTORY_MESSAGES = 12
+
+type panel_ai_db = {
+  botSettings: Pick<typeof prisma.botSettings, 'findUnique'>
+  guild: Pick<typeof prisma.guild, 'findUnique'>
+  guildAntiRaidConfig: Pick<typeof prisma.guildAntiRaidConfig, 'findUnique'>
+}
+
+type admin_check = (guildId: string, userId: string, log: FastifyBaseLogger) => Promise<{ isAdmin: boolean }>
+
+type complete_panel_ai_fn = (input: {
+  runtime: { provider: 'mistral' | 'custom'; customModel: string | null }
+  persona: string
+  context: string
+  messages: panel_ai_message[]
+}) => Promise<string>
+
+export type panel_ai_route_deps = {
+  db: panel_ai_db
+  store: ConversationStore
+  isGuildAdmin: admin_check
+  completePanelAi: complete_panel_ai_fn
+}
 
 function conversation_key(guildId: string, userId: string) {
   return `${guildId}:${userId}`
@@ -22,45 +51,119 @@ function parse_message(body: unknown) {
   return trimmed && trimmed.length <= MAX_MESSAGE_LENGTH ? trimmed : null
 }
 
-export async function panelAiRoutes(fastify: FastifyInstance) {
-  fastify.post('/guilds/:guildId/panel-ai/chat', { preHandler: [fastify.authenticate] }, async (request, reply) => {
-    const { guildId } = request.params as { guildId: string }
-    const user = request.user
-    const message = parse_message(request.body)
-    if (!guildId || !message) return reply.code(400).send({ error: 'Invalid message' })
-    if (!can_access_guild(user, guildId)) return reply.code(403).send({ error: 'Forbidden' })
-    if (!user.isOwner) {
-      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
-      if (!isAdmin) return reply.code(403).send({ error: 'Forbidden' })
+async function assert_guild_access(
+  isGuildAdmin: admin_check,
+  request: FastifyRequest,
+  reply: FastifyReply,
+  guildId: string,
+): Promise<boolean> {
+  const user = request.user
+  if (!can_access_guild(user, guildId)) {
+    reply.code(403).send({ error: 'Forbidden' })
+    return false
+  }
+  if (!user.isOwner) {
+    const { isAdmin } = await isGuildAdmin(guildId, user.userId, request.log)
+    if (!isAdmin) {
+      reply.code(403).send({ error: 'Forbidden' })
+      return false
     }
-
-    const [settings, guild] = await Promise.all([
-      prisma.botSettings.findUnique({ where: { id: 'global' } }),
-      prisma.guild.findUnique({ where: { id: guildId }, select: { id: true, name: true, config: { select: { welcomeChannelId: true, wordFilterEnabled: true, aiModerationEnabled: true } } } }),
-    ])
-    if (!guild) return reply.code(404).send({ error: 'Guild not found' })
-
-    const version = settings?.panelAiConversationVersion ?? 1
-    const key = conversation_key(guildId, user.userId)
-    const cached = conversation_store.get(key)
-    const history = cached && cached.version === version && cached.expiresAt > Date.now() ? cached.messages : []
-    const contextual_message = [
-      `Panel context: guild name is ${guild.name}.`,
-      `Welcome is ${guild.config?.welcomeChannelId ? 'configured' : 'not configured'}, word filtering is ${guild.config?.wordFilterEnabled ? 'enabled' : 'disabled'}, and AI moderation is ${guild.config?.aiModerationEnabled ? 'enabled' : 'disabled'}.`,
-      `User request: ${message}`,
-    ].join(' ')
-
-    try {
-      const response = await complete_panel_ai({
-        runtime: { provider: settings?.panelAiProvider === 'custom' ? 'custom' : 'mistral', customModel: settings?.customProviderModel ?? null },
-        messages: [...history, { role: 'user', content: contextual_message }],
-      })
-      const messages = [...history, { role: 'user' as const, content: contextual_message }, { role: 'assistant' as const, content: response }].slice(-MAX_HISTORY_MESSAGES)
-      conversation_store.set(key, { version, messages, expiresAt: Date.now() + CONVERSATION_TTL_MS })
-      return reply.send({ success: true, response, actions: [] })
-    } catch (error: unknown) {
-      request.log.warn({ err: safe_error_details(error), guildId }, 'Panel AI chat failed')
-      return reply.code(502).send({ error: 'Panel assistant is unavailable' })
-    }
-  })
+  }
+  return true
 }
+
+export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}): FastifyPluginAsync {
+  const deps: panel_ai_route_deps = {
+    db: overrides.db ?? prisma,
+    store: overrides.store ?? new ConversationStore(),
+    isGuildAdmin: overrides.isGuildAdmin ?? is_guild_admin,
+    completePanelAi: overrides.completePanelAi ?? complete_panel_ai,
+  }
+
+  return async function panelAiRoutes(fastify: FastifyInstance) {
+    fastify.post('/guilds/:guildId/panel-ai/chat', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+      const { guildId } = request.params as { guildId: string }
+      const user = request.user
+      const message = parse_message(request.body)
+      if (!guildId || !message) return reply.code(400).send({ error: 'Invalid message' })
+      if (!(await assert_guild_access(deps.isGuildAdmin, request, reply, guildId))) return
+
+      const [settings, guild, antiRaid] = await Promise.all([
+        deps.db.botSettings.findUnique({ where: { id: 'global' } }),
+        deps.db.guild.findUnique({
+          where: { id: guildId },
+          select: { id: true, name: true, config: { select: { welcomeChannelId: true, wordFilterEnabled: true, aiModerationEnabled: true } } },
+        }),
+        deps.db.guildAntiRaidConfig.findUnique({ where: { guildId }, select: { enabled: true, raidActive: true, locked: true } }),
+      ])
+      if (!guild) return reply.code(404).send({ error: 'Guild not found' })
+
+      const is_custom = settings?.panelAiProvider === 'custom'
+      const version = settings?.panelAiConversationVersion ?? 1
+      const key = conversation_key(guildId, user.userId)
+      const history = deps.store.get(key, version)
+
+      const context_data: panel_context_data = {
+        guild: { id: guild.id, name: guild.name, config: guild.config ?? null },
+        antiRaid: antiRaid ?? null,
+      }
+      const context = build_panel_context(context_data)
+
+      // Load the persona from file only when the Custom Provider is active.
+      // The Mistral Agent has its own instructions and does not use this persona.
+      const persona = is_custom ? load_custom_provider_system_prompt(CONFIG.panelAi.promptPath) : ''
+
+      const messages_for_provider: panel_ai_message[] = [
+        ...history,
+        { role: 'user', content: message },
+      ]
+
+      try {
+        const response = await deps.completePanelAi({
+          runtime: { provider: is_custom ? 'custom' : 'mistral', customModel: settings?.customProviderModel ?? null },
+          persona,
+          context,
+          messages: messages_for_provider,
+        })
+        deps.store.set(key, version, [
+          ...history,
+          { role: 'user' as const, content: message },
+          { role: 'assistant' as const, content: response },
+        ])
+        return reply.send({ success: true, response, actions: [] })
+      } catch (error: unknown) {
+        request.log.warn({ err: safe_error_details(error), guildId }, 'Panel AI chat failed')
+        return reply.code(502).send({ error: 'Panel assistant is unavailable' })
+      }
+    })
+
+    fastify.get('/guilds/:guildId/panel-ai/history', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+      const { guildId } = request.params as { guildId: string }
+      const user = request.user
+      if (!guildId) return reply.code(400).send({ error: 'Invalid guild' })
+      if (!(await assert_guild_access(deps.isGuildAdmin, request, reply, guildId))) return
+
+      const settings = await deps.db.botSettings.findUnique({ where: { id: 'global' } })
+      const version = settings?.panelAiConversationVersion ?? 1
+      const key = conversation_key(guildId, user.userId)
+      const messages = deps.store.get(key, version)
+      return reply.send({
+        success: true,
+        messages: messages.map((m) => ({ role: m.role, content: m.content })),
+      })
+    })
+
+    fastify.delete('/guilds/:guildId/panel-ai/history', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+      const { guildId } = request.params as { guildId: string }
+      const user = request.user
+      if (!guildId) return reply.code(400).send({ error: 'Invalid guild' })
+      if (!(await assert_guild_access(deps.isGuildAdmin, request, reply, guildId))) return
+
+      const key = conversation_key(guildId, user.userId)
+      deps.store.delete(key)
+      return reply.send({ success: true })
+    })
+  }
+}
+
+export const panelAiRoutes = createPanelAiRoutes()

@@ -57,7 +57,10 @@ services:
       OPENAI_MODERATION_IMAGE_PAYLOAD_MAX_BYTES: "${OPENAI_MODERATION_IMAGE_PAYLOAD_MAX_BYTES:-47185920}"
 
     volumes:
-      - ./prompts/system_prompt.txt:/app/prompts/system_prompt.txt:ro
+      # Mount the whole prompts directory read-only so missing optional files
+      # (e.g. panel_ai_system_prompt.txt) do not get auto-created as directories.
+      # system_prompt.txt is required; panel_ai_system_prompt.txt is optional.
+      - ./prompts:/app/prompts:ro
 
     healthcheck:
       test:

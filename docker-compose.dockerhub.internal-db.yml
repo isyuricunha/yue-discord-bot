@@ -34,7 +34,10 @@ services:
     image: isyuricunha/yue-discord-bot:latest
     restart: unless-stopped
     volumes:
-      - ./prompts/system_prompt.txt:/app/prompts/system_prompt.txt:ro
+      # Mount the whole prompts directory read-only so missing optional files
+      # (e.g. panel_ai_system_prompt.txt) do not get auto-created as directories.
+      # system_prompt.txt is required; panel_ai_system_prompt.txt is optional.
+      - ./prompts:/app/prompts:ro
     depends_on:
       db:
         condition: service_healthy
@@ -107,6 +110,7 @@ services:
 
       CUSTOM_PROVIDER_BASE_URL: "${CUSTOM_PROVIDER_BASE_URL-}"
       CUSTOM_PROVIDER_API_KEY: "${CUSTOM_PROVIDER_API_KEY-}"
+      PANEL_AI_PROMPT_PATH: "${PANEL_AI_PROMPT_PATH:-/app/prompts/panel_ai_system_prompt.txt}"
       PANEL_AI_CHAT_TIMEOUT_MS: "${PANEL_AI_CHAT_TIMEOUT_MS:-90000}"
       CUSTOM_PROVIDER_MODEL_LIST_TIMEOUT_MS: "${CUSTOM_PROVIDER_MODEL_LIST_TIMEOUT_MS:-300000}"
       REDIS_CONNECT_TIMEOUT_MS: "${REDIS_CONNECT_TIMEOUT_MS:-3000}"

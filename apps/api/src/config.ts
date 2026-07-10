@@ -94,6 +94,7 @@ export const CONFIG = {
     mistralPanelAgentId: process.env.MISTRAL_PANEL_AGENT_ID || '',
     customProviderBaseUrl: process.env.CUSTOM_PROVIDER_BASE_URL || '',
     customProviderApiKey: process.env.CUSTOM_PROVIDER_API_KEY || '',
+    promptPath: process.env.PANEL_AI_PROMPT_PATH || '',
     chatTimeoutMs: parse_positive_int_env(process.env.PANEL_AI_CHAT_TIMEOUT_MS, 90_000, 180_000),
     modelCatalogTimeoutMs: parse_positive_int_env(process.env.CUSTOM_PROVIDER_MODEL_LIST_TIMEOUT_MS, 300_000, 300_000),
   },
