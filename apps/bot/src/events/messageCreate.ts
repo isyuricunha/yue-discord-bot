@@ -20,19 +20,18 @@ import { MistralApiError } from "../services/mistral.service";
 import { COLORS, EMOJIS } from "@yuebot/shared";
 
 import { get_llm_client } from "../services/llm_client_singleton";
-import { get_groq_conversation_backend } from "../services/groq_conversation_backend_factory";
+import { get_conversation_backend } from "../services/conversation_backend_factory";
 import {
 	build_history_for_prompt,
 	conversation_key_from_message,
 	is_reply_to_bot,
-} from "../services/groq_history";
-import { GroqApiError } from "../services/groq.service";
-import { is_within_continuation_window } from "../services/groq_continuation";
+} from "../services/conversation_history";
+import { is_within_continuation_window } from "../services/conversation_continuation";
 import {
 	build_user_prompt_from_invocation,
 	remove_bot_mention,
 	remove_leading_yue,
-} from "../services/groq_invocation";
+} from "../services/conversation_invocation";
 import {
 	ddg_web_search,
 	format_web_search_context,
@@ -53,11 +52,7 @@ function parse_int_env(value: string | undefined, fallback: number): number {
 function has_mistral_agent_configured(): boolean {
 	const candidates = [
 		process.env.MISTRAL_IMAGE_AGENT_ID,
-		process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_1,
-		process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_2,
 		process.env.MISTRAL_AGENT_ID,
-		process.env.MISTRAL_AGENT_ID_FALLBACK_1,
-		process.env.MISTRAL_AGENT_ID_FALLBACK_2,
 	];
 	return candidates.some((v) => typeof v === "string" && v.trim().length > 0);
 }
@@ -262,9 +257,9 @@ export async function handleMessageCreate(message: Message) {
 			: false;
 
 		const key = conversation_key_from_message(message);
-		const conversation_backend = get_groq_conversation_backend();
+		const conversation_backend = get_conversation_backend();
 		const continuation_seconds = parse_int_env(
-			process.env.GROQ_CONTEXT_CONTINUATION_SECONDS,
+			process.env.AI_CONTEXT_CONTINUATION_SECONDS,
 			120
 		);
 		const last_activity = await conversation_backend
@@ -396,12 +391,10 @@ Question: ${user_prompt}`
 						{ status: error.statusCode },
 						"Mistral invocation failed"
 					);
-				} else if (error instanceof GroqApiError) {
-					logger.warn({ status: error.status }, "Groq invocation failed");
 				} else {
 					logger.error(
 						{ err: safe_error_details(error) },
-						"Groq invocation failed"
+						"Mistral invocation failed"
 					);
 				}
 			}

@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { is_within_continuation_window } from './groq_continuation'
+import { is_within_continuation_window } from './conversation_continuation'
 
 test('continuation: 0 seconds disables time continuation', () => {
   const now = 1_000_000

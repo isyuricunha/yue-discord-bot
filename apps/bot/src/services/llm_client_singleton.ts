@@ -1,6 +1,5 @@
 import { LlmClient } from "./llm_client";
 import { MistralClient } from "./mistral.service";
-import { GroqClient } from "./groq.service";
 
 import { logger } from "../utils/logger";
 
@@ -14,28 +13,15 @@ function count_non_empty(values: Array<string | undefined>): number {
 
 function summarize_llm_env_config(): {
 	mistral: { enabled: boolean; keys: number; agents: number; image_agents: number };
-	groq: { enabled: boolean; keys: number };
 } {
 	const mistral_keys = count_non_empty([
 		process.env.MISTRAL_API_KEY,
-		process.env.MISTRAL_API_KEY_FALLBACK_1,
-		process.env.MISTRAL_API_KEY_FALLBACK_2,
 	]);
 	const mistral_agents = count_non_empty([
 		process.env.MISTRAL_AGENT_ID,
-		process.env.MISTRAL_AGENT_ID_FALLBACK_1,
-		process.env.MISTRAL_AGENT_ID_FALLBACK_2,
 	]);
 	const mistral_image_agents = count_non_empty([
 		process.env.MISTRAL_IMAGE_AGENT_ID,
-		process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_1,
-		process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_2,
-	]);
-
-	const groq_keys = count_non_empty([
-		process.env.GROQ_API_KEY,
-		process.env.GROQ_API_KEY_FALLBACK_1,
-		process.env.GROQ_API_KEY_FALLBACK_2,
 	]);
 
 	return {
@@ -45,10 +31,6 @@ function summarize_llm_env_config(): {
 				agents: mistral_agents,
 				image_agents: mistral_image_agents,
 			},
-		groq: {
-			enabled: groq_keys > 0,
-			keys: groq_keys,
-		},
 	};
 }
 
@@ -61,7 +43,6 @@ export function get_llm_client(): LlmClient | null {
 	);
 
 	let mistral: MistralClient | null = null;
-	let groq: GroqClient | null = null;
 
 	try {
 		const mistralClient = MistralClient.from_env();
@@ -70,23 +51,16 @@ export function get_llm_client(): LlmClient | null {
 		mistral = null;
 	}
 
-	try {
-		const groqClient = GroqClient.from_env();
-		if (groqClient) groq = groqClient;
-	} catch {
-		groq = null;
-	}
-
-	if (!mistral && !groq) {
+	if (!mistral) {
 		cached = null;
 		return null;
 	}
 
 	logger.info(
-		{ providers: { mistral: Boolean(mistral), groq: Boolean(groq) } },
+		{ providers: { mistral: true } },
 		"LLM client initialized"
 	);
 
-	cached = new LlmClient(mistral, groq);
+	cached = new LlmClient(mistral);
 	return cached;
 }

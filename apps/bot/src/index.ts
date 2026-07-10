@@ -15,7 +15,7 @@ import { SupportScheduler } from "./services/support/supportScheduler";
 import { initModerationPersistenceService } from "./services/moderationPersistence.service";
 import { initPunishmentRoleService } from "./services/punishmentRole.service";
 import { get_llm_client } from "./services/llm_client_singleton";
-import { get_groq_conversation_backend } from "./services/groq_conversation_backend_factory";
+import { get_conversation_backend } from "./services/conversation_backend_factory";
 import { apply_startup_presence } from "./services/presence.service";
 import { apply_startup_app_description } from "./services/app_description.service";
 import { initMusicService } from "./services/music.service";
@@ -150,7 +150,7 @@ client.once("clientReady", async () => {
 
 	const llm_client = get_llm_client();
 	if (llm_client) {
-		get_groq_conversation_backend();
+		get_conversation_backend();
 	} else {
 		logger.info(
 			{ backend: "disabled" },

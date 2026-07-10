@@ -1,6 +1,6 @@
 import type { Message } from 'discord.js'
 
-import type { conversation_message } from './groq_conversation_store'
+import type { conversation_message } from './conversation_store'
 
 export function conversation_key_from_message(message: Message): string {
   return `${message.guildId ?? 'noguild'}:${message.channelId}:${message.author.id}`

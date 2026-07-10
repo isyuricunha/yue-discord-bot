@@ -7,6 +7,8 @@ module.exports = {
       {
         preset: "conventionalcommits",
         releaseRules: [
+          { breaking: true, release: "major" },
+          { type: "breaking", release: "major" },
           { type: "feat", release: "minor" },
           { type: "fix", release: "patch" },
           { type: "perf", release: "patch" },
@@ -27,6 +29,7 @@ module.exports = {
         presetConfig: {
           types: [
             { type: "feat", section: "Features" },
+            { type: "breaking", section: "Breaking Changes" },
             { type: "fix", section: "Bug Fixes" },
             { type: "perf", section: "Performance Improvements" },
             { type: "security", section: "Security Fixes" },

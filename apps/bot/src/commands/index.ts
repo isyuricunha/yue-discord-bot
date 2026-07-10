@@ -147,7 +147,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(sayCommand.data.name, sayCommand);
   commands.set('estatisticas', estatisticasCommand);
 
-  if (typeof process.env.GROQ_API_KEY === 'string' && process.env.GROQ_API_KEY.trim().length > 0) {
+  if (typeof process.env.MISTRAL_API_KEY === 'string' && process.env.MISTRAL_API_KEY.trim().length > 0) {
     const { askCommand } = await import('./utility/ask')
     commands.set(askCommand.data.name, askCommand)
   }

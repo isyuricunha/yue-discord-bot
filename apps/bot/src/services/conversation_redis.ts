@@ -2,8 +2,8 @@ import { createClient, type RedisClientType } from 'redis'
  
 import { logger } from '../utils/logger'
 
-import type { conversation_message } from './groq_conversation_store'
-import type { groq_conversation_backend } from './groq_conversation_backend'
+import type { conversation_message } from './conversation_store'
+import type { conversation_backend } from './conversation_backend'
 
 type redis_conversation_state = {
   messages: conversation_message[]
@@ -44,7 +44,7 @@ function normalize_redis_string(value: string | Buffer): string {
   return typeof value === 'string' ? value : value.toString('utf8')
 }
 
-export class RedisGroqConversationStore implements groq_conversation_backend {
+export class RedisConversationStore implements conversation_backend {
   private readonly redis_url: string
   private readonly redis_password: string | null
   private readonly key_prefix: string
@@ -64,7 +64,7 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
   }) {
     const redis_url = input?.redis_url ?? process.env.REDIS_URL
     if (typeof redis_url !== 'string' || redis_url.trim().length === 0) {
-      throw new Error('REDIS_URL is required to use RedisGroqConversationStore')
+      throw new Error('REDIS_URL is required to use RedisConversationStore')
     }
 
     this.redis_url = redis_url.trim()
@@ -86,13 +86,13 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
         ? null
         : (password_from_input || password_from_env) ? (password_from_input || password_from_env) : null
 
-    this.key_prefix = normalize_prefix(input?.key_prefix ?? process.env.GROQ_CONTEXT_REDIS_PREFIX ?? 'yue:groq:context')
+    this.key_prefix = normalize_prefix(input?.key_prefix ?? process.env.AI_CONTEXT_REDIS_PREFIX ?? 'yue:ai:context')
 
-    this.ttl_seconds = Math.max(60, input?.ttl_seconds ?? parse_int_env(process.env.GROQ_CONTEXT_TTL_SECONDS, 30 * 60))
-    this.max_messages = Math.max(2, input?.max_messages ?? parse_int_env(process.env.GROQ_CONTEXT_MAX_MESSAGES, 12))
+    this.ttl_seconds = Math.max(60, input?.ttl_seconds ?? parse_int_env(process.env.AI_CONTEXT_TTL_SECONDS, 30 * 60))
+    this.max_messages = Math.max(2, input?.max_messages ?? parse_int_env(process.env.AI_CONTEXT_MAX_MESSAGES, 12))
     this.max_message_chars = Math.max(
       1,
-      input?.max_message_chars ?? parse_int_env(process.env.GROQ_CONTEXT_MAX_MESSAGE_CHARS, 700)
+      input?.max_message_chars ?? parse_int_env(process.env.AI_CONTEXT_MAX_MESSAGE_CHARS, 700)
     )
   }
 
@@ -118,7 +118,7 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
       ...(this.redis_password ? { password: this.redis_password } : {}),
       socket: {
         connectTimeout: connect_timeout_ms,
-        reconnectStrategy: () => new Error('Redis reconnect disabled for Groq conversation store'),
+        reconnectStrategy: () => new Error('Redis reconnect disabled for AI conversation store'),
       },
       disableOfflineQueue: true,
     })
@@ -149,10 +149,10 @@ export class RedisGroqConversationStore implements groq_conversation_backend {
               port: parsed.port || '(default)',
             },
           },
-          'Redis Groq conversation store connected'
+          'Redis AI conversation store connected'
         )
       } catch {
-        logger.info({ backend: 'redis' }, 'Redis Groq conversation store connected')
+        logger.info({ backend: 'redis' }, 'Redis AI conversation store connected')
       }
     }
 

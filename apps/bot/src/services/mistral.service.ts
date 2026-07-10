@@ -84,35 +84,23 @@ function parse_retry_after_seconds(value: string | null): number | null {
 
 function env_keys(): string[] {
 	const primary = process.env.MISTRAL_API_KEY;
-	const fallback_1 = process.env.MISTRAL_API_KEY_FALLBACK_1;
-	const fallback_2 = process.env.MISTRAL_API_KEY_FALLBACK_2;
 
 	const primary_trimmed = typeof primary === "string" ? primary.trim() : "";
 	if (!primary_trimmed) return [];
 
-	return [primary_trimmed, fallback_1, fallback_2].filter(
-		(v): v is string => typeof v === "string" && v.trim().length > 0
-	);
+	return [primary_trimmed];
 }
 
 function env_agent_id_by_index(index: number): string | null {
-	const raw =
-		index === 0
-			? process.env.MISTRAL_AGENT_ID
-			: index === 1
-				? process.env.MISTRAL_AGENT_ID_FALLBACK_1
-				: process.env.MISTRAL_AGENT_ID_FALLBACK_2;
+	if (index !== 0) return null;
+	const raw = process.env.MISTRAL_AGENT_ID;
 	const trimmed = typeof raw === "string" ? raw.trim() : "";
 	return trimmed ? trimmed : null;
 }
 
 function env_image_agent_id_by_index(index: number): string | null {
-	const raw =
-		index === 0
-			? process.env.MISTRAL_IMAGE_AGENT_ID
-			: index === 1
-				? process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_1
-				: process.env.MISTRAL_IMAGE_AGENT_ID_FALLBACK_2;
+	if (index !== 0) return null;
+	const raw = process.env.MISTRAL_IMAGE_AGENT_ID;
 	const trimmed = typeof raw === "string" ? raw.trim() : "";
 	return trimmed ? trimmed : null;
 }

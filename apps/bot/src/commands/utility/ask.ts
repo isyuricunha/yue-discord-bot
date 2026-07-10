@@ -7,7 +7,6 @@ import { MistralError } from "@mistralai/mistralai/models/errors";
 import { MistralApiError } from "../../services/mistral.service";
 
 import { get_llm_client } from "../../services/llm_client_singleton";
-import { GroqApiError } from "../../services/groq.service";
 import { split_discord_message } from "../../utils/discord_message";
 import { safe_error_details } from "../../utils/safe_error";
 import { logger } from "../../utils/logger";
@@ -111,31 +110,6 @@ export const askCommand: Command = {
 
 				await interaction.editReply({
 					content: `${EMOJIS.ERROR} Erro ao consultar IA.`,
-				});
-				return;
-			}
-
-			if (error instanceof GroqApiError) {
-				if (error.status === 429) {
-					const retry = error.retry_after_seconds;
-					const msg = retry
-						? `Tente novamente em ~${retry}s.`
-						: "Tente novamente em instantes.";
-					await interaction.editReply({
-						content: `${EMOJIS.ERROR} Rate limit do fallback. ${msg}`,
-					});
-					return;
-				}
-
-				if (error.status === 401 || error.status === 403) {
-					await interaction.editReply({
-						content: `${EMOJIS.ERROR} Fallback não autorizado. Verifique a configuração das keys.`,
-					});
-					return;
-				}
-
-				await interaction.editReply({
-					content: `${EMOJIS.ERROR} Erro ao consultar fallback.`,
 				});
 				return;
 			}

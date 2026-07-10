@@ -26,16 +26,16 @@ function normalize_content(input: string, max_chars: number): string {
   return `${trimmed.slice(0, max_chars)}…`
 }
 
-export class GroqConversationStore {
+export class ConversationStore {
   private readonly ttl_ms: number
   private readonly max_messages: number
   private readonly max_message_chars: number
   private readonly state = new Map<string, conversation_state>()
 
   constructor(input: { ttl_seconds?: number; max_messages?: number; max_message_chars?: number } = {}) {
-    const ttl_seconds = input.ttl_seconds ?? parse_int_env(process.env.GROQ_CONTEXT_TTL_SECONDS, 30 * 60)
-    const max_messages = input.max_messages ?? parse_int_env(process.env.GROQ_CONTEXT_MAX_MESSAGES, 12)
-    const max_message_chars = input.max_message_chars ?? parse_int_env(process.env.GROQ_CONTEXT_MAX_MESSAGE_CHARS, 700)
+    const ttl_seconds = input.ttl_seconds ?? parse_int_env(process.env.AI_CONTEXT_TTL_SECONDS, 30 * 60)
+    const max_messages = input.max_messages ?? parse_int_env(process.env.AI_CONTEXT_MAX_MESSAGES, 12)
+    const max_message_chars = input.max_message_chars ?? parse_int_env(process.env.AI_CONTEXT_MAX_MESSAGE_CHARS, 700)
 
     this.ttl_ms = Math.max(60, ttl_seconds) * 1000
     this.max_messages = Math.max(2, max_messages)
@@ -88,4 +88,4 @@ export class GroqConversationStore {
   }
 }
 
-export const groq_conversation_store = new GroqConversationStore()
+export const conversation_store = new ConversationStore()
