@@ -1,7 +1,8 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma } from '@yuebot/database'
 
-import { custom_provider_is_configured, list_custom_provider_models, test_custom_provider_model } from '../services/custom_provider'
+import { custom_provider_is_configured, list_custom_provider_models } from '../services/custom_provider'
+import { test_panel_ai_runtime } from '../services/panel_ai'
 import { is_owner } from '../utils/permissions'
 import { safe_error_details } from '../utils/safe_error'
 
@@ -81,15 +82,15 @@ export async function panelAiOwnerRoutes(fastify: FastifyInstance) {
 
   fastify.post('/owner/panel-ai/test', { preHandler: [fastify.authenticate] }, async (request, reply) => {
     if (!is_owner(request.user.userId)) return reply.code(403).send({ error: 'Forbidden' })
-    const model = typeof (request.body as { model?: unknown })?.model === 'string' ? String((request.body as { model: string }).model).trim() : ''
-    if (!model) return reply.code(400).send({ error: 'Custom Provider model is required' })
+    const settings = await prisma.botSettings.findUnique({ where: { id: 'global' } })
+    const runtime = { provider: settings?.panelAiProvider === 'custom' ? 'custom' as const : 'mistral' as const, customModel: settings?.customProviderModel ?? null }
     try {
-      const result = await test_custom_provider_model(model)
+      const result = await test_panel_ai_runtime(runtime)
       await prisma.ownerActionLog.create({ data: {
         actorUserId: request.user.userId,
         type: 'test_custom_provider_model',
         status: 'executed',
-        request: { model },
+        request: { provider: runtime.provider, model: runtime.customModel },
         result,
         executedAt: new Date(),
       } })

@@ -26,6 +26,7 @@ import {
   Wand2,
   LifeBuoy,
   Lightbulb,
+  MessageCircle,
   MousePointerClick,
   Star,
   Users,
@@ -132,6 +133,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
           { to: `/guild/${guildId}/setup`, label: 'Setup', icon: <Wand2 className="h-4 w-4" /> },
           { to: `/guild/${guildId}/overview`, label: 'Visão geral', icon: <BarChart3 className="h-4 w-4" /> },
           { to: `/guild/${guildId}/commands`, label: 'Comandos', icon: <TerminalSquare className="h-4 w-4" /> },
+          { to: `/guild/${guildId}/assistant`, label: 'Ella', icon: <MessageCircle className="h-4 w-4" /> },
         ],
       },
       {

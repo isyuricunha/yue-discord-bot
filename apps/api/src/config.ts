@@ -90,6 +90,7 @@ export const CONFIG = {
     ownerGuildIds: parse_csv_env(process.env.LIVEPIX_OWNER_GUILD_IDS),
   },
   panelAi: {
+    mistralApiKey: process.env.MISTRAL_API_KEY || '',
     mistralPanelAgentId: process.env.MISTRAL_PANEL_AGENT_ID || '',
     customProviderBaseUrl: process.env.CUSTOM_PROVIDER_BASE_URL || '',
     customProviderApiKey: process.env.CUSTOM_PROVIDER_API_KEY || '',

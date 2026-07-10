@@ -358,11 +358,14 @@ export default function OwnerPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div>
-        <div className="text-2xl font-semibold tracking-tight">Admin</div>
-        <div className="mt-1 text-sm text-muted-foreground">
-          Acesso global aos servidores onde o bot está instalado.
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <div className="text-2xl font-semibold tracking-tight">Admin</div>
+          <div className="mt-1 text-sm text-muted-foreground">
+            Acesso global aos servidores onde o bot está instalado.
+          </div>
         </div>
+        <Button type="button" variant="outline" onClick={() => navigate('/owner/panel-ai')}>Ella no Painel</Button>
       </div>
 
       <Card className="border-accent/20">

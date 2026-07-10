@@ -45,6 +45,8 @@ const FanArtsPage = lazy(() => import('./pages/FanArts'))
 const EconomyPage = lazy(() => import('./pages/Economy'))
 const CoinflipPage = lazy(() => import('./pages/Coinflip'))
 const OwnerPage = lazy(() => import('./pages/Owner'))
+const OwnerPanelAiPage = lazy(() => import('./pages/OwnerPanelAi'))
+const PanelAssistantPage = lazy(() => import('./pages/PanelAssistant'))
 const MusicPage = lazy(() => import('./pages/Music'))
 const CustomCommandsPage = lazy(() => import('./pages/CustomCommands'))
 const KeywordTriggersPage = lazy(() => import('./pages/KeywordTriggers'))
@@ -141,6 +143,7 @@ function App() {
             <Route path="/guild/:guildId/moderation" element={<ModerationPage />} />
             <Route path="/guild/:guildId/welcome" element={<WelcomePage />} />
             <Route path="/guild/:guildId/settings" element={<SettingsPage />} />
+            <Route path="/guild/:guildId/assistant" element={<PanelAssistantPage />} />
             <Route path="/badges" element={<BadgesPage />} />
             <Route path="/fanarts" element={<FanArtsPage />} />
             <Route path="/economy" element={<EconomyPage />} />
@@ -150,6 +153,14 @@ function App() {
               element={
                 <RequireOwner>
                   <OwnerPage />
+                </RequireOwner>
+              }
+            />
+            <Route
+              path="/owner/panel-ai"
+              element={
+                <RequireOwner>
+                  <OwnerPanelAiPage />
                 </RequireOwner>
               }
             />

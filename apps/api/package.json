@@ -18,6 +18,7 @@
     "@fastify/helmet": "^13.0.2",
     "@fastify/jwt": "^10.1.0",
     "@fastify/rate-limit": "^10.3.0",
+    "@mistralai/mistralai": "^2.2.5",
     "@yuebot/database": "workspace:*",
     "@yuebot/livepix": "workspace:*",
     "@yuebot/shared": "workspace:*",

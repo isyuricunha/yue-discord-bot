@@ -23,6 +23,7 @@ import { economyRoutes } from './routes/economy.routes'
 import { coinflipRoutes } from './routes/coinflip.routes'
 import { ownerRoutes } from './routes/owner.routes'
 import { panelAiOwnerRoutes } from './routes/panel_ai_owner.routes'
+import { panelAiRoutes } from './routes/panel_ai.routes'
 import { auditRoutes } from './routes/audit.routes'
 import { triggersRoutes } from './routes/triggers.routes'
 import { supportRoutes } from './routes/support.routes'
@@ -307,6 +308,7 @@ app.register(triggersRoutes, { prefix: '/api/guilds' })
 // Owner routes
 app.register(ownerRoutes, { prefix: '/api' })
 app.register(panelAiOwnerRoutes, { prefix: '/api' })
+app.register(panelAiRoutes, { prefix: '/api' })
 
 // LivePix public callback, return and webhook routes
 app.register(livePixRoutes, { prefix: '/api' })
