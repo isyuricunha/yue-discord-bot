@@ -1122,6 +1122,13 @@ model BotSettings {
   updatedAt       DateTime @updatedAt
   appDescription  String?
   blockedGuildIds Json     @default("[]")
+  panelAiProvider String @default("mistral")
+  customProviderModel String?
+  panelAiSensitiveContextEnabled Boolean @default(false)
+  customProviderModelCatalog Json @default("[]")
+  customProviderModelCatalogSyncedAt DateTime?
+  customProviderModelCatalogError String?
+  panelAiConversationVersion Int @default(1)
 
   @@map("bot_settings")
 }

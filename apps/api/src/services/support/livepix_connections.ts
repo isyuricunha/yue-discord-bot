@@ -106,13 +106,13 @@ function default_livepix_connection_dependencies(): livepix_connection_dependenc
   }
 }
 
-export function serialize_livepix_connection(connection: LivePixConnection | null): safe_livepix_connection | null {
+export function serialize_livepix_connection(connection: LivePixConnection | null, now = new Date()): safe_livepix_connection | null {
   if (!connection) return null
 
   const token_expired =
     connection.mode === LivePixConnectionMode.OAUTH &&
     connection.tokenExpiresAt !== null &&
-    connection.tokenExpiresAt.getTime() <= Date.now()
+    connection.tokenExpiresAt.getTime() <= now.getTime()
 
   return {
     id: connection.id,
@@ -241,7 +241,7 @@ async function connect_livepix_owner_guild_with_dependencies(dependencies: livep
     account,
   })
 
-  return serialize_livepix_connection(connection)
+  return serialize_livepix_connection(connection, dependencies.now())
 }
 
 async function handle_livepix_oauth_callback_with_dependencies(dependencies: livepix_connection_dependencies, input: {
@@ -308,7 +308,7 @@ async function handle_livepix_oauth_callback_with_dependencies(dependencies: liv
 
   return {
     guildId: state_row.guildId,
-    connection: serialize_livepix_connection(connection),
+    connection: serialize_livepix_connection(connection, dependencies.now()),
     refreshTokenReturned: Boolean(token.refreshToken),
   }
 }

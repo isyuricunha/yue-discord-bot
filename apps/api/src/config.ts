@@ -28,6 +28,12 @@ function parse_int_env(value: string | undefined, fallback: number) {
   return parsed;
 }
 
+function parse_positive_int_env(value: string | undefined, fallback: number, max: number) {
+  const parsed = parse_int_env(value, fallback)
+  if (parsed <= 0) return fallback
+  return Math.min(parsed, max)
+}
+
 load_env();
 
 export const CONFIG = {
@@ -82,6 +88,13 @@ export const CONFIG = {
     webhookUrl: process.env.LIVEPIX_WEBHOOK_URL || '',
     tokenEncryptionKey: process.env.LIVEPIX_TOKEN_ENCRYPTION_KEY || '',
     ownerGuildIds: parse_csv_env(process.env.LIVEPIX_OWNER_GUILD_IDS),
+  },
+  panelAi: {
+    mistralPanelAgentId: process.env.MISTRAL_PANEL_AGENT_ID || '',
+    customProviderBaseUrl: process.env.CUSTOM_PROVIDER_BASE_URL || '',
+    customProviderApiKey: process.env.CUSTOM_PROVIDER_API_KEY || '',
+    chatTimeoutMs: parse_positive_int_env(process.env.PANEL_AI_CHAT_TIMEOUT_MS, 90_000, 180_000),
+    modelCatalogTimeoutMs: parse_positive_int_env(process.env.CUSTOM_PROVIDER_MODEL_LIST_TIMEOUT_MS, 300_000, 300_000),
   },
   rateLimit: {
     max: parse_int_env(process.env.RATE_LIMIT_MAX, 100),
