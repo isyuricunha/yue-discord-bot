@@ -3,8 +3,8 @@
  *
  * @returns {JSX.Element} Estrutura principal da aplicação
  */
-import { Suspense, useEffect, useMemo, useState } from 'react'
-import { Outlet, useLocation } from 'react-router-dom'
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { matchPath, Outlet, useLocation } from 'react-router-dom'
 
 import { cn } from '../../lib/cn'
 import { ToastViewport } from '../ui'
@@ -14,13 +14,16 @@ import { Topbar } from './topbar'
 import { CommandPalette } from '../command_palette'
 import { useKeyboardShortcuts } from '../../hooks/use_keyboard'
 import { RouteLoading } from './route_loading'
-import { PanelAssistantProvider } from '../panel-ai/PanelAssistantProvider'
+import { getPanelAssistantGuildId, PanelAssistantProvider } from '../panel-ai/PanelAssistantProvider'
+import { PanelAssistantDrawer } from '../panel-ai/PanelAssistantDrawer'
 
 const STORAGE_KEY = 'yuebot-sidebar-collapsed'
 
 export function AppShell() {
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
+  const [ellaDrawerOpen, setEllaDrawerOpen] = useState(false)
+  const ellaTriggerRef = useRef<HTMLButtonElement>(null)
 
   useKeyboardShortcuts()
 
@@ -38,6 +41,14 @@ export function AppShell() {
   }
 
   const content_key = useMemo(() => location.pathname, [location.pathname])
+  const activeGuildId = getPanelAssistantGuildId(location.pathname)
+  const isAssistantPage = matchPath({ path: '/guild/:guildId/assistant', end: true }, location.pathname) !== null
+  const drawerRouteIsVisible = Boolean(activeGuildId) && !isAssistantPage
+  const visibleEllaDrawer = ellaDrawerOpen && drawerRouteIsVisible
+
+  useEffect(() => {
+    if (!drawerRouteIsVisible) setEllaDrawerOpen(false)
+  }, [drawerRouteIsVisible])
 
   return (
     <PanelAssistantProvider>
@@ -49,7 +60,11 @@ export function AppShell() {
 
           <div className="min-w-0 flex flex-1 flex-col">
             <div className="scrollbar-yue min-h-0 flex-1 overflow-y-auto">
-              <Topbar />
+              <Topbar
+                ellaDrawerOpen={visibleEllaDrawer}
+                onToggleEllaDrawer={() => setEllaDrawerOpen((open) => !open)}
+                ellaTriggerRef={ellaTriggerRef}
+              />
               <main id="main-content" className={cn('px-4 py-5 sm:px-5', 'animate-fadeIn')} key={content_key} tabIndex={-1}>
                 <Suspense fallback={<RouteLoading />}>
                   <Outlet />
@@ -58,6 +73,12 @@ export function AppShell() {
             </div>
           </div>
         </div>
+
+        <PanelAssistantDrawer
+          open={visibleEllaDrawer}
+          onClose={() => setEllaDrawerOpen(false)}
+          triggerRef={ellaTriggerRef}
+        />
 
         <ToastViewport />
         <CommandPalette />

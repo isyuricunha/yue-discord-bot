@@ -5,14 +5,21 @@
  * @returns {JSX.Element} Topbar renderizado
  */
 import { useMemo, useRef } from 'react'
-import { useLocation, useNavigate, useParams, Link } from 'react-router-dom'
-import { LogOut, ExternalLink, ChevronRight, Home, LayoutDashboard, Search, User } from 'lucide-react'
+import { useLocation, useNavigate, useParams, Link, matchPath } from 'react-router-dom'
+import { LogOut, ExternalLink, ChevronRight, Home, LayoutDashboard, Search, Sparkles, User } from 'lucide-react'
 
 import { useAuthStore } from '../../store/auth'
 import { useCommandPaletteStore } from '../../store/command_palette'
 import { cn } from '../../lib/cn'
 import { getDiscordAvatarUrl } from '../../lib/discord'
 import { Button } from '../ui'
+import { getPanelAssistantGuildId } from '../panel-ai/PanelAssistantProvider'
+
+type topbar_props = {
+  ellaDrawerOpen: boolean
+  onToggleEllaDrawer: () => void
+  ellaTriggerRef: React.RefObject<HTMLButtonElement | null>
+}
 
 type breadcrumb_item = {
   label: string
@@ -82,7 +89,7 @@ function useBreadcrumbs(guildId: string | undefined, location: { pathname: strin
   }, [guildId, location.pathname])
 }
 
-export function Topbar() {
+export function Topbar({ ellaDrawerOpen, onToggleEllaDrawer, ellaTriggerRef }: topbar_props) {
   const location = useLocation()
   const navigate = useNavigate()
   const { guildId } = useParams()
@@ -92,6 +99,9 @@ export function Topbar() {
   const searchButtonRef = useRef<HTMLButtonElement>(null)
   const extrasButtonRef = useRef<HTMLButtonElement>(null)
   const logoutButtonRef = useRef<HTMLButtonElement>(null)
+  const activeGuildId = getPanelAssistantGuildId(location.pathname)
+  const isAssistantPage = matchPath({ path: '/guild/:guildId/assistant', end: true }, location.pathname) !== null
+  const canOpenElla = Boolean(activeGuildId) && !isAssistantPage
 
   const handleLogout = () => {
     logout()
@@ -147,6 +157,21 @@ export function Topbar() {
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Action buttons */}
           <div className="flex items-center gap-2">
+            {canOpenElla && (
+              <Button
+                ref={ellaTriggerRef}
+                variant={ellaDrawerOpen ? 'solid' : 'outline'}
+                size="sm"
+                onClick={onToggleEllaDrawer}
+                className="h-9 gap-1.5 px-2.5 sm:px-3"
+                aria-label={ellaDrawerOpen ? 'Fechar Ella' : 'Abrir Ella'}
+                aria-controls="ella-drawer"
+                aria-expanded={ellaDrawerOpen}
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden text-sm sm:inline">Ella</span>
+              </Button>
+            )}
             <Button
               ref={searchButtonRef}
               variant="outline"

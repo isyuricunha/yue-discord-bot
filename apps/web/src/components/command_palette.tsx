@@ -2,6 +2,7 @@ import * as React from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Search, X, CornerDownLeft, LayoutDashboard, Shield, Trophy, FileText, Users, Settings, Sparkles, UserPlus, LifeBuoy, Wand2, Lightbulb, MousePointerClick, Star, TerminalSquare, ClipboardList, BarChart3, Crown, Award, ImageIcon, Coins, Swords, Command } from 'lucide-react'
 import { cn } from '../lib/cn'
+import { getTabbableElements } from '../lib/tabbable'
 import { useAuthStore } from '../store/auth'
 import { useCommandPaletteStore } from '../store/command_palette'
 
@@ -24,6 +25,7 @@ export function CommandPalette() {
   const { guildId } = useParams()
   const { user } = useAuthStore()
   const inputRef = React.useRef<HTMLInputElement>(null)
+  const dialogRef = React.useRef<HTMLDivElement>(null)
 
   const commands: command_item[] = React.useMemo(() => {
     const base: command_item[] = [
@@ -285,6 +287,22 @@ export function CommandPalette() {
         e.preventDefault()
         close()
       }
+      if (e.key === 'Tab' && isOpen && dialogRef.current) {
+        const controls = getTabbableElements(dialogRef.current)
+        if (!controls.length) return
+        const first = controls[0]
+        const last = controls[controls.length - 1]
+        if (!dialogRef.current.contains(document.activeElement)) {
+          e.preventDefault()
+          ;(e.shiftKey ? last : first).focus()
+        } else if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault()
+          last.focus()
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault()
+          first.focus()
+        }
+      }
     }
 
     window.addEventListener('keydown', handleKeyDown)
@@ -322,9 +340,11 @@ export function CommandPalette() {
     <div className="fixed inset-0 z-50 flex items-start justify-center pt-[20vh]">
       <div
         className="absolute inset-0 bg-black/60"
+        aria-hidden="true"
         onClick={close}
       />
       <div
+        ref={dialogRef}
         className={cn(
           'cursor-floating relative w-full max-w-xl animate-scale-in'
         )}
