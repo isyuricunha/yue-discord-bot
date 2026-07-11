@@ -1,13 +1,10 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, test, vi } from 'vitest'
+import { MemoryRouter, useNavigate } from 'react-router-dom'
 
 import PanelAssistantPage from './PanelAssistant'
-
-let mockGuildId: string | undefined = 'guild-1'
-vi.mock('react-router-dom', () => ({
-  useParams: () => ({ guildId: mockGuildId }),
-}))
+import { PanelAssistantProvider } from '../components/panel-ai/PanelAssistantProvider'
 
 vi.mock('../env', () => ({ getApiUrl: () => 'http://localhost:3000' }))
 vi.mock('../store/toast', () => ({ toast_success: vi.fn(), toast_error: vi.fn() }))
@@ -34,9 +31,27 @@ function historyResponse(messages: unknown[] = []) {
   return makeResponse({ success: true, messages })
 }
 
+let navigateTo: ReturnType<typeof useNavigate>
+
+function NavigationController() {
+  navigateTo = useNavigate()
+  return null
+}
+
+function renderAssistant(path = '/guild/guild-1/assistant') {
+  return render(
+    <MemoryRouter initialEntries={[path]}>
+      <PanelAssistantProvider>
+        <NavigationController />
+        <PanelAssistantPage />
+      </PanelAssistantProvider>
+    </MemoryRouter>
+  )
+}
+
 async function renderWithHistory(messages: unknown[] = []) {
   mockFetch.mockResolvedValueOnce(historyResponse(messages))
-  const result = render(<PanelAssistantPage />)
+  const result = renderAssistant()
   await waitFor(() => expect(screen.queryByLabelText('Carregando histórico')).not.toBeInTheDocument())
   return result
 }
@@ -45,7 +60,6 @@ describe('PanelAssistantPage', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockFetch.mockReset()
-    mockGuildId = 'guild-1'
     Object.defineProperty(window, 'matchMedia', {
       configurable: true,
       value: vi.fn().mockReturnValue({ matches: false }),
@@ -56,7 +70,7 @@ describe('PanelAssistantPage', () => {
   test('shows history loading state until the request resolves', async () => {
     const request = deferred<ReturnType<typeof makeResponse>>()
     mockFetch.mockReturnValueOnce(request.promise)
-    render(<PanelAssistantPage />)
+    renderAssistant()
 
     expect(screen.getByLabelText('Carregando histórico')).toBeInTheDocument()
     await act(async () => request.resolve(historyResponse()))
@@ -74,7 +88,7 @@ describe('PanelAssistantPage', () => {
 
   test('shows the generic history error when fetch rejects', async () => {
     mockFetch.mockRejectedValueOnce(new TypeError('Failed to fetch'))
-    render(<PanelAssistantPage />)
+    renderAssistant()
 
     expect(await screen.findByText('Não foi possível carregar o histórico.')).toBeInTheDocument()
     expect(screen.queryByText('Failed to fetch')).not.toBeInTheDocument()
@@ -86,7 +100,7 @@ describe('PanelAssistantPage', () => {
     [[{ role: 'assistant', content: 'ok', _error: true }]],
   ])('rejects malformed API history entries', async (messages) => {
     mockFetch.mockResolvedValueOnce(historyResponse(messages))
-    render(<PanelAssistantPage />)
+    renderAssistant()
     expect(await screen.findByText('Não foi possível carregar o histórico.')).toBeInTheDocument()
     expect(screen.queryByText('unsafe')).not.toBeInTheDocument()
   })
@@ -95,11 +109,9 @@ describe('PanelAssistantPage', () => {
     const oldRequest = deferred<ReturnType<typeof makeResponse>>()
     const newRequest = deferred<ReturnType<typeof makeResponse>>()
     mockFetch.mockReturnValueOnce(oldRequest.promise).mockReturnValueOnce(newRequest.promise)
-    mockGuildId = 'guild-old'
-    const { rerender } = render(<PanelAssistantPage />)
+    renderAssistant('/guild/guild-old/assistant')
 
-    mockGuildId = 'guild-new'
-    rerender(<PanelAssistantPage />)
+    await act(async () => navigateTo('/guild/guild-new/assistant'))
     expect(screen.queryByText('old content')).not.toBeInTheDocument()
 
     await act(async () => newRequest.resolve(historyResponse([{ role: 'user', content: 'new content' }])))
@@ -183,14 +195,13 @@ describe('PanelAssistantPage', () => {
   test('guild change aborts and ignores an in-flight send completion', async () => {
     const oldChat = deferred<ReturnType<typeof makeResponse>>()
     mockFetch.mockResolvedValueOnce(historyResponse())
-    const { rerender } = render(<PanelAssistantPage />)
+    renderAssistant()
     await waitFor(() => expect(screen.queryByLabelText('Carregando histórico')).not.toBeInTheDocument())
     mockFetch.mockReturnValueOnce(oldChat.promise).mockResolvedValueOnce(historyResponse())
     await userEvent.type(screen.getByLabelText('Campo de mensagem'), 'From guild A')
     await userEvent.click(screen.getByLabelText('Enviar mensagem'))
 
-    mockGuildId = 'guild-2'
-    rerender(<PanelAssistantPage />)
+    await act(async () => navigateTo('/guild/guild-2/assistant'))
     await waitFor(() => expect(screen.queryByLabelText('Carregando histórico')).not.toBeInTheDocument())
     await act(async () => oldChat.resolve(makeResponse({ response: 'Guild A response' })))
     await act(async () => Promise.resolve())
@@ -237,13 +248,11 @@ describe('PanelAssistantPage', () => {
       .mockReturnValueOnce(oldChat.promise)
       .mockResolvedValueOnce(historyResponse([{ role: 'user', content: 'Guild B message' }]))
       .mockResolvedValueOnce(makeResponse({ success: true }))
-    mockGuildId = 'guild-a'
-    const { rerender } = render(<PanelAssistantPage />)
+    renderAssistant('/guild/guild-a/assistant')
     await waitFor(() => expect(screen.queryByLabelText('Carregando histórico')).not.toBeInTheDocument())
     await userEvent.type(screen.getByLabelText('Campo de mensagem'), 'Guild A question')
     await userEvent.click(screen.getByLabelText('Enviar mensagem'))
-    mockGuildId = 'guild-b'
-    rerender(<PanelAssistantPage />)
+    await act(async () => navigateTo('/guild/guild-b/assistant'))
     await screen.findByText('Guild B message')
     await userEvent.click(screen.getByRole('button', { name: 'Nova conversa' }))
     await userEvent.click(screen.getByRole('button', { name: 'Encerrar' }))

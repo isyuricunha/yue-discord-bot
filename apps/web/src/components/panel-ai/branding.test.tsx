@@ -1,14 +1,10 @@
 import { describe, expect, test, vi, beforeEach } from 'vitest'
 
 import { render, screen, waitFor } from '@testing-library/react'
+import { MemoryRouter } from 'react-router-dom'
 
 import PanelAssistantPage from '../../pages/PanelAssistant'
-
-vi.mock('react-router-dom', () => ({
-  useParams: () => ({ guildId: 'guild-1' }),
-  useNavigate: () => vi.fn(),
-  Link: ({ children }: { children: React.ReactNode }) => children,
-}))
+import { PanelAssistantProvider } from './PanelAssistantProvider'
 
 vi.mock('../../env', () => ({
   getApiUrl: () => 'http://localhost:3000',
@@ -29,6 +25,16 @@ const FORBIDDEN_VISIBLE_TERMS = [
   'NVIDIA',
 ]
 
+function renderPage() {
+  return render(
+    <MemoryRouter initialEntries={['/guild/guild-1/assistant']}>
+      <PanelAssistantProvider>
+        <PanelAssistantPage />
+      </PanelAssistantProvider>
+    </MemoryRouter>
+  )
+}
+
 describe('PanelAssistantPage branding regression', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -41,7 +47,7 @@ describe('PanelAssistantPage branding regression', () => {
       json: () => Promise.resolve({ success: true, messages: [] }),
     })
 
-    const { container } = render(<PanelAssistantPage />)
+    const { container } = renderPage()
     await waitFor(() => expect(screen.getByText(/Tire d\u00favidas/i)).toBeTruthy())
 
     const bodyText = container.textContent ?? ''
@@ -57,7 +63,7 @@ describe('PanelAssistantPage branding regression', () => {
       json: () => Promise.resolve({ success: true, messages: [] }),
     })
 
-    const { container } = render(<PanelAssistantPage />)
+    const { container } = renderPage()
     await waitFor(() => expect(screen.getByText(/Tire d\u00favidas/i)).toBeTruthy())
 
     const bodyText = container.textContent ?? ''

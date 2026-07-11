@@ -14,6 +14,7 @@ import { Topbar } from './topbar'
 import { CommandPalette } from '../command_palette'
 import { useKeyboardShortcuts } from '../../hooks/use_keyboard'
 import { RouteLoading } from './route_loading'
+import { PanelAssistantProvider } from '../panel-ai/PanelAssistantProvider'
 
 const STORAGE_KEY = 'yuebot-sidebar-collapsed'
 
@@ -39,26 +40,28 @@ export function AppShell() {
   const content_key = useMemo(() => location.pathname, [location.pathname])
 
   return (
-    <div data-theme="yudark" className="h-screen overflow-hidden bg-canvas text-foreground">
-      <Seo />
+    <PanelAssistantProvider>
+      <div data-theme="yudark" className="h-screen overflow-hidden bg-canvas text-foreground">
+        <Seo />
 
-      <div className="relative flex h-full">
-        <Sidebar collapsed={collapsed} onToggle={toggle} />
+        <div className="relative flex h-full">
+          <Sidebar collapsed={collapsed} onToggle={toggle} />
 
-        <div className="min-w-0 flex flex-1 flex-col">
-          <div className="scrollbar-yue min-h-0 flex-1 overflow-y-auto">
-            <Topbar />
-            <main id="main-content" className={cn('px-4 py-5 sm:px-5', 'animate-fadeIn')} key={content_key} tabIndex={-1}>
-              <Suspense fallback={<RouteLoading />}>
-                <Outlet />
-              </Suspense>
-            </main>
+          <div className="min-w-0 flex flex-1 flex-col">
+            <div className="scrollbar-yue min-h-0 flex-1 overflow-y-auto">
+              <Topbar />
+              <main id="main-content" className={cn('px-4 py-5 sm:px-5', 'animate-fadeIn')} key={content_key} tabIndex={-1}>
+                <Suspense fallback={<RouteLoading />}>
+                  <Outlet />
+                </Suspense>
+              </main>
+            </div>
           </div>
         </div>
-      </div>
 
-      <ToastViewport />
-      <CommandPalette />
-    </div>
+        <ToastViewport />
+        <CommandPalette />
+      </div>
+    </PanelAssistantProvider>
   )
 }
