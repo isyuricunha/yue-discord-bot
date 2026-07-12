@@ -140,3 +140,83 @@ test('panel_context: escapes page metadata value to prevent delimiters/newline b
   assert.ok(context.includes('"AutoMod'), 'serialized page title must be quoted')
   assert.equal((context.match(/<\/PANEL_CONTEXT>/g) ?? []).length, 1, 'no extra closing tags')
 })
+
+test('panel_context: renders settings configuration correctly', () => {
+  const context = build_panel_context(make_data({
+    moduleContext: {
+      pageKey: 'settings',
+      status: 'available',
+      configuration: {
+        locale: 'pt-BR',
+        timezone: null
+      }
+    }
+  }))
+
+  assert.ok(context.includes('Saved configuration for current page:'))
+  assert.ok(context.includes('- source: "server-saved configuration"'))
+  assert.ok(context.includes('- page_key: "settings"'))
+  assert.ok(context.includes('- status: "available"'))
+  assert.ok(context.includes('- unsaved_form_state: "not provided"'))
+  assert.ok(context.includes('- dom_state: "not provided"'))
+  assert.ok(context.includes('- locale: "pt-BR"'))
+  assert.ok(context.includes('- timezone: "unknown"'))
+  assert.ok(!context.includes('prefix'), 'Prefix should not be present')
+  assert.ok(!context.includes('auditLogChannelId'), 'ID should not be present')
+})
+
+test('panel_context: renders canonical AutoMod configuration and unknown values', () => {
+  const context = build_panel_context(make_data({
+    moduleContext: {
+      pageKey: 'automod',
+      status: 'available',
+      configuration: {
+        wordFilterEnabled: true,
+        blockedWordCount: 10,
+        capsEnabled: false,
+        capsThreshold: 70,
+        capsMinLength: 10,
+        capsAction: 'warn',
+        linkFilterEnabled: true,
+        blockAllLinks: false,
+        blockedDomainCount: 5,
+        trustedDomainCount: 2,
+        linkAction: null,
+        linkTimeoutDuration: null,
+        noRoleLinkProtectionEnabled: false,
+        noRoleAction: null,
+        noRoleTimeoutDuration: null,
+        linkNotificationsEnabled: true,
+        aiModerationEnabled: true,
+        aiModerationAction: 'delete',
+        aiModerationLevel: 'medio'
+      }
+    }
+  }))
+
+  assert.ok(context.includes('- word_filter.enabled: true'))
+  assert.ok(context.includes('- word_filter.blocked_word_count: 10'))
+  assert.ok(context.includes('- caps_filter.enabled: false'))
+  assert.ok(context.includes('- caps_filter.action: "warn"'))
+  assert.ok(context.includes('- link_filter.enabled: true'))
+  assert.ok(context.includes('- link_filter.timeout_duration: "unknown"'))
+  assert.ok(context.includes('- link_filter.action: "unknown"'))
+  assert.equal((context.match(/<\/PANEL_CONTEXT>/g) ?? []).length, 1, 'No extra closing tags allowed')
+})
+
+test('panel_context: renders explicit section when page context is unsupported', () => {
+  const context = build_panel_context(make_data({ moduleContext: null }))
+  assert.ok(context.includes('Saved configuration for current page:\n- not provided to the assistant for this page'))
+})
+
+test('panel_context: renders explicit section when page configuration is unavailable', () => {
+  const context = build_panel_context(make_data({
+    moduleContext: {
+      pageKey: 'settings',
+      status: 'unavailable'
+    }
+  }))
+  assert.ok(context.includes('Saved configuration for current page:'))
+  assert.ok(context.includes('- status: "unavailable"'))
+  assert.ok(context.includes('- reason: "saved configuration was not available to the assistant"'))
+})

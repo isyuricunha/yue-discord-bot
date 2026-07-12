@@ -218,3 +218,54 @@ test('complete_panel_ai passes page context section to Mistral and Custom Provid
     assert.ok(!m.content.includes('Moderação & logs'))
   }
 })
+
+test('complete_panel_ai passes saved configuration context to Mistral and Custom Provider', () => {
+  const contextWithConfig = build_panel_context({
+    guild: { id: 'g-1', name: 'My Server' },
+    antiRaid: null,
+    moduleContext: {
+      pageKey: 'welcome',
+      status: 'available',
+      configuration: {
+        welcomeChannelConfigured: true,
+        leaveChannelConfigured: false,
+      }
+    }
+  })
+
+  // Test Mistral request contains config fields
+  const mistralRequest = build_mistral_agent_request('agent-1', contextWithConfig, natural_messages)
+  const firstInput = mistralRequest.inputs[0].content
+  assert.ok(firstInput.includes('Saved configuration for current page:'))
+  assert.ok(firstInput.includes('- welcomeChannelConfigured: true'))
+  assert.ok(firstInput.includes('- leaveChannelConfigured: false'))
+  assert.equal(firstInput.includes('welcomeMessageConfigured'), false)
+  assert.equal(firstInput.includes('leaveMessageConfigured'), false)
+
+  // Custom provider messages
+  const customMessages = build_custom_provider_messages('Persona text', contextWithConfig, natural_messages)
+  const contextMessage = customMessages[1].content
+  assert.ok(contextMessage.includes('Saved configuration for current page:'))
+  assert.ok(contextMessage.includes('- welcomeChannelConfigured: true'))
+  assert.ok(contextMessage.includes('- leaveChannelConfigured: false'))
+  assert.equal(mistralRequest.inputs.slice(1).some(({ content }) => content.includes('welcomeChannelConfigured')), false)
+  assert.equal(customMessages.slice(2).some(({ content }) => content.includes('welcomeChannelConfigured')), false)
+})
+
+test('provider parity keeps unavailable module context out of natural conversation messages', () => {
+  const unavailableContext = build_panel_context({
+    guild: { id: 'g-1', name: 'My Server' },
+    antiRaid: null,
+    moduleContext: { pageKey: 'antiraid', status: 'unavailable' },
+  })
+
+  const mistralRequest = build_mistral_agent_request('agent-1', unavailableContext, natural_messages)
+  const customMessages = build_custom_provider_messages('Persona text', unavailableContext, natural_messages)
+
+  assert.match(mistralRequest.inputs[0]?.content ?? '', /^\[APPLICATION_RUNTIME_CONTEXT\]/)
+  assert.ok(mistralRequest.inputs[0]?.content.includes('status: "unavailable"'))
+  assert.equal(mistralRequest.inputs.slice(1).some(({ content }) => content.includes('status: "unavailable"')), false)
+  assert.equal(customMessages[0]?.content, 'Persona text')
+  assert.ok(customMessages[1]?.content.includes('status: "unavailable"'))
+  assert.equal(customMessages.slice(2).some(({ content }) => content.includes('status: "unavailable"')), false)
+})

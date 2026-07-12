@@ -16,6 +16,7 @@ import { load_custom_provider_system_prompt } from '../services/prompt_loader'
 import { can_access_guild } from '../utils/guild_access'
 import { safe_error_details } from '../utils/safe_error'
 import { find_panel_ai_page, type panel_ai_page_key } from '@yuebot/shared'
+import { load_panel_module_context, type anti_raid_module_record, type preload_result } from '../services/panel_module_context'
 
 const MAX_MESSAGE_LENGTH = 4_000
 
@@ -33,6 +34,26 @@ type complete_panel_ai_fn = (input: {
   context: string
   messages: panel_ai_message[]
 }) => Promise<string>
+
+type base_guild_config = {
+  welcomeChannelId?: unknown
+  wordFilterEnabled?: unknown
+  aiModerationEnabled?: unknown
+}
+
+function get_boolean(value: unknown): boolean | null {
+  return typeof value === 'boolean' ? value : null
+}
+
+function get_anti_raid_context(preload: preload_result<anti_raid_module_record>): panel_context_data['antiRaid'] {
+  if (preload.state === 'failed' || preload.value === null) return null
+
+  return {
+    enabled: get_boolean(preload.value.enabled),
+    raidActive: get_boolean(preload.value.raidActive),
+    locked: get_boolean(preload.value.locked),
+  }
+}
 
 export type panel_ai_route_deps = {
   db: panel_ai_db
@@ -100,15 +121,27 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
       if (!guildId || !message) return reply.code(400).send({ error: 'Invalid message' })
       if (!(await assert_guild_access(deps.isGuildAdmin, request, reply, guildId))) return
 
-      const [settings, guild, antiRaid] = await Promise.all([
+      const pageKey = pageContext?.pageKey
+
+      const [settings, guild] = await Promise.all([
         deps.db.botSettings.findUnique({ where: { id: 'global' } }),
         deps.db.guild.findUnique({
           where: { id: guildId },
-          select: { id: true, name: true, config: { select: { welcomeChannelId: true, wordFilterEnabled: true, aiModerationEnabled: true } } },
+          select: {
+            id: true,
+            name: true,
+            config: { select: { welcomeChannelId: true, wordFilterEnabled: true, aiModerationEnabled: true } },
+          },
         }),
-        deps.db.guildAntiRaidConfig.findUnique({ where: { guildId }, select: { enabled: true, raidActive: true, locked: true } }),
       ])
       if (!guild) return reply.code(404).send({ error: 'Guild not found' })
+
+      const moduleContextResult = await load_panel_module_context({
+        pageKey,
+        guildId,
+        db: deps.db,
+        logger: request.log,
+      })
 
       const is_custom = settings?.panelAiProvider === 'custom'
       const version = settings?.panelAiConversationVersion ?? 1
@@ -116,9 +149,20 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
       const history = deps.store.get(key, version)
 
       const context_data: panel_context_data = {
-        guild: { id: guild.id, name: guild.name, config: guild.config ?? null },
-        antiRaid: antiRaid ?? null,
+        guild: {
+          id: guild.id,
+          name: guild.name,
+          config: guild.config
+            ? {
+                welcomeChannelId: guild.config.welcomeChannelId,
+                wordFilterEnabled: get_boolean((guild.config as base_guild_config).wordFilterEnabled),
+                aiModerationEnabled: get_boolean((guild.config as base_guild_config).aiModerationEnabled),
+              }
+            : null,
+        },
+        antiRaid: get_anti_raid_context(moduleContextResult.antiRaid),
         page: pageContext ? find_panel_ai_page(pageContext.pageKey) : null,
+        moduleContext: moduleContextResult.moduleContext,
       }
       const context = build_panel_context(context_data)
 
