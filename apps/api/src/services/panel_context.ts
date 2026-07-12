@@ -1,3 +1,5 @@
+import { panel_ai_page_definition } from '@yuebot/shared'
+
 export type panel_context_guild = {
   id: string
   name: string
@@ -17,6 +19,7 @@ export type panel_context_anti_raid = {
 export type panel_context_data = {
   guild: panel_context_guild
   antiRaid: panel_context_anti_raid
+  page?: panel_ai_page_definition | null
 }
 
 const CONTEXT_HEADER = '<PANEL_CONTEXT>'
@@ -76,6 +79,18 @@ export function build_panel_context(data: panel_context_data): string {
     lines.push('- anti-raid: not provided to the assistant')
   }
 
+  lines.push('Current panel page:')
+  if (data.page) {
+    lines.push(`- key: ${escape_context_value(data.page.key)}`)
+    lines.push(`- title: ${escape_context_value(data.page.title)}`)
+    lines.push(`- route_template: ${escape_context_value(data.page.routePattern)}`)
+    lines.push(`- section: ${escape_context_value(data.page.section)}`)
+    lines.push(`- purpose: ${escape_context_value(data.page.purpose)}`)
+    lines.push(`- context_scope: "Allowlisted read-only navigation context only."`)
+  } else {
+    lines.push('- not provided to the assistant')
+  }
+
   lines.push(UNAVAILABLE_SECTION)
   lines.push(CONTEXT_FOOTER)
   return lines.join('\n')
@@ -93,4 +108,11 @@ export const PANEL_CONTRACT_RULES = [
   'Never invent captcha, quarantine, whitelist, or other anti-raid functions.',
   'When information is not available, reply that you cannot confirm and point the user to the relevant section of the panel.',
   'Never fabricate navigation paths that may not exist.',
+  'Use the current page metadata to contextualize answers when relevant.',
+  'Never claim to see form values, unsaved changes, disabled controls, or page content that was not explicitly provided.',
+  'Never infer that a module is enabled merely because the administrator is viewing its page.',
+  'Never claim that you can edit or save the page.',
+  'Do not invent controls, fields, commands, or navigation routes.',
+  'When page context is unavailable, say that you cannot determine the current panel page.',
+  'Treat page identity as read-only navigation context, not authorization.',
 ].join('\n')

@@ -15,6 +15,7 @@ import { ConversationStore } from '../services/conversation_store'
 import { load_custom_provider_system_prompt } from '../services/prompt_loader'
 import { can_access_guild } from '../utils/guild_access'
 import { safe_error_details } from '../utils/safe_error'
+import { find_panel_ai_page, type panel_ai_page_key } from '@yuebot/shared'
 
 const MAX_MESSAGE_LENGTH = 4_000
 
@@ -51,6 +52,16 @@ function parse_message(body: unknown) {
   return trimmed && trimmed.length <= MAX_MESSAGE_LENGTH ? trimmed : null
 }
 
+function parse_page_context(body: unknown): { pageKey: panel_ai_page_key } | null {
+  const pageContext = (body as { pageContext?: unknown } | null)?.pageContext
+  if (!pageContext || typeof pageContext !== 'object') return null
+  const pageKey = (pageContext as { pageKey?: unknown }).pageKey
+  if (typeof pageKey !== 'string') return null
+  const definition = find_panel_ai_page(pageKey)
+  if (!definition) return null
+  return { pageKey: definition.key }
+}
+
 async function assert_guild_access(
   isGuildAdmin: admin_check,
   request: FastifyRequest,
@@ -85,6 +96,7 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
       const { guildId } = request.params as { guildId: string }
       const user = request.user
       const message = parse_message(request.body)
+      const pageContext = parse_page_context(request.body)
       if (!guildId || !message) return reply.code(400).send({ error: 'Invalid message' })
       if (!(await assert_guild_access(deps.isGuildAdmin, request, reply, guildId))) return
 
@@ -106,6 +118,7 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
       const context_data: panel_context_data = {
         guild: { id: guild.id, name: guild.name, config: guild.config ?? null },
         antiRaid: antiRaid ?? null,
+        page: pageContext ? find_panel_ai_page(pageContext.pageKey) : null,
       }
       const context = build_panel_context(context_data)
 

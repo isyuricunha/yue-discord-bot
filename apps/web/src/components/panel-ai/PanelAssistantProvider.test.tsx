@@ -54,6 +54,10 @@ function Consumer({ name }: { name: string }) {
         onChange={(event) => assistant.setDraft(event.target.value)}
       />
       <button type="button" onClick={() => assistant.send()}>Send {name}</button>
+      <button type="button" onClick={() => {
+        const errMessage = assistant.messages.find((m) => m.status === 'error')
+        if (errMessage) assistant.retry(errMessage.turnId)
+      }}>Retry {name}</button>
       <button type="button" onClick={() => void assistant.clearConversation()}>Clear {name}</button>
     </section>
   )
@@ -410,5 +414,173 @@ describe('PanelAssistantProvider', () => {
     await act(async () => clearRequest.resolve(makeResponse({ success: true })))
     expect(toast_success).not.toHaveBeenCalled()
     expect(toast_error).not.toHaveBeenCalled()
+  })
+
+  describe('Page awareness request lifecycle and same-guild navigation', () => {
+    test('sends correct pageContext in request bodies', async () => {
+      mockFetch.mockResolvedValue(historyResponse())
+
+      const testCases = [
+        { path: '/guild/123/automod', expectedPageKey: 'automod' },
+        { path: '/guild/123/music', expectedPageKey: 'music' },
+        { path: '/guild/123/assistant', expectedPageKey: 'assistant' },
+        { path: '/guild/123', expectedPageKey: 'guild-root' },
+        { path: '/guild/123/nonexistent-route', expectedPageKey: undefined },
+      ]
+
+      for (const tc of testCases) {
+        mockFetch.mockClear()
+        mockFetch.mockResolvedValueOnce(historyResponse()).mockResolvedValueOnce(makeResponse({ response: 'Reply' }))
+
+        const { unmount } = renderProvider(tc.path)
+        try {
+          await waitFor(() => expect(getConsumer('A').getByTestId('operation')).toHaveTextContent('idle'))
+
+          await userEvent.type(getConsumer('A').getByLabelText('Draft A'), 'Test message')
+          await userEvent.click(getConsumer('A').getByRole('button', { name: 'Send A' }))
+
+          await waitFor(() => expect(getConsumer('A').getByTestId('operation')).toHaveTextContent('idle'))
+
+          const lastCall = mockFetch.mock.calls.find(call => call[0].includes('/panel-ai/chat'))
+          expect(lastCall).toBeDefined()
+          if (!lastCall || !lastCall[1]) throw new Error('lastCall payload missing')
+          const body = JSON.parse(lastCall[1].body)
+          expect(body.message).toBe('Test message')
+
+          if (tc.expectedPageKey) {
+            expect(body.pageContext).toEqual({ pageKey: tc.expectedPageKey })
+          } else {
+            expect(body.pageContext).toBeUndefined()
+          }
+
+          // Verify no pathname, query, hash, guild ID, dynamic ID, form value, or DOM data is included
+          const keys = Object.keys(body)
+          expect(keys).toContain('message')
+          if (tc.expectedPageKey) {
+            expect(keys).toContain('pageContext')
+            expect(Object.keys(body.pageContext)).toEqual(['pageKey'])
+            expect(keys.length).toBe(2)
+          } else {
+            expect(keys.length).toBe(1)
+          }
+        } finally {
+          unmount()
+        }
+      }
+    })
+
+    test('retains context and prevents abort on same-guild navigation', async () => {
+      const chatRequest = deferred<ReturnType<typeof makeResponse>>()
+      mockFetch
+        .mockResolvedValueOnce(historyResponse()) // initial automod history
+        .mockReturnValueOnce(chatRequest.promise) // automod chat request
+
+      renderProvider('/guild/123/automod')
+      await waitFor(() => expect(getConsumer('A').getByTestId('operation')).toHaveTextContent('idle'))
+
+      await userEvent.type(getConsumer('A').getByLabelText('Draft A'), 'Question 1')
+      await userEvent.click(getConsumer('A').getByRole('button', { name: 'Send A' }))
+
+      // Navigate to music before it resolves
+      await act(async () => navigateTo('/guild/123/music'))
+
+      const chatCall = mockFetch.mock.calls.find(c => c[0].includes('/panel-ai/chat'))
+      expect(chatCall).toBeDefined()
+      if (!chatCall || !chatCall[1]) throw new Error('chatCall payload missing')
+      const body = JSON.parse(chatCall[1].body)
+      expect(body.pageContext.pageKey).toBe('automod')
+
+      const signal = chatCall[1].signal as AbortSignal
+      expect(signal.aborted).toBe(false)
+
+      // Confirm no additional history GET occurred (mockFetch was only called twice)
+      expect(mockFetch).toHaveBeenCalledTimes(2)
+
+      // Resolve first request
+      await act(async () => chatRequest.resolve(makeResponse({ response: 'Response 1' })))
+      await waitFor(() => expect(getConsumer('A').getByTestId('operation')).toHaveTextContent('idle'))
+      expect(getConsumer('A').getByTestId('messages')).toHaveTextContent('Response 1')
+
+      // Send another message on music page
+      mockFetch.mockResolvedValueOnce(makeResponse({ response: 'Response 2' }))
+      await userEvent.type(getConsumer('A').getByLabelText('Draft A'), 'Question 2')
+      await userEvent.click(getConsumer('A').getByRole('button', { name: 'Send A' }))
+
+      await waitFor(() => expect(getConsumer('A').getByTestId('operation')).toHaveTextContent('idle'))
+
+      const secondChatCall = mockFetch.mock.calls[2]
+      expect(secondChatCall).toBeDefined()
+      if (!secondChatCall || !secondChatCall[1]) throw new Error('secondChatCall payload missing')
+      const secondBody = JSON.parse(secondChatCall[1].body)
+      expect(secondBody.pageContext.pageKey).toBe('music')
+    })
+
+    test('retry captures current page at retry time and avoids message duplication', async () => {
+      mockFetch
+        .mockResolvedValueOnce(historyResponse()) // initial setup history
+        .mockResolvedValueOnce(makeResponse({ error: 'Failed' }, false)) // failed send on setup
+
+      renderProvider('/guild/123/setup')
+      await waitFor(() => expect(getConsumer('A').getByTestId('operation')).toHaveTextContent('idle'))
+
+      await userEvent.type(getConsumer('A').getByLabelText('Draft A'), 'Retry message')
+      await userEvent.click(getConsumer('A').getByRole('button', { name: 'Send A' }))
+
+      // Wait for error state
+      await waitFor(() => expect(getConsumer('A').getByTestId('messages')).toContainHTML('Failed:error'))
+
+      // Navigate to welcome page
+      await act(async () => navigateTo('/guild/123/welcome'))
+
+      // Trigger retry
+      mockFetch.mockResolvedValueOnce(makeResponse({ response: 'Retry Success' }))
+      await userEvent.click(getConsumer('A').getByRole('button', { name: 'Retry A' }))
+
+      await waitFor(() => expect(getConsumer('A').getByTestId('operation')).toHaveTextContent('idle'))
+      expect(getConsumer('A').getByTestId('messages')).toHaveTextContent('Retry Success')
+
+      // Verify no message duplication
+      const text = getConsumer('A').getByTestId('messages').textContent || ''
+      const occurrences = (text.match(/Retry message/g) || []).length
+      expect(occurrences).toBe(1)
+
+      // Verify captured welcome key in second chat call
+      const retryChatCall = mockFetch.mock.calls[2]
+      expect(retryChatCall).toBeDefined()
+      if (!retryChatCall || !retryChatCall[1]) throw new Error('retryChatCall payload missing')
+      const retryBody = JSON.parse(retryChatCall[1].body)
+      expect(retryBody.pageContext.pageKey).toBe('welcome')
+    })
+
+    test('guild change aborts old request, loads new history, and isolates pages', async () => {
+      const chatRequestA = deferred<ReturnType<typeof makeResponse>>()
+      mockFetch
+        .mockResolvedValueOnce(historyResponse()) // Guild A history
+        .mockReturnValueOnce(chatRequestA.promise) // Guild A chat request
+        .mockResolvedValueOnce(historyResponse([{ role: 'user', content: 'Guild B message' }])) // Guild B history
+
+      renderProvider('/guild/guild-A/automod')
+      await waitFor(() => expect(getConsumer('A').getByTestId('operation')).toHaveTextContent('idle'))
+
+      await userEvent.type(getConsumer('A').getByLabelText('Draft A'), 'Message Guild A')
+      await userEvent.click(getConsumer('A').getByRole('button', { name: 'Send A' }))
+
+      const callGuildA = mockFetch.mock.calls[1]
+      expect(callGuildA).toBeDefined()
+      if (!callGuildA || !callGuildA[1]) throw new Error('callGuildA payload missing')
+      const signalA = callGuildA[1].signal as AbortSignal
+      expect(signalA.aborted).toBe(false)
+
+      // Navigate to Guild B
+      await act(async () => navigateTo('/guild/guild-B/music'))
+      expect(signalA.aborted).toBe(true)
+
+      // Wait for Guild B history load
+      await waitFor(() => expect(getConsumer('A').getByTestId('messages')).toHaveTextContent('Guild B message'))
+
+      // Resolve old request A and ensure it does not update Guild B
+      await act(async () => chatRequestA.resolve(makeResponse({ response: 'Late Guild A response' })))
+      expect(getConsumer('A').getByTestId('messages')).not.toHaveTextContent('Late Guild A response')
+    })
   })
 })

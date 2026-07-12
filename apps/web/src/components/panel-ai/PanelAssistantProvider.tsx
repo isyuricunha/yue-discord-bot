@@ -4,6 +4,8 @@ import { matchPath, useLocation } from 'react-router-dom'
 import { getApiUrl } from '../../env'
 import { usePanelAssistant } from '../../hooks/usePanelAssistant'
 import { toast_error, toast_success } from '../../store/toast'
+import { resolvePanelAiPageKey } from './resolvePageKey'
+import { panel_ai_page_key } from '@yuebot/shared'
 
 const API_URL = getApiUrl()
 const GENERIC_HISTORY_ERROR = 'Não foi possível carregar o histórico.'
@@ -85,6 +87,7 @@ function buildHistoryMessages(entries: history_entry[], guildId: string): panel_
 export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
   const { pathname } = useLocation()
   const activeGuildId = getPanelAssistantGuildId(pathname)
+  const activePageKey = resolvePanelAiPageKey(pathname)
   const assistant = usePanelAssistant(activeGuildId)
   const historyControllerRef = React.useRef<AbortController | null>(null)
   const chatControllerRef = React.useRef<AbortController | null>(null)
@@ -199,6 +202,7 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
     turnId: string,
     message: string,
     requestOperation: 'sending' | 'retrying',
+    pageKey: panel_ai_page_key | null,
   ) => {
     if (!activeGuildId || operationRef.current !== requestOperation) return
 
@@ -206,7 +210,8 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
     const controller = new AbortController()
     chatControllerRef.current = controller
     const requestId = ++chatRequestIdRef.current
-    const result = await assistant.send(message, controller.signal)
+    const pageContext = pageKey ? { pageKey } : undefined
+    const result = await assistant.send(message, controller.signal, pageContext)
 
     if (
       !mountedRef.current ||
@@ -249,8 +254,8 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
     ])
     setDraft('')
     setScrollVersion((version) => version + 1)
-    void finishTurn(turnId, message, 'sending')
-  }, [activeGuildId, draft, finishTurn, historyError, setOperation])
+    void finishTurn(turnId, message, 'sending', activePageKey)
+  }, [activeGuildId, draft, finishTurn, historyError, setOperation, activePageKey])
 
   const retry = React.useCallback((turnId: string) => {
     if (!activeGuildId || operationRef.current !== 'idle') return
@@ -263,8 +268,8 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
       item.id === errorMessage.id ? { ...item, content: '', status: 'thinking' } : item
     ))
     setScrollVersion((version) => version + 1)
-    void finishTurn(turnId, userMessage.content, 'retrying')
-  }, [activeGuildId, finishTurn, messages, setOperation])
+    void finishTurn(turnId, userMessage.content, 'retrying', activePageKey)
+  }, [activeGuildId, finishTurn, messages, setOperation, activePageKey])
 
   const clearConversation = React.useCallback(async () => {
     if (!activeGuildId || operationRef.current !== 'idle') return false

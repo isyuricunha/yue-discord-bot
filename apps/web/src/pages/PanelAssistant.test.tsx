@@ -216,7 +216,7 @@ describe('PanelAssistantPage', () => {
 
     await waitFor(() => expect(mockFetch).toHaveBeenLastCalledWith(
       expect.stringContaining('/panel-ai/chat'),
-      expect.objectContaining({ body: JSON.stringify({ message: 'Como funciona o Anti-Raide?' }) })
+      expect.objectContaining({ body: JSON.stringify({ message: 'Como funciona o Anti-Raide?', pageContext: { pageKey: 'assistant' } }) })
     ))
     expect(screen.getAllByText('Como funciona o Anti-Raide?')).toHaveLength(1)
   })

@@ -174,6 +174,8 @@ test('ignores non-text chunks within a mixed content array', () => {
   assert.equal(extract_mistral_text(outputs), 'visible answer')
 })
 
+import { build_panel_context } from './panel_context'
+
 test('accepts chunks with text when type is absent (SDK optional type)', () => {
   const outputs = [
     {
@@ -184,4 +186,35 @@ test('accepts chunks with text when type is absent (SDK optional type)', () => {
     },
   ]
   assert.equal(extract_mistral_text(outputs), 'visible answer')
+})
+
+test('complete_panel_ai passes page context section to Mistral and Custom Provider', () => {
+  const contextWithPage = build_panel_context({
+    guild: { id: 'g-1', name: 'My Server' },
+    antiRaid: null,
+    page: {
+      key: 'automod',
+      routePattern: '/guild/:guildId/automod',
+      title: 'AutoMod',
+      section: 'Moderação & logs',
+      purpose: 'Config automod',
+    } as any
+  })
+
+  // Test Mistral request format
+  const mistralRequest = build_mistral_agent_request('agent-1', contextWithPage, natural_messages)
+  const firstInput = mistralRequest.inputs[0].content
+  assert.ok(firstInput.includes('- section: "Moderação & logs"'))
+
+  // Custom provider messages
+  const customMessages = build_custom_provider_messages('Persona text', contextWithPage, natural_messages)
+  const contextMessage = customMessages[1].content
+  assert.ok(contextMessage.includes('- section: "Moderação & logs"'))
+
+  // Page metadata never becomes a natural user/assistant history message
+  // Verify natural_messages has only roles 'user' and 'assistant' and no 'system' metadata
+  for (const m of natural_messages) {
+    assert.ok(m.role === 'user' || m.role === 'assistant')
+    assert.ok(!m.content.includes('Moderação & logs'))
+  }
 })

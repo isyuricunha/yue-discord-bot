@@ -1,5 +1,6 @@
 import { useCallback, useMemo } from 'react'
 
+import { panel_ai_page_key } from '@yuebot/shared'
 import { getApiUrl } from '../env'
 
 const API_URL = getApiUrl()
@@ -9,12 +10,12 @@ export type chat_send_result =
   | { ok: false; error: string }
 
 type panel_assistant_client = {
-  send: (message: string, signal: AbortSignal) => Promise<chat_send_result>
+  send: (message: string, signal: AbortSignal, pageContext?: { pageKey: panel_ai_page_key }) => Promise<chat_send_result>
 }
 
 export function usePanelAssistant(guildId: string | undefined): panel_assistant_client {
   const send = useCallback(
-    async (message: string, signal: AbortSignal): Promise<chat_send_result> => {
+    async (message: string, signal: AbortSignal, pageContext?: { pageKey: panel_ai_page_key }): Promise<chat_send_result> => {
       if (!guildId) return { ok: false, error: 'Guild unavailable' }
 
       try {
@@ -22,9 +23,10 @@ export function usePanelAssistant(guildId: string | undefined): panel_assistant_
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           signal,
-          body: JSON.stringify({ message }),
+          body: JSON.stringify(pageContext ? { message, pageContext } : { message }),
           credentials: 'include',
         })
+
 
         if (!response.ok) {
           const body = await response.json().catch(() => null)
