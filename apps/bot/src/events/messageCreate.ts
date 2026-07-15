@@ -20,6 +20,7 @@ import { MistralApiError } from "../services/mistral.service";
 import { COLORS, EMOJIS } from "@yuebot/shared";
 
 import { get_llm_client } from "../services/llm_client_singleton";
+import type { llm_capability } from "../services/llm_client";
 import { get_conversation_backend } from "../services/conversation_backend_factory";
 import {
 	build_history_for_prompt,
@@ -342,8 +343,16 @@ ${web_context}
 Question: ${user_prompt}`
 									: user_prompt;
 
+						const capability: llm_capability = wants_image_generation
+							? "image_generation"
+							: web_query
+								? "web_search"
+								: "text";
+
 						const completion = await llm_client.create_completion({
-							user_prompt: final_user_prompt,
+							user_prompt: user_prompt,
+							mistral_prompt: final_user_prompt,
+							capability,
 							prefer_image_generation: prefer_mistral_image_generation,
 							history,
 						});

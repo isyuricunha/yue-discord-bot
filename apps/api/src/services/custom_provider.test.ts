@@ -1,14 +1,15 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-
+import {
+  normalize_custom_provider_models,
+  test_custom_provider_model,
+} from './custom_provider'
 import {
   custom_provider_endpoint,
   custom_reasoning_parameters,
-  normalize_custom_provider_models,
   normalize_custom_provider_reasoning_mode,
-  test_custom_provider_model,
   type custom_provider_reasoning_mode,
-} from './custom_provider'
+} from '@yuebot/shared'
 
 test('preserves opaque provider model IDs and sorts by their first segment', () => {
   const models = normalize_custom_provider_models([

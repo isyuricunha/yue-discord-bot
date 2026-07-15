@@ -49,6 +49,7 @@ export const askCommand: Command = {
 			}
 			const completion = await client.create_completion({
 				user_prompt: question,
+				capability: "text",
 			});
 
 			const files = (completion.attachments ?? []).map(

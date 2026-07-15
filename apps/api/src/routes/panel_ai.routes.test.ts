@@ -1209,7 +1209,7 @@ test('POST chat route fallback integration: Mistral 429 with high reasoning mode
       guildAntiRaidConfig: { findUnique: async () => null },
     }),
     completePanelAi: async (input: any, deps?: any) => {
-      const { complete_panel_ai, build_custom_provider_payload } = await import('../services/panel_ai')
+      const { complete_panel_ai } = await import('../services/panel_ai')
       const fakeResponse = new Response('{}', { status: 429 })
       const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
 
@@ -1224,9 +1224,7 @@ test('POST chat route fallback integration: Mistral 429 with high reasoning mode
         completeWithCustomProvider: async (customInput) => {
           customCalls += 1
           capturedCustomInput = customInput
-          const payload = build_custom_provider_payload(customInput) as any
-          assert.equal(payload.reasoning_effort, 'high')
-          assert.equal(Object.hasOwn(payload, 'reasoning'), false)
+          assert.equal(customInput.reasoningMode, 'high')
           return 'Safe assistant answer'
         },
       })
@@ -1298,7 +1296,7 @@ test('POST chat route fallback integration: Mistral 429 with omit reasoning mode
       guildAntiRaidConfig: { findUnique: async () => null },
     }),
     completePanelAi: async (input: any, deps?: any) => {
-      const { complete_panel_ai, build_custom_provider_payload } = await import('../services/panel_ai')
+      const { complete_panel_ai } = await import('../services/panel_ai')
       const fakeResponse = new Response('{}', { status: 429 })
       const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
 
@@ -1311,10 +1309,7 @@ test('POST chat route fallback integration: Mistral 429 with omit reasoning mode
         },
         completeWithCustomProvider: async (customInput) => {
           customCalls += 1
-          const payload = build_custom_provider_payload(customInput)
-          assert.equal(Object.hasOwn(payload, 'reasoning_effort'), false)
-          assert.equal(Object.hasOwn(payload, 'reasoning'), false)
-          assert.equal(Object.hasOwn(payload, 'thinking'), false)
+          assert.equal(customInput.reasoningMode, 'omit')
           return 'Omit fallback reply'
         },
       })

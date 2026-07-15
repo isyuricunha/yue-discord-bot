@@ -4,9 +4,9 @@ import test from 'node:test'
 import { MistralError } from '@mistralai/mistralai/models/errors'
 
 import { PANEL_CONTRACT_RULES } from './panel_context'
+import { build_custom_provider_payload } from '@yuebot/shared'
 import {
   build_custom_provider_messages,
-  build_custom_provider_payload,
   build_mistral_agent_request,
   classify_mistral_failure,
   complete_panel_ai,
@@ -194,12 +194,11 @@ test('accepts chunks with text when type is absent (SDK optional type)', () => {
   assert.equal(extract_mistral_text(outputs), 'visible answer')
 })
 
-test('build_custom_provider_payload produces payload with omit mode', () => {
+test('build_custom_provider_messages produces payload with omit mode', () => {
+  const custom_messages = build_custom_provider_messages('Private Persona', 'Guild Context', natural_messages)
   const payload = build_custom_provider_payload({
     model: 'custom/model-id',
-    persona: 'Private Persona',
-    context: 'Guild Context',
-    messages: natural_messages,
+    messages: custom_messages,
     reasoningMode: 'omit',
   })
 
@@ -207,21 +206,27 @@ test('build_custom_provider_payload produces payload with omit mode', () => {
   assert.equal(payload.temperature, 0.4)
   assert.equal(Object.hasOwn(payload, 'reasoning_effort'), false)
   assert.equal(Object.hasOwn(payload, 'reasoning'), false)
+  assert.equal(Object.hasOwn(payload, 'thinking'), false)
   assert.equal(payload.messages[0]?.content, 'Private Persona')
+  assert.ok(payload.messages[1]?.content.includes('Guild Context'))
+  assert.deepEqual(payload.messages.slice(2), natural_messages)
 })
 
-test('build_custom_provider_payload produces payload with high mode', () => {
+test('build_custom_provider_messages produces payload with high mode', () => {
+  const custom_messages = build_custom_provider_messages('Private Persona', 'Guild Context', natural_messages)
   const payload = build_custom_provider_payload({
     model: 'custom/model-id',
-    persona: 'Private Persona',
-    context: 'Guild Context',
-    messages: natural_messages,
+    messages: custom_messages,
     reasoningMode: 'high',
   })
 
   assert.equal(payload.model, 'custom/model-id')
   assert.equal((payload as Record<string, unknown>).reasoning_effort, 'high')
   assert.equal(Object.hasOwn(payload, 'reasoning'), false)
+  assert.equal(Object.hasOwn(payload, 'thinking'), false)
+  assert.equal(payload.messages[0]?.content, 'Private Persona')
+  assert.ok(payload.messages[1]?.content.includes('Guild Context'))
+  assert.deepEqual(payload.messages.slice(2), natural_messages)
 })
 
 function create_mistral_error(status: number): MistralError {
@@ -546,8 +551,13 @@ test('provider parity keeps unavailable module context out of natural conversati
     },
     {
       completeWithCustomProvider: async (input) => {
-        const payload = build_custom_provider_payload({ ...input, reasoningMode: 'omit' })
-        capturedCustomMessages = payload.messages
+        const custom_messages = build_custom_provider_messages(input.persona, input.context, input.messages)
+        const payload = build_custom_provider_payload({
+          model: input.model,
+          messages: custom_messages,
+          reasoningMode: 'omit'
+        })
+        capturedCustomMessages = payload.messages as any[]
         return 'Custom OK'
       },
     },
