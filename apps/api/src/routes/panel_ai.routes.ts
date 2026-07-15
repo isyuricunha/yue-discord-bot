@@ -9,7 +9,15 @@ import { prisma } from '@yuebot/database'
 
 import { CONFIG } from '../config'
 import { is_guild_admin } from '../internal/bot_internal_api'
-import { complete_panel_ai, type panel_ai_message } from '../services/panel_ai'
+import {
+  complete_panel_ai,
+  normalize_panel_ai_runtime,
+  type panel_ai_completion_input,
+  type panel_ai_dependencies,
+  type panel_ai_message,
+  type panel_ai_runtime_event,
+} from '../services/panel_ai'
+import { custom_provider_is_configured } from '../services/custom_provider'
 import { build_panel_context, type panel_context_data } from '../services/panel_context'
 import { ConversationStore } from '../services/conversation_store'
 import { load_custom_provider_system_prompt } from '../services/prompt_loader'
@@ -28,12 +36,10 @@ type panel_ai_db = {
 
 type admin_check = (guildId: string, userId: string, log: FastifyBaseLogger) => Promise<{ isAdmin: boolean }>
 
-type complete_panel_ai_fn = (input: {
-  runtime: { provider: 'mistral' | 'custom'; customModel: string | null }
-  persona: string
-  context: string
-  messages: panel_ai_message[]
-}) => Promise<string>
+type complete_panel_ai_fn = (
+  input: panel_ai_completion_input,
+  dependencies?: panel_ai_dependencies,
+) => Promise<string>
 
 type base_guild_config = {
   welcomeChannelId?: unknown
@@ -60,6 +66,10 @@ export type panel_ai_route_deps = {
   store: ConversationStore
   isGuildAdmin: admin_check
   completePanelAi: complete_panel_ai_fn
+  mistralAgentId?: string
+  mistralApiKeyConfigured?: boolean
+  customProviderIsConfigured: () => boolean
+  loadCustomProviderPersona: (promptPath?: string) => string
 }
 
 function conversation_key(guildId: string, userId: string) {
@@ -110,6 +120,10 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
     store: overrides.store ?? new ConversationStore(),
     isGuildAdmin: overrides.isGuildAdmin ?? is_guild_admin,
     completePanelAi: overrides.completePanelAi ?? complete_panel_ai,
+    mistralAgentId: overrides.mistralAgentId,
+    mistralApiKeyConfigured: overrides.mistralApiKeyConfigured,
+    customProviderIsConfigured: overrides.customProviderIsConfigured ?? custom_provider_is_configured,
+    loadCustomProviderPersona: overrides.loadCustomProviderPersona ?? ((promptPath?: string) => load_custom_provider_system_prompt(promptPath ?? '')),
   }
 
   return async function panelAiRoutes(fastify: FastifyInstance) {
@@ -143,7 +157,12 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
         logger: request.log,
       })
 
-      const is_custom = settings?.panelAiProvider === 'custom'
+      const normalized_runtime = normalize_panel_ai_runtime({
+        provider: settings?.panelAiProvider,
+        customModel: settings?.customProviderModel,
+        customReasoningMode: settings?.customProviderReasoningMode,
+        fallbackEnabled: settings?.panelAiFallbackEnabled,
+      })
       const version = settings?.panelAiConversationVersion ?? 1
       const key = conversation_key(guildId, user.userId)
       const history = deps.store.get(key, version)
@@ -166,9 +185,13 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
       }
       const context = build_panel_context(context_data)
 
-      // Load the persona from file only when the Custom Provider is active.
-      // The Mistral Agent has its own instructions and does not use this persona.
-      const persona = is_custom ? load_custom_provider_system_prompt(CONFIG.panelAi.promptPath) : ''
+      const can_use_custom =
+        normalized_runtime.provider === 'custom' ||
+        (normalized_runtime.fallbackEnabled &&
+          deps.customProviderIsConfigured() &&
+          Boolean(normalized_runtime.customModel))
+
+      const persona = can_use_custom ? deps.loadCustomProviderPersona(CONFIG.panelAi.promptPath) : ''
 
       const messages_for_provider: panel_ai_message[] = [
         ...history,
@@ -176,12 +199,40 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
       ]
 
       try {
-        const response = await deps.completePanelAi({
-          runtime: { provider: is_custom ? 'custom' : 'mistral', customModel: settings?.customProviderModel ?? null },
-          persona,
-          context,
-          messages: messages_for_provider,
-        })
+        const response = await deps.completePanelAi(
+          {
+            runtime: normalized_runtime,
+            persona,
+            context,
+            messages: messages_for_provider,
+          },
+          {
+            mistralAgentId: deps.mistralAgentId,
+            mistralApiKeyConfigured: deps.mistralApiKeyConfigured,
+            customProviderConfigured: deps.customProviderIsConfigured(),
+            logEvent: (event: panel_ai_runtime_event) => {
+              try {
+                request.log.info(
+                  {
+                    runtimeEvent: {
+                      type: event.type,
+                      primaryProvider: event.primaryProvider,
+                      fallbackProvider: event.fallbackProvider,
+                      category: event.category,
+                      statusCode: event.statusCode,
+                      modelId: event.modelId,
+                      guildId,
+                      success: event.success,
+                    },
+                  },
+                  'Panel AI runtime event',
+                )
+              } catch {
+                // Ignore logger errors
+              }
+            },
+          },
+        )
         deps.store.set(key, version, [
           ...history,
           { role: 'user' as const, content: message },

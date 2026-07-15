@@ -1124,6 +1124,8 @@ model BotSettings {
   blockedGuildIds Json     @default("[]")
   panelAiProvider String @default("mistral")
   customProviderModel String?
+  panelAiFallbackEnabled Boolean @default(false)
+  customProviderReasoningMode String @default("omit")
   panelAiSensitiveContextEnabled Boolean @default(false)
   customProviderModelCatalog Json @default("[]")
   customProviderModelCatalogSyncedAt DateTime?

@@ -110,17 +110,16 @@ export function build_panel_context(data: panel_context_data): string {
     lines.push(`- dom_state: "not provided"`)
 
     if (data.moduleContext.status === 'available') {
-      const config = data.moduleContext.configuration
       if (data.moduleContext.pageKey === 'settings') {
-        const c = config
+        const c = data.moduleContext.configuration
         lines.push(`- locale: ${c.locale !== null ? escape_context_value(c.locale) : '"unknown"'}`)
         lines.push(`- timezone: ${c.timezone !== null ? escape_context_value(c.timezone) : '"unknown"'}`)
       } else if (data.moduleContext.pageKey === 'welcome') {
-        const c = config
+        const c = data.moduleContext.configuration
         lines.push(`- welcomeChannelConfigured: ${render_boolean(c.welcomeChannelConfigured)}`)
         lines.push(`- leaveChannelConfigured: ${render_boolean(c.leaveChannelConfigured)}`)
       } else if (data.moduleContext.pageKey === 'automod') {
-        const c = config
+        const c = data.moduleContext.configuration
         lines.push(`- word_filter.enabled: ${render_boolean(c.wordFilterEnabled)}`)
         lines.push(`- word_filter.blocked_word_count: ${render_number(c.blockedWordCount)}`)
         lines.push(`- caps_filter.enabled: ${render_boolean(c.capsEnabled)}`)
@@ -141,7 +140,7 @@ export function build_panel_context(data: panel_context_data): string {
         lines.push(`- ai_moderation.action: ${c.aiModerationAction !== null ? escape_context_value(c.aiModerationAction) : '"unknown"'}`)
         lines.push(`- ai_moderation.level: ${c.aiModerationLevel !== null ? escape_context_value(c.aiModerationLevel) : '"unknown"'}`)
       } else if (data.moduleContext.pageKey === 'antiraid') {
-        const c = config
+        const c = data.moduleContext.configuration
         lines.push(`- anti_raid.enabled: ${render_boolean(c.enabled)}`)
         lines.push(`- anti_raid.join_threshold: ${render_number(c.joinThreshold)}`)
         lines.push(`- anti_raid.join_time_window_seconds: ${render_number(c.joinTimeWindowSeconds)}`)

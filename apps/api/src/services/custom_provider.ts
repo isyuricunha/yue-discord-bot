@@ -109,27 +109,89 @@ export async function list_custom_provider_models(): Promise<custom_provider_mod
   return normalize_custom_provider_models((response.data ?? []).map((item) => item?.id))
 }
 
-export async function test_custom_provider_model(model: string) {
+export type custom_provider_reasoning_mode =
+  | 'omit'
+  | 'none'
+  | 'minimal'
+  | 'low'
+  | 'medium'
+  | 'high'
+
+export function normalize_custom_provider_reasoning_mode(value: unknown): custom_provider_reasoning_mode {
+  if (
+    value === 'none' ||
+    value === 'minimal' ||
+    value === 'low' ||
+    value === 'medium' ||
+    value === 'high'
+  ) {
+    return value
+  }
+  return 'omit'
+}
+
+export function custom_reasoning_parameters(mode: custom_provider_reasoning_mode): Record<string, string> {
+  switch (mode) {
+    case 'none':
+      return { reasoning_effort: 'none' }
+    case 'minimal':
+      return { reasoning_effort: 'minimal' }
+    case 'low':
+      return { reasoning_effort: 'low' }
+    case 'medium':
+      return { reasoning_effort: 'medium' }
+    case 'high':
+      return { reasoning_effort: 'high' }
+    case 'omit':
+    default:
+      return {}
+  }
+}
+
+export type custom_provider_test_deps = {
+  requestJson?: (url: string, init: RequestInit, timeoutMs: number) => Promise<unknown>
+  resolveEndpoint?: () => string | null
+}
+
+export async function test_custom_provider_model(
+  model: string,
+  mode: custom_provider_reasoning_mode = 'omit',
+  deps: custom_provider_test_deps = {},
+) {
   const selected_model = model.trim()
   if (!selected_model) throw new Error('Custom Provider model is required')
 
-  const url = endpoint('/chat/completions')
+  const url = deps.resolveEndpoint ? deps.resolveEndpoint() : endpoint('/chat/completions')
   if (!url) throw new Error('Custom Provider is not configured')
 
-  const started_at = Date.now()
-  await request_json(url, {
-    method: 'POST',
-    headers: {
-      ...authorization_headers(),
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: selected_model,
-      messages: [{ role: 'user', content: 'Reply with exactly: OK' }],
-      max_tokens: 8,
-      temperature: 0,
-    }),
-  }, CONFIG.panelAi.chatTimeoutMs)
+  const reasoning_params = custom_reasoning_parameters(mode)
 
-  return { model: selected_model, latencyMs: Date.now() - started_at }
+  const requestFn = deps.requestJson ?? request_json
+
+  const started_at = Date.now()
+  const body = (await requestFn(
+    url,
+    {
+      method: 'POST',
+      headers: {
+        ...authorization_headers(),
+        'content-type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: selected_model,
+        messages: [{ role: 'user', content: 'Reply with exactly: OK' }],
+        max_tokens: 512,
+        temperature: 0,
+        ...reasoning_params,
+      }),
+    },
+    CONFIG.panelAi.chatTimeoutMs,
+  )) as { choices?: Array<{ message?: { content?: unknown } }> } | null
+
+  const content = body?.choices?.[0]?.message?.content
+  if (typeof content !== 'string' || !content.trim()) {
+    throw new Error('Panel AI returned an empty response')
+  }
+
+  return { model: selected_model, reasoningMode: mode, latencyMs: Date.now() - started_at }
 }

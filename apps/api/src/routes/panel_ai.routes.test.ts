@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import Fastify from 'fastify'
 import type { FastifyBaseLogger } from 'fastify'
+import { MistralError } from '@mistralai/mistralai/models/errors'
 
 import { createPanelAiRoutes } from './panel_ai.routes'
 import { ConversationStore, DEFAULT_MAX_HISTORY_MESSAGES } from '../services/conversation_store'
@@ -78,11 +79,14 @@ function create_app(options: {
   store?: ConversationStore
   isGuildAdmin?: admin_check
   completePanelAi?: complete_panel_ai_fn
+  mistralAgentId?: string
+  mistralApiKeyConfigured?: boolean
+  customProviderIsConfigured?: () => boolean
+  loadCustomProviderPersona?: (promptPath?: string) => string
   onWarning?: (object: unknown, message: unknown) => void
 } = {}) {
   const app = Fastify()
   const store = options.store ?? new ConversationStore()
-  // null means "unauthenticated"; undefined means "use a default user".
   const user: test_user | null = options.user === null ? null : (options.user ?? make_user())
 
   app.decorate('config', { environment: 'test' } as any)
@@ -91,7 +95,6 @@ function create_app(options: {
       await reply.code(401).send({ error: 'Unauthorized' })
       return
     }
-
     request.user = user
   }) as any
 
@@ -110,10 +113,12 @@ function create_app(options: {
     createPanelAiRoutes({
       db: (options.db ?? make_db()) as any,
       store,
-      isGuildAdmin: options.isGuildAdmin ??
-        (async () => ({ isAdmin: true })) as admin_check,
-      completePanelAi: options.completePanelAi ??
-        (async () => 'mocked reply') as complete_panel_ai_fn,
+      isGuildAdmin: options.isGuildAdmin ?? ((async () => ({ isAdmin: true })) as admin_check),
+      completePanelAi: options.completePanelAi ?? (async () => 'mocked reply'),
+      mistralAgentId: options.mistralAgentId ?? 'agent-test',
+      mistralApiKeyConfigured: options.mistralApiKeyConfigured ?? true,
+      customProviderIsConfigured: options.customProviderIsConfigured ?? (() => true),
+      loadCustomProviderPersona: options.loadCustomProviderPersona ?? (() => 'Private System Persona'),
     }),
   )
 
@@ -296,6 +301,89 @@ test('DELETE history is idempotent', async (t) => {
 
   assert.equal(response.statusCode, 200)
   assert.deepEqual(response.json(), { success: true })
+})
+
+test('panel-ai chat accepts messages up to 4000 characters', async (t) => {
+  const { app } = create_app({
+    db: make_db({
+      botSettings: {
+        findUnique: async () => ({ panelAiProvider: 'mistral', panelAiConversationVersion: 1 }),
+      },
+      guild: {
+        findUnique: async () => ({
+          id: 'guild-1',
+          name: 'Test Guild',
+          config: { welcomeChannelId: null, wordFilterEnabled: false, aiModerationEnabled: false },
+        }),
+      },
+      guildAntiRaidConfig: { findUnique: async () => null },
+    }),
+    completePanelAi: async () => 'ok',
+  })
+  t.after(async () => {
+    await app.close()
+  })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'a'.repeat(4_000) },
+  })
+  assert.equal(response.statusCode, 200)
+})
+
+test('panel-ai chat rejects messages over 4000 characters', async (t) => {
+  const { app } = create_app({
+    db: make_db(),
+  })
+  t.after(async () => {
+    await app.close()
+  })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'a'.repeat(4_001) },
+  })
+  assert.equal(response.statusCode, 400)
+  assert.deepEqual(response.json(), { error: 'Invalid message' })
+})
+
+test('no ordinary route test calls an external provider', async (t) => {
+  const originalFetch = globalThis.fetch
+  globalThis.fetch = async () => {
+    assert.fail('Ordinary route tests must not call fetch')
+  }
+  t.after(() => {
+    globalThis.fetch = originalFetch
+  })
+
+  const { app } = create_app({
+    db: make_db({
+      botSettings: {
+        findUnique: async () => ({ panelAiProvider: 'mistral', panelAiConversationVersion: 1 }),
+      },
+      guild: {
+        findUnique: async () => ({
+          id: 'guild-1',
+          name: 'Test Guild',
+          config: { welcomeChannelId: null, wordFilterEnabled: false, aiModerationEnabled: false },
+        }),
+      },
+      guildAntiRaidConfig: { findUnique: async () => null },
+    }),
+  })
+  t.after(async () => {
+    await app.close()
+  })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'hello' },
+  })
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().response, 'mocked reply')
 })
 
 test('response payload does not contain persona, context, or instructions', async (t) => {
@@ -1031,7 +1119,7 @@ test('POST chat isolates the single Anti-Raid query failure', async (t) => {
   assert.equal(JSON.stringify(warnings).includes(secret), false)
 })
 
-test('POST chat reads Anti-Raid exactly once whether its row exists or is missing', async (t) => {
+test('POST chat reads Anti-Raid exactly once whether its row exists or is missing', async (_t) => {
   for (const antiRaidRow of [
     {
       enabled: true,
@@ -1089,4 +1177,784 @@ test('POST chat reads Anti-Raid exactly once whether its row exists or is missin
       assert.ok(capturedContext.includes('- anti_raid.join_threshold: 10'))
     }
   }
+})
+
+test('POST chat route fallback integration: Mistral 429 with high reasoning mode', async () => {
+  const store = new ConversationStore()
+  let mistralCalls = 0
+  let customCalls = 0
+  let capturedCustomInput: any = null
+
+  const { app } = create_app({
+    store,
+    customProviderIsConfigured: () => true,
+    loadCustomProviderPersona: () => 'Private Custom Persona',
+    db: make_db({
+      botSettings: {
+        findUnique: async () => ({
+          panelAiProvider: 'mistral',
+          customProviderModel: 'opaque/test-model',
+          customProviderReasoningMode: 'high',
+          panelAiFallbackEnabled: true,
+          panelAiConversationVersion: 1,
+        }),
+      },
+      guild: {
+        findUnique: async () => ({
+          id: 'guild-1',
+          name: 'Guild One',
+          config: null,
+        }),
+      },
+      guildAntiRaidConfig: { findUnique: async () => null },
+    }),
+    completePanelAi: async (input: any, deps?: any) => {
+      const { complete_panel_ai, build_custom_provider_payload } = await import('../services/panel_ai')
+      const fakeResponse = new Response('{}', { status: 429 })
+      const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
+
+      return complete_panel_ai(input, {
+        ...deps,
+        mistralAgentId: 'agent-test',
+        customProviderConfigured: true,
+        startMistralConversation: async () => {
+          mistralCalls += 1
+          throw new MistralError('Rate limited', { response: fakeResponse, request: fakeRequest, body: '{}' })
+        },
+        completeWithCustomProvider: async (customInput) => {
+          customCalls += 1
+          capturedCustomInput = customInput
+          const payload = build_custom_provider_payload(customInput) as any
+          assert.equal(payload.reasoning_effort, 'high')
+          assert.equal(Object.hasOwn(payload, 'reasoning'), false)
+          return 'Safe assistant answer'
+        },
+      })
+    },
+  })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'What is the server rules?' },
+  })
+  await app.close()
+
+  assert.equal(response.statusCode, 200)
+  const body = response.json()
+  assert.equal(body.success, true)
+  assert.equal(body.response, 'Safe assistant answer')
+  assert.deepEqual(body.actions, [])
+
+  assert.equal(mistralCalls, 1)
+  assert.equal(customCalls, 1)
+
+  assert.equal(capturedCustomInput.model, 'opaque/test-model')
+  assert.equal(capturedCustomInput.reasoningMode, 'high')
+  assert.equal(capturedCustomInput.persona, 'Private Custom Persona')
+  assert.ok(capturedCustomInput.context.includes('Guild One'))
+
+  const history = store.get('guild-1:user-1', 1)
+  assert.equal(history.length, 2)
+  assert.equal(history[0]?.role, 'user')
+  assert.equal(history[0]?.content, 'What is the server rules?')
+  assert.equal(history[1]?.role, 'assistant')
+  assert.equal(history[1]?.content, 'Safe assistant answer')
+
+  const responseBody = JSON.stringify(body).toLowerCase()
+  assert.equal(responseBody.includes('mistral'), false, 'Response must not contain mistral')
+  assert.equal(responseBody.includes('custom'), false, 'Response must not contain custom provider')
+  assert.equal(responseBody.includes('opaque/test-model'), false, 'Response must not contain model ID')
+  assert.equal(responseBody.includes('high'), false, 'Response must not contain reasoning mode')
+  assert.equal(responseBody.includes('fallback'), false, 'Response must not contain fallback metadata')
+  assert.equal(responseBody.includes('rate_limited'), false, 'Response must not contain failure category')
+
+  const expectedKeys = ['success', 'response', 'actions']
+  assert.deepEqual(Object.keys(body).sort(), expectedKeys.sort(), 'Response must only contain exactly expected keys')
+
+  const serializedHistory = JSON.stringify(history)
+  assert.equal(serializedHistory.includes('system'), false, 'History must not contain system messages')
+  assert.equal(serializedHistory.includes('persona'), false, 'History must not contain persona')
+  assert.equal(serializedHistory.includes('module'), false, 'History must not contain module metadata')
+  assert.equal(serializedHistory.includes('opaque/test-model'), false, 'History must not contain model ID')
+})
+
+test('POST chat route fallback integration: Mistral 429 with omit reasoning mode', async () => {
+  let customCalls = 0
+
+  const { app } = create_app({
+    customProviderIsConfigured: () => true,
+    db: make_db({
+      botSettings: {
+        findUnique: async () => ({
+          panelAiProvider: 'mistral',
+          customProviderModel: 'opaque/test-model',
+          customReasoningMode: 'omit',
+          panelAiFallbackEnabled: true,
+          panelAiConversationVersion: 1,
+        }),
+      },
+      guild: { findUnique: async () => ({ id: 'guild-1', name: 'Guild One', config: null }) },
+      guildAntiRaidConfig: { findUnique: async () => null },
+    }),
+    completePanelAi: async (input: any, deps?: any) => {
+      const { complete_panel_ai, build_custom_provider_payload } = await import('../services/panel_ai')
+      const fakeResponse = new Response('{}', { status: 429 })
+      const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
+
+      return complete_panel_ai(input, {
+        ...deps,
+        mistralAgentId: 'agent-test',
+        customProviderConfigured: true,
+        startMistralConversation: async () => {
+          throw new MistralError('Rate limited', { response: fakeResponse, request: fakeRequest, body: '{}' })
+        },
+        completeWithCustomProvider: async (customInput) => {
+          customCalls += 1
+          const payload = build_custom_provider_payload(customInput)
+          assert.equal(Object.hasOwn(payload, 'reasoning_effort'), false)
+          assert.equal(Object.hasOwn(payload, 'reasoning'), false)
+          assert.equal(Object.hasOwn(payload, 'thinking'), false)
+          return 'Omit fallback reply'
+        },
+      })
+    },
+  })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'Hello' },
+  })
+  await app.close()
+
+  assert.equal(response.statusCode, 200)
+  assert.equal(customCalls, 1)
+})
+
+test('POST chat route fallback integration: total failure returns 502 without partial history', async () => {
+  const store = new ConversationStore()
+  let mistralCalls = 0
+  let customCalls = 0
+
+  const { app } = create_app({
+    store,
+    customProviderIsConfigured: () => true,
+    db: make_db({
+      botSettings: {
+        findUnique: async () => ({
+          panelAiProvider: 'mistral',
+          customProviderModel: 'opaque/test-model',
+          customReasoningMode: 'high',
+          panelAiFallbackEnabled: true,
+          panelAiConversationVersion: 1,
+        }),
+      },
+      guild: { findUnique: async () => ({ id: 'guild-1', name: 'Guild One', config: null }) },
+      guildAntiRaidConfig: { findUnique: async () => null },
+    }),
+    completePanelAi: async (input: any, deps?: any) => {
+      const { complete_panel_ai } = await import('../services/panel_ai')
+      const fakeResponse = new Response('{}', { status: 500 })
+      const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
+
+      return complete_panel_ai(input, {
+        ...deps,
+        mistralAgentId: 'agent-test',
+        customProviderConfigured: true,
+        startMistralConversation: async () => {
+          mistralCalls += 1
+          throw new MistralError('Server error', { response: fakeResponse, request: fakeRequest, body: '{}' })
+        },
+        completeWithCustomProvider: async () => {
+          customCalls += 1
+          throw new Error('Custom Provider failure details')
+        },
+      })
+    },
+  })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'Unresolved query' },
+  })
+  await app.close()
+
+  assert.equal(response.statusCode, 502)
+  assert.deepEqual(response.json(), { error: 'Panel assistant is unavailable' })
+  assert.equal(mistralCalls, 1)
+  assert.equal(customCalls, 1)
+
+  const history = store.get('guild-1:user-1', 1)
+  assert.equal(history.length, 0)
+})
+
+test('POST chat route fallback integration: non-eligible client errors 400 and 422 do not fallback', async () => {
+  for (const status of [400, 422]) {
+    const store = new ConversationStore()
+    let mistralCalls = 0
+    let customCalls = 0
+
+    const { app } = create_app({
+      store,
+      customProviderIsConfigured: () => true,
+      db: make_db({
+        botSettings: {
+          findUnique: async () => ({
+            panelAiProvider: 'mistral',
+            customProviderModel: 'opaque/test-model',
+            customReasoningMode: 'high',
+            panelAiFallbackEnabled: true,
+            panelAiConversationVersion: 1,
+          }),
+        },
+        guild: { findUnique: async () => ({ id: 'guild-1', name: 'Guild One', config: null }) },
+        guildAntiRaidConfig: { findUnique: async () => null },
+      }),
+      completePanelAi: async (input: any, deps?: any) => {
+        const { complete_panel_ai } = await import('../services/panel_ai')
+          const fakeResponse = new Response('{}', { status })
+        const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
+
+        return complete_panel_ai(input, {
+          ...deps,
+          mistralAgentId: 'agent-test',
+          customProviderConfigured: true,
+          startMistralConversation: async () => {
+            mistralCalls += 1
+            throw new MistralError(`Client error ${status}`, { response: fakeResponse, request: fakeRequest, body: '{}' })
+          },
+          completeWithCustomProvider: async () => {
+            customCalls += 1
+            return 'Custom should not run'
+          },
+        })
+      },
+    })
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/guilds/guild-1/panel-ai/chat',
+      payload: { message: 'Invalid prompt' },
+    })
+    await app.close()
+
+    assert.equal(response.statusCode, 502)
+    assert.equal(mistralCalls, 1)
+    assert.equal(customCalls, 0)
+    assert.equal(store.get('guild-1:user-1', 1).length, 0)
+  }
+})
+
+test('POST chat route fallback integration: fallback disabled', async () => {
+  let mistralCalls = 0
+  let customCalls = 0
+
+  const { app } = create_app({
+    customProviderIsConfigured: () => true,
+    db: make_db({
+      botSettings: {
+        findUnique: async () => ({
+          panelAiProvider: 'mistral',
+          customProviderModel: 'opaque/test-model',
+          customReasoningMode: 'high',
+          panelAiFallbackEnabled: false,
+          panelAiConversationVersion: 1,
+        }),
+      },
+      guild: { findUnique: async () => ({ id: 'guild-1', name: 'Guild One', config: null }) },
+      guildAntiRaidConfig: { findUnique: async () => null },
+    }),
+    completePanelAi: async (input: any, deps?: any) => {
+      const { complete_panel_ai } = await import('../services/panel_ai')
+      const fakeResponse = new Response('{}', { status: 429 })
+      const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
+
+      return complete_panel_ai(input, {
+        ...deps,
+        mistralAgentId: 'agent-test',
+        customProviderConfigured: true,
+        startMistralConversation: async () => {
+          mistralCalls += 1
+          throw new MistralError('Rate limited', { response: fakeResponse, request: fakeRequest, body: '{}' })
+        },
+        completeWithCustomProvider: async () => {
+          customCalls += 1
+          return 'Custom should not run'
+        },
+      })
+    },
+  })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'Hi' },
+  })
+  await app.close()
+
+  assert.equal(response.statusCode, 502)
+  assert.equal(mistralCalls, 1)
+  assert.equal(customCalls, 0)
+})
+
+test('POST chat route fallback integration: Custom primary runs Custom directly without calling Mistral', async () => {
+  let mistralCalls = 0
+  let customCalls = 0
+
+  const { app } = create_app({
+    customProviderIsConfigured: () => true,
+    db: make_db({
+      botSettings: {
+        findUnique: async () => ({
+          panelAiProvider: 'custom',
+          customProviderModel: 'opaque/test-model',
+          customReasoningMode: 'high',
+          panelAiFallbackEnabled: false,
+          panelAiConversationVersion: 1,
+        }),
+      },
+      guild: { findUnique: async () => ({ id: 'guild-1', name: 'Guild One', config: null }) },
+      guildAntiRaidConfig: { findUnique: async () => null },
+    }),
+    completePanelAi: async (input: any, deps?: any) => {
+      const { complete_panel_ai } = await import('../services/panel_ai')
+
+      return complete_panel_ai(input, {
+        ...deps,
+        mistralAgentId: 'agent-test',
+        customProviderConfigured: true,
+        startMistralConversation: async () => {
+          mistralCalls += 1
+          return { outputs: [{ type: 'message.output', content: 'Mistral' }] }
+        },
+        completeWithCustomProvider: async () => {
+          customCalls += 1
+          return 'Custom primary answer'
+        },
+      })
+    },
+  })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'Primary question' },
+  })
+  await app.close()
+
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().response, 'Custom primary answer')
+  assert.equal(mistralCalls, 0)
+  assert.equal(customCalls, 1)
+})
+
+test('POST chat route fallback integration: Mistral unconfigured behavior with and without valid fallback', async () => {
+  const { app: appFallback } = create_app({
+    customProviderIsConfigured: () => true,
+    db: make_db({
+      botSettings: {
+        findUnique: async () => ({
+          panelAiProvider: 'mistral',
+          customProviderModel: 'opaque/test-model',
+          customReasoningMode: 'omit',
+          panelAiFallbackEnabled: true,
+          panelAiConversationVersion: 1,
+        }),
+      },
+      guild: { findUnique: async () => ({ id: 'guild-1', name: 'Guild One', config: null }) },
+      guildAntiRaidConfig: { findUnique: async () => null },
+    }),
+    completePanelAi: async (input: any, deps?: any) => {
+      const { complete_panel_ai } = await import('../services/panel_ai')
+
+      return complete_panel_ai(input, {
+        ...deps,
+        mistralAgentId: '',
+        mistralApiKeyConfigured: false,
+        customProviderConfigured: true,
+        completeWithCustomProvider: async () => 'Unconfigured fallback answer',
+      })
+    },
+  })
+
+  const resFallback = await appFallback.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'Test unconfigured' },
+  })
+  await appFallback.close()
+
+  assert.equal(resFallback.statusCode, 200)
+  assert.equal(resFallback.json().response, 'Unconfigured fallback answer')
+
+  const { app: appNoFallback } = create_app({
+    customProviderIsConfigured: () => true,
+    db: make_db({
+      botSettings: {
+        findUnique: async () => ({
+          panelAiProvider: 'mistral',
+          customProviderModel: 'opaque/test-model',
+          customReasoningMode: 'omit',
+          panelAiFallbackEnabled: false,
+          panelAiConversationVersion: 1,
+        }),
+      },
+      guild: { findUnique: async () => ({ id: 'guild-1', name: 'Guild One', config: null }) },
+      guildAntiRaidConfig: { findUnique: async () => null },
+    }),
+    completePanelAi: async (input: any, deps?: any) => {
+      const { complete_panel_ai } = await import('../services/panel_ai')
+
+      return complete_panel_ai(input, {
+        ...deps,
+        mistralAgentId: '',
+        mistralApiKeyConfigured: false,
+        customProviderConfigured: true,
+      })
+    },
+  })
+
+  const resNoFallback = await appNoFallback.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'Test unconfigured no fallback' },
+  })
+  await appNoFallback.close()
+
+  assert.equal(resNoFallback.statusCode, 502)
+})
+
+test('POST chat route fallback integration: production route connects runtime events to Fastify logger with safe fields', async () => {
+  const capturedLogEntries: any[] = []
+  const SECRET_STRING = 'SECRET_MISTRAL_ERROR_7f3c'
+
+  const app = Fastify()
+  const store = new ConversationStore()
+  const user = make_user({ isOwner: true })
+
+  app.decorate('config', { environment: 'test' } as any)
+  app.decorate('authenticate', async (request: any, _reply: any) => {
+    request.user = user
+  }) as any
+
+  app.addHook('preHandler', async (request) => {
+    const requestWithMutableLog = request as unknown as { log: FastifyBaseLogger }
+    const originalLog = requestWithMutableLog.log
+    requestWithMutableLog.log = {
+      ...originalLog,
+      info: (object: unknown, message: unknown) => {
+        capturedLogEntries.push({ object, message })
+      },
+      warn: () => {},
+    } as unknown as FastifyBaseLogger
+  })
+
+  app.register(
+    createPanelAiRoutes({
+      db: make_db({
+        botSettings: {
+          findUnique: async () => ({
+            panelAiProvider: 'mistral',
+            customProviderModel: 'opaque/test-model',
+            customProviderReasoningMode: 'high',
+            panelAiFallbackEnabled: true,
+            panelAiConversationVersion: 1,
+          }),
+        },
+        guild: { findUnique: async () => ({ id: 'guild-1', name: 'Guild One', config: null }) },
+        guildAntiRaidConfig: { findUnique: async () => null },
+      }) as any,
+      store,
+      isGuildAdmin: async () => ({ isAdmin: true }),
+      customProviderIsConfigured: () => true,
+      loadCustomProviderPersona: () => 'Private Custom Persona',
+      completePanelAi: async (input: any, deps?: any) => {
+        const { complete_panel_ai } = await import('../services/panel_ai')
+          const fakeResponse = new Response('{}', { status: 429 })
+        const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
+
+        return complete_panel_ai(input, {
+          ...deps,
+          mistralAgentId: 'agent-test',
+          customProviderConfigured: true,
+          startMistralConversation: async () => {
+            throw new MistralError(`Secret failure: ${SECRET_STRING}`, { response: fakeResponse, request: fakeRequest, body: '{}' })
+          },
+          completeWithCustomProvider: async () => 'Safe assistant answer',
+        })
+      },
+    }),
+  )
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'Logger test' },
+  })
+  await app.close()
+
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().response, 'Safe assistant answer')
+
+  const runtimeLogEntries = capturedLogEntries.filter(
+    (entry) => entry.message === 'Panel AI runtime event',
+  )
+
+  assert.ok(runtimeLogEntries.length >= 2, 'At least fallback_attempted and fallback_succeeded events')
+
+  const attemptedEntry = runtimeLogEntries.find((e) => e.object?.runtimeEvent?.type === 'fallback_attempted')
+  const succeededEntry = runtimeLogEntries.find((e) => e.object?.runtimeEvent?.type === 'fallback_succeeded')
+
+  assert.ok(attemptedEntry, 'fallback_attempted event must be present')
+  assert.ok(succeededEntry, 'fallback_succeeded event must be present')
+
+  const attemptedEvent = attemptedEntry.object.runtimeEvent
+  assert.equal(attemptedEvent.primaryProvider, 'mistral')
+  assert.equal(attemptedEvent.fallbackProvider, 'custom')
+  assert.equal(attemptedEvent.category, 'rate_limited')
+  assert.equal(attemptedEvent.statusCode, 429)
+  assert.equal(attemptedEvent.modelId, 'opaque/test-model')
+  assert.equal(attemptedEvent.guildId, 'guild-1')
+
+  const succeededEvent = succeededEntry.object.runtimeEvent
+  assert.equal(succeededEvent.success, true)
+  assert.equal(succeededEvent.guildId, 'guild-1')
+
+  const ALLOWED_LOG_FIELDS = ['type', 'primaryProvider', 'fallbackProvider', 'category', 'statusCode', 'modelId', 'guildId', 'success']
+  for (const entry of runtimeLogEntries) {
+    const fields = Object.keys(entry.object.runtimeEvent)
+    for (const field of fields) {
+      assert.ok(ALLOWED_LOG_FIELDS.includes(field), `Unexpected log field: ${field}`)
+    }
+  }
+
+  const allLogSerialized = JSON.stringify(capturedLogEntries)
+  assert.equal(allLogSerialized.includes(SECRET_STRING), false, 'Secret must not appear in log entries')
+  assert.equal(response.body.includes(SECRET_STRING), false, 'Secret must not appear in HTTP response')
+  const historyJson = JSON.stringify(store.get('guild-1:user-1', 1))
+  assert.equal(historyJson.includes(SECRET_STRING), false, 'Secret must not appear in history')
+})
+
+test('POST chat route fallback disabled: Mistral 429 secret does not leak', async () => {
+  const SECRET_STRING = 'SECRET_MISTRAL_RAW_MESSAGE_91e4'
+  const capturedLogEntries: any[] = []
+  
+  const app = Fastify()
+  const store = new ConversationStore()
+  const user = make_user({ isOwner: true })
+  
+  app.decorate('config', { environment: 'test' } as any)
+  app.decorate('authenticate', async (request: any, _reply: any) => {
+    request.user = user
+  }) as any
+  
+  app.addHook('preHandler', async (request) => {
+    const requestWithMutableLog = request as unknown as { log: FastifyBaseLogger }
+    requestWithMutableLog.log = {
+      ...requestWithMutableLog.log,
+      warn: (object: unknown, message: unknown) => {
+        capturedLogEntries.push({ object, message })
+      },
+    } as unknown as FastifyBaseLogger
+  })
+  
+  let customProviderCalled = 0
+  
+  app.register(
+    createPanelAiRoutes({
+      db: make_db({
+        botSettings: {
+          findUnique: async () => ({
+            panelAiProvider: 'mistral',
+            customProviderModel: 'opaque/test-model',
+            customProviderReasoningMode: 'high',
+            panelAiFallbackEnabled: false,
+            panelAiConversationVersion: 1,
+          }),
+        },
+        guild: { findUnique: async () => ({ id: 'guild-1', name: 'Guild One', config: null }) },
+        guildAntiRaidConfig: { findUnique: async () => null },
+      }) as any,
+      store,
+      isGuildAdmin: async () => ({ isAdmin: true }),
+      customProviderIsConfigured: () => true,
+      loadCustomProviderPersona: () => 'Private Custom Persona',
+      completePanelAi: async (input: any, deps?: any) => {
+        const { complete_panel_ai } = await import('../services/panel_ai')
+        const fakeResponse = new Response('{}', { status: 429 })
+        const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
+        
+        return complete_panel_ai(input, {
+          ...deps,
+          mistralAgentId: 'agent-test',
+          customProviderConfigured: true,
+          startMistralConversation: async () => {
+            throw new MistralError(SECRET_STRING, { response: fakeResponse, request: fakeRequest, body: '{}' })
+          },
+          completeWithCustomProvider: async () => {
+            customProviderCalled += 1
+            return 'Safe assistant answer'
+          },
+        })
+      },
+    }),
+  )
+  
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'Sanitization check 1' },
+  })
+  await app.close()
+  
+  assert.equal(response.statusCode, 502)
+  assert.equal(customProviderCalled, 0)
+  
+  const allLogSerialized = JSON.stringify(capturedLogEntries)
+  assert.equal(allLogSerialized.includes(SECRET_STRING), false, 'Secret must not appear in warning logs')
+  assert.equal(JSON.stringify(response.json()).includes(SECRET_STRING), false, 'Secret must not appear in HTTP response')
+  assert.equal(JSON.stringify(store.get('guild-1:user-1', 1)).includes(SECRET_STRING), false, 'Secret must not appear in history')
+})
+
+test('POST chat route non-eligible error: Mistral 400 secret does not leak', async () => {
+  const SECRET_STRING = 'SECRET_MISTRAL_RAW_MESSAGE_91e4'
+  const capturedLogEntries: any[] = []
+  
+  const app = Fastify()
+  const store = new ConversationStore()
+  const user = make_user({ isOwner: true })
+  
+  app.decorate('config', { environment: 'test' } as any)
+  app.decorate('authenticate', async (request: any, _reply: any) => {
+    request.user = user
+  }) as any
+  
+  app.addHook('preHandler', async (request) => {
+    const requestWithMutableLog = request as unknown as { log: FastifyBaseLogger }
+    requestWithMutableLog.log = {
+      ...requestWithMutableLog.log,
+      warn: (object: unknown, message: unknown) => {
+        capturedLogEntries.push({ object, message })
+      },
+    } as unknown as FastifyBaseLogger
+  })
+  
+  let customProviderCalled = 0
+  
+  app.register(
+    createPanelAiRoutes({
+      db: make_db({
+        botSettings: {
+          findUnique: async () => ({
+            panelAiProvider: 'mistral',
+            customProviderModel: 'opaque/test-model',
+            customProviderReasoningMode: 'high',
+            panelAiFallbackEnabled: true,
+            panelAiConversationVersion: 1,
+          }),
+        },
+        guild: { findUnique: async () => ({ id: 'guild-1', name: 'Guild One', config: null }) },
+        guildAntiRaidConfig: { findUnique: async () => null },
+      }) as any,
+      store,
+      isGuildAdmin: async () => ({ isAdmin: true }),
+      customProviderIsConfigured: () => true,
+      loadCustomProviderPersona: () => 'Private Custom Persona',
+      completePanelAi: async (input: any, deps?: any) => {
+        const { complete_panel_ai } = await import('../services/panel_ai')
+        const fakeResponse = new Response('{}', { status: 400 })
+        const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
+        
+        return complete_panel_ai(input, {
+          ...deps,
+          mistralAgentId: 'agent-test',
+          customProviderConfigured: true,
+          startMistralConversation: async () => {
+            throw new MistralError(SECRET_STRING, { response: fakeResponse, request: fakeRequest, body: '{}' })
+          },
+          completeWithCustomProvider: async () => {
+            customProviderCalled += 1
+            return 'Safe assistant answer'
+          },
+        })
+      },
+    }),
+  )
+  
+  const historyBefore = JSON.stringify(store.get('guild-1:user-1', 1))
+  
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'Sanitization check 2' },
+  })
+  await app.close()
+  
+  assert.equal(response.statusCode, 502)
+  assert.equal(customProviderCalled, 0)
+  
+  const allLogSerialized = JSON.stringify(capturedLogEntries)
+  assert.equal(allLogSerialized.includes(SECRET_STRING), false, 'Secret must not appear in warning logs')
+  assert.equal(JSON.stringify(response.json()).includes(SECRET_STRING), false, 'Secret must not appear in HTTP response')
+  assert.equal(JSON.stringify(store.get('guild-1:user-1', 1)), historyBefore, 'History must remain unchanged')
+})
+
+test('POST chat route fallback integration: unique secret error strings do not leak in runtime events, HTTP response, or history', async () => {
+  const SECRET_STRING = 'SECRET_API_KEY_99999'
+  const store = new ConversationStore()
+
+  const { app } = create_app({
+    store,
+    customProviderIsConfigured: () => true,
+    db: make_db({
+      botSettings: {
+        findUnique: async () => ({
+          panelAiProvider: 'mistral',
+          customProviderModel: 'opaque/test-model',
+          customReasoningMode: 'omit',
+          panelAiFallbackEnabled: true,
+          panelAiConversationVersion: 1,
+        }),
+      },
+      guild: { findUnique: async () => ({ id: 'guild-1', name: 'Guild One', config: null }) },
+      guildAntiRaidConfig: { findUnique: async () => null },
+    }),
+    completePanelAi: async (input: any, deps?: any) => {
+      const { complete_panel_ai } = await import('../services/panel_ai')
+      const fakeResponse = new Response('{}', { status: 500 })
+      const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
+
+      return complete_panel_ai(input, {
+        ...deps,
+        mistralAgentId: 'agent-test',
+        customProviderConfigured: true,
+        startMistralConversation: async () => {
+          throw new MistralError(`Secret internal failure: ${SECRET_STRING}`, {
+            response: fakeResponse,
+            request: fakeRequest,
+            body: '{}',
+          })
+        },
+        completeWithCustomProvider: async () => {
+          throw new Error(`Custom Provider secret failure: ${SECRET_STRING}`)
+        },
+      })
+    },
+  })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/chat',
+    payload: { message: 'Sanitization check' },
+  })
+  await app.close()
+
+  assert.equal(response.statusCode, 502)
+  const responseBody = JSON.stringify(response.json())
+  assert.equal(responseBody.includes(SECRET_STRING), false)
+
+  const history = store.get('guild-1:user-1', 1)
+  assert.equal(JSON.stringify(history).includes(SECRET_STRING), false)
 })

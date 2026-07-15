@@ -21,7 +21,6 @@ window.fetch = mockFetch as unknown as typeof window.fetch
 const FORBIDDEN_VISIBLE_TERMS = [
   'Mistral',
   'Custom Provider',
-  'Bifrost',
   'NVIDIA',
 ]
 

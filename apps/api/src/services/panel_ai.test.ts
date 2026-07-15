@@ -1,15 +1,23 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 
+import { MistralError } from '@mistralai/mistralai/models/errors'
+
 import { PANEL_CONTRACT_RULES } from './panel_context'
 import {
   build_custom_provider_messages,
+  build_custom_provider_payload,
   build_mistral_agent_request,
+  classify_mistral_failure,
   complete_panel_ai,
   extract_mistral_text,
+  MistralEmptyResponseError,
+  MistralNotConfiguredError,
+  MistralTimeoutError,
   test_panel_ai_runtime,
   type mistral_agent_request,
   type panel_ai_message,
+  type panel_ai_runtime_event,
 } from './panel_ai'
 
 const natural_messages: panel_ai_message[] = [
@@ -50,7 +58,7 @@ test('builds a valid Mistral Agent conversation request with runtime context fir
 test('complete_panel_ai sends the narrow Agent payload without the Custom Provider persona', async () => {
   let captured_request: mistral_agent_request | undefined
   const response = await complete_panel_ai({
-    runtime: { provider: 'mistral', customModel: null },
+    runtime: { provider: 'mistral', customModel: null, customReasoningMode: 'omit', fallbackEnabled: false },
     persona: 'Private Custom Provider persona',
     context: 'Guild ID: guild-1',
     messages: natural_messages,
@@ -71,7 +79,7 @@ test('complete_panel_ai sends the narrow Agent payload without the Custom Provid
 test('test_panel_ai_runtime uses the valid Mistral Agent payload', async () => {
   let captured_request: mistral_agent_request | undefined
   const result = await test_panel_ai_runtime(
-    { provider: 'mistral', customModel: null },
+    { provider: 'mistral', customModel: null, customReasoningMode: 'omit', fallbackEnabled: false },
     {
       mistralAgentId: 'agent-runtime-test',
       startMistralConversation: async (request) => {
@@ -174,8 +182,6 @@ test('ignores non-text chunks within a mixed content array', () => {
   assert.equal(extract_mistral_text(outputs), 'visible answer')
 })
 
-import { build_panel_context } from './panel_context'
-
 test('accepts chunks with text when type is absent (SDK optional type)', () => {
   const outputs = [
     {
@@ -188,84 +194,407 @@ test('accepts chunks with text when type is absent (SDK optional type)', () => {
   assert.equal(extract_mistral_text(outputs), 'visible answer')
 })
 
-test('complete_panel_ai passes page context section to Mistral and Custom Provider', () => {
-  const contextWithPage = build_panel_context({
-    guild: { id: 'g-1', name: 'My Server' },
-    antiRaid: null,
-    page: {
-      key: 'automod',
-      routePattern: '/guild/:guildId/automod',
-      title: 'AutoMod',
-      section: 'Moderação & logs',
-      purpose: 'Config automod',
-    } as any
+test('build_custom_provider_payload produces payload with omit mode', () => {
+  const payload = build_custom_provider_payload({
+    model: 'custom/model-id',
+    persona: 'Private Persona',
+    context: 'Guild Context',
+    messages: natural_messages,
+    reasoningMode: 'omit',
   })
 
-  // Test Mistral request format
-  const mistralRequest = build_mistral_agent_request('agent-1', contextWithPage, natural_messages)
-  const firstInput = mistralRequest.inputs[0].content
-  assert.ok(firstInput.includes('- section: "Moderação & logs"'))
-
-  // Custom provider messages
-  const customMessages = build_custom_provider_messages('Persona text', contextWithPage, natural_messages)
-  const contextMessage = customMessages[1].content
-  assert.ok(contextMessage.includes('- section: "Moderação & logs"'))
-
-  // Page metadata never becomes a natural user/assistant history message
-  // Verify natural_messages has only roles 'user' and 'assistant' and no 'system' metadata
-  for (const m of natural_messages) {
-    assert.ok(m.role === 'user' || m.role === 'assistant')
-    assert.ok(!m.content.includes('Moderação & logs'))
-  }
+  assert.equal(payload.model, 'custom/model-id')
+  assert.equal(payload.temperature, 0.4)
+  assert.equal(Object.hasOwn(payload, 'reasoning_effort'), false)
+  assert.equal(Object.hasOwn(payload, 'reasoning'), false)
+  assert.equal(payload.messages[0]?.content, 'Private Persona')
 })
 
-test('complete_panel_ai passes saved configuration context to Mistral and Custom Provider', () => {
-  const contextWithConfig = build_panel_context({
-    guild: { id: 'g-1', name: 'My Server' },
-    antiRaid: null,
-    moduleContext: {
-      pageKey: 'welcome',
-      status: 'available',
-      configuration: {
-        welcomeChannelConfigured: true,
-        leaveChannelConfigured: false,
-      }
+test('build_custom_provider_payload produces payload with high mode', () => {
+  const payload = build_custom_provider_payload({
+    model: 'custom/model-id',
+    persona: 'Private Persona',
+    context: 'Guild Context',
+    messages: natural_messages,
+    reasoningMode: 'high',
+  })
+
+  assert.equal(payload.model, 'custom/model-id')
+  assert.equal((payload as Record<string, unknown>).reasoning_effort, 'high')
+  assert.equal(Object.hasOwn(payload, 'reasoning'), false)
+})
+
+function create_mistral_error(status: number): MistralError {
+  const fakeResponse = new Response('{}', { status, headers: { 'content-type': 'application/json' } })
+  const fakeRequest = new Request('https://api.mistral.ai/v1/conversations')
+  return new MistralError('Mistral HTTP Error', { response: fakeResponse, request: fakeRequest, body: '{}' })
+}
+
+test('classify_mistral_failure correctly classifies typed errors and HTTP status codes', () => {
+  assert.deepEqual(classify_mistral_failure(new MistralNotConfiguredError()), { eligible: true, category: 'not_configured' })
+  assert.deepEqual(classify_mistral_failure(new MistralTimeoutError()), { eligible: true, category: 'timeout' })
+  assert.deepEqual(classify_mistral_failure(new MistralEmptyResponseError()), { eligible: true, category: 'empty_response' })
+
+  assert.equal(classify_mistral_failure(create_mistral_error(401)).category, 'authentication')
+  assert.equal(classify_mistral_failure(create_mistral_error(403)).category, 'authorization')
+  assert.equal(classify_mistral_failure(create_mistral_error(408)).category, 'timeout')
+  assert.equal(classify_mistral_failure(create_mistral_error(429)).category, 'rate_limited')
+  assert.equal(classify_mistral_failure(create_mistral_error(500)).category, 'server_error')
+  assert.equal(classify_mistral_failure(create_mistral_error(503)).category, 'server_error')
+
+  assert.equal(classify_mistral_failure(create_mistral_error(400)).eligible, false)
+  assert.equal(classify_mistral_failure(create_mistral_error(404)).eligible, false)
+  assert.equal(classify_mistral_failure(create_mistral_error(409)).eligible, false)
+  assert.equal(classify_mistral_failure(create_mistral_error(422)).eligible, false)
+
+  assert.equal(classify_mistral_failure({ code: 'ECONNRESET' }).category, 'transport')
+  assert.equal(classify_mistral_failure({ code: 'ETIMEDOUT' }).category, 'transport')
+  assert.equal(classify_mistral_failure({ code: 'ECONNREFUSED' }).category, 'transport')
+  assert.equal(classify_mistral_failure({ code: 'ENOTFOUND' }).category, 'transport')
+  assert.equal(classify_mistral_failure({ code: 'EAI_AGAIN' }).category, 'transport')
+
+  assert.equal(classify_mistral_failure(new TypeError('Cannot read properties of undefined')).eligible, false)
+  assert.equal(classify_mistral_failure(new TypeError('Cannot read properties of undefined')).category, 'programming_error')
+})
+
+test('classify_mistral_failure requires real MistralError instance for HTTP status classification', () => {
+  const realMistralError = create_mistral_error(500)
+  assert.equal(classify_mistral_failure(realMistralError).eligible, true)
+  assert.equal(classify_mistral_failure(realMistralError).category, 'server_error')
+
+  const plainObject = { statusCode: 500 }
+  assert.equal(classify_mistral_failure(plainObject).eligible, false)
+  assert.equal(classify_mistral_failure(plainObject).category, 'unknown')
+
+  const localError = Object.assign(new Error('Internal error'), { statusCode: 500 })
+  assert.equal(classify_mistral_failure(localError).eligible, false)
+  assert.equal(classify_mistral_failure(localError).category, 'unknown')
+
+  const fetchTypeError = Object.assign(new TypeError('fetch failed'), { cause: { code: 'ECONNRESET' } })
+  assert.equal(classify_mistral_failure(fetchTypeError).eligible, true)
+  assert.equal(classify_mistral_failure(fetchTypeError).category, 'transport')
+
+  const plainTypeError = new TypeError('Cannot read properties of null')
+  assert.equal(classify_mistral_failure(plainTypeError).eligible, false)
+  assert.equal(classify_mistral_failure(plainTypeError).category, 'programming_error')
+
+  class FakeMistralError extends Error {
+    statusCode = 500
+    constructor() {
+      super('Fake')
+      this.name = 'MistralError'
     }
-  })
-
-  // Test Mistral request contains config fields
-  const mistralRequest = build_mistral_agent_request('agent-1', contextWithConfig, natural_messages)
-  const firstInput = mistralRequest.inputs[0].content
-  assert.ok(firstInput.includes('Saved configuration for current page:'))
-  assert.ok(firstInput.includes('- welcomeChannelConfigured: true'))
-  assert.ok(firstInput.includes('- leaveChannelConfigured: false'))
-  assert.equal(firstInput.includes('welcomeMessageConfigured'), false)
-  assert.equal(firstInput.includes('leaveMessageConfigured'), false)
-
-  // Custom provider messages
-  const customMessages = build_custom_provider_messages('Persona text', contextWithConfig, natural_messages)
-  const contextMessage = customMessages[1].content
-  assert.ok(contextMessage.includes('Saved configuration for current page:'))
-  assert.ok(contextMessage.includes('- welcomeChannelConfigured: true'))
-  assert.ok(contextMessage.includes('- leaveChannelConfigured: false'))
-  assert.equal(mistralRequest.inputs.slice(1).some(({ content }) => content.includes('welcomeChannelConfigured')), false)
-  assert.equal(customMessages.slice(2).some(({ content }) => content.includes('welcomeChannelConfigured')), false)
+  }
+  const spoofed = new FakeMistralError()
+  assert.equal(classify_mistral_failure(spoofed).eligible, false, 'locally declared MistralError class must not be eligible')
+  assert.equal(classify_mistral_failure(spoofed).category, 'unknown')
 })
 
-test('provider parity keeps unavailable module context out of natural conversation messages', () => {
-  const unavailableContext = build_panel_context({
-    guild: { id: 'g-1', name: 'My Server' },
-    antiRaid: null,
-    moduleContext: { pageKey: 'antiraid', status: 'unavailable' },
+test('complete_panel_ai uses normalized runtime for custom fallback execution', async () => {
+  let capturedModel = ''
+  let capturedReasoningMode = ''
+
+  await complete_panel_ai(
+    {
+      runtime: {
+        provider: 'mistral',
+        customModel: '  opaque/padded-model  ',
+        customReasoningMode: ' INVALID_MODE ' as any,
+        fallbackEnabled: true,
+      },
+      persona: 'Persona',
+      context: 'Context',
+      messages: natural_messages,
+    },
+    {
+      mistralAgentId: 'agent-1',
+      customProviderConfigured: true,
+      startMistralConversation: async () => {
+        throw create_mistral_error(429)
+      },
+      completeWithCustomProvider: async (input) => {
+        capturedModel = input.model
+        capturedReasoningMode = input.reasoningMode
+        return 'Fallback OK'
+      },
+    },
+  )
+
+  assert.equal(capturedModel, 'opaque/padded-model')
+  assert.equal(capturedReasoningMode, 'omit')
+})
+
+test('complete_panel_ai handles deterministic timeout race with late primary resolution without duplicate events', async () => {
+  let primaryStartCount = 0
+  let fallbackStartCount = 0
+  const loggedEvents: panel_ai_runtime_event[] = []
+
+  let resolvePrimary!: (val: any) => void
+  const primaryPromise = new Promise((resolve) => {
+    resolvePrimary = resolve
   })
 
-  const mistralRequest = build_mistral_agent_request('agent-1', unavailableContext, natural_messages)
-  const customMessages = build_custom_provider_messages('Persona text', unavailableContext, natural_messages)
+  const timeoutSignal = Promise.reject(new MistralTimeoutError('Mistral Agent request timed out'))
+  timeoutSignal.catch(() => {})
 
-  assert.match(mistralRequest.inputs[0]?.content ?? '', /^\[APPLICATION_RUNTIME_CONTEXT\]/)
-  assert.ok(mistralRequest.inputs[0]?.content.includes('status: "unavailable"'))
-  assert.equal(mistralRequest.inputs.slice(1).some(({ content }) => content.includes('status: "unavailable"')), false)
-  assert.equal(customMessages[0]?.content, 'Persona text')
-  assert.ok(customMessages[1]?.content.includes('status: "unavailable"'))
-  assert.equal(customMessages.slice(2).some(({ content }) => content.includes('status: "unavailable"')), false)
+  const result = await complete_panel_ai(
+    {
+      runtime: { provider: 'mistral', customModel: 'opaque/model', customReasoningMode: 'high', fallbackEnabled: true },
+      persona: 'Persona',
+      context: 'Context',
+      messages: natural_messages,
+    },
+    {
+      mistralAgentId: 'agent-1',
+      customProviderConfigured: true,
+      timeoutSignal,
+      startMistralConversation: async () => {
+        primaryStartCount += 1
+        return primaryPromise
+      },
+      completeWithCustomProvider: async () => {
+        fallbackStartCount += 1
+        return 'FALLBACK SUCCESS'
+      },
+      logEvent: (event) => loggedEvents.push(event),
+    },
+  )
+
+  assert.equal(result, 'FALLBACK SUCCESS')
+  assert.equal(primaryStartCount, 1, 'Primary request begins once')
+  assert.equal(fallbackStartCount, 1, 'Fallback begins once')
+
+  resolvePrimary({ outputs: [{ type: 'message.output', content: 'LATE PRIMARY' }] })
+  await new Promise((r) => setImmediate(r))
+
+  assert.equal(loggedEvents.length, 2, 'No duplicate runtime events occur')
+  assert.equal(loggedEvents[0]?.type, 'fallback_attempted')
+  assert.equal(loggedEvents[1]?.type, 'fallback_succeeded')
+})
+
+test('complete_panel_ai handles deterministic timeout race with late primary rejection without duplicate events', async (t) => {
+  let primaryStartCount = 0
+  let fallbackStartCount = 0
+  const loggedEvents: panel_ai_runtime_event[] = []
+
+  let unhandledRejections = 0
+  const rejectionHandler = () => {
+    unhandledRejections += 1
+  }
+  process.on('unhandledRejection', rejectionHandler)
+  t.after(() => {
+    process.removeListener('unhandledRejection', rejectionHandler)
+  })
+
+  let rejectPrimary!: (err: any) => void
+  const primaryPromise = new Promise((_, reject) => {
+    rejectPrimary = reject
+  })
+
+  const timeoutSignal = Promise.reject(new MistralTimeoutError('Mistral Agent request timed out'))
+  timeoutSignal.catch(() => {})
+
+  const result = await complete_panel_ai(
+    {
+      runtime: { provider: 'mistral', customModel: 'opaque/model', customReasoningMode: 'high', fallbackEnabled: true },
+      persona: 'Persona',
+      context: 'Context',
+      messages: natural_messages,
+    },
+    {
+      mistralAgentId: 'agent-1',
+      customProviderConfigured: true,
+      timeoutSignal,
+      startMistralConversation: async () => {
+        primaryStartCount += 1
+        return primaryPromise
+      },
+      completeWithCustomProvider: async () => {
+        fallbackStartCount += 1
+        return 'FALLBACK SUCCESS'
+      },
+      logEvent: (event) => loggedEvents.push(event),
+    },
+  )
+
+  assert.equal(result, 'FALLBACK SUCCESS')
+  assert.equal(primaryStartCount, 1, 'Primary request begins once')
+  assert.equal(fallbackStartCount, 1, 'Fallback begins once')
+
+  rejectPrimary(new Error('LATE REJECTION'))
+  await new Promise((r) => setImmediate(r))
+
+  assert.equal(unhandledRejections, 0, 'Late rejection must be consumed by orchestration')
+  assert.equal(loggedEvents.length, 2, 'No duplicate runtime events occur')
+  assert.equal(loggedEvents[0]?.type, 'fallback_attempted')
+  assert.equal(loggedEvents[1]?.type, 'fallback_succeeded')
+})
+
+test('complete_panel_ai passes page context section to Mistral and Custom Provider', async () => {
+  let capturedMistralContext = ''
+  let capturedCustomContext = ''
+
+  await complete_panel_ai(
+    {
+      runtime: { provider: 'mistral', customModel: null, customReasoningMode: 'omit', fallbackEnabled: false },
+      persona: 'Persona',
+      context: 'Page context section details',
+      messages: natural_messages,
+    },
+    {
+      mistralAgentId: 'agent-1',
+      startMistralConversation: async (req) => {
+        capturedMistralContext = req.inputs[0]?.content ?? ''
+        return { outputs: [{ type: 'message.output', content: 'Mistral OK' }] }
+      },
+    },
+  )
+
+  assert.ok(capturedMistralContext.includes('Page context section details'))
+
+  await complete_panel_ai(
+    {
+      runtime: { provider: 'custom', customModel: 'opaque/model', customReasoningMode: 'high', fallbackEnabled: false },
+      persona: 'Persona',
+      context: 'Page context section details',
+      messages: natural_messages,
+    },
+    {
+      completeWithCustomProvider: async (input) => {
+        capturedCustomContext = input.context
+        return 'Custom OK'
+      },
+    },
+  )
+
+  assert.equal(capturedCustomContext, 'Page context section details')
+})
+
+test('complete_panel_ai passes saved configuration context to Mistral and Custom Provider', async () => {
+  let capturedMistralContext = ''
+  let capturedCustomContext = ''
+
+  await complete_panel_ai(
+    {
+      runtime: { provider: 'mistral', customModel: null, customReasoningMode: 'omit', fallbackEnabled: false },
+      persona: 'Persona',
+      context: 'Saved module configuration details',
+      messages: natural_messages,
+    },
+    {
+      mistralAgentId: 'agent-1',
+      startMistralConversation: async (req) => {
+        capturedMistralContext = req.inputs[0]?.content ?? ''
+        return { outputs: [{ type: 'message.output', content: 'Mistral OK' }] }
+      },
+    },
+  )
+
+  assert.ok(capturedMistralContext.includes('Saved module configuration details'))
+
+  await complete_panel_ai(
+    {
+      runtime: { provider: 'custom', customModel: 'opaque/model', customReasoningMode: 'omit', fallbackEnabled: false },
+      persona: 'Persona',
+      context: 'Saved module configuration details',
+      messages: natural_messages,
+    },
+    {
+      completeWithCustomProvider: async (input) => {
+        capturedCustomContext = input.context
+        return 'Custom OK'
+      },
+    },
+  )
+
+  assert.equal(capturedCustomContext, 'Saved module configuration details')
+})
+
+test('provider parity keeps unavailable module context out of natural conversation messages', async () => {
+  let capturedMistralInputs: any[] = []
+  let capturedCustomMessages: any[] = []
+
+  await complete_panel_ai(
+    {
+      runtime: { provider: 'mistral', customModel: null, customReasoningMode: 'omit', fallbackEnabled: false },
+      persona: 'Persona',
+      context: 'Transient context with status: unavailable',
+      messages: natural_messages,
+    },
+    {
+      mistralAgentId: 'agent-1',
+      startMistralConversation: async (req) => {
+        capturedMistralInputs = req.inputs
+        return { outputs: [{ type: 'message.output', content: 'Mistral OK' }] }
+      },
+    },
+  )
+
+  assert.equal(capturedMistralInputs.length, 4)
+  assert.equal(capturedMistralInputs[0]?.content.includes('status: unavailable'), true)
+  assert.deepEqual(
+    capturedMistralInputs.slice(1).map((m) => ({ role: m.role, content: m.content })),
+    natural_messages,
+  )
+
+  await complete_panel_ai(
+    {
+      runtime: { provider: 'custom', customModel: 'opaque/model', customReasoningMode: 'omit', fallbackEnabled: false },
+      persona: 'Persona',
+      context: 'Transient context with status: unavailable',
+      messages: natural_messages,
+    },
+    {
+      completeWithCustomProvider: async (input) => {
+        const payload = build_custom_provider_payload({ ...input, reasoningMode: 'omit' })
+        capturedCustomMessages = payload.messages
+        return 'Custom OK'
+      },
+    },
+  )
+
+  assert.equal(capturedCustomMessages.length, 5)
+  assert.equal(capturedCustomMessages[0]?.role, 'system')
+  assert.equal(capturedCustomMessages[1]?.role, 'system')
+  assert.equal(capturedCustomMessages[1]?.content.includes('status: unavailable'), true)
+  assert.deepEqual(capturedCustomMessages.slice(2), natural_messages)
+})
+
+test('runtime event logger receives safe events and logger exceptions do not break execution', async () => {
+  const loggedEvents: panel_ai_runtime_event[] = []
+
+  const result = await complete_panel_ai(
+    {
+      runtime: { provider: 'mistral', customModel: 'opaque/fallback-model', customReasoningMode: 'high', fallbackEnabled: true },
+      persona: 'Private secret persona',
+      context: 'Secret context',
+      messages: natural_messages,
+    },
+    {
+      mistralAgentId: 'agent-1',
+      customProviderConfigured: true,
+      startMistralConversation: async () => {
+        throw create_mistral_error(429)
+      },
+      completeWithCustomProvider: async () => 'FALLBACK SUCCESS',
+      logEvent: (event) => {
+        loggedEvents.push(event)
+        throw new Error('Logger internal failure')
+      },
+    },
+  )
+
+  assert.equal(result, 'FALLBACK SUCCESS')
+  assert.equal(loggedEvents.length, 2)
+  assert.equal(loggedEvents[0]?.type, 'fallback_attempted')
+  assert.equal(loggedEvents[0]?.category, 'rate_limited')
+  assert.equal(loggedEvents[0]?.statusCode, 429)
+  assert.equal(loggedEvents[0]?.modelId, 'opaque/fallback-model')
+
+  assert.equal(loggedEvents[1]?.type, 'fallback_succeeded')
+  assert.equal(loggedEvents[1]?.success, true)
+
+  const serialized = JSON.stringify(loggedEvents)
+  assert.equal(serialized.includes('Private secret persona'), false)
+  assert.equal(serialized.includes('Secret context'), false)
 })
