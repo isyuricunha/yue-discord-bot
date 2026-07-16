@@ -37,7 +37,7 @@ function create_provider(
 		api_key: "",
 		fetch_json: successful_request(),
 		timeout_ms: 90_000,
-		system_prompt: async () => "Yue persona",
+		system_prompt: async () => "Configured Discord persona",
 		...overrides,
 	});
 }
@@ -91,7 +91,7 @@ test("CustomTextProvider preserves exact model, message order, and timeout", asy
 		api_key: " secret-key ",
 		fetch_json: successful_request(capture),
 		timeout_ms: 12_345,
-		system_prompt: async () => "  Yue custom persona  ",
+		system_prompt: async () => "  Configured custom persona  ",
 	});
 	const history = [
 		{ role: "user" as const, content: "Previous question" },
@@ -122,7 +122,7 @@ test("CustomTextProvider preserves exact model, message order, and timeout", asy
 	assert.equal(Object.hasOwn(payload, "thinking"), false);
 
 	assert.deepEqual(payload.messages, [
-		{ role: "system", content: "Yue custom persona" },
+		{ role: "system", content: "Configured custom persona" },
 		{
 			role: "system",
 			content: assert_contract(
@@ -140,7 +140,7 @@ function assert_contract(
 	capability: "text" | "image_generation" | "web_search"
 ): string {
 	for (const required of [
-		"You are Yue.",
+		"Follow the identity, personality, and behavior defined by the configured system prompt.",
 		"Reply in the same language as the user.",
 		"text-only mode",
 		"Never claim that web search was performed.",
@@ -152,19 +152,25 @@ function assert_contract(
 		assert.equal(contract.includes(required), true, required);
 	}
 
+	assert.equal(contract.includes("Yue"), false);
+	assert.equal(contract.includes("Ella"), false);
+
 	if (capability === "image_generation") {
-		assert.equal(contract.includes("do not claim an image exists"), true);
+		assert.equal(contract.includes("Do not claim an image exists"), true);
 		assert.equal(contract.includes("image-generation prompt"), true);
 	}
 	if (capability === "web_search") {
-		assert.equal(contract.includes("do not claim live results were retrieved"), true);
+		assert.equal(contract.includes("Do not claim live results were retrieved"), true);
 		assert.equal(
-			contract.includes("do not fabricate fresh facts or source URLs"),
+			contract.includes("Do not fabricate fresh facts or source URLs"),
 			true
 		);
 	}
 	if (capability === "text") {
-		assert.equal(contract.includes("answer normally as Yue"), true);
+		assert.equal(
+			contract.includes("following the configured system prompt"),
+			true
+		);
 	}
 	return contract;
 }
@@ -186,7 +192,7 @@ test("CustomTextProvider adds capability-specific code-owned contracts", async (
 
 		await provider.create_text_completion({ ...base_input, capability });
 		assert.ok(payload);
-		assert.equal(payload.messages?.[0]?.content, "Yue persona");
+		assert.equal(payload.messages?.[0]?.content, "Configured Discord persona");
 		assert_contract(payload.messages?.[1]?.content ?? "", capability);
 		assert.equal(payload.messages?.at(-1)?.content, "Current question");
 	}

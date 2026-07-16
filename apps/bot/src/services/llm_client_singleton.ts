@@ -5,9 +5,9 @@ import {
 	get_discord_ai_chat_timeout_ms,
 	request_json,
 } from "./custom_text_provider";
+import { load_discord_ai_system_prompt } from "./discord_ai_system_prompt";
 import { LlmClient } from "./llm_client";
 import { MistralClient } from "./mistral.service";
-import { load_yue_persona } from "./yue_persona";
 
 let cached: LlmClient | null | undefined;
 
@@ -82,7 +82,7 @@ export function get_llm_client(): LlmClient | null {
 			api_key: process.env.CUSTOM_PROVIDER_API_KEY ?? "",
 			fetch_json: request_json,
 			timeout_ms: get_discord_ai_chat_timeout_ms(),
-			system_prompt: load_yue_persona,
+			system_prompt: load_discord_ai_system_prompt,
 		});
 	}
 

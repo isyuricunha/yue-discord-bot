@@ -63,7 +63,7 @@ export default function OwnerPanelAiPage() {
         sensitiveContextEnabled: sensitive,
       }),
     onSuccess: () => {
-      toast_success('Configuração da Ella atualizada.', 'Owner')
+      toast_success('Configuração do assistente atualizada.', 'Owner')
       queryClient.invalidateQueries({ queryKey: ['owner', 'panel-ai'] })
     },
     onError: (error: any) => toast_error(error.response?.data?.error || 'Não foi possível salvar.', 'Owner'),
@@ -109,7 +109,7 @@ export default function OwnerPanelAiPage() {
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
       <div>
-        <h1 className="text-2xl font-bold">Ella no Painel</h1>
+        <h1 className="text-2xl font-bold">Assistente do Painel</h1>
         <p className="mt-1 text-sm text-muted-foreground">
           Runtime global, exclusivo do Owner. Alterações reiniciam as conversas ativas.
         </p>
@@ -169,50 +169,50 @@ export default function OwnerPanelAiPage() {
           </div>
 
           {provider === 'mistral' && (
-              <div className="space-y-2 border-t border-border pt-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="font-semibold">Fallback de texto</div>
-                    <div className="text-sm text-muted-foreground">
-                      Usado quando o Agent principal estiver indisponível ou em limite de cota. Usa o modelo selecionado do Custom Provider. A Ella continua sendo uma assistente de texto. Os administradores do servidor não veem detalhes de infraestrutura.
-                    </div>
+            <div className="space-y-2 border-t border-border pt-4">
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <div className="font-semibold">Fallback de texto</div>
+                  <div className="text-sm text-muted-foreground">
+                    Usado quando o Agent principal estiver indisponível ou em limite de cota. Usa o modelo selecionado do Custom Provider. O assistente continua operando somente em texto. Os administradores do servidor não veem detalhes de infraestrutura.
                   </div>
-                  <Switch
-                    label="Fallback de texto"
-                    checked={fallbackEnabled}
-                    onCheckedChange={setFallbackEnabled}
-                    disabled={!customConfigured && !fallbackEnabled}
-                  />
                 </div>
-                {fallbackEnabled && !customConfigured && (
-                  <p className="text-xs text-amber-500 font-medium">
-                    O Custom Provider não está configurado por ambiente. O fallback está desativado na prática até que as variáveis de ambiente sejam definidas.
-                  </p>
-                )}
+                <Switch
+                  label="Fallback de texto"
+                  checked={fallbackEnabled}
+                  onCheckedChange={setFallbackEnabled}
+                  disabled={!customConfigured && !fallbackEnabled}
+                />
               </div>
+              {fallbackEnabled && !customConfigured && (
+                <p className="text-xs text-amber-500 font-medium">
+                  O Custom Provider não está configurado por ambiente. O fallback está desativado na prática até que as variáveis de ambiente sejam definidas.
+                </p>
+              )}
+            </div>
           )}
 
-              <div className="space-y-2 border-t border-border pt-4">
-                <div className="flex items-center justify-between gap-4">
-                  <div>
-                    <div className="font-semibold">Yue no Discord</div>
-                    <div className="text-sm text-muted-foreground">
-                      Quando a Mistral não estiver disponível, a Yue poderá responder somente em texto pelo Custom Provider. Pesquisa, geração de imagens, ferramentas, anexos e fontes não são executados nesse modo.
-                    </div>
-                  </div>
-                  <Switch
-                    label="Fallback de texto da Yue"
-                    checked={discordTextFallbackEnabled}
-                    onCheckedChange={setDiscordTextFallbackEnabled}
-                    disabled={!customConfigured && !discordTextFallbackEnabled}
-                  />
+          <div className="space-y-2 border-t border-border pt-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="font-semibold">Assistente do Discord</div>
+                <div className="text-sm text-muted-foreground">
+                  Quando a Mistral não estiver disponível, o assistente poderá responder somente em texto pelo Custom Provider. Pesquisa, geração de imagens, ferramentas, anexos e fontes não são executados nesse modo.
                 </div>
-                {discordTextFallbackEnabled && !customConfigured && (
-                  <p className="text-xs text-amber-500 font-medium">
-                    O Custom Provider não está configurado por ambiente. O fallback está desativado na prática até que as variáveis de ambiente sejam definidas.
-                  </p>
-                )}
               </div>
+              <Switch
+                label="Fallback de texto do Discord"
+                checked={discordTextFallbackEnabled}
+                onCheckedChange={setDiscordTextFallbackEnabled}
+                disabled={!customConfigured && !discordTextFallbackEnabled}
+              />
+            </div>
+            {discordTextFallbackEnabled && !customConfigured && (
+              <p className="text-xs text-amber-500 font-medium">
+                O Custom Provider não está configurado por ambiente. O fallback está desativado na prática até que as variáveis de ambiente sejam definidas.
+              </p>
+            )}
+          </div>
 
           {showCustomControls && (
             <div className="space-y-4 border-t border-border pt-4">

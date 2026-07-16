@@ -6,7 +6,7 @@ import { tmpdir } from 'node:os'
 
 import { load_custom_provider_system_prompt, reset_prompt_cache_for_tests, CUSTOM_PROVIDER_FALLBACK_PROMPT } from './prompt_loader'
 
-const tmp_dir = join(tmpdir(), 'yue-panel-ai-prompt-test')
+const tmp_dir = join(tmpdir(), 'panel-ai-prompt-test')
 
 test.before(() => {
   mkdirSync(tmp_dir, { recursive: true })
@@ -20,22 +20,24 @@ test.beforeEach(() => {
   reset_prompt_cache_for_tests()
 })
 
-test('returns the fallback persona when no path is configured', () => {
+test('returns a provider-neutral fallback prompt when no path is configured', () => {
   const prompt = load_custom_provider_system_prompt('')
   assert.equal(prompt, CUSTOM_PROVIDER_FALLBACK_PROMPT)
-  assert.ok(prompt.includes('You are Ella'))
+  assert.ok(prompt.includes('configured panel assistant'))
   assert.ok(prompt.includes('Never invent'))
   assert.ok(prompt.includes('cannot confirm'))
+  assert.equal(prompt.includes('Ella'), false)
+  assert.equal(prompt.includes('Yue'), false)
 })
 
-test('loads a custom persona from file and caches it', () => {
+test('loads a custom system prompt from file and caches it', () => {
   const file_path = join(tmp_dir, 'custom_prompt.txt')
-  writeFileSync(file_path, 'You are a custom version of Ella.', 'utf-8')
+  writeFileSync(file_path, 'You are the configured panel assistant.', 'utf-8')
 
   const first = load_custom_provider_system_prompt(file_path)
   const second = load_custom_provider_system_prompt(file_path)
 
-  assert.equal(first, 'You are a custom version of Ella.')
+  assert.equal(first, 'You are the configured panel assistant.')
   assert.equal(second, first, 'cached value must be identical')
 })
 

@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs'
 
 const CUSTOM_PROVIDER_FALLBACK_PROMPT = [
-  'You are Ella, the panel assistant for a Discord bot named Yue.',
+  'You are the configured panel assistant for this Discord bot.',
   'Reply in the same language as the user. Be warm, practical, concise, and honest.',
-  'Help only with Yue, the panel, and the current guild.',
+  'Help only with the bot, the panel, and the current guild.',
   'Never invent commands, pages, settings, or features.',
   'When data is not available in the provided context, say clearly that you cannot confirm.',
   'Never claim an action was executed unless the panel explicitly confirms it.',
@@ -28,12 +28,12 @@ function safe_warn(message: string) {
  * different paths can re-read without interference.
  *
  * When the file is missing, empty, or unreadable, a safe functional fallback
- * persona is returned. Only a non-sensitive warning is logged; the prompt file
+ * prompt is returned. Only a non-sensitive warning is logged; the prompt file
  * path and content are never exposed.
  *
  * This function should only be called when the Custom Provider is the active
- * runtime. When the Mistral Agent is active, the persona is not loaded from
- * file and no warning is emitted.
+ * runtime. When the Mistral Agent is active, the system prompt is not loaded
+ * from file and no warning is emitted.
  */
 export function load_custom_provider_system_prompt(path: string): string {
   if (cached_prompt !== null && cached_path === path) return cached_prompt
@@ -50,7 +50,7 @@ export function load_custom_provider_system_prompt(path: string): string {
     if (raw.trim().length === 0) {
       cached_path = path
       cached_prompt = CUSTOM_PROVIDER_FALLBACK_PROMPT
-      safe_warn('[panel-ai] Prompt file is empty; using fallback persona')
+      safe_warn('[panel-ai] Prompt file is empty; using fallback system prompt')
     } else {
       cached_path = path
       cached_prompt = raw.trim()
@@ -58,7 +58,7 @@ export function load_custom_provider_system_prompt(path: string): string {
   } catch {
     cached_path = path
     cached_prompt = CUSTOM_PROVIDER_FALLBACK_PROMPT
-    safe_warn('[panel-ai] Prompt file is not available; using fallback persona')
+    safe_warn('[panel-ai] Prompt file is not available; using fallback system prompt')
   }
 
   return cached_prompt

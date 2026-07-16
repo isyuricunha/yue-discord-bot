@@ -6,7 +6,7 @@ import {
 	type custom_provider_reasoning_mode,
 } from "@yuebot/shared";
 
-import { build_text_only_contract } from "./yue_persona";
+import { build_text_only_contract } from "./discord_ai_system_prompt";
 
 export const DEFAULT_DISCORD_AI_CHAT_TIMEOUT_MS = 90_000;
 export const MIN_DISCORD_AI_CHAT_TIMEOUT_MS = 1_000;
@@ -111,16 +111,16 @@ export class CustomTextProvider {
 		}
 		if (!endpoint) throw new CustomTextProviderError();
 
-		let persona: string;
+		let systemPrompt: string;
 		try {
-			persona = (await this.deps.system_prompt()).trim();
+			systemPrompt = (await this.deps.system_prompt()).trim();
 		} catch {
 			throw new CustomTextProviderError();
 		}
-		if (!persona) throw new CustomTextProviderError();
+		if (!systemPrompt) throw new CustomTextProviderError();
 
 		const messages: custom_provider_message[] = [
-			{ role: "system", content: persona },
+			{ role: "system", content: systemPrompt },
 			{
 				role: "system",
 				content: build_text_only_contract(input.capability),
