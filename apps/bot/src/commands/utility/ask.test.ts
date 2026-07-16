@@ -1,71 +1,134 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { askCommand } from './ask';
-import { reset_llm_client_singleton_for_tests, get_llm_client } from '../../services/llm_client_singleton';
-import { create_llm_client_for_tests, DiscordAiUnavailableError } from '../../services/llm_client';
+import assert from "node:assert/strict";
+import test from "node:test";
 
-test('askCommand handles Custom fallback success without model/provider exposure', async () => {
-  let repliedContent = '';
-  let deferred = false;
+import type { ChatInputCommandInteraction } from "discord.js";
 
-  const mockInteraction: any = {
-    options: {
-      getString: () => 'What is the capital of France?',
-    },
-    deferReply: async () => { deferred = true; },
-    editReply: async (payload: any) => { repliedContent = payload.content; },
-    followUp: async () => {},
-  };
+import { create_llm_client_for_tests } from "../../services/llm_client";
+import { createAskCommand } from "./ask";
 
-  // Mock get_llm_client using singleton bypass or test client setup
-  const mockClient = create_llm_client_for_tests({
-    mistral: {
-      create_completion: async () => { throw new Error('Mistral 429'); },
-    },
-    customTextProvider: {
-      create_text_completion: async () => ({ content: 'Paris is the capital of France.' }),
-    },
-  });
+function create_interaction(question: string) {
+	const replies: unknown[] = [];
+	const followUps: unknown[] = [];
+	let deferred = false;
 
-  // Inject mock client
-  const origEnv = process.env.CUSTOM_PROVIDER_BASE_URL;
-  process.env.CUSTOM_PROVIDER_BASE_URL = 'http://localhost:8080';
-  reset_llm_client_singleton_for_tests();
+	const interaction = {
+		options: { getString: () => question },
+		reply: async (payload: unknown) => {
+			replies.push(payload);
+		},
+		deferReply: async () => {
+			deferred = true;
+		},
+		editReply: async (payload: unknown) => {
+			replies.push(payload);
+		},
+		followUp: async (payload: unknown) => {
+			followUps.push(payload);
+		},
+	} as unknown as ChatInputCommandInteraction;
 
-  try {
-    await askCommand.execute(mockInteraction);
-    assert.equal(deferred, true);
-    assert.ok(repliedContent.includes('Paris is the capital of France.'));
-    assert.equal(repliedContent.includes('custom'), false);
-    assert.equal(repliedContent.includes('mistral'), false);
-    assert.equal(repliedContent.includes('opaque'), false);
-  } finally {
-    if (origEnv !== undefined) process.env.CUSTOM_PROVIDER_BASE_URL = origEnv;
-    else delete process.env.CUSTOM_PROVIDER_BASE_URL;
-    reset_llm_client_singleton_for_tests();
-  }
+	return {
+		interaction,
+		replies,
+		followUps,
+		wasDeferred: () => deferred,
+	};
+}
+
+test("ask command posts Custom text without files or runtime metadata", async () => {
+	let capturedInput: unknown = null;
+	const client = create_llm_client_for_tests({
+		mistral: null,
+		customTextProvider: {
+			create_text_completion: async (input) => {
+				capturedInput = input;
+				return { content: "Paris is the capital of France." };
+			},
+		},
+	});
+	const command = createAskCommand({ getLlmClient: () => client });
+	const state = create_interaction("What is the capital of France?");
+
+	await command.execute(state.interaction);
+
+	assert.equal(state.wasDeferred(), true);
+	assert.deepEqual(capturedInput, {
+		user_prompt: "What is the capital of France?",
+		model: "opaque-test-model",
+		reasoning_mode: "omit",
+		capability: "text",
+		history: undefined,
+	});
+	assert.equal(state.replies.length, 1);
+	const payload = state.replies[0] as { content: string; files: unknown[] };
+	assert.equal(payload.content, "Paris is the capital of France.");
+	assert.deepEqual(payload.files, []);
+	const serialized = JSON.stringify(payload).toLowerCase();
+	for (const forbidden of ["mistral", "custom", "provider", "fallback", "opaque-test-model"]) {
+		assert.equal(serialized.includes(forbidden), false);
+	}
 });
 
-test('askCommand handles generic total failure gracefully without exposing raw secrets', async () => {
-  let repliedContent = '';
+test("ask command preserves Mistral attachments and message splitting", async () => {
+	const longAnswer = "a".repeat(2_100);
+	const client = create_llm_client_for_tests({
+		mistral: {
+			create_completion: async () => ({
+				content: longAnswer,
+				attachments: [
+					{
+						filename: "generated.png",
+						content_type: "image/png",
+						data: Buffer.from("image"),
+					},
+				],
+			}),
+		},
+	});
+	const command = createAskCommand({ getLlmClient: () => client });
+	const state = create_interaction("hello");
 
-  const mockInteraction: any = {
-    options: {
-      getString: () => 'What is 2+2?',
-    },
-    deferReply: async () => {},
-    editReply: async (payload: any) => { repliedContent = payload.content; },
-  };
+	await command.execute(state.interaction);
 
-  process.env.CUSTOM_PROVIDER_BASE_URL = 'http://localhost:8080';
-  reset_llm_client_singleton_for_tests();
+	const first = state.replies[0] as { content: string; files: unknown[] };
+	assert.ok(first.content.length <= 2_000);
+	assert.equal(first.files.length, 1);
+	assert.equal(state.followUps.length, 1);
+});
 
-  try {
-    await askCommand.execute(mockInteraction);
-    assert.ok(repliedContent.includes('Erro inesperado') || repliedContent.includes('IA não autorizada') || repliedContent.includes('Erro ao consultar IA'));
-    assert.equal(repliedContent.includes('SECRET_API_KEY'), false);
-  } finally {
-    delete process.env.CUSTOM_PROVIDER_BASE_URL;
-    reset_llm_client_singleton_for_tests();
-  }
+test("ask command returns a generic unavailable response on total failure", async () => {
+	const secret = "SECRET_PROVIDER_RESPONSE";
+	const client = create_llm_client_for_tests({
+		mistral: null,
+		customTextProvider: {
+			create_text_completion: async () => {
+				throw new Error(secret);
+			},
+		},
+	});
+	const command = createAskCommand({ getLlmClient: () => client });
+	const state = create_interaction("question");
+
+	await command.execute(state.interaction);
+
+	const payload = state.replies[0] as { content: string };
+	assert.equal(payload.content.includes("IA indisponível"), true);
+	assert.equal(payload.content.includes(secret), false);
+	const serialized = JSON.stringify(payload).toLowerCase();
+	for (const forbidden of ["mistral", "custom", "provider", "fallback", "model"]) {
+		assert.equal(serialized.includes(forbidden), false);
+	}
+});
+
+test("ask command reports an unconfigured bot without external work", async () => {
+	const command = createAskCommand({ getLlmClient: () => null });
+	const state = create_interaction("question");
+
+	await command.execute(state.interaction);
+
+	assert.equal(state.wasDeferred(), true);
+	assert.equal(
+		(state.replies[0] as { content: string }).content.includes("não configurada"),
+		true
+	);
 });
