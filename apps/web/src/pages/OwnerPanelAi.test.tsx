@@ -52,16 +52,16 @@ describe('OwnerPanelAiPage', () => {
     })
   })
 
-  test('renders page title and populates initial saved settings', async () => {
+  test('renders generic page title and populates initial saved settings', async () => {
     renderComponent()
 
     await waitFor(() => {
-      expect(screen.getByText('Ella no Painel')).toBeInTheDocument()
+      expect(screen.getByText('Assistente do Painel')).toBeInTheDocument()
     })
 
     expect(screen.getByRole('button', { name: 'Runtime principal' })).toHaveTextContent('Mistral Panel Agent')
     expect(screen.getByRole('switch', { name: 'Fallback de texto' })).not.toBeChecked()
-    expect(screen.getByRole('switch', { name: 'Fallback de texto da Yue' })).not.toBeChecked()
+    expect(screen.getByRole('switch', { name: 'Fallback de texto do Discord' })).not.toBeChecked()
     expect(screen.queryByRole('button', { name: 'Modelo' })).not.toBeInTheDocument()
   })
 
@@ -227,7 +227,7 @@ describe('OwnerPanelAiPage', () => {
     const fallbackSwitch = screen.getByRole('switch', { name: 'Fallback de texto' })
     expect(fallbackSwitch).toBeDisabled()
 
-    const discordFallbackSwitch = screen.getByRole('switch', { name: 'Fallback de texto da Yue' })
+    const discordFallbackSwitch = screen.getByRole('switch', { name: 'Fallback de texto do Discord' })
     expect(discordFallbackSwitch).toBeDisabled()
   })
 
@@ -254,7 +254,7 @@ describe('OwnerPanelAiPage', () => {
     })
 
     const fallbackSwitch = screen.getByRole('switch', { name: 'Fallback de texto' })
-    const discordFallbackSwitch = screen.getByRole('switch', { name: 'Fallback de texto da Yue' })
+    const discordFallbackSwitch = screen.getByRole('switch', { name: 'Fallback de texto do Discord' })
 
     expect(screen.getAllByText(/O Custom Provider não está configurado por ambiente/i)).toHaveLength(2)
     expect(screen.getByRole('button', { name: 'Salvar configuração' })).toBeDisabled()
@@ -300,14 +300,12 @@ describe('OwnerPanelAiPage', () => {
 
     expect(screen.getByText('Não testado')).toBeInTheDocument()
 
-    // Test reasoning change resets status
     const reasoningBtn = screen.getByRole('button', { name: 'Configuração de raciocínio' })
     fireEvent.click(reasoningBtn)
     const highOption = screen.getByRole('option', { name: 'Alto' })
     fireEvent.click(highOption)
     expect(screen.getByText('Não testado')).toBeInTheDocument()
 
-    // Test model change resets status
     const modelBtn = screen.getByRole('button', { name: 'Modelo' })
     fireEvent.click(modelBtn)
     const model2Option = screen.getByRole('option', { name: 'opaque · model-2 — opaque/model-2' })
@@ -315,7 +313,7 @@ describe('OwnerPanelAiPage', () => {
     expect(screen.getByText('Não testado')).toBeInTheDocument()
   })
 
-  test('provider change resets fallback state when switching to custom', async () => {
+  test('provider change resets only the panel fallback when switching to custom', async () => {
     vi.mocked(axios.get).mockResolvedValue({
       data: {
         settings: {
@@ -348,7 +346,7 @@ describe('OwnerPanelAiPage', () => {
     fireEvent.click(customOption)
 
     expect(screen.queryByRole('switch', { name: 'Fallback de texto' })).not.toBeInTheDocument()
-    expect(screen.getByRole('switch', { name: 'Fallback de texto da Yue' })).toBeChecked()
+    expect(screen.getByRole('switch', { name: 'Fallback de texto do Discord' })).toBeChecked()
   })
 
   test('testPrimary triggers primary test request', async () => {
@@ -388,7 +386,6 @@ describe('OwnerPanelAiPage', () => {
       },
     })
 
-    // Successful test
     vi.mocked(axios.post).mockResolvedValueOnce({
       data: { success: true, result: { target: 'custom', model: 'opaque/test-model', reasoningMode: 'high', latencyMs: 18 } },
     })
@@ -411,7 +408,6 @@ describe('OwnerPanelAiPage', () => {
       customReasoningMode: 'high',
     })
 
-    // Failed test
     vi.mocked(axios.post).mockRejectedValueOnce(new Error('Test error'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Testar modelo selecionado' }))
