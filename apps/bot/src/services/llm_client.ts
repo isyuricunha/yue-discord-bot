@@ -1,11 +1,15 @@
-import type {
-	mistral_completion_input,
-	mistral_completion_result,
-} from "./mistral.service";
 import { MistralError } from "@mistralai/mistralai/models/errors";
-import { MistralApiError } from "./mistral.service";
-import type { custom_text_completion_input, custom_text_completion_result } from "./custom_text_provider";
+
 import type { AiFallbackSettings } from "./ai_fallback_settings.service";
+import type {
+	custom_text_completion_input,
+	custom_text_completion_result,
+} from "./custom_text_provider";
+import {
+	MistralApiError,
+	type mistral_completion_input,
+	type mistral_completion_result,
+} from "./mistral.service";
 
 type llm_provider = "mistral" | "custom";
 export type llm_capability = "text" | "web_search" | "image_generation";
@@ -31,241 +35,346 @@ export type llm_completion_result = {
 	}>;
 };
 
-export type RuntimeEventSink = (event: {
-    type: string;
-    primaryProvider: string;
-    fallbackProvider: string;
-    category: string;
-    statusCode: number | null;
-    success: boolean;
-    capability: string;
-}) => void;
+export type discord_ai_failure_category =
+	| "authentication"
+	| "authorization"
+	| "timeout"
+	| "rate_limited"
+	| "server_error"
+	| "transport"
+	| "not_configured"
+	| "client_error"
+	| "programming_error"
+	| "unknown";
 
-function noop_sink() {}
+export type discord_ai_failure_classification = {
+	eligible: boolean;
+	category: discord_ai_failure_category;
+	statusCode: number | null;
+};
+
+export type RuntimeEvent = {
+	type:
+		| "discord_ai_fallback_attempted"
+		| "discord_ai_fallback_succeeded"
+		| "discord_ai_fallback_failed";
+	primaryProvider: "mistral";
+	fallbackProvider: "custom";
+	category: discord_ai_failure_category;
+	statusCode: number | null;
+	success: boolean;
+	capability: llm_capability;
+};
+
+export type RuntimeEventSink = (event: RuntimeEvent) => void;
 
 export class MistralNotConfiguredError extends Error {
-  readonly code = 'MISTRAL_NOT_CONFIGURED';
-  constructor(message = 'Mistral client not configured') {
-    super(message);
-    this.name = 'MistralNotConfiguredError';
-  }
+	readonly code = "MISTRAL_NOT_CONFIGURED";
+
+	constructor() {
+		super("Mistral runtime is not configured");
+		this.name = "MistralNotConfiguredError";
+	}
 }
 
 export class MistralTimeoutError extends Error {
-  readonly code = 'MISTRAL_TIMEOUT';
-  constructor(message = 'Mistral request timed out') {
-    super(message);
-    this.name = 'MistralTimeoutError';
-  }
+	readonly code = "MISTRAL_TIMEOUT";
+
+	constructor() {
+		super("Mistral request timed out");
+		this.name = "MistralTimeoutError";
+	}
 }
 
 export class DiscordAiUnavailableError extends Error {
-  readonly name = 'DiscordAiUnavailableError';
-  constructor(
-    message = 'LLM providers unavailable',
-    public readonly statusCode: number | null = null,
-    public readonly category: string = 'unavailable'
-  ) {
-    super(message);
-  }
+	readonly category: discord_ai_failure_category | "settings_unavailable" | "fallback_unavailable";
+	readonly statusCode: number | null;
+
+	constructor(
+		category: discord_ai_failure_category | "settings_unavailable" | "fallback_unavailable" =
+			"fallback_unavailable",
+		statusCode: number | null = null
+	) {
+		super("Discord AI is unavailable");
+		this.name = "DiscordAiUnavailableError";
+		this.category = category;
+		this.statusCode = statusCode;
+	}
+}
+
+const TRANSPORT_CODES = new Set([
+	"ABORT_ERR",
+	"ECONNRESET",
+	"ETIMEDOUT",
+	"ECONNREFUSED",
+	"ENOTFOUND",
+	"EAI_AGAIN",
+]);
+
+type error_with_transport_metadata = Error & {
+	code?: unknown;
+	cause?: unknown;
+};
+
+function transport_failure(error: Error): boolean {
+	if (error.name === "AbortError") return true;
+
+	const typed = error as error_with_transport_metadata;
+	if (
+		typeof typed.code === "string" &&
+		TRANSPORT_CODES.has(typed.code.toUpperCase())
+	) {
+		return true;
+	}
+
+	return typed.cause instanceof Error ? transport_failure(typed.cause) : false;
+}
+
+function classify_status(statusCode: number): discord_ai_failure_classification {
+	if (statusCode === 401) {
+		return { eligible: true, category: "authentication", statusCode };
+	}
+	if (statusCode === 403) {
+		return { eligible: true, category: "authorization", statusCode };
+	}
+	if (statusCode === 408) {
+		return { eligible: true, category: "timeout", statusCode };
+	}
+	if (statusCode === 429) {
+		return { eligible: true, category: "rate_limited", statusCode };
+	}
+	if (statusCode >= 500 && statusCode <= 599) {
+		return { eligible: true, category: "server_error", statusCode };
+	}
+	if (statusCode >= 400 && statusCode <= 499) {
+		return { eligible: false, category: "client_error", statusCode };
+	}
+	return { eligible: false, category: "unknown", statusCode };
+}
+
+export function classify_mistral_failure(
+	error: unknown
+): discord_ai_failure_classification {
+	if (error instanceof MistralNotConfiguredError) {
+		return { eligible: true, category: "not_configured", statusCode: null };
+	}
+	if (error instanceof MistralTimeoutError) {
+		return { eligible: true, category: "timeout", statusCode: null };
+	}
+	if (error instanceof MistralError) {
+		return classify_status(error.statusCode);
+	}
+	if (error instanceof MistralApiError) {
+		return classify_status(error.status);
+	}
+	if (error instanceof Error && transport_failure(error)) {
+		return { eligible: true, category: "transport", statusCode: null };
+	}
+	if (error instanceof TypeError) {
+		return { eligible: false, category: "programming_error", statusCode: null };
+	}
+	if (error instanceof Error) {
+		return { eligible: false, category: "unknown", statusCode: null };
+	}
+	return { eligible: false, category: "unknown", statusCode: null };
 }
 
 export function is_eligible_fallback_error(error: unknown): boolean {
-    if (!error) return false;
-
-    if (error instanceof MistralNotConfiguredError || error instanceof MistralTimeoutError) {
-        return true;
-    }
-
-    if (error instanceof MistralError) {
-        const s = error.statusCode;
-        return s === 401 || s === 403 || s === 408 || s === 429 || (s >= 500 && s < 600);
-    }
-
-    if (error instanceof MistralApiError) {
-        const s = error.status;
-        return s === 401 || s === 403 || s === 408 || s === 429 || (s >= 500 && s < 600);
-    }
-
-    if (error instanceof Error) {
-        if (error instanceof TypeError) return false;
-        const known_codes = ['ABORTERROR', 'ABORT_ERR', 'ECONNRESET', 'ETIMEDOUT', 'ECONNREFUSED', 'ENOTFOUND', 'EAI_AGAIN'];
-        const err = error as Error & { code?: unknown };
-        const name = err.name ? err.name.toUpperCase() : '';
-        const code = typeof err.code === 'string' ? err.code.toUpperCase() : '';
-
-        if (known_codes.includes(name) || known_codes.includes(code)) {
-            return true;
-        }
-    }
-
-    return false;
+	return classify_mistral_failure(error).eligible;
 }
 
 export interface LlmMistralProvider {
-  create_completion(input: mistral_completion_input): Promise<mistral_completion_result>;
+	create_completion(
+		input: mistral_completion_input
+	): Promise<mistral_completion_result>;
 }
 
 export interface LlmCustomProvider {
-  create_text_completion(input: custom_text_completion_input): Promise<custom_text_completion_result>;
+	create_text_completion(
+		input: custom_text_completion_input
+	): Promise<custom_text_completion_result>;
 }
 
 export type AiFallbackSettingsLoader = () => Promise<AiFallbackSettings>;
 export type TimeoutMsProvider = () => number;
 
+export type TimeoutHandle = {
+	promise: Promise<never>;
+	cancel: () => void;
+};
+
+export type TimeoutFactory = (timeoutMs: number) => TimeoutHandle;
+
+export function create_mistral_timeout(timeoutMs: number): TimeoutHandle {
+	let timer: ReturnType<typeof setTimeout> | null = null;
+	const promise = new Promise<never>((_, reject) => {
+		timer = setTimeout(() => reject(new MistralTimeoutError()), timeoutMs);
+	});
+
+	return {
+		promise,
+		cancel: () => {
+			if (timer !== null) {
+				clearTimeout(timer);
+				timer = null;
+			}
+		},
+	};
+}
+
+function emit_event(sink: RuntimeEventSink | undefined, event: RuntimeEvent): void {
+	if (!sink) return;
+	try {
+		sink(event);
+	} catch {
+		// Telemetry must never alter the Discord response path.
+	}
+}
+
 export class LlmClient {
 	constructor(
 		private readonly deps: {
-            mistral?: LlmMistralProvider | null;
-            customTextProvider?: LlmCustomProvider | null;
-            load_settings: AiFallbackSettingsLoader;
-            timeout_ms: TimeoutMsProvider;
-            event_sink?: RuntimeEventSink;
-        }
+			mistral?: LlmMistralProvider | null;
+			customTextProvider?: LlmCustomProvider | null;
+			load_settings: AiFallbackSettingsLoader;
+			timeout_ms: TimeoutMsProvider;
+			create_timeout?: TimeoutFactory;
+			event_sink?: RuntimeEventSink;
+		}
 	) {}
+
+	private async complete_with_mistral(
+		input: mistral_completion_input
+	): Promise<mistral_completion_result> {
+		if (!this.deps.mistral) throw new MistralNotConfiguredError();
+
+		const callPromise = this.deps.mistral.create_completion(input);
+		void callPromise.catch(() => undefined);
+
+		const timeout = (this.deps.create_timeout ?? create_mistral_timeout)(
+			this.deps.timeout_ms()
+		);
+
+		try {
+			return await Promise.race([callPromise, timeout.promise]);
+		} finally {
+			timeout.cancel();
+		}
+	}
 
 	async create_completion(
 		input: llm_completion_input
 	): Promise<llm_completion_result> {
-		const capability = input.capability ?? 'text';
+		const capability = input.capability ?? "text";
 		const mistralInput: mistral_completion_input = {
 			user_prompt: input.mistral_prompt ?? input.user_prompt,
 			prefer_image_generation: input.prefer_image_generation,
 			history: input.history,
 		};
 
-        let mistral_error: unknown = null;
-        let mistral_result: mistral_completion_result | null = null;
+		let classification: discord_ai_failure_classification;
 
-        if (this.deps.mistral) {
-            const mistralPromise = this.deps.mistral.create_completion(mistralInput);
-            mistralPromise.catch(() => {});
+		try {
+			const result = await this.complete_with_mistral(mistralInput);
+			return {
+				content: result.content,
+				provider: "mistral",
+				attachments: result.attachments,
+			};
+		} catch (error: unknown) {
+			classification = classify_mistral_failure(error);
+		}
 
-            let timerId: ReturnType<typeof setTimeout> | undefined;
-            const timeoutMs = this.deps.timeout_ms();
-            const timeoutPromise = new Promise<never>((_, reject) => {
-                timerId = setTimeout(() => {
-                    reject(new MistralTimeoutError());
-                }, timeoutMs);
-            });
+		if (!classification.eligible) {
+			throw new DiscordAiUnavailableError(
+				classification.category,
+				classification.statusCode
+			);
+		}
 
-            try {
-                mistral_result = await Promise.race([mistralPromise, timeoutPromise]);
-            } catch (err: unknown) {
-                mistral_error = err;
-            } finally {
-                if (timerId !== undefined) {
-                    clearTimeout(timerId);
-                }
-            }
-        } else {
-            mistral_error = new MistralNotConfiguredError();
-        }
+		let settings: AiFallbackSettings;
+		try {
+			settings = await this.deps.load_settings();
+		} catch {
+			throw new DiscordAiUnavailableError("settings_unavailable");
+		}
 
-        if (mistral_result) {
-            return {
-                content: mistral_result.content,
-                provider: "mistral",
-                attachments: mistral_result.attachments,
-            };
-        }
+		const model = settings.customProviderModel?.trim() || null;
+		if (
+			!settings.discordAiTextFallbackEnabled ||
+			!model ||
+			!this.deps.customTextProvider
+		) {
+			throw new DiscordAiUnavailableError(
+				classification.category,
+				classification.statusCode
+			);
+		}
 
-        if (is_eligible_fallback_error(mistral_error)) {
-            let settings: AiFallbackSettings;
-            try {
-                settings = await this.deps.load_settings();
-            } catch {
-                throw new DiscordAiUnavailableError();
-            }
+		const eventBase = {
+			primaryProvider: "mistral" as const,
+			fallbackProvider: "custom" as const,
+			category: classification.category,
+			statusCode: classification.statusCode,
+			capability,
+		};
 
-            if (settings.discordAiTextFallbackEnabled && settings.customProviderModel && this.deps.customTextProvider) {
-                const statusCode = mistral_error instanceof MistralError
-                    ? mistral_error.statusCode
-                    : mistral_error instanceof MistralApiError
-                    ? mistral_error.status
-                    : null;
+		emit_event(this.deps.event_sink, {
+			...eventBase,
+			type: "discord_ai_fallback_attempted",
+			success: false,
+		});
 
-                try {
-                    this.deps.event_sink?.({
-                        type: 'discord_ai_fallback_attempted',
-                        primaryProvider: 'mistral',
-                        fallbackProvider: 'custom',
-                        category: 'availability',
-                        statusCode,
-                        success: false,
-                        capability
-                    });
-                } catch {
-                    // ignore logging errors
-                }
+		try {
+			const fallback = await this.deps.customTextProvider.create_text_completion({
+				user_prompt: input.user_prompt,
+				model,
+				reasoning_mode: settings.customProviderReasoningMode,
+				capability,
+				history: input.history,
+			});
 
-                try {
-                    const fallback_result = await this.deps.customTextProvider.create_text_completion({
-                        user_prompt: input.user_prompt,
-                        model: settings.customProviderModel,
-                        reasoning_mode: settings.customProviderReasoningMode,
-                        capability,
-                        history: input.history,
-                    });
+			emit_event(this.deps.event_sink, {
+				...eventBase,
+				type: "discord_ai_fallback_succeeded",
+				success: true,
+			});
 
-                    try {
-                        this.deps.event_sink?.({
-                            type: 'discord_ai_fallback_succeeded',
-                            primaryProvider: 'mistral',
-                            fallbackProvider: 'custom',
-                            category: 'availability',
-                            statusCode,
-                            success: true,
-                            capability
-                        });
-                    } catch {
-                        // ignore logging errors
-                    }
-
-                    return {
-                        content: fallback_result.content,
-                        provider: "custom",
-                    };
-                } catch {
-                    try {
-                        this.deps.event_sink?.({
-                            type: 'discord_ai_fallback_failed',
-                            primaryProvider: 'mistral',
-                            fallbackProvider: 'custom',
-                            category: 'availability',
-                            statusCode,
-                            success: false,
-                            capability
-                        });
-                    } catch {
-                        // ignore logging errors
-                    }
-
-                    throw new DiscordAiUnavailableError();
-                }
-            }
-        }
-
-        throw new DiscordAiUnavailableError();
+			return {
+				content: fallback.content,
+				provider: "custom",
+			};
+		} catch {
+			emit_event(this.deps.event_sink, {
+				...eventBase,
+				type: "discord_ai_fallback_failed",
+				success: false,
+			});
+			throw new DiscordAiUnavailableError("fallback_unavailable");
+		}
 	}
 }
 
 export function create_llm_client_for_tests(input: {
 	mistral?: LlmMistralProvider | null;
 	customTextProvider?: LlmCustomProvider | null;
-    load_settings?: AiFallbackSettingsLoader;
-    timeout_ms?: TimeoutMsProvider;
-    event_sink?: RuntimeEventSink;
+	load_settings?: AiFallbackSettingsLoader;
+	timeout_ms?: TimeoutMsProvider;
+	create_timeout?: TimeoutFactory;
+	event_sink?: RuntimeEventSink;
 }): LlmClient {
 	return new LlmClient({
-        mistral: input.mistral ?? null,
-        customTextProvider: input.customTextProvider ?? null,
-        load_settings: input.load_settings ?? (async () => ({
-            discordAiTextFallbackEnabled: true,
-            customProviderModel: 'opaque-test-model',
-            customProviderReasoningMode: 'omit'
-        })),
-        timeout_ms: input.timeout_ms ?? (() => 1000),
-        event_sink: input.event_sink ?? noop_sink
-    });
+		mistral: input.mistral ?? null,
+		customTextProvider: input.customTextProvider ?? null,
+		load_settings:
+			input.load_settings ??
+			(async () => ({
+				discordAiTextFallbackEnabled: true,
+				customProviderModel: "opaque-test-model",
+				customProviderReasoningMode: "omit",
+			})),
+		timeout_ms: input.timeout_ms ?? (() => 90_000),
+		create_timeout: input.create_timeout,
+		event_sink: input.event_sink,
+	});
 }
