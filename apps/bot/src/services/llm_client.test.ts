@@ -1,302 +1,573 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import {
-  LlmClient,
-  create_llm_client_for_tests,
-  is_eligible_fallback_error,
-  MistralNotConfiguredError,
-  MistralTimeoutError,
-  DiscordAiUnavailableError,
-} from './llm_client';
-import { MistralError } from '@mistralai/mistralai/models/errors';
-import { MistralApiError } from './mistral.service';
+import assert from "node:assert/strict";
+import test from "node:test";
 
-function create_fake_mistral_sdk_error(statusCode: number): MistralError {
-  const fakeResponse = new Response('{}', { status: statusCode, headers: { 'content-type': 'application/json' } });
-  const fakeRequest = new Request('https://api.mistral.ai/v1/conversations');
-  return new MistralError('Mistral HTTP Error', { response: fakeResponse, request: fakeRequest, body: '{}' });
+import { MistralError } from "@mistralai/mistralai/models/errors";
+
+import type { custom_text_completion_input } from "./custom_text_provider";
+import {
+	classify_mistral_failure,
+	create_llm_client_for_tests,
+	DiscordAiUnavailableError,
+	is_eligible_fallback_error,
+	MistralNotConfiguredError,
+	MistralTimeoutError,
+	type RuntimeEvent,
+	type TimeoutFactory,
+} from "./llm_client";
+import { MistralApiError } from "./mistral.service";
+
+function create_fake_mistral_sdk_error(
+	statusCode: number,
+	message = "Mistral HTTP error"
+): MistralError {
+	const response = new Response("{}", {
+		status: statusCode,
+		headers: { "content-type": "application/json" },
+	});
+	const request = new Request("https://api.mistral.ai/v1/conversations");
+	return new MistralError(message, { response, request, body: "{}" });
 }
 
-test('is_eligible_fallback_error strict classification rules', () => {
-  // Ineligible values:
-  assert.equal(is_eligible_fallback_error(null), false);
-  assert.equal(is_eligible_fallback_error(undefined), false);
-  assert.equal(is_eligible_fallback_error(new Error('plain error')), false);
-  assert.equal(is_eligible_fallback_error(new TypeError('type error')), false);
-  assert.equal(is_eligible_fallback_error({ statusCode: 500 }), false);
-  assert.equal(is_eligible_fallback_error({ status: 401 }), false);
-  assert.equal(is_eligible_fallback_error({ constructor: { name: 'MistralError' }, statusCode: 500 }), false);
+function deferred<T>() {
+	let resolve!: (value: T | PromiseLike<T>) => void;
+	let reject!: (reason?: unknown) => void;
+	const promise = new Promise<T>((resolvePromise, rejectPromise) => {
+		resolve = resolvePromise;
+		reject = rejectPromise;
+	});
+	return { promise, resolve, reject };
+}
 
-  // Non-eligible SDK status codes:
-  assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(400)), false);
-  assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(404)), false);
-  assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(409)), false);
-  assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(422)), false);
-  assert.equal(is_eligible_fallback_error(new MistralApiError('400', 400, null, null)), false);
-  assert.equal(is_eligible_fallback_error(new MistralApiError('404', 404, null, null)), false);
-
-  // Eligible application errors:
-  assert.equal(is_eligible_fallback_error(new MistralNotConfiguredError()), true);
-  assert.equal(is_eligible_fallback_error(new MistralTimeoutError()), true);
-
-  // Eligible SDK status codes:
-  assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(401)), true);
-  assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(403)), true);
-  assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(408)), true);
-  assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(429)), true);
-  assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(500)), true);
-  assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(503)), true);
-
-  assert.equal(is_eligible_fallback_error(new MistralApiError('401', 401, null, null)), true);
-  assert.equal(is_eligible_fallback_error(new MistralApiError('403', 403, null, null)), true);
-  assert.equal(is_eligible_fallback_error(new MistralApiError('408', 408, null, null)), true);
-  assert.equal(is_eligible_fallback_error(new MistralApiError('429', 429, null, null)), true);
-  assert.equal(is_eligible_fallback_error(new MistralApiError('500', 500, null, null)), true);
-
-  // Eligible transport errors on real Error instances:
-  const errReset = new Error('reset');
-  (errReset as any).code = 'ECONNRESET';
-  assert.equal(is_eligible_fallback_error(errReset), true);
-
-  const errAbort = new Error('abort');
-  errAbort.name = 'AbortError';
-  assert.equal(is_eligible_fallback_error(errAbort), true);
+const never_timeout: TimeoutFactory = () => ({
+	promise: new Promise<never>(() => undefined),
+	cancel: () => undefined,
 });
 
-test('Mistral success returns mistral content and attachments, and performs zero settings calls', async () => {
-  let loadSettingsCalled = false;
-  const client = create_llm_client_for_tests({
-    mistral: {
-      create_completion: async (input) => ({
-        content: 'Mistral Answer',
-        attachments: [{ filename: 'test.png', content_type: 'image/png', data: Buffer.from('img') }],
-      }),
-    },
-    load_settings: async () => {
-      loadSettingsCalled = true;
-      return { discordAiTextFallbackEnabled: true, customProviderModel: 'model', customProviderReasoningMode: 'omit' };
-    },
-  });
+test("classify_mistral_failure uses strict typed eligibility", () => {
+	for (const status of [401, 403, 408, 429, 500, 503, 599]) {
+		assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(status)), true);
+		assert.equal(
+			is_eligible_fallback_error(new MistralApiError("safe", status, null, null)),
+			true
+		);
+	}
 
-  const res = await client.create_completion({ user_prompt: 'hello' });
-  assert.equal(res.provider, 'mistral');
-  assert.equal(res.content, 'Mistral Answer');
-  assert.equal(res.attachments?.length, 1);
-  assert.equal(loadSettingsCalled, false);
+	for (const status of [400, 404, 409, 418, 422, 499]) {
+		assert.equal(is_eligible_fallback_error(create_fake_mistral_sdk_error(status)), false);
+		assert.equal(
+			is_eligible_fallback_error(new MistralApiError("safe", status, null, null)),
+			false
+		);
+	}
+
+	assert.deepEqual(classify_mistral_failure(new MistralNotConfiguredError()), {
+		eligible: true,
+		category: "not_configured",
+		statusCode: null,
+	});
+	assert.deepEqual(classify_mistral_failure(new MistralTimeoutError()), {
+		eligible: true,
+		category: "timeout",
+		statusCode: null,
+	});
+
+	const reset = Object.assign(new Error("reset"), { code: "ECONNRESET" });
+	assert.deepEqual(classify_mistral_failure(reset), {
+		eligible: true,
+		category: "transport",
+		statusCode: null,
+	});
+
+	const transportCause = Object.assign(new Error("socket"), { code: "ETIMEDOUT" });
+	const fetchFailure = new TypeError("fetch failed", { cause: transportCause });
+	assert.equal(is_eligible_fallback_error(fetchFailure), true);
+
+	const abort = new Error("aborted");
+	abort.name = "AbortError";
+	assert.equal(is_eligible_fallback_error(abort), true);
+
+	class MistralErrorSpoof extends Error {
+		readonly statusCode = 503;
+	}
+	Object.defineProperty(MistralErrorSpoof, "name", { value: "MistralError" });
+
+	for (const error of [
+		null,
+		undefined,
+		new Error("plain"),
+		new TypeError("ordinary type error"),
+		{ statusCode: 503 },
+		{ status: 429 },
+		new MistralErrorSpoof("spoof"),
+	]) {
+		assert.equal(is_eligible_fallback_error(error), false);
+	}
 });
 
-test('Fallback trigger matrix: 401, 403, 408, 429, 500 status codes trigger Custom fallback', async () => {
-  const eligibleErrors = [
-    create_fake_mistral_sdk_error(401),
-    create_fake_mistral_sdk_error(403),
-    create_fake_mistral_sdk_error(408),
-    create_fake_mistral_sdk_error(429),
-    create_fake_mistral_sdk_error(500),
-    new MistralApiError('429', 429, null, null),
-  ];
+test("Mistral success avoids settings and Custom while preserving attachments", async () => {
+	let settingsCalls = 0;
+	let customCalls = 0;
+	let capturedPrompt = "";
+	const attachment = {
+		filename: "image.png",
+		content_type: "image/png",
+		data: Buffer.from("image"),
+	};
 
-  for (const err of eligibleErrors) {
-    const events: any[] = [];
-    const client = create_llm_client_for_tests({
-      mistral: {
-        create_completion: async () => {
-          throw err;
-        },
-      },
-      customTextProvider: {
-        create_text_completion: async () => ({ content: 'Fallback Response' }),
-      },
-      event_sink: (e) => events.push(e),
-    });
+	const client = create_llm_client_for_tests({
+		mistral: {
+			create_completion: async (input) => {
+				capturedPrompt = input.user_prompt;
+				return { content: "Mistral answer", attachments: [attachment] };
+			},
+		},
+		customTextProvider: {
+			create_text_completion: async () => {
+				customCalls += 1;
+				return { content: "Custom answer" };
+			},
+		},
+		load_settings: async () => {
+			settingsCalls += 1;
+			return {
+				discordAiTextFallbackEnabled: true,
+				customProviderModel: "opaque/model",
+				customProviderReasoningMode: "high",
+			};
+		},
+		create_timeout: never_timeout,
+	});
 
-    const res = await client.create_completion({ user_prompt: 'test' });
-    assert.equal(res.provider, 'custom');
-    assert.equal(res.content, 'Fallback Response');
+	const result = await client.create_completion({
+		user_prompt: "natural prompt",
+		mistral_prompt: "Mistral-specific prompt",
+	});
 
-    assert.equal(events.length, 2);
-    assert.equal(events[0].type, 'discord_ai_fallback_attempted');
-    assert.equal(events[1].type, 'discord_ai_fallback_succeeded');
-  }
+	assert.equal(result.provider, "mistral");
+	assert.equal(result.content, "Mistral answer");
+	assert.deepEqual(result.attachments, [attachment]);
+	assert.equal(capturedPrompt, "Mistral-specific prompt");
+	assert.equal(settingsCalls, 0);
+	assert.equal(customCalls, 0);
 });
 
-test('Fallback disabled, missing model, missing endpoint, settings failure, or ineligible error emit NO events and throw DiscordAiUnavailableError', async () => {
-  const events: any[] = [];
+test("eligible Mistral failures call Custom once with natural prompt and history", async () => {
+	const eligible = [
+		create_fake_mistral_sdk_error(401),
+		create_fake_mistral_sdk_error(403),
+		create_fake_mistral_sdk_error(408),
+		create_fake_mistral_sdk_error(429),
+		create_fake_mistral_sdk_error(500),
+		new MistralApiError("safe", 503, null, null),
+		Object.assign(new Error("reset"), { code: "ECONNRESET" }),
+	];
 
-  // 1. Fallback disabled
-  const clientDisabled = create_llm_client_for_tests({
-    mistral: { create_completion: async () => { throw create_fake_mistral_sdk_error(429); } },
-    customTextProvider: { create_text_completion: async () => ({ content: 'custom' }) },
-    load_settings: async () => ({ discordAiTextFallbackEnabled: false, customProviderModel: 'model', customProviderReasoningMode: 'omit' }),
-    event_sink: (e) => events.push(e),
-  });
+	for (const primaryError of eligible) {
+		let mistralCalls = 0;
+		let customCalls = 0;
+		let settingsCalls = 0;
+		let customInput: custom_text_completion_input | null = null;
+		const events: RuntimeEvent[] = [];
+		const history = [
+			{ role: "user" as const, content: "previous question" },
+			{ role: "assistant" as const, content: "previous answer" },
+		];
 
-  await assert.rejects(() => clientDisabled.create_completion({ user_prompt: 'q' }), DiscordAiUnavailableError);
-  assert.equal(events.length, 0);
+		const client = create_llm_client_for_tests({
+			mistral: {
+				create_completion: async () => {
+					mistralCalls += 1;
+					throw primaryError;
+				},
+			},
+			customTextProvider: {
+				create_text_completion: async (input) => {
+					customCalls += 1;
+					customInput = input;
+					return { content: "Custom answer" };
+				},
+			},
+			load_settings: async () => {
+				settingsCalls += 1;
+				return {
+					discordAiTextFallbackEnabled: true,
+					customProviderModel: " opaque/model ",
+					customProviderReasoningMode: "high",
+				};
+			},
+			create_timeout: never_timeout,
+			event_sink: (event) => events.push(event),
+		});
 
-  // 2. Missing model
-  const clientNoModel = create_llm_client_for_tests({
-    mistral: { create_completion: async () => { throw create_fake_mistral_sdk_error(429); } },
-    customTextProvider: { create_text_completion: async () => ({ content: 'custom' }) },
-    load_settings: async () => ({ discordAiTextFallbackEnabled: true, customProviderModel: null, customProviderReasoningMode: 'omit' }),
-    event_sink: (e) => events.push(e),
-  });
+		const result = await client.create_completion({
+			user_prompt: "natural request",
+			mistral_prompt: "Use the web_search tool for the natural request",
+			capability: "web_search",
+			history,
+		});
 
-  await assert.rejects(() => clientNoModel.create_completion({ user_prompt: 'q' }), DiscordAiUnavailableError);
-  assert.equal(events.length, 0);
-
-  // 3. Settings loader failure
-  const clientSettingsFail = create_llm_client_for_tests({
-    mistral: { create_completion: async () => { throw create_fake_mistral_sdk_error(429); } },
-    customTextProvider: { create_text_completion: async () => ({ content: 'custom' }) },
-    load_settings: async () => { throw new Error('DB Down'); },
-    event_sink: (e) => events.push(e),
-  });
-
-  await assert.rejects(() => clientSettingsFail.create_completion({ user_prompt: 'q' }), DiscordAiUnavailableError);
-  assert.equal(events.length, 0);
-
-  // 4. Ineligible error (e.g. 400 Bad Request)
-  const clientIneligible = create_llm_client_for_tests({
-    mistral: { create_completion: async () => { throw create_fake_mistral_sdk_error(400); } },
-    customTextProvider: { create_text_completion: async () => ({ content: 'custom' }) },
-    event_sink: (e) => events.push(e),
-  });
-
-  await assert.rejects(() => clientIneligible.create_completion({ user_prompt: 'q' }), DiscordAiUnavailableError);
-  assert.equal(events.length, 0);
+		assert.equal(result.provider, "custom");
+		assert.equal(result.content, "Custom answer");
+		assert.equal(result.attachments, undefined);
+		assert.equal(mistralCalls, 1);
+		assert.equal(customCalls, 1);
+		assert.equal(settingsCalls, 1);
+		assert.deepEqual(customInput, {
+			user_prompt: "natural request",
+			model: "opaque/model",
+			reasoning_mode: "high",
+			capability: "web_search",
+			history,
+		});
+		assert.equal(
+			JSON.stringify(customInput).includes("Use the web_search tool"),
+			false
+		);
+		assert.deepEqual(
+			events.map((event) => event.type),
+			["discord_ai_fallback_attempted", "discord_ai_fallback_succeeded"]
+		);
+		assert.equal(events[0]?.success, false);
+		assert.equal(events[1]?.success, true);
+		assert.equal(events[0]?.capability, "web_search");
+	}
 });
 
-test('Custom-only operation: when Mistral is absent and Custom is enabled, completes using Custom', async () => {
-  const events: any[] = [];
-  const client = create_llm_client_for_tests({
-    mistral: null,
-    customTextProvider: {
-      create_text_completion: async () => ({ content: 'Custom Alone Answer' }),
-    },
-    event_sink: (e) => events.push(e),
-  });
+test("non-eligible failures never load settings or invoke Custom", async () => {
+	const failures: unknown[] = [
+		create_fake_mistral_sdk_error(400),
+		create_fake_mistral_sdk_error(404),
+		create_fake_mistral_sdk_error(409),
+		create_fake_mistral_sdk_error(422),
+		create_fake_mistral_sdk_error(451),
+		new Error("programming failure"),
+		new TypeError("ordinary type error"),
+		{ statusCode: 503 },
+	];
 
-  const res = await client.create_completion({ user_prompt: 'hello' });
-  assert.equal(res.provider, 'custom');
-  assert.equal(res.content, 'Custom Alone Answer');
-  assert.equal(events.length, 2);
-  assert.equal(events[0].type, 'discord_ai_fallback_attempted');
-  assert.equal(events[1].type, 'discord_ai_fallback_succeeded');
+	for (const primaryError of failures) {
+		let settingsCalls = 0;
+		let customCalls = 0;
+		const events: RuntimeEvent[] = [];
+		const client = create_llm_client_for_tests({
+			mistral: {
+				create_completion: async () => {
+					throw primaryError;
+				},
+			},
+			customTextProvider: {
+				create_text_completion: async () => {
+					customCalls += 1;
+					return { content: "unexpected" };
+				},
+			},
+			load_settings: async () => {
+				settingsCalls += 1;
+				return {
+					discordAiTextFallbackEnabled: true,
+					customProviderModel: "opaque/model",
+					customProviderReasoningMode: "omit",
+				};
+			},
+			create_timeout: never_timeout,
+			event_sink: (event) => events.push(event),
+		});
+
+		await assert.rejects(
+			() => client.create_completion({ user_prompt: "question" }),
+			(error: unknown) => {
+				assert.ok(error instanceof DiscordAiUnavailableError);
+				assert.equal(error.message, "Discord AI is unavailable");
+				assert.equal("cause" in error, false);
+				return true;
+			}
+		);
+		assert.equal(settingsCalls, 0);
+		assert.equal(customCalls, 0);
+		assert.deepEqual(events, []);
+	}
 });
 
-test('Timeout followed by late Mistral resolution: Custom fallback response wins, timer cleared, late resolution consumed without unhandledRejection', async () => {
-  let mistralCallCount = 0;
-  let customCallCount = 0;
-  const events: any[] = [];
+test("disabled or incomplete fallback settings never emit invocation events", async () => {
+	const settingsCases = [
+		{
+			discordAiTextFallbackEnabled: false,
+			customProviderModel: "opaque/model",
+			customProviderReasoningMode: "omit" as const,
+		},
+		{
+			discordAiTextFallbackEnabled: true,
+			customProviderModel: null,
+			customProviderReasoningMode: "omit" as const,
+		},
+		{
+			discordAiTextFallbackEnabled: true,
+			customProviderModel: "   ",
+			customProviderReasoningMode: "omit" as const,
+		},
+	];
 
-  let resolveLateMistral!: (val: any) => void;
-  const lateMistralPromise = new Promise((resolve) => {
-    resolveLateMistral = resolve;
-  });
+	for (const settings of settingsCases) {
+		let customCalls = 0;
+		const events: RuntimeEvent[] = [];
+		const client = create_llm_client_for_tests({
+			mistral: {
+				create_completion: async () => {
+					throw create_fake_mistral_sdk_error(429);
+				},
+			},
+			customTextProvider: {
+				create_text_completion: async () => {
+					customCalls += 1;
+					return { content: "unexpected" };
+				},
+			},
+			load_settings: async () => settings,
+			create_timeout: never_timeout,
+			event_sink: (event) => events.push(event),
+		});
 
-  const client = create_llm_client_for_tests({
-    mistral: {
-      create_completion: async () => {
-        mistralCallCount++;
-        return lateMistralPromise as any;
-      },
-    },
-    customTextProvider: {
-      create_text_completion: async () => {
-        customCallCount++;
-        return { content: 'Custom Winner' };
-      },
-    },
-    timeout_ms: () => 10, // Fast timeout
-    event_sink: (e) => events.push(e),
-  });
+		await assert.rejects(
+			() => client.create_completion({ user_prompt: "question" }),
+			DiscordAiUnavailableError
+		);
+		assert.equal(customCalls, 0);
+		assert.deepEqual(events, []);
+	}
 
-  const res = await client.create_completion({ user_prompt: 'race query' });
-  assert.equal(res.provider, 'custom');
-  assert.equal(res.content, 'Custom Winner');
-  assert.equal(mistralCallCount, 1);
-  assert.equal(customCallCount, 1);
-
-  // Late resolution happens after fallback returned:
-  resolveLateMistral({ content: 'Late Mistral Answer' });
-  await new Promise((r) => setTimeout(r, 20));
-
-  // Verify response was NOT overwritten and no duplicate events occurred
-  assert.equal(res.content, 'Custom Winner');
-  assert.equal(events.length, 2);
+	const noCustomEvents: RuntimeEvent[] = [];
+	const noCustom = create_llm_client_for_tests({
+		mistral: {
+			create_completion: async () => {
+				throw create_fake_mistral_sdk_error(429);
+			},
+		},
+		customTextProvider: null,
+		create_timeout: never_timeout,
+		event_sink: (event) => noCustomEvents.push(event),
+	});
+	await assert.rejects(
+		() => noCustom.create_completion({ user_prompt: "question" }),
+		DiscordAiUnavailableError
+	);
+	assert.deepEqual(noCustomEvents, []);
 });
 
-test('Timeout followed by late Mistral rejection: Custom fallback response wins, timer cleared, late rejection consumed without unhandledRejection', async () => {
-  let mistralCallCount = 0;
-  let customCallCount = 0;
-  const events: any[] = [];
+test("settings-loader failure is normalized without leaking database details", async () => {
+	const secret = "SECRET_DATABASE_CONNECTION_STRING";
+	const events: RuntimeEvent[] = [];
+	const client = create_llm_client_for_tests({
+		mistral: {
+			create_completion: async () => {
+				throw create_fake_mistral_sdk_error(429);
+			},
+		},
+		customTextProvider: {
+			create_text_completion: async () => ({ content: "unexpected" }),
+		},
+		load_settings: async () => {
+			throw new Error(secret);
+		},
+		create_timeout: never_timeout,
+		event_sink: (event) => events.push(event),
+	});
 
-  let rejectLateMistral!: (err: any) => void;
-  const lateMistralPromise = new Promise((_, reject) => {
-    rejectLateMistral = reject;
-  });
-
-  const client = create_llm_client_for_tests({
-    mistral: {
-      create_completion: async () => {
-        mistralCallCount++;
-        return lateMistralPromise as any;
-      },
-    },
-    customTextProvider: {
-      create_text_completion: async () => {
-        customCallCount++;
-        return { content: 'Custom Winner Rejection' };
-      },
-    },
-    timeout_ms: () => 10,
-    event_sink: (e) => events.push(e),
-  });
-
-  const res = await client.create_completion({ user_prompt: 'race query 2' });
-  assert.equal(res.provider, 'custom');
-  assert.equal(res.content, 'Custom Winner Rejection');
-  assert.equal(mistralCallCount, 1);
-  assert.equal(customCallCount, 1);
-
-  // Late rejection happens after fallback returned:
-  rejectLateMistral(create_fake_mistral_sdk_error(500));
-  await new Promise((r) => setTimeout(r, 20));
-
-  assert.equal(res.content, 'Custom Winner Rejection');
-  assert.equal(events.length, 2);
+	await assert.rejects(
+		() => client.create_completion({ user_prompt: "question" }),
+		(error: unknown) => {
+			assert.ok(error instanceof DiscordAiUnavailableError);
+			assert.equal(error.category, "settings_unavailable");
+			assert.equal(JSON.stringify(error).includes(secret), false);
+			return true;
+		}
+	);
+	assert.deepEqual(events, []);
 });
 
-test('Secret safety: raw error details, cause, and database secrets are absent from thrown DiscordAiUnavailableError', async () => {
-  const secretString = 'CONFIDENTIAL_MISTRAL_API_KEY_SUPER_SECRET';
+test("Custom-only mode works when Mistral is not configured", async () => {
+	let settingsCalls = 0;
+	let customCalls = 0;
+	const events: RuntimeEvent[] = [];
+	const client = create_llm_client_for_tests({
+		mistral: null,
+		customTextProvider: {
+			create_text_completion: async (input) => {
+				customCalls += 1;
+				assert.equal(input.user_prompt, "natural request");
+				assert.equal(input.capability, "image_generation");
+				return { content: "I can help with a detailed image prompt." };
+			},
+		},
+		load_settings: async () => {
+			settingsCalls += 1;
+			return {
+				discordAiTextFallbackEnabled: true,
+				customProviderModel: "opaque/model",
+				customProviderReasoningMode: "low",
+			};
+		},
+		event_sink: (event) => events.push(event),
+	});
 
-  const client = create_llm_client_for_tests({
-    mistral: {
-      create_completion: async () => {
-        throw new Error(`Upstream API failed with secret key: ${secretString}`);
-      },
-    },
-  });
-
-  try {
-    await client.create_completion({ user_prompt: 'secret test' });
-    assert.fail('Should have thrown DiscordAiUnavailableError');
-  } catch (err: any) {
-    assert.equal(err.name, 'DiscordAiUnavailableError');
-    assert.equal(err.message, 'LLM providers unavailable');
-    assert.equal(err.cause, undefined);
-    assert.equal(JSON.stringify(err).includes(secretString), false);
-  }
+	const result = await client.create_completion({
+		user_prompt: "natural request",
+		mistral_prompt: "Use the image_generation tool",
+		capability: "image_generation",
+	});
+	assert.equal(result.provider, "custom");
+	assert.equal(result.attachments, undefined);
+	assert.equal(settingsCalls, 1);
+	assert.equal(customCalls, 1);
+	assert.equal(events[0]?.category, "not_configured");
 });
 
-test('Event sink exceptions do not affect fallback execution or alter behavior', async () => {
-  const client = create_llm_client_for_tests({
-    mistral: { create_completion: async () => { throw create_fake_mistral_sdk_error(429); } },
-    customTextProvider: { create_text_completion: async () => ({ content: 'Resilient Custom' }) },
-    event_sink: () => { throw new Error('Event Sink Crash'); },
-  });
+test("Custom failure is single-pass and discards raw provider details", async () => {
+	const secret = "SECRET_CUSTOM_PROVIDER_RESPONSE";
+	let mistralCalls = 0;
+	let customCalls = 0;
+	const events: RuntimeEvent[] = [];
+	const client = create_llm_client_for_tests({
+		mistral: {
+			create_completion: async () => {
+				mistralCalls += 1;
+				throw create_fake_mistral_sdk_error(429, "SECRET_MISTRAL_BODY");
+			},
+		},
+		customTextProvider: {
+			create_text_completion: async () => {
+				customCalls += 1;
+				throw new Error(secret);
+			},
+		},
+		create_timeout: never_timeout,
+		event_sink: (event) => events.push(event),
+	});
 
-  const res = await client.create_completion({ user_prompt: 'sink test' });
-  assert.equal(res.provider, 'custom');
-  assert.equal(res.content, 'Resilient Custom');
+	await assert.rejects(
+		() => client.create_completion({ user_prompt: "question" }),
+		(error: unknown) => {
+			assert.ok(error instanceof DiscordAiUnavailableError);
+			assert.equal(error.category, "fallback_unavailable");
+			const serialized = JSON.stringify(error);
+			assert.equal(serialized.includes(secret), false);
+			assert.equal(serialized.includes("SECRET_MISTRAL_BODY"), false);
+			assert.equal("cause" in error, false);
+			return true;
+		}
+	);
+	assert.equal(mistralCalls, 1);
+	assert.equal(customCalls, 1);
+	assert.deepEqual(
+		events.map((event) => event.type),
+		["discord_ai_fallback_attempted", "discord_ai_fallback_failed"]
+	);
+	assert.equal(JSON.stringify(events).includes(secret), false);
+});
+
+test("deterministic timeout consumes late resolution and clears resources", async () => {
+	const primary = deferred<{ content: string }>();
+	const timeout = deferred<never>();
+	let cancelCalls = 0;
+	let customCalls = 0;
+	const events: RuntimeEvent[] = [];
+
+	const client = create_llm_client_for_tests({
+		mistral: { create_completion: () => primary.promise },
+		customTextProvider: {
+			create_text_completion: async () => {
+				customCalls += 1;
+				return { content: "Custom wins" };
+			},
+		},
+		create_timeout: () => ({
+			promise: timeout.promise,
+			cancel: () => {
+				cancelCalls += 1;
+			},
+		}),
+		event_sink: (event) => events.push(event),
+	});
+
+	const completion = client.create_completion({ user_prompt: "question" });
+	timeout.reject(new MistralTimeoutError());
+	const result = await completion;
+	assert.equal(result.content, "Custom wins");
+	assert.equal(customCalls, 1);
+	assert.equal(cancelCalls, 1);
+
+	primary.resolve({ content: "Late Mistral answer" });
+	await new Promise<void>((resolve) => setImmediate(resolve));
+	assert.equal(result.content, "Custom wins");
+	assert.deepEqual(
+		events.map((event) => event.type),
+		["discord_ai_fallback_attempted", "discord_ai_fallback_succeeded"]
+	);
+});
+
+test("deterministic timeout consumes late rejection without unhandledRejection", async () => {
+	const primary = deferred<{ content: string }>();
+	const timeout = deferred<never>();
+	const unhandled: unknown[] = [];
+	const onUnhandled = (reason: unknown) => unhandled.push(reason);
+	process.on("unhandledRejection", onUnhandled);
+
+	try {
+		let cancelCalls = 0;
+		let customCalls = 0;
+		const events: RuntimeEvent[] = [];
+		const client = create_llm_client_for_tests({
+			mistral: { create_completion: () => primary.promise },
+			customTextProvider: {
+				create_text_completion: async () => {
+					customCalls += 1;
+					return { content: "Custom wins" };
+				},
+			},
+			create_timeout: () => ({
+				promise: timeout.promise,
+				cancel: () => {
+					cancelCalls += 1;
+				},
+			}),
+			event_sink: (event) => events.push(event),
+		});
+
+		const completion = client.create_completion({ user_prompt: "question" });
+		timeout.reject(new MistralTimeoutError());
+		const result = await completion;
+		primary.reject(create_fake_mistral_sdk_error(503, "LATE_SECRET"));
+		await new Promise<void>((resolve) => setImmediate(resolve));
+
+		assert.equal(result.content, "Custom wins");
+		assert.equal(customCalls, 1);
+		assert.equal(cancelCalls, 1);
+		assert.deepEqual(unhandled, []);
+		assert.deepEqual(
+			events.map((event) => event.type),
+			["discord_ai_fallback_attempted", "discord_ai_fallback_succeeded"]
+		);
+	} finally {
+		process.off("unhandledRejection", onUnhandled);
+	}
+});
+
+test("event-sink failures never change fallback behavior", async () => {
+	const client = create_llm_client_for_tests({
+		mistral: {
+			create_completion: async () => {
+				throw create_fake_mistral_sdk_error(429);
+			},
+		},
+		customTextProvider: {
+			create_text_completion: async () => ({ content: "Fallback answer" }),
+		},
+		create_timeout: never_timeout,
+		event_sink: () => {
+			throw new Error("telemetry failed");
+		},
+	});
+
+	const result = await client.create_completion({ user_prompt: "question" });
+	assert.equal(result.provider, "custom");
+	assert.equal(result.content, "Fallback answer");
 });
