@@ -105,7 +105,7 @@ export default function PanelAssistantPage() {
               <Sparkles className="h-5 w-5" />
             </span>
             <div>
-              <div className="text-xl font-semibold tracking-tight text-foreground">Assistente</div>
+              <div className="text-xl font-semibold tracking-tight text-foreground">Ella</div>
               <div className="text-sm text-muted-foreground">Assistente deste servidor</div>
             </div>
           </div>
