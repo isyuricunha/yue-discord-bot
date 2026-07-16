@@ -1,14 +1,16 @@
 import type { FastifyInstance } from 'fastify'
-import { prisma } from '@yuebot/database'
+import { prisma, Prisma } from '@yuebot/database'
 
 import {
   custom_provider_is_configured,
   custom_provider_model,
   list_custom_provider_models,
-  normalize_custom_provider_reasoning_mode,
   test_custom_provider_model,
-  type custom_provider_reasoning_mode,
 } from '../services/custom_provider'
+import {
+  type custom_provider_reasoning_mode,
+  normalize_custom_provider_reasoning_mode
+} from '@yuebot/shared'
 import { normalize_panel_ai_runtime, panel_ai_runtime, test_panel_ai_runtime } from '../services/panel_ai'
 import { is_owner } from '../utils/permissions'
 import { safe_error_details } from '../utils/safe_error'
@@ -44,12 +46,13 @@ function parse_settings(body: unknown) {
   const customModel = typeof input.customModel === 'string' ? input.customModel.trim() : ''
   const sensitiveContextEnabled = typeof input.sensitiveContextEnabled === 'boolean' ? input.sensitiveContextEnabled : null
   const fallbackEnabled = typeof input.fallbackEnabled === 'boolean' ? input.fallbackEnabled : null
+  const discordTextFallbackEnabled = typeof input.discordTextFallbackEnabled === 'boolean' ? input.discordTextFallbackEnabled : null
   const rawMode = input.customReasoningMode
   const customReasoningMode = typeof rawMode === 'string' && ALLOWED_REASONING_MODES.has(rawMode) ? (rawMode as custom_provider_reasoning_mode) : null
 
-  if (!provider || sensitiveContextEnabled === null || fallbackEnabled === null || customReasoningMode === null) return null
+  if (!provider || sensitiveContextEnabled === null || fallbackEnabled === null || customReasoningMode === null || discordTextFallbackEnabled === null) return null
   if (provider === 'custom' && !customModel) return null
-  if (provider === 'mistral' && fallbackEnabled && !customModel) return null
+  if ((fallbackEnabled || discordTextFallbackEnabled) && !customModel) return null
 
   const effectiveFallbackEnabled = provider === 'custom' ? false : fallbackEnabled
 
@@ -58,6 +61,7 @@ function parse_settings(body: unknown) {
     customModel: customModel || null,
     customReasoningMode,
     fallbackEnabled: effectiveFallbackEnabled,
+    discordTextFallbackEnabled,
     sensitiveContextEnabled,
   }
 }
@@ -119,6 +123,7 @@ export function createPanelAiOwnerRoutes(overrides: Partial<panel_ai_owner_deps>
           customModel: settings?.customProviderModel ?? null,
           customReasoningMode: normalize_custom_provider_reasoning_mode(settings?.customProviderReasoningMode),
           fallbackEnabled: normalizedFallback,
+          discordTextFallbackEnabled: settings?.discordAiTextFallbackEnabled ?? false,
           sensitiveContextEnabled: settings?.panelAiSensitiveContextEnabled ?? false,
           conversationVersion: settings?.panelAiConversationVersion ?? 1,
         },
@@ -141,19 +146,34 @@ export function createPanelAiOwnerRoutes(overrides: Partial<panel_ai_owner_deps>
       if (!isOwner(request.user.userId)) return reply.code(403).send({ error: 'Forbidden' })
       const input = parse_settings(request.body)
       if (!input) return reply.code(400).send({ error: 'Invalid body' })
-      if ((input.provider === 'custom' || input.fallbackEnabled) && !customProviderIsConfigured()) {
+      if ((input.provider === 'custom' || input.fallbackEnabled || input.discordTextFallbackEnabled) && !customProviderIsConfigured()) {
         return reply.code(409).send({ error: 'Custom Provider is not configured' })
       }
+
+      const current = await db.botSettings.findUnique({ where: { id: 'global' } })
+      const panelAffectingChanged =
+        !current ||
+        current.panelAiProvider !== input.provider ||
+        current.customProviderModel !== input.customModel ||
+        current.customProviderReasoningMode !== input.customReasoningMode ||
+        current.panelAiFallbackEnabled !== input.fallbackEnabled ||
+        current.panelAiSensitiveContextEnabled !== input.sensitiveContextEnabled
+
+      const updateData: Prisma.BotSettingsUpdateInput = {
+        panelAiProvider: input.provider,
+        customProviderModel: input.customModel,
+        customProviderReasoningMode: input.customReasoningMode,
+        panelAiFallbackEnabled: input.fallbackEnabled,
+        panelAiSensitiveContextEnabled: input.sensitiveContextEnabled,
+        discordAiTextFallbackEnabled: input.discordTextFallbackEnabled,
+      }
+      if (panelAffectingChanged) {
+        updateData.panelAiConversationVersion = { increment: 1 }
+      }
+
       const saved = await db.botSettings.upsert({
         where: { id: 'global' },
-        update: {
-          panelAiProvider: input.provider,
-          customProviderModel: input.customModel,
-          customProviderReasoningMode: input.customReasoningMode,
-          panelAiFallbackEnabled: input.fallbackEnabled,
-          panelAiSensitiveContextEnabled: input.sensitiveContextEnabled,
-          panelAiConversationVersion: { increment: 1 },
-        },
+        update: updateData,
         create: {
           id: 'global',
           panelAiProvider: input.provider,
@@ -161,6 +181,7 @@ export function createPanelAiOwnerRoutes(overrides: Partial<panel_ai_owner_deps>
           customProviderReasoningMode: input.customReasoningMode,
           panelAiFallbackEnabled: input.fallbackEnabled,
           panelAiSensitiveContextEnabled: input.sensitiveContextEnabled,
+          discordAiTextFallbackEnabled: input.discordTextFallbackEnabled,
         },
         select: {
           panelAiProvider: true,
@@ -169,8 +190,10 @@ export function createPanelAiOwnerRoutes(overrides: Partial<panel_ai_owner_deps>
           panelAiFallbackEnabled: true,
           panelAiSensitiveContextEnabled: true,
           panelAiConversationVersion: true,
+          discordAiTextFallbackEnabled: true,
         },
       })
+
       await db.ownerActionLog.create({
         data: {
           actorUserId: request.user.userId,
@@ -188,6 +211,7 @@ export function createPanelAiOwnerRoutes(overrides: Partial<panel_ai_owner_deps>
           customModel: saved.customProviderModel ?? null,
           customReasoningMode: normalize_custom_provider_reasoning_mode(saved.customProviderReasoningMode),
           fallbackEnabled: saved.panelAiProvider === 'custom' ? false : saved.panelAiFallbackEnabled,
+          discordTextFallbackEnabled: saved.discordAiTextFallbackEnabled,
           sensitiveContextEnabled: saved.panelAiSensitiveContextEnabled,
           conversationVersion: saved.panelAiConversationVersion,
         },

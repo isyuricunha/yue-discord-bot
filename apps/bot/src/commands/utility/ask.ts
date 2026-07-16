@@ -1,126 +1,97 @@
-import { SlashCommandBuilder, AttachmentBuilder } from "discord.js";
+import { AttachmentBuilder, SlashCommandBuilder } from "discord.js";
 import type { ChatInputCommandInteraction } from "discord.js";
 
 import { EMOJIS } from "@yuebot/shared";
 
-import { MistralError } from "@mistralai/mistralai/models/errors";
-import { MistralApiError } from "../../services/mistral.service";
-
+import { DiscordAiUnavailableError } from "../../services/llm_client";
 import { get_llm_client } from "../../services/llm_client_singleton";
-import { split_discord_message } from "../../utils/discord_message";
-import { safe_error_details } from "../../utils/safe_error";
 import { logger } from "../../utils/logger";
+import { safe_error_details } from "../../utils/safe_error";
+import { split_discord_message } from "../../utils/discord_message";
 import type { Command } from "../index";
 
-export const askCommand: Command = {
-	data: new SlashCommandBuilder()
-		.setName("ask")
-		.setNameLocalizations({ "pt-BR": "perguntar" })
-		.setDescription("Ask the bot a question")
-		.setDescriptionLocalizations({ "pt-BR": "Faça uma pergunta para o bot" })
-		.addStringOption((opt) =>
-			opt
-				.setName("question")
-				.setNameLocalizations({ "pt-BR": "pergunta" })
-				.setDescription("Your question")
-				.setDescriptionLocalizations({ "pt-BR": "Sua pergunta" })
-				.setRequired(true)
-				.setMaxLength(1500)
-		),
+export type AskCommandDependencies = {
+	getLlmClient: typeof get_llm_client;
+};
 
-	async execute(interaction: ChatInputCommandInteraction) {
-		const question = interaction.options.getString("question", true).trim();
-		if (!question) {
-			await interaction.reply({
-				content: `${EMOJIS.ERROR} Pergunta inválida.`,
-			});
-			return;
-		}
+export function createAskCommand(
+	dependencies: Partial<AskCommandDependencies> = {}
+): Command {
+	const getLlmClient = dependencies.getLlmClient ?? get_llm_client;
 
-		await interaction.deferReply();
+	return {
+		data: new SlashCommandBuilder()
+			.setName("ask")
+			.setNameLocalizations({ "pt-BR": "perguntar" })
+			.setDescription("Ask the bot a question")
+			.setDescriptionLocalizations({
+				"pt-BR": "Faça uma pergunta para o bot",
+			})
+			.addStringOption((option) =>
+				option
+					.setName("question")
+					.setNameLocalizations({ "pt-BR": "pergunta" })
+					.setDescription("Your question")
+					.setDescriptionLocalizations({ "pt-BR": "Sua pergunta" })
+					.setRequired(true)
+					.setMaxLength(1500)
+			),
 
-		try {
-			const client = get_llm_client();
-			if (!client) {
-				await interaction.editReply({
-					content: `${EMOJIS.ERROR} IA não configurada neste bot.`,
+		async execute(interaction: ChatInputCommandInteraction) {
+			const question = interaction.options.getString("question", true).trim();
+			if (!question) {
+				await interaction.reply({
+					content: `${EMOJIS.ERROR} Pergunta inválida.`,
 				});
 				return;
 			}
-			const completion = await client.create_completion({
-				user_prompt: question,
-			});
 
-			const files = (completion.attachments ?? []).map(
-				(att) =>
-					new AttachmentBuilder(att.data, {
-						name: att.filename,
-					})
-			);
+			await interaction.deferReply();
 
-			const parts = split_discord_message(completion.content);
-			const first = parts[0] ?? "";
+			try {
+				const client = getLlmClient();
+				if (!client) {
+					await interaction.editReply({
+						content: `${EMOJIS.ERROR} IA não configurada neste bot.`,
+					});
+					return;
+				}
 
-			await interaction.editReply({ content: first, files });
-			if (parts.length > 1) {
+				const completion = await client.create_completion({
+					user_prompt: question,
+					capability: "text",
+				});
+				const files = (completion.attachments ?? []).map(
+					(attachment) =>
+						new AttachmentBuilder(attachment.data, {
+							name: attachment.filename,
+						})
+				);
+				const parts = split_discord_message(completion.content);
+				const first = parts[0] ?? "";
+
+				await interaction.editReply({ content: first, files });
 				for (const extra of parts.slice(1)) {
 					await interaction.followUp({ content: extra });
 				}
-			}
-		} catch (error: unknown) {
-			if (error instanceof MistralApiError) {
-				if (error.status === 429) {
-					const retry = error.retry_after_seconds;
-					const msg = retry
-						? `Tente novamente em ~${retry}s.`
-						: "Tente novamente em instantes.";
+			} catch (error: unknown) {
+				if (error instanceof DiscordAiUnavailableError) {
 					await interaction.editReply({
-						content: `${EMOJIS.ERROR} Rate limit da IA. ${msg}`,
+						content: `${EMOJIS.ERROR} IA indisponível no momento. Tente novamente em instantes.`,
 					});
 					return;
 				}
 
-				if (error.status === 401 || error.status === 403) {
-					await interaction.editReply({
-						content: `${EMOJIS.ERROR} IA não autorizada. Verifique a configuração das keys.`,
-					});
-					return;
-				}
-
+				logger.error(
+					{ err: safe_error_details(error) },
+					"Failed to execute /ask"
+				);
 				await interaction.editReply({
-					content: `${EMOJIS.ERROR} Erro ao consultar IA.`,
+					content: `${EMOJIS.ERROR} Erro inesperado ao executar o comando.`,
 				});
-				return;
 			}
+		},
+	};
+}
 
-			if (error instanceof MistralError) {
-				if (error.statusCode === 429) {
-					await interaction.editReply({
-						content: `${EMOJIS.ERROR} Rate limit da IA. Tente novamente em instantes.`,
-					});
-					return;
-				}
-
-				if (error.statusCode === 401 || error.statusCode === 403) {
-					await interaction.editReply({
-						content: `${EMOJIS.ERROR} IA não autorizada. Verifique a configuração das keys.`,
-					});
-					return;
-				}
-
-				await interaction.editReply({
-					content: `${EMOJIS.ERROR} Erro ao consultar IA.`,
-				});
-				return;
-			}
-
-			logger.error(
-				{ err: safe_error_details(error) },
-				"Failed to execute /ask"
-			);
-			await interaction.editReply({
-				content: `${EMOJIS.ERROR} Erro inesperado ao executar o comando.`,
-			});
-		}
-	},
-};
+export const askCommand = createAskCommand();

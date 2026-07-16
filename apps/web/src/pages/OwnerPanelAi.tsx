@@ -18,6 +18,7 @@ type panel_ai_response = {
     customModel: string | null
     customReasoningMode: custom_provider_reasoning_mode
     fallbackEnabled: boolean
+    discordTextFallbackEnabled: boolean
     sensitiveContextEnabled: boolean
   }
   runtimes: { mistralPanelAgentConfigured: boolean; customProviderConfigured: boolean }
@@ -30,6 +31,7 @@ export default function OwnerPanelAiPage() {
   const [model, setModel] = useState('')
   const [reasoningMode, setReasoningMode] = useState<custom_provider_reasoning_mode>('omit')
   const [fallbackEnabled, setFallbackEnabled] = useState(false)
+  const [discordTextFallbackEnabled, setDiscordTextFallbackEnabled] = useState(false)
   const [sensitive, setSensitive] = useState(false)
   const [testStatus, setTestStatus] = useState<local_test_status>('Não testado')
 
@@ -46,6 +48,7 @@ export default function OwnerPanelAiPage() {
     setModel(settings.customModel ?? '')
     setReasoningMode(settings.customReasoningMode ?? 'omit')
     setFallbackEnabled(settings.fallbackEnabled ?? false)
+    setDiscordTextFallbackEnabled(settings.discordTextFallbackEnabled ?? false)
     setSensitive(settings.sensitiveContextEnabled)
   }, [settingsQuery.data])
 
@@ -56,6 +59,7 @@ export default function OwnerPanelAiPage() {
         customModel: model || null,
         customReasoningMode: reasoningMode,
         fallbackEnabled: provider === 'custom' ? false : fallbackEnabled,
+        discordTextFallbackEnabled,
         sensitiveContextEnabled: sensitive,
       }),
     onSuccess: () => {
@@ -100,7 +104,7 @@ export default function OwnerPanelAiPage() {
 
   const data = settingsQuery.data
   const customConfigured = data?.runtimes.customProviderConfigured ?? false
-  const showCustomControls = provider === 'custom' || (provider === 'mistral' && fallbackEnabled)
+  const showCustomControls = provider === 'custom' || (provider === 'mistral' && (fallbackEnabled || discordTextFallbackEnabled))
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
@@ -152,7 +156,9 @@ export default function OwnerPanelAiPage() {
               onValueChange={(value) => {
                 const next = value as 'mistral' | 'custom'
                 setProvider(next)
-                if (next === 'custom') setFallbackEnabled(false)
+                if (next === 'custom') {
+                  setFallbackEnabled(false)
+                }
               }}
             >
               <option value="mistral">Mistral Panel Agent</option>
@@ -163,28 +169,50 @@ export default function OwnerPanelAiPage() {
           </div>
 
           {provider === 'mistral' && (
-            <div className="space-y-2 border-t border-border pt-4">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="font-semibold">Fallback de texto</div>
-                  <div className="text-sm text-muted-foreground">
-                    Usado quando o Agent principal estiver indisponível ou em limite de cota. Usa o modelo selecionado do Custom Provider. A Ella continua sendo uma assistente de texto. Os administradores do servidor não veem detalhes de infraestrutura.
+              <div className="space-y-2 border-t border-border pt-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="font-semibold">Fallback de texto</div>
+                    <div className="text-sm text-muted-foreground">
+                      Usado quando o Agent principal estiver indisponível ou em limite de cota. Usa o modelo selecionado do Custom Provider. A Ella continua sendo uma assistente de texto. Os administradores do servidor não veem detalhes de infraestrutura.
+                    </div>
                   </div>
+                  <Switch
+                    label="Fallback de texto"
+                    checked={fallbackEnabled}
+                    onCheckedChange={setFallbackEnabled}
+                    disabled={!customConfigured && !fallbackEnabled}
+                  />
                 </div>
-                <Switch
-                  label="Fallback de texto"
-                  checked={fallbackEnabled}
-                  onCheckedChange={setFallbackEnabled}
-                  disabled={!customConfigured && !fallbackEnabled}
-                />
+                {fallbackEnabled && !customConfigured && (
+                  <p className="text-xs text-amber-500 font-medium">
+                    O Custom Provider não está configurado por ambiente. O fallback está desativado na prática até que as variáveis de ambiente sejam definidas.
+                  </p>
+                )}
               </div>
-              {fallbackEnabled && !customConfigured && (
-                <p className="text-xs text-amber-500 font-medium">
-                  O Custom Provider não está configurado por ambiente. O fallback está desativado na prática até que as variáveis de ambiente sejam definidas.
-                </p>
-              )}
-            </div>
           )}
+
+              <div className="space-y-2 border-t border-border pt-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <div className="font-semibold">Yue no Discord</div>
+                    <div className="text-sm text-muted-foreground">
+                      Quando a Mistral não estiver disponível, a Yue poderá responder somente em texto pelo Custom Provider. Pesquisa, geração de imagens, ferramentas, anexos e fontes não são executados nesse modo.
+                    </div>
+                  </div>
+                  <Switch
+                    label="Fallback de texto da Yue"
+                    checked={discordTextFallbackEnabled}
+                    onCheckedChange={setDiscordTextFallbackEnabled}
+                    disabled={!customConfigured && !discordTextFallbackEnabled}
+                  />
+                </div>
+                {discordTextFallbackEnabled && !customConfigured && (
+                  <p className="text-xs text-amber-500 font-medium">
+                    O Custom Provider não está configurado por ambiente. O fallback está desativado na prática até que as variáveis de ambiente sejam definidas.
+                  </p>
+                )}
+              </div>
 
           {showCustomControls && (
             <div className="space-y-4 border-t border-border pt-4">
@@ -263,7 +291,7 @@ export default function OwnerPanelAiPage() {
             <Button
               onClick={() => save.mutate()}
               isLoading={save.isPending}
-              disabled={(provider === 'custom' || fallbackEnabled) && (!model || !customConfigured)}
+              disabled={(provider === 'custom' || fallbackEnabled || discordTextFallbackEnabled) && (!model || !customConfigured)}
             >
               Salvar configuração
             </Button>

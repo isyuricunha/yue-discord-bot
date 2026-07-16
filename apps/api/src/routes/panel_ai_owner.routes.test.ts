@@ -172,6 +172,7 @@ test('PUT /owner/panel-ai validates all 6 reasoning modes with exact 200 respons
         customReasoningMode: validMode,
         fallbackEnabled: false,
         sensitiveContextEnabled: false,
+        discordTextFallbackEnabled: false,
       },
     })
 
@@ -200,6 +201,7 @@ test('PUT /owner/panel-ai validates all 6 reasoning modes with exact 200 respons
         customReasoningMode: invalidMode,
         fallbackEnabled: false,
         sensitiveContextEnabled: false,
+        discordTextFallbackEnabled: false,
       },
     })
 
@@ -221,6 +223,7 @@ test('PUT /owner/panel-ai enforces model presence and 409 when Custom Provider i
       customReasoningMode: 'omit',
       fallbackEnabled: false,
       sensitiveContextEnabled: false,
+      discordTextFallbackEnabled: false,
     },
   })
   assert.equal(resCustom409.statusCode, 409)
@@ -234,6 +237,7 @@ test('PUT /owner/panel-ai enforces model presence and 409 when Custom Provider i
       customReasoningMode: 'omit',
       fallbackEnabled: true,
       sensitiveContextEnabled: false,
+      discordTextFallbackEnabled: false,
     },
   })
   assert.equal(resFallback409.statusCode, 409)
@@ -251,6 +255,7 @@ test('PUT /owner/panel-ai enforces model presence and 409 when Custom Provider i
       customReasoningMode: 'omit',
       fallbackEnabled: false,
       sensitiveContextEnabled: false,
+      discordTextFallbackEnabled: false,
     },
   })
   assert.equal(resCustomNoModel.statusCode, 400)
@@ -264,6 +269,7 @@ test('PUT /owner/panel-ai enforces model presence and 409 when Custom Provider i
       customReasoningMode: 'omit',
       fallbackEnabled: true,
       sensitiveContextEnabled: false,
+      discordTextFallbackEnabled: false,
     },
   })
   assert.equal(resFallbackNoModel.statusCode, 400)
@@ -283,6 +289,7 @@ test('PUT /owner/panel-ai persists fallback false when custom is primary and pre
       customReasoningMode: 'high',
       fallbackEnabled: true, // Ignored and normalized to false
       sensitiveContextEnabled: true,
+      discordTextFallbackEnabled: false,
     },
   })
   assert.equal(resCustom.statusCode, 200)
@@ -298,7 +305,8 @@ test('PUT /owner/panel-ai persists fallback false when custom is primary and pre
       customModel: 'opaque/model-b',
       customReasoningMode: 'medium',
       fallbackEnabled: false,
-      sensitiveContextEnabled: false,
+      sensitiveContextEnabled: true,
+      discordTextFallbackEnabled: false,
     },
   })
   assert.equal(resMistral.statusCode, 200)
@@ -480,4 +488,98 @@ test('POST /owner/panel-ai/test primary target tests sanitize secrets from warni
   const allLogSerialized = JSON.stringify(capturedLogEntries)
   assert.equal(allLogSerialized.includes(SECRET_STRING), false, 'Secret must not appear in owner route warning logs')
   assert.equal(JSON.stringify(res.json()).includes(SECRET_STRING), false, 'Secret must not appear in HTTP response')
+})
+
+test('PUT /owner/panel-ai discordTextFallbackEnabled behavior', async (t) => {
+  const { app, getDbState } = create_test_owner_app()
+  t.after(async () => app.close())
+
+  let res = await app.inject({
+    method: 'PUT',
+    url: '/owner/panel-ai',
+    payload: {
+      panelProvider: 'mistral',
+      customModel: '',
+      customReasoningMode: 'omit',
+      fallbackEnabled: false,
+      sensitiveContextEnabled: false,
+      discordTextFallbackEnabled: false,
+    }
+  })
+  assert.equal(res.statusCode, 200)
+
+  res = await app.inject({
+    method: 'PUT',
+    url: '/owner/panel-ai',
+    payload: {
+      panelProvider: 'mistral',
+      customModel: 'opaque/model',
+      customReasoningMode: 'omit',
+      fallbackEnabled: false,
+      sensitiveContextEnabled: false,
+      discordTextFallbackEnabled: true,
+    }
+  })
+  assert.equal(res.statusCode, 200)
+
+  res = await app.inject({
+    method: 'PUT',
+    url: '/owner/panel-ai',
+    payload: {
+      panelProvider: 'mistral',
+      customModel: '',
+      customReasoningMode: 'omit',
+      fallbackEnabled: false,
+      sensitiveContextEnabled: false,
+      discordTextFallbackEnabled: true,
+    }
+  })
+  assert.equal(res.statusCode, 400)
+
+  res = await app.inject({
+    method: 'PUT',
+    url: '/owner/panel-ai',
+    payload: {
+      panelProvider: 'custom',
+      customModel: 'opaque/model',
+      customReasoningMode: 'omit',
+      fallbackEnabled: false,
+      sensitiveContextEnabled: false,
+      discordTextFallbackEnabled: true,
+    }
+  })
+  assert.equal(res.statusCode, 200)
+  assert.equal(res.json().settings.discordTextFallbackEnabled, true)
+  assert.equal(res.json().settings.fallbackEnabled, false)
+
+  const versionBefore = getDbState().panelAiConversationVersion
+  res = await app.inject({
+    method: 'PUT',
+    url: '/owner/panel-ai',
+    payload: {
+      panelProvider: 'custom',
+      customModel: 'opaque/model',
+      customReasoningMode: 'omit',
+      fallbackEnabled: false,
+      sensitiveContextEnabled: false,
+      discordTextFallbackEnabled: false,
+    }
+  })
+  assert.equal(res.statusCode, 200)
+  assert.equal(getDbState().panelAiConversationVersion, versionBefore)
+
+  res = await app.inject({
+    method: 'PUT',
+    url: '/owner/panel-ai',
+    payload: {
+      panelProvider: 'custom',
+      customModel: 'opaque/new-model',
+      customReasoningMode: 'omit',
+      fallbackEnabled: false,
+      sensitiveContextEnabled: false,
+      discordTextFallbackEnabled: false,
+    }
+  })
+  assert.equal(res.statusCode, 200)
+  assert.equal(getDbState().panelAiConversationVersion, versionBefore + 1)
 })

@@ -4,11 +4,14 @@ import { MistralError } from '@mistralai/mistralai/models/errors'
 import { CONFIG } from '../config'
 import {
   custom_provider_is_configured,
-  custom_reasoning_parameters,
-  normalize_custom_provider_reasoning_mode,
   test_custom_provider_model,
-  type custom_provider_reasoning_mode,
 } from './custom_provider'
+import {
+  type custom_provider_reasoning_mode,
+  normalize_custom_provider_reasoning_mode,
+  build_custom_provider_payload,
+  extract_custom_provider_text
+} from '@yuebot/shared'
 import { PANEL_CONTRACT_RULES } from './panel_context'
 
 export class MistralNotConfiguredError extends Error {
@@ -133,10 +136,6 @@ export function normalize_panel_ai_runtime(input: {
   const customReasoningMode = normalize_custom_provider_reasoning_mode(input.customReasoningMode)
   const fallbackEnabled = provider === 'mistral' ? Boolean(input.fallbackEnabled) : false
   return { provider, customModel, customReasoningMode, fallbackEnabled }
-}
-
-type custom_completion_response = {
-  choices?: Array<{ message?: { content?: unknown } }>
 }
 
 type custom_provider_message = {
@@ -301,22 +300,7 @@ export function build_custom_provider_messages(
   return custom_messages
 }
 
-export function build_custom_provider_payload(input: {
-  model: string
-  persona: string
-  context: string
-  messages: readonly panel_ai_message[]
-  reasoningMode: custom_provider_reasoning_mode
-}) {
-  const custom_messages = build_custom_provider_messages(input.persona, input.context, input.messages)
-  const reasoning_params = custom_reasoning_parameters(input.reasoningMode)
-  return {
-    model: input.model,
-    messages: custom_messages,
-    temperature: 0.4,
-    ...reasoning_params,
-  }
-}
+
 
 function extract_message_output_text(message: mistral_message_output | undefined): string {
   if (!message) return ''
@@ -407,7 +391,11 @@ export async function complete_with_custom_provider(input: {
   if (!url) throw new Error('Custom Provider is not configured')
   const key = CONFIG.panelAi.customProviderApiKey.trim()
 
-  const payload = build_custom_provider_payload(input)
+  const payload = build_custom_provider_payload({
+    model: input.model,
+    messages: build_custom_provider_messages(input.persona, input.context, input.messages),
+    reasoningMode: input.reasoningMode,
+  })
 
   const response = (await request_json(
     url,
@@ -421,11 +409,9 @@ export async function complete_with_custom_provider(input: {
       body: JSON.stringify(payload),
     },
     CONFIG.panelAi.chatTimeoutMs,
-  )) as custom_completion_response
+  ))
 
-  const content = response.choices?.[0]?.message?.content
-  if (typeof content !== 'string' || !content.trim()) throw new Error('Panel AI returned an empty response')
-  return content.trim()
+  return extract_custom_provider_text(response)
 }
 
 async function attempt_custom_fallback(

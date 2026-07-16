@@ -1,4 +1,9 @@
 import { CONFIG } from '../config'
+import {
+  custom_provider_endpoint,
+  type custom_provider_reasoning_mode,
+  custom_reasoning_parameters,
+} from '@yuebot/shared'
 
 export type custom_provider_model = {
   id: string
@@ -22,14 +27,7 @@ function normalized_base_url() {
   return url.toString().replace(/\/$/, '')
 }
 
-export function custom_provider_endpoint(base_url: string, path: string) {
-  const base = base_url.trim().replace(/\/+$/, '')
-  if (!base) return null
-  const url = new URL(base)
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') throw new Error('Custom Provider URL must use HTTP or HTTPS')
-  const normalized = url.toString().replace(/\/$/, '')
-  return normalized.endsWith('/v1') ? `${normalized}${path}` : `${normalized}/v1${path}`
-}
+
 
 function endpoint(path: string) {
   const base = normalized_base_url()
@@ -109,44 +107,7 @@ export async function list_custom_provider_models(): Promise<custom_provider_mod
   return normalize_custom_provider_models((response.data ?? []).map((item) => item?.id))
 }
 
-export type custom_provider_reasoning_mode =
-  | 'omit'
-  | 'none'
-  | 'minimal'
-  | 'low'
-  | 'medium'
-  | 'high'
 
-export function normalize_custom_provider_reasoning_mode(value: unknown): custom_provider_reasoning_mode {
-  if (
-    value === 'none' ||
-    value === 'minimal' ||
-    value === 'low' ||
-    value === 'medium' ||
-    value === 'high'
-  ) {
-    return value
-  }
-  return 'omit'
-}
-
-export function custom_reasoning_parameters(mode: custom_provider_reasoning_mode): Record<string, string> {
-  switch (mode) {
-    case 'none':
-      return { reasoning_effort: 'none' }
-    case 'minimal':
-      return { reasoning_effort: 'minimal' }
-    case 'low':
-      return { reasoning_effort: 'low' }
-    case 'medium':
-      return { reasoning_effort: 'medium' }
-    case 'high':
-      return { reasoning_effort: 'high' }
-    case 'omit':
-    default:
-      return {}
-  }
-}
 
 export type custom_provider_test_deps = {
   requestJson?: (url: string, init: RequestInit, timeoutMs: number) => Promise<unknown>

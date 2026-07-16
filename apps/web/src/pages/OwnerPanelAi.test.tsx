@@ -32,6 +32,7 @@ describe('OwnerPanelAiPage', () => {
           customModel: 'opaque/test-model',
           customReasoningMode: 'omit',
           fallbackEnabled: false,
+          discordTextFallbackEnabled: false,
           sensitiveContextEnabled: false,
         },
         runtimes: {
@@ -60,6 +61,7 @@ describe('OwnerPanelAiPage', () => {
 
     expect(screen.getByRole('button', { name: 'Runtime principal' })).toHaveTextContent('Mistral Panel Agent')
     expect(screen.getByRole('switch', { name: 'Fallback de texto' })).not.toBeChecked()
+    expect(screen.getByRole('switch', { name: 'Fallback de texto da Yue' })).not.toBeChecked()
     expect(screen.queryByRole('button', { name: 'Modelo' })).not.toBeInTheDocument()
   })
 
@@ -71,6 +73,7 @@ describe('OwnerPanelAiPage', () => {
           customModel: 'opaque/test-model',
           customReasoningMode: 'high',
           fallbackEnabled: true,
+          discordTextFallbackEnabled: false,
           sensitiveContextEnabled: false,
         },
         runtimes: { mistralPanelAgentConfigured: true, customProviderConfigured: true },
@@ -100,6 +103,7 @@ describe('OwnerPanelAiPage', () => {
           customModel: 'opaque/test-model',
           customReasoningMode: 'omit',
           fallbackEnabled: false,
+          discordTextFallbackEnabled: false,
           sensitiveContextEnabled: false,
         },
         runtimes: { mistralPanelAgentConfigured: true, customProviderConfigured: true },
@@ -141,6 +145,7 @@ describe('OwnerPanelAiPage', () => {
           customModel: 'opaque/test-model',
           customReasoningMode: 'medium',
           fallbackEnabled: false,
+          discordTextFallbackEnabled: false,
           sensitiveContextEnabled: true,
         },
         runtimes: { mistralPanelAgentConfigured: true, customProviderConfigured: true },
@@ -168,6 +173,7 @@ describe('OwnerPanelAiPage', () => {
         customModel: 'opaque/test-model',
         customReasoningMode: 'medium',
         fallbackEnabled: false,
+        discordTextFallbackEnabled: false,
         sensitiveContextEnabled: true,
       })
     })
@@ -181,6 +187,7 @@ describe('OwnerPanelAiPage', () => {
           customModel: '',
           customReasoningMode: 'omit',
           fallbackEnabled: false,
+          discordTextFallbackEnabled: false,
           sensitiveContextEnabled: false,
         },
         runtimes: { mistralPanelAgentConfigured: true, customProviderConfigured: true },
@@ -203,6 +210,7 @@ describe('OwnerPanelAiPage', () => {
           customModel: null,
           customReasoningMode: 'omit',
           fallbackEnabled: false,
+          discordTextFallbackEnabled: false,
           sensitiveContextEnabled: false,
         },
         runtimes: { mistralPanelAgentConfigured: true, customProviderConfigured: false },
@@ -218,6 +226,9 @@ describe('OwnerPanelAiPage', () => {
 
     const fallbackSwitch = screen.getByRole('switch', { name: 'Fallback de texto' })
     expect(fallbackSwitch).toBeDisabled()
+
+    const discordFallbackSwitch = screen.getByRole('switch', { name: 'Fallback de texto da Yue' })
+    expect(discordFallbackSwitch).toBeDisabled()
   })
 
   test('stale enabled fallback can be disabled while custom provider is unconfigured', async () => {
@@ -228,6 +239,7 @@ describe('OwnerPanelAiPage', () => {
           customModel: 'opaque/test-model',
           customReasoningMode: 'omit',
           fallbackEnabled: true,
+          discordTextFallbackEnabled: true,
           sensitiveContextEnabled: false,
         },
         runtimes: { mistralPanelAgentConfigured: true, customProviderConfigured: false },
@@ -242,11 +254,17 @@ describe('OwnerPanelAiPage', () => {
     })
 
     const fallbackSwitch = screen.getByRole('switch', { name: 'Fallback de texto' })
-    expect(screen.getByText(/O Custom Provider não está configurado por ambiente/i)).toBeInTheDocument()
+    const discordFallbackSwitch = screen.getByRole('switch', { name: 'Fallback de texto da Yue' })
+
+    expect(screen.getAllByText(/O Custom Provider não está configurado por ambiente/i)).toHaveLength(2)
     expect(screen.getByRole('button', { name: 'Salvar configuração' })).toBeDisabled()
 
     fireEvent.click(fallbackSwitch)
     expect(fallbackSwitch).not.toBeChecked()
+    expect(screen.getByRole('button', { name: 'Salvar configuração' })).toBeDisabled()
+
+    fireEvent.click(discordFallbackSwitch)
+    expect(discordFallbackSwitch).not.toBeChecked()
     expect(screen.getByRole('button', { name: 'Salvar configuração' })).not.toBeDisabled()
   })
 
@@ -258,6 +276,7 @@ describe('OwnerPanelAiPage', () => {
           customModel: 'opaque/test-model',
           customReasoningMode: 'omit',
           fallbackEnabled: false,
+          discordTextFallbackEnabled: false,
           sensitiveContextEnabled: false,
         },
         runtimes: { mistralPanelAgentConfigured: true, customProviderConfigured: true },
@@ -304,6 +323,7 @@ describe('OwnerPanelAiPage', () => {
           customModel: 'opaque/test-model',
           customReasoningMode: 'omit',
           fallbackEnabled: true,
+          discordTextFallbackEnabled: true,
           sensitiveContextEnabled: false,
         },
         runtimes: { mistralPanelAgentConfigured: true, customProviderConfigured: true },
@@ -328,6 +348,7 @@ describe('OwnerPanelAiPage', () => {
     fireEvent.click(customOption)
 
     expect(screen.queryByRole('switch', { name: 'Fallback de texto' })).not.toBeInTheDocument()
+    expect(screen.getByRole('switch', { name: 'Fallback de texto da Yue' })).toBeChecked()
   })
 
   test('testPrimary triggers primary test request', async () => {
@@ -354,6 +375,7 @@ describe('OwnerPanelAiPage', () => {
           customModel: 'opaque/test-model',
           customReasoningMode: 'high',
           fallbackEnabled: false,
+          discordTextFallbackEnabled: false,
           sensitiveContextEnabled: false,
         },
         runtimes: { mistralPanelAgentConfigured: true, customProviderConfigured: true },

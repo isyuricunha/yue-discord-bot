@@ -1131,6 +1131,7 @@ model BotSettings {
   customProviderModelCatalogSyncedAt DateTime?
   customProviderModelCatalogError String?
   panelAiConversationVersion Int @default(1)
+  discordAiTextFallbackEnabled Boolean @default(false)
 
   @@map("bot_settings")
 }

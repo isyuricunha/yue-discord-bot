@@ -1,4 +1,3 @@
-import { readFile } from "node:fs/promises";
 import path from "node:path";
 
 import { Mistral } from "@mistralai/mistralai";
@@ -128,35 +127,7 @@ function env_max_tokens(): number {
 	return parsed;
 }
 
-async function read_prompt_file(path: string): Promise<string> {
-	const content = await readFile(path, "utf8");
-	const trimmed = content.trim();
-	return trimmed.length > 0 ? trimmed : default_system_prompt();
-}
-
-function default_system_prompt(): string {
-	return (
-		"You are Yue, a helpful Discord bot assistant.\n" +
-		"Answer clearly and concisely.\n" +
-		"If you are unsure, say so.\n" +
-		"Avoid disallowed content and never request or reveal secrets.\n"
-	);
-}
-
-async function load_mistral_system_prompt(): Promise<string> {
-	const env_path = process.env.MISTRAL_PROMPT_PATH;
-	const path =
-		typeof env_path === "string" && env_path.trim().length > 0
-			? env_path.trim()
-			: null;
-	if (!path) return default_system_prompt();
-
-	try {
-		return await read_prompt_file(path);
-	} catch {
-		return default_system_prompt();
-	}
-}
+import { load_yue_persona } from "./yue_persona";
 
 type mistral_client_deps = {
 	system_prompt?: () => Promise<string>;
@@ -557,7 +528,7 @@ export class MistralClient {
 				cooldown_until_ms: 0,
 			}));
 		this.clients = input.clients;
-		this.system_prompt = deps.system_prompt ?? load_mistral_system_prompt;
+		this.system_prompt = deps.system_prompt ?? load_yue_persona;
 		this.model = deps.model ?? env_model;
 		this.temperature = deps.temperature ?? env_temperature;
 		this.max_tokens = deps.max_tokens ?? env_max_tokens;
