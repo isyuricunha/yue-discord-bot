@@ -125,7 +125,10 @@ test("CustomTextProvider preserves exact model, message order, and timeout", asy
 		{ role: "system", content: "Yue custom persona" },
 		{
 			role: "system",
-			content: assert_contract(String((payload.messages as Array<{ content: string }>)[1]?.content), "text"),
+			content: assert_contract(
+				String((payload.messages as Array<{ content: string }>)[1]?.content),
+				"text"
+			),
 		},
 		...history,
 		{ role: "user", content: "Current question" },
@@ -155,7 +158,10 @@ function assert_contract(
 	}
 	if (capability === "web_search") {
 		assert.equal(contract.includes("do not claim live results were retrieved"), true);
-		assert.equal(contract.includes("do not fabricate fresh facts or source URLs"), true);
+		assert.equal(
+			contract.includes("do not fabricate fresh facts or source URLs"),
+			true
+		);
 	}
 	if (capability === "text") {
 		assert.equal(contract.includes("answer normally as Yue"), true);
@@ -169,7 +175,8 @@ test("CustomTextProvider adds capability-specific code-owned contracts", async (
 		"image_generation",
 		"web_search",
 	] as const) {
-		let payload: { messages?: Array<{ role: string; content: string }> } | null = null;
+		let payload: { messages?: Array<{ role: string; content: string }> } | null =
+			null;
 		const provider = create_provider({
 			fetch_json: async (_url, init) => {
 				payload = JSON.parse(String(init.body));
@@ -257,13 +264,15 @@ test("CustomTextProvider rejects invalid local input without external requests",
 
 test("CustomTextProvider normalizes malformed and upstream failures without retrying", async () => {
 	const secret = "SECRET_UPSTREAM_RESPONSE_BODY";
-	for (const request of [
+	const fixtures: CustomTextRequestJson[] = [
 		async () => ({ choices: [] }),
 		async () => ({ choices: [{ message: { content: "   " } }] }),
 		async () => {
 			throw new Error(secret);
 		},
-	]) {
+	];
+
+	for (const request of fixtures) {
 		let calls = 0;
 		const provider = create_provider({
 			fetch_json: async (url, init, timeoutMs) => {
