@@ -1,56 +1,63 @@
-import { prisma } from '@yuebot/database';
-import type { custom_provider_reasoning_mode } from '@yuebot/shared';
+import { prisma } from "@yuebot/database";
+import {
+	normalize_custom_provider_reasoning_mode,
+	type custom_provider_reasoning_mode,
+} from "@yuebot/shared";
 
 export type AiFallbackSettings = {
-  discordAiTextFallbackEnabled: boolean;
-  customProviderModel: string | null;
-  customProviderReasoningMode: custom_provider_reasoning_mode;
+	discordAiTextFallbackEnabled: boolean;
+	customProviderModel: string | null;
+	customProviderReasoningMode: custom_provider_reasoning_mode;
 };
 
-const VALID_REASONING_MODES = new Set([
-  'omit',
-  'none',
-  'minimal',
-  'low',
-  'medium',
-  'high',
-]);
+export type AiFallbackSettingsRow = {
+	discordAiTextFallbackEnabled: boolean;
+	customProviderModel: string | null;
+	customProviderReasoningMode: string;
+};
 
-export async function load_ai_fallback_settings(): Promise<AiFallbackSettings> {
-  try {
-    const row = await prisma.botSettings.findUnique({
-      where: { id: 'global' },
-      select: {
-        discordAiTextFallbackEnabled: true,
-        customProviderModel: true,
-        customProviderReasoningMode: true,
-      },
-    });
+export const AI_FALLBACK_SETTINGS_QUERY = {
+	where: { id: "global" },
+	select: {
+		discordAiTextFallbackEnabled: true,
+		customProviderModel: true,
+		customProviderReasoningMode: true,
+	},
+} as const;
 
-    if (!row) {
-      return {
-        discordAiTextFallbackEnabled: false,
-        customProviderModel: null,
-        customProviderReasoningMode: 'omit',
-      };
-    }
+export type AiFallbackSettingsReader = (
+	query: typeof AI_FALLBACK_SETTINGS_QUERY
+) => Promise<AiFallbackSettingsRow | null>;
 
-    const model = typeof row.customProviderModel === 'string' ? row.customProviderModel.trim() : null;
-    let reasoning = row.customProviderReasoningMode;
-    if (!VALID_REASONING_MODES.has(reasoning)) {
-      reasoning = 'omit';
-    }
+const default_reader: AiFallbackSettingsReader = (query) =>
+	prisma.botSettings.findUnique(query);
 
-    return {
-      discordAiTextFallbackEnabled: row.discordAiTextFallbackEnabled === true,
-      customProviderModel: model ? model : null,
-      customProviderReasoningMode: reasoning as custom_provider_reasoning_mode,
-    };
-  } catch {
-    return {
-      discordAiTextFallbackEnabled: false,
-      customProviderModel: null,
-      customProviderReasoningMode: 'omit',
-    };
-  }
+function disabled_settings(): AiFallbackSettings {
+	return {
+		discordAiTextFallbackEnabled: false,
+		customProviderModel: null,
+		customProviderReasoningMode: "omit",
+	};
+}
+
+export async function load_ai_fallback_settings(
+	readSettings: AiFallbackSettingsReader = default_reader
+): Promise<AiFallbackSettings> {
+	try {
+		const row = await readSettings(AI_FALLBACK_SETTINGS_QUERY);
+		if (!row) return disabled_settings();
+
+		const model = row.customProviderModel?.trim() || null;
+		return {
+			discordAiTextFallbackEnabled:
+				row.discordAiTextFallbackEnabled === true,
+			customProviderModel: model,
+			customProviderReasoningMode:
+				normalize_custom_provider_reasoning_mode(
+					row.customProviderReasoningMode
+				),
+		};
+	} catch {
+		return disabled_settings();
+	}
 }
