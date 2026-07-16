@@ -25,7 +25,7 @@ describe('PanelAssistantMessage', () => {
 
   test('renders thinking indicator', () => {
     const { container } = render(<PanelAssistantMessage role="thinking" content="" />)
-    expect(screen.getByText(/Ella está pensando/i)).toBeTruthy()
+    expect(screen.getByText(/O assistente está pensando/i)).toBeTruthy()
     expect(container.querySelectorAll('.motion-reduce\\:animate-none')).toHaveLength(3)
   })
 
@@ -46,6 +46,6 @@ describe('PanelAssistantMessage', () => {
     const copyBtn = screen.getByLabelText('Copiar resposta')
     await userEvent.click(copyBtn)
     expect(writeText).toHaveBeenCalledWith('Hello world')
-    expect(toast_success).toHaveBeenCalledWith('Resposta copiada.', 'Ella')
+    expect(toast_success).toHaveBeenCalledWith('Resposta copiada.', 'Assistente')
   })
 })
