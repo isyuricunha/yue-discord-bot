@@ -20,12 +20,13 @@ export function PanelAssistantMessage({ role, content, isError, onRetry, retryDi
   const isThinking = role === 'thinking'
   const isErrorMsg = isError || role === 'error'
 
+  // Copy to clipboard
   const handleCopy = React.useCallback(async () => {
     try {
       await navigator.clipboard.writeText(content)
-      toast_success('Resposta copiada.', 'Assistente')
+      toast_success('Resposta copiada.', 'Ella')
     } catch {
-      toast_error('Não foi possível copiar. Tente selecionar o texto manualmente.', 'Assistente')
+      toast_error('Não foi possível copiar. Tente selecionar o texto manualmente.', 'Ella')
     }
   }, [content])
 
@@ -36,7 +37,7 @@ export function PanelAssistantMessage({ role, content, isError, onRetry, retryDi
           <Sparkles className="h-4 w-4" />
         </span>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <span>O assistente está pensando</span>
+          <span>Ella está pensando</span>
           <span className="inline-flex gap-0.5">
             <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40 motion-reduce:animate-none" style={{ animationDelay: '0ms' }} />
             <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40 motion-reduce:animate-none" style={{ animationDelay: '150ms' }} />
@@ -77,6 +78,7 @@ export function PanelAssistantMessage({ role, content, isError, onRetry, retryDi
     )
   }
 
+  // Assistant message
   return (
     <div className={cn('group flex items-start gap-3 px-1', className)}>
       <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
