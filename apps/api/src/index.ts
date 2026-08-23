@@ -30,6 +30,7 @@ import { supportRoutes } from './routes/support.routes'
 import { livePixRoutes } from './routes/livepix.routes'
 import { request_guild_id, verify_live_guild_access } from './utils/guild_access'
 import { safe_error_details } from './utils/safe_error'
+import { get_readiness } from './services/readiness.service'
 
 assert_api_runtime_env();
 
@@ -278,13 +279,29 @@ app.setErrorHandler(async (error, request, reply) => {
   return reply.code(statusCode).send({ error: message });
 });
 
-// Health check
+// Liveness check: the API process is accepting requests.
 app.get('/health', {
   config: {
     rateLimit: false,
   },
 }, async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };
+});
+
+// Readiness check: the container can serve API traffic and the bot is operational.
+app.get('/ready', {
+  config: {
+    rateLimit: false,
+  },
+}, async (request, reply) => {
+  const readiness = await get_readiness()
+
+  if (readiness.status !== 'ready') {
+    request.log.warn({ checks: readiness.checks }, 'Container readiness check failed')
+    return reply.code(503).send(readiness)
+  }
+
+  return readiness
 });
 
 // Auth routes

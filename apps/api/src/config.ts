@@ -36,6 +36,9 @@ function parse_positive_int_env(value: string | undefined, fallback: number, max
 
 load_env();
 
+const internal_api_port = parse_int_env(process.env.BOT_INTERNAL_PORT, 3100)
+const internal_api_host = process.env.BOT_INTERNAL_API_HOST || process.env.BOT_INTERNAL_HOST || '127.0.0.1'
+
 export const CONFIG = {
   api: {
     port: parseInt(process.env.API_PORT || process.env.PORT || '3000'),
@@ -43,10 +46,17 @@ export const CONFIG = {
     trustProxy: parse_boolean_env(process.env.TRUST_PROXY, process.env.NODE_ENV === 'production'),
     bodyLimit: parse_int_env(process.env.API_BODY_LIMIT, 1024 * 1024),
   },
+  bot: {
+    enabled: parse_boolean_env(process.env.ENABLE_BOT, true),
+  },
   internalApi: {
-    host: process.env.BOT_INTERNAL_API_HOST || process.env.BOT_INTERNAL_HOST || '127.0.0.1',
-    port: parse_int_env(process.env.BOT_INTERNAL_PORT, 3100),
+    host: internal_api_host,
+    port: internal_api_port,
     secret: process.env.INTERNAL_API_SECRET || '',
+  },
+  botReadiness: {
+    host: process.env.BOT_READINESS_HOST || internal_api_host,
+    port: parse_int_env(process.env.BOT_READINESS_PORT, internal_api_port + 1),
   },
   cors: {
     origins: parse_csv_env(process.env.CORS_ORIGINS),
