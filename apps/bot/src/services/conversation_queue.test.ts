@@ -16,10 +16,12 @@ function deferred<T = void>() {
 test('serializes tasks for the same conversation key', async () => {
   const queue = new ConversationQueue()
   const first_gate = deferred<void>()
+  const first_started = deferred<void>()
   const events: string[] = []
 
   const first = queue.run('guild:channel:user', async () => {
     events.push('first:start')
+    first_started.resolve()
     await first_gate.promise
     events.push('first:end')
   })
@@ -29,7 +31,7 @@ test('serializes tasks for the same conversation key', async () => {
     events.push('second:end')
   })
 
-  await Promise.resolve()
+  await first_started.promise
   assert.deepEqual(events, ['first:start'])
 
   first_gate.resolve()
