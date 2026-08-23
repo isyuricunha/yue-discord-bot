@@ -21,55 +21,16 @@ interface DiscordGuild {
   permissions: string;
 }
 
-type rate_limit_entry = {
-  count: number
-  windowStart: number
-  lastSeen: number
-}
-
-const rate_limit_state = new Map<string, rate_limit_entry>()
-
-function allow_request_rate_limited(key: string, max: number, window_ms: number): boolean {
-  const now = Date.now()
-
-  // Best-effort pruning to avoid unbounded growth.
-  // This is an in-memory limiter only; it is not intended to be perfectly precise.
-  if (rate_limit_state.size > 5000) {
-    const prune_before = now - Math.max(window_ms * 10, 60 * 60 * 1000)
-    for (const [k, entry] of rate_limit_state.entries()) {
-      if (entry.lastSeen < prune_before) rate_limit_state.delete(k)
-    }
-
-    if (rate_limit_state.size > 10000) {
-      rate_limit_state.clear()
-    }
-  }
-
-  const existing = rate_limit_state.get(key)
-  if (!existing || now - existing.windowStart > window_ms) {
-    rate_limit_state.set(key, { count: 1, windowStart: now, lastSeen: now })
-    return true
-  }
-
-  if (existing.count >= max) return false
-  existing.count += 1
-  existing.lastSeen = now
-  return true
-}
-
-function rate_limit_key(prefix: string, request: { ip: string }) {
-  return `${prefix}:${request.ip}`
-}
-
 export default async function authRoutes(fastify: FastifyInstance) {
   // Login - Redireciona para Discord OAuth
-  fastify.get('/login', async (_request, reply) => {
-    const request = _request
-    const key = rate_limit_key('auth:login', request)
-    if (!allow_request_rate_limited(key, 30, 60_000)) {
-      return reply.code(429).send({ error: 'Too many requests' })
-    }
-
+  fastify.get('/login', {
+    config: {
+      rateLimit: {
+        max: 30,
+        timeWindow: 60_000,
+      },
+    },
+  }, async (_request, reply) => {
     const state = crypto.randomBytes(16).toString('hex');
 
     reply.setCookie('oauth_state', state, {
@@ -93,12 +54,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
   });
 
   // Callback - Recebe code do Discord
-  fastify.get('/callback', async (request, reply) => {
-    const key = rate_limit_key('auth:callback', request)
-    if (!allow_request_rate_limited(key, 30, 60_000)) {
-      return reply.code(429).send({ error: 'Too many requests' })
-    }
-
+  fastify.get('/callback', {
+    config: {
+      rateLimit: {
+        max: 30,
+        timeWindow: 60_000,
+      },
+    },
+  }, async (request, reply) => {
     const { code, state } = request.query as { code?: string; state?: string };
 
     if (!code) {
@@ -216,12 +179,13 @@ export default async function authRoutes(fastify: FastifyInstance) {
   // Refresh token
   fastify.post('/refresh', {
     preHandler: [fastify.authenticate],
+    config: {
+      rateLimit: {
+        max: 60,
+        timeWindow: 60_000,
+      },
+    },
   }, async (request, reply) => {
-    const key = rate_limit_key('auth:refresh', request)
-    if (!allow_request_rate_limited(key, 60, 60_000)) {
-      return reply.code(429).send({ error: 'Too many requests' })
-    }
-
     try {
       const user = request.user;
       
@@ -258,13 +222,13 @@ export default async function authRoutes(fastify: FastifyInstance) {
   // Logout
   fastify.post('/logout', {
     preHandler: [fastify.authenticate],
+    config: {
+      rateLimit: {
+        max: 60,
+        timeWindow: 60_000,
+      },
+    },
   }, async (_request, reply) => {
-    const request = _request
-    const key = rate_limit_key('auth:logout', request)
-    if (!allow_request_rate_limited(key, 60, 60_000)) {
-      return reply.code(429).send({ error: 'Too many requests' })
-    }
-
     reply.clearCookie('yuebot_token', {
       path: '/',
       domain: CONFIG.cookies.domain,
@@ -275,12 +239,14 @@ export default async function authRoutes(fastify: FastifyInstance) {
   // Set token cookie (for dev mode URL token handling)
   // This endpoint accepts a token from the web app and stores it in an httpOnly cookie
   // Only available in development mode for security
-  fastify.post('/set-token-cookie', async (request, reply) => {
-    const key = rate_limit_key('auth:set-token-cookie', request)
-    if (!allow_request_rate_limited(key, 10, 60_000)) {
-      return reply.code(429).send({ error: 'Too many requests' })
-    }
-
+  fastify.post('/set-token-cookie', {
+    config: {
+      rateLimit: {
+        max: 10,
+        timeWindow: 60_000,
+      },
+    },
+  }, async (request, reply) => {
     // Only allow this endpoint in development mode
     if (CONFIG.environment !== 'development') {
       return reply.code(403).send({ error: 'Not available in production' })
