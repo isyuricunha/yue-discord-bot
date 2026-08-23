@@ -4,9 +4,9 @@
   "private": true,
   "main": "./dist/index.js",
   "scripts": {
-    "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && tsx watch src/index.ts",
+    "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && tsx watch src/runtime.ts",
     "build": "pnpm --filter @yuebot/livepix build && tsup",
-    "start": "node dist/index.js",
+    "start": "node dist/runtime.js",
     "clean": "rm -rf dist",
     "lint": "eslint \"src/**/*.{ts,tsx}\"",
     "test": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && node --test --import tsx \"src/**/*.test.ts\"",
