@@ -100,9 +100,9 @@ RUN chmod +x /docker-entrypoint.sh /inject-env.sh
 # Expose ports
 EXPOSE 80 3000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
-  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+# Container readiness: API + database + bot internal API + Discord client.
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/ready || exit 1
 
 # Start all services with supervisor
 ENTRYPOINT ["/docker-entrypoint.sh"]

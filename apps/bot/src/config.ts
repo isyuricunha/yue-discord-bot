@@ -44,6 +44,8 @@ function required_env_one_of(names: string[], label: string): string {
   )
 }
 
+const internal_api_port = parse_int_env(process.env.BOT_INTERNAL_PORT, 3100)
+
 export const CONFIG = {
   discord: {
     token: process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN || '',
@@ -51,8 +53,12 @@ export const CONFIG = {
   },
   internalApi: {
     host: process.env.BOT_INTERNAL_BIND_HOST || process.env.BOT_INTERNAL_HOST || '127.0.0.1',
-    port: parse_int_env(process.env.BOT_INTERNAL_PORT, 3100),
+    port: internal_api_port,
     secret: process.env.INTERNAL_API_SECRET || '',
+  },
+  readiness: {
+    host: process.env.BOT_READINESS_HOST || process.env.BOT_INTERNAL_BIND_HOST || process.env.BOT_INTERNAL_HOST || '127.0.0.1',
+    port: parse_int_env(process.env.BOT_READINESS_PORT, internal_api_port + 1),
   },
   database: {
     url: process.env.DATABASE_URL || '',
