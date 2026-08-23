@@ -44,6 +44,35 @@ function normalize_redis_string(value: string | Buffer): string {
   return typeof value === 'string' ? value : value.toString('utf8')
 }
 
+const APPEND_MESSAGE_SCRIPT = `
+local redis_key = KEYS[1]
+local message = cjson.decode(ARGV[1])
+local max_messages = tonumber(ARGV[2])
+local last_activity_ms = tonumber(ARGV[3])
+local ttl_seconds = tonumber(ARGV[4])
+
+local messages = {}
+local raw = redis.call('GET', redis_key)
+if raw then
+  local ok, state = pcall(cjson.decode, raw)
+  if ok and type(state) == 'table' and type(state.messages) == 'table' then
+    messages = state.messages
+  end
+end
+
+table.insert(messages, message)
+while #messages > max_messages do
+  table.remove(messages, 1)
+end
+
+redis.call('SET', redis_key, cjson.encode({
+  messages = messages,
+  last_activity_ms = last_activity_ms
+}), 'EX', ttl_seconds)
+
+return #messages
+`.trim()
+
 export class RedisConversationStore implements conversation_backend {
   private readonly redis_url: string
   private readonly redis_password: string | null
@@ -233,18 +262,21 @@ export class RedisConversationStore implements conversation_backend {
 
   async append(key: string, message: conversation_message): Promise<void> {
     const redis_key = this.build_key(key)
-
-    const current = await this.get_history(key)
-    const next_messages = current.concat([this.normalize_message(message)]).slice(-this.max_messages)
-
-    const payload: redis_conversation_state = {
-      messages: next_messages,
-      last_activity_ms: now_ms(),
-    }
+    const normalized = this.normalize_message(message)
+    const last_activity_ms = now_ms()
 
     await this.run_redis_command(
-      'Redis SET',
-      (client) => client.sendCommand(['SET', redis_key, JSON.stringify(payload), 'EX', String(this.ttl_seconds)])
+      'Redis EVAL append',
+      (client) => client.sendCommand([
+        'EVAL',
+        APPEND_MESSAGE_SCRIPT,
+        '1',
+        redis_key,
+        JSON.stringify(normalized),
+        String(this.max_messages),
+        String(last_activity_ms),
+        String(this.ttl_seconds),
+      ])
     )
   }
 
