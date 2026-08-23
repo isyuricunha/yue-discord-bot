@@ -27,6 +27,7 @@ import {
 	conversation_key_from_message,
 	is_reply_to_bot,
 } from "../services/conversation_history";
+import { conversation_queue } from "../services/conversation_queue";
 import { is_within_continuation_window } from "../services/conversation_continuation";
 import {
 	build_user_prompt_from_invocation,
@@ -252,58 +253,60 @@ export async function handleMessageCreate(message: Message) {
 
 	const llm_client = get_llm_client();
 	if (llm_client) {
-		const bot_user_id = message.client.user?.id ?? null;
-		const mentions_bot = bot_user_id
-			? message.mentions.users.has(bot_user_id)
-			: false;
-
 		const key = conversation_key_from_message(message);
-		const conversation_backend = get_conversation_backend();
-		const continuation_seconds = parse_int_env(
-			process.env.AI_CONTEXT_CONTINUATION_SECONDS,
-			120
-		);
-		const last_activity = await conversation_backend
-			.get_last_activity_ms(key)
-			.catch(() => null);
-		const within_continuation_window = is_within_continuation_window({
-			now_ms: Date.now(),
-			last_activity_ms:
-				typeof last_activity === "number" ? last_activity : null,
-			continuation_seconds,
-		});
 
-		const replying_to_bot = await is_reply_to_bot(message);
+		await conversation_queue.run(key, async () => {
+			const bot_user_id = message.client.user?.id ?? null;
+			const mentions_bot = bot_user_id
+				? message.mentions.users.has(bot_user_id)
+				: false;
 
-		const invoked_prompt = build_user_prompt_from_invocation({
-			content: message.content ?? "",
-			mentions_bot,
-			bot_user_id,
-		});
+			const conversation_backend = get_conversation_backend();
+			const continuation_seconds = parse_int_env(
+				process.env.AI_CONTEXT_CONTINUATION_SECONDS,
+				120
+			);
+			const last_activity = await conversation_backend
+				.get_last_activity_ms(key)
+				.catch(() => null);
+			const within_continuation_window = is_within_continuation_window({
+				now_ms: Date.now(),
+				last_activity_ms:
+					typeof last_activity === "number" ? last_activity : null,
+				continuation_seconds,
+			});
 
-		const should_continue = replying_to_bot || within_continuation_window;
+			const replying_to_bot = await is_reply_to_bot(message);
 
-		let prompt = invoked_prompt;
-		if (!prompt && should_continue) {
-			const raw = (message.content ?? "").trim();
-			if (raw) {
-				let cleaned = raw;
-				if (mentions_bot && bot_user_id) {
-					cleaned = remove_bot_mention(cleaned, bot_user_id);
+			const invoked_prompt = build_user_prompt_from_invocation({
+				content: message.content ?? "",
+				mentions_bot,
+				bot_user_id,
+			});
+
+			const should_continue = replying_to_bot || within_continuation_window;
+
+			let prompt = invoked_prompt;
+			if (!prompt && should_continue) {
+				const raw = (message.content ?? "").trim();
+				if (raw) {
+					let cleaned = raw;
+					if (mentions_bot && bot_user_id) {
+						cleaned = remove_bot_mention(cleaned, bot_user_id);
+					}
+					cleaned = remove_leading_yue(cleaned);
+					prompt = cleaned.trim() ? cleaned.trim() : null;
 				}
-				cleaned = remove_leading_yue(cleaned);
-				prompt = cleaned.trim() ? cleaned.trim() : null;
 			}
-		}
 
-		if (prompt) {
-			try {
-				const stop_typing = start_typing_indicator(message.channel);
-
+			if (prompt) {
 				try {
-					const history = build_history_for_prompt(
-						await conversation_backend.get_history(key)
-					);
+					const stop_typing = start_typing_indicator(message.channel);
+
+					try {
+						const history = build_history_for_prompt(
+							await conversation_backend.get_history(key)
+						);
 
 						const web_query = parse_web_search_query(prompt);
 						const user_prompt = web_query ?? prompt;
@@ -316,12 +319,12 @@ export async function handleMessageCreate(message: Message) {
 							!prefer_mistral_image_generation &&
 							has_mistral_agent_configured();
 
-					let web_context: string | null = null;
-					if (web_query && !prefer_agent_websearch) {
-						const search = await ddg_web_search(web_query);
-						const formatted = format_web_search_context(search).trim();
-						web_context = formatted.length > 0 ? formatted : null;
-					}
+						let web_context: string | null = null;
+						if (web_query && !prefer_agent_websearch) {
+							const search = await ddg_web_search(web_query);
+							const formatted = format_web_search_context(search).trim();
+							web_context = formatted.length > 0 ? formatted : null;
+						}
 
 						const final_user_prompt = prefer_mistral_image_generation
 							? `Use the image_generation tool to generate the requested image. Do not only describe the image. Return the generated image file and a short caption.
@@ -357,57 +360,58 @@ Question: ${user_prompt}`
 							history,
 						});
 
-					const files = (completion.attachments ?? []).map(
-						(att) => new AttachmentBuilder(att.data, { name: att.filename })
-					);
-					const parts = split_discord_message(completion.content);
-					const first = parts[0] ?? "";
+						const files = (completion.attachments ?? []).map(
+							(att) => new AttachmentBuilder(att.data, { name: att.filename })
+						);
+						const parts = split_discord_message(completion.content);
+						const first = parts[0] ?? "";
 
-					await conversation_backend.append(key, {
-						role: "user",
-						content: user_prompt,
-					});
-					await conversation_backend.append(key, {
-						role: "assistant",
-						content: completion.content,
-					});
+						await conversation_backend.append(key, {
+							role: "user",
+							content: user_prompt,
+						});
+						await conversation_backend.append(key, {
+							role: "assistant",
+							content: completion.content,
+						});
 
-					await message.reply({
-						content: first,
-						files,
-						allowedMentions: { parse: [], repliedUser: false },
-					});
+						await message.reply({
+							content: first,
+							files,
+							allowedMentions: { parse: [], repliedUser: false },
+						});
 
-					if (parts.length > 1) {
-						const channel = getSendableChannel(message.channel);
-						if (channel) {
-							for (const extra of parts.slice(1)) {
-								await channel.send({
-									content: extra,
-									allowedMentions: { parse: [] },
-								});
+						if (parts.length > 1) {
+							const channel = getSendableChannel(message.channel);
+							if (channel) {
+								for (const extra of parts.slice(1)) {
+									await channel.send({
+										content: extra,
+										allowedMentions: { parse: [] },
+									});
+								}
 							}
 						}
+					} finally {
+						stop_typing();
 					}
-				} finally {
-					stop_typing();
-				}
-			} catch (error: unknown) {
-				if (error instanceof MistralApiError) {
-					logger.warn({ status: error.status }, "Mistral invocation failed");
-				} else if (error instanceof MistralError) {
-					logger.warn(
-						{ status: error.statusCode },
-						"Mistral invocation failed"
-					);
-				} else {
-					logger.error(
-						{ err: safe_error_details(error) },
-						"Mistral invocation failed"
-					);
+				} catch (error: unknown) {
+					if (error instanceof MistralApiError) {
+						logger.warn({ status: error.status }, "Mistral invocation failed");
+					} else if (error instanceof MistralError) {
+						logger.warn(
+							{ status: error.statusCode },
+							"Mistral invocation failed"
+						);
+					} else {
+						logger.error(
+							{ err: safe_error_details(error) },
+							"Mistral invocation failed"
+						);
+					}
 				}
 			}
-		}
+		});
 	}
 
 	try {
