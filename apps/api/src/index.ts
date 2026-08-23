@@ -28,6 +28,7 @@ import { auditRoutes } from './routes/audit.routes'
 import { triggersRoutes } from './routes/triggers.routes'
 import { supportRoutes } from './routes/support.routes'
 import { livePixRoutes } from './routes/livepix.routes'
+import { request_guild_id, verify_live_guild_access } from './utils/guild_access'
 import { safe_error_details } from './utils/safe_error'
 
 assert_api_runtime_env();
@@ -164,13 +165,35 @@ app.register(rateLimit, {
   },
 });
 
-// Decorators para autenticação
+// Authentication and live guild authorization
 app.decorate('authenticate', async function (request: FastifyRequest, reply: FastifyReply) {
   try {
     await request.jwtVerify();
-  } catch (err: unknown) {
+  } catch (_error: unknown) {
     await reply.code(401).send({ error: 'Unauthorized' });
     return;
+  }
+
+  const guild_id = request_guild_id(request.params)
+  if (!guild_id) return
+
+  try {
+    const allowed = await verify_live_guild_access(request.user, guild_id, request.log)
+    if (!allowed) {
+      await reply.code(403).send({ error: 'Forbidden' })
+      return
+    }
+  } catch (error: unknown) {
+    request.log.warn(
+      {
+        err: safe_error_details(error),
+        guildId: guild_id,
+        userId: request.user.userId,
+      },
+      'Failed to verify live guild authorization'
+    )
+    await reply.code(503).send({ error: 'Authorization unavailable' })
+    return
   }
 });
 
