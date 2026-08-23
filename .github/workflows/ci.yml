@@ -16,21 +16,13 @@ on:
       - ".github/**/*.md"
   pull_request:
     branches: ["main"]
-    paths-ignore:
-      - "README.md"
-      - "LICENSE"
-      - "LICENSE.txt"
-      - ".env.example"
-      - ".env.docker.example"
-      - ".env.local.example"
-      - "apps/web/.env.example"
-      - "**/*.md"
-      - "docker-compose*.yml"
-      - ".github/**/*.md"
+
+permissions:
+  contents: read
 
 jobs:
   checks:
-    name: lint, type-check, test, build
+    name: checks
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
@@ -54,7 +46,7 @@ jobs:
           echo "Checking for committed private key files..."
           key_files=$(git ls-files | grep -E '(\.(pem|key|p12)$|(^|/)id_rsa($|\.)|(^|/)id_ed25519($|\.))' || true)
           if [ -n "$key_files" ]; then
-            echo "ERROR: committed key files detected:"
+            echo "ERROR: committed private key files detected:"
             echo "$key_files"
             exit 1
           fi
@@ -90,3 +82,80 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+  release:
+    name: docker/release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: checks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      packages: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    concurrency:
+      group: docker-release-${{ github.ref }}
+      cancel-in-progress: false
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Semantic Release
+        id: semantic
+        uses: cycjimmy/semantic-release-action@v6
+        with:
+          semantic_version: 25.0.3
+          extra_plugins: conventional-changelog-conventionalcommits@9.3.1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Generate Docker metadata
+        id: metadata
+        uses: docker/metadata-action@v5
+        with:
+          images: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/yue-discord-bot
+            ghcr.io/${{ github.repository }}
+          flavor: |
+            latest=false
+          tags: |
+            type=raw,value=latest
+            type=raw,value=${{ steps.semantic.outputs.new_release_git_tag }},enable=${{ steps.semantic.outputs.new_release_published == 'true' }}
+          labels: |
+            org.opencontainers.image.title=Yue Discord Bot
+            org.opencontainers.image.description=A biggest bot.
+            org.opencontainers.image.version=${{ steps.semantic.outputs.new_release_published == 'true' && steps.semantic.outputs.new_release_git_tag || github.sha }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.metadata.outputs.tags }}
+          labels: ${{ steps.metadata.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
