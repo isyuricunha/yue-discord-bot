@@ -120,58 +120,55 @@ if (hasRedis) {
   }
 }
 
+function rate_limit_error_payload(after_seconds: number) {
+  const retry_after = Math.max(1, Math.ceil(after_seconds))
+  return {
+    error: 'Too many requests',
+    message: `Rate limit exceeded. Try again in ${retry_after} seconds.`,
+  }
+}
+
 app.register(rateLimit, {
-  // Use Redis if available, otherwise in-memory
+  // Use Redis if available, otherwise in-memory.
   redis: redisClient,
-  // Default global limit
+  // The global limiter is intentionally IP-based. Authenticated requests get a
+  // second, verified user bucket in the authenticate decorator below.
   max: CONFIG.rateLimit.max,
   timeWindow: CONFIG.rateLimit.timeWindowMs,
-  // Skip health check endpoints
-  allowList: ['/health', '/status'],
-  // Key generator: use JWT userId for authenticated requests, fall back to IP for unauthenticated
-  // This prevents IP spoofing bypass when trustProxy is enabled
-  keyGenerator: (request: FastifyRequest) => {
-    // Try to get userId from JWT token (cookie or Authorization header)
-    // We decode without verification for rate limiting - security is handled by authenticate hook
-    const cookies = request.cookies as Record<string, string | undefined> | undefined;
-    const token = cookies?.yuebot_token || 
-      (request.headers.authorization?.startsWith('Bearer ') 
-        ? request.headers.authorization.slice(7) 
-        : null);
-    
-    if (token) {
-      try {
-        // Decode JWT without verification - we only need the userId for rate limiting
-        // The actual authentication is handled by the authenticate preHandler
-        const decoded = request.server.jwt.decode<{ user?: { userId?: string } }>(token);
-        if (decoded?.user?.userId) {
-          return `user:${decoded.user.userId}`;
-        }
-      } catch {
-        // Token invalid - fall back to IP
-      }
-    }
-    
-    // Fall back to IP address for unauthenticated requests
-    return request.ip;
-  },
-  // Error response format
-  errorResponseBuilder: (_request: FastifyRequest, context: { after: string }) => {
-    const afterSeconds = Math.ceil(parseInt(context.after, 10) / 1000);
-    return {
-      error: 'Too many requests',
-      message: `Rate limit exceeded. Try again in ${afterSeconds} seconds.`,
-    };
-  },
+  errorResponseBuilder: (_request, context) => rate_limit_error_payload(context.ttl / 1000),
 });
 
-// Authentication and live guild authorization
+let authenticated_user_rate_limit: ReturnType<typeof app.createRateLimit> | undefined
+
+// Authentication, verified per-user rate limiting, and live guild authorization
 app.decorate('authenticate', async function (request: FastifyRequest, reply: FastifyReply) {
   try {
     await request.jwtVerify();
   } catch (_error: unknown) {
     await reply.code(401).send({ error: 'Unauthorized' });
     return;
+  }
+
+  const user_id = typeof request.user.userId === 'string' ? request.user.userId.trim() : ''
+  if (!user_id) {
+    await reply.code(401).send({ error: 'Unauthorized' })
+    return
+  }
+
+  const check_user_rate_limit = authenticated_user_rate_limit ??= request.server.createRateLimit({
+    max: CONFIG.rateLimit.max,
+    timeWindow: CONFIG.rateLimit.timeWindowMs,
+    keyGenerator: (rate_limit_request) => `user:${rate_limit_request.user.userId.trim()}`,
+  })
+
+  const user_limit = await check_user_rate_limit(request)
+  if (!user_limit.isAllowed && user_limit.isExceeded) {
+    reply.header('x-ratelimit-limit', user_limit.max)
+    reply.header('x-ratelimit-remaining', 0)
+    reply.header('x-ratelimit-reset', user_limit.ttlInSeconds)
+    reply.header('retry-after', user_limit.ttlInSeconds)
+    await reply.code(429).send(rate_limit_error_payload(user_limit.ttlInSeconds))
+    return
   }
 
   const guild_id = request_guild_id(request.params)
@@ -282,7 +279,11 @@ app.setErrorHandler(async (error, request, reply) => {
 });
 
 // Health check
-app.get('/health', async () => {
+app.get('/health', {
+  config: {
+    rateLimit: false,
+  },
+}, async () => {
   return { status: 'ok', timestamp: new Date().toISOString() };
 });
 
