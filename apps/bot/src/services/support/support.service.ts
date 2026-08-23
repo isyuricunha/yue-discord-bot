@@ -479,7 +479,7 @@ export class SupportService {
           guildId: config.guildId,
           status: SupportEntitlementStatus.ACTIVE,
           expiresAt: { gte: window_start, lte: window_end },
-          OR: [{ lastReminderAt: null }, { lastReminderAt: { lt: window_start } }],
+          lastReminderAt: null,
         },
         take: 25,
       })
@@ -488,14 +488,21 @@ export class SupportService {
         const guild = await client.guilds.fetch(entitlement.guildId).catch(() => null)
         if (!guild) continue
 
+        const claimed = await prisma.supportEntitlement.updateMany({
+          where: {
+            id: entitlement.id,
+            guildId: config.guildId,
+            status: SupportEntitlementStatus.ACTIVE,
+            expiresAt: { gte: window_start, lte: window_end },
+            lastReminderAt: null,
+          },
+          data: { lastReminderAt: new Date() },
+        })
+        if (claimed.count === 0) continue
+
         const sent = await this.send_expiration_reminder_dm(client, guild, entitlement).catch((error) => {
           logger.info({ err: safe_error_details(error), guildId: guild.id }, 'Support reminder DM could not be delivered')
           return false
-        })
-
-        await prisma.supportEntitlement.update({
-          where: { id: entitlement.id },
-          data: { lastReminderAt: new Date() },
         })
 
         if (sent) {
@@ -900,6 +907,7 @@ export class SupportService {
           latestPlanId: payment.planId,
           status: SupportEntitlementStatus.ACTIVE,
           expiresAt: expires_at,
+          lastReminderAt: null,
           revokedAt: null,
           revokedReason: null,
           roleSyncStatus: SupportRoleSyncStatus.PENDING,
