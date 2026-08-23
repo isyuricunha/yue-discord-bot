@@ -7,7 +7,23 @@ test('redis_conversation_store: requires redis url', () => {
   assert.throws(() => new RedisConversationStore({ redis_url: '' }), /REDIS_URL/i)
 })
 
-test('redis_conversation_store: append uses one atomic Redis EVAL command', async () => {
+test('redis_conversation_store: last activity lookup never calls Redis', async () => {
+  const store = new RedisConversationStore({
+    redis_url: 'redis://localhost:6379',
+    key_prefix: 'test:conversation',
+  })
+
+  let redis_calls = 0
+  ;(store as any).run_redis_command = async () => {
+    redis_calls += 1
+    throw new Error('Redis should not be called for activity lookup')
+  }
+
+  assert.equal(await store.get_last_activity_ms('guild:channel:user'), null)
+  assert.equal(redis_calls, 0)
+})
+
+test('redis_conversation_store: append uses one atomic Redis EVAL command and warms local activity', async () => {
   const store = new RedisConversationStore({
     redis_url: 'redis://localhost:6379',
     key_prefix: 'test:conversation',
@@ -48,4 +64,10 @@ test('redis_conversation_store: append uses one atomic Redis EVAL command', asyn
   assert.equal(args[5], '4')
   assert.ok(Number.isFinite(Number(args[6])))
   assert.equal(args[7], '120')
+
+  assert.equal(
+    await store.get_last_activity_ms('guild:channel:user'),
+    Number(args[6])
+  )
+  assert.equal(commands.length, 1)
 })

@@ -4,6 +4,7 @@ import { logger } from '../utils/logger'
 
 import type { conversation_message } from './conversation_store'
 import type { conversation_backend } from './conversation_backend'
+import { RecentConversationActivity } from './recent_conversation_activity'
 
 type redis_conversation_state = {
   messages: conversation_message[]
@@ -80,6 +81,7 @@ export class RedisConversationStore implements conversation_backend {
   private readonly ttl_seconds: number
   private readonly max_messages: number
   private readonly max_message_chars: number
+  private readonly recent_activity: RecentConversationActivity
   private client: RedisClientType | null = null
   private has_logged_connection = false
 
@@ -123,6 +125,10 @@ export class RedisConversationStore implements conversation_backend {
       1,
       input?.max_message_chars ?? parse_int_env(process.env.AI_CONTEXT_MAX_MESSAGE_CHARS, 700)
     )
+    this.recent_activity = new RecentConversationActivity({
+      ttl_seconds: parse_int_env(process.env.AI_CONTEXT_CONTINUATION_SECONDS, 120),
+      max_entries: parse_int_env(process.env.AI_CONTEXT_ACTIVITY_CACHE_MAX_KEYS, 5000),
+    })
   }
 
   private build_key(key: string): string {
@@ -245,19 +251,7 @@ export class RedisConversationStore implements conversation_backend {
   }
 
   async get_last_activity_ms(key: string): Promise<number | null> {
-    const raw = await this.run_redis_command(
-      'Redis GET',
-      (client) => client.sendCommand(['GET', this.build_key(key)]) as Promise<string | Buffer | null>
-    )
-    if (!raw) return null
-
-    try {
-      const parsed = JSON.parse(normalize_redis_string(raw)) as redis_conversation_state
-      const value = (parsed as any)?.last_activity_ms
-      return typeof value === 'number' && Number.isFinite(value) ? value : null
-    } catch {
-      return null
-    }
+    return this.recent_activity.get_last_activity_ms(key)
   }
 
   async append(key: string, message: conversation_message): Promise<void> {
@@ -278,9 +272,12 @@ export class RedisConversationStore implements conversation_backend {
         String(this.ttl_seconds),
       ])
     )
+
+    this.recent_activity.touch(key, last_activity_ms)
   }
 
   async clear(key: string): Promise<void> {
     await this.run_redis_command('Redis DEL', (client) => client.sendCommand(['DEL', this.build_key(key)]))
+    this.recent_activity.clear(key)
   }
 }
