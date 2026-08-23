@@ -6,7 +6,6 @@ on:
     paths-ignore:
       - "README.md"
       - "LICENSE"
-      - "LICENSE.txt"
       - ".env.example"
       - ".env.docker.example"
       - ".env.local.example"
