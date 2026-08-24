@@ -49,6 +49,12 @@ function make_db(input: state) {
   return db
 }
 
+function serializable_conflict(code: 'P2034' | '40001') {
+  const error = new Error('transaction conflict') as Error & { code: string }
+  error.code = code
+  return error
+}
+
 test('prepare validates the server-apply page allowlist and removes no-op changes', async () => {
   const state: state = {
     guildConfig: { guildId: 'guild-1', locale: 'pt-BR', timezone: 'America/Sao_Paulo' },
@@ -223,4 +229,145 @@ test('proposal token is identity-bound and expires', async () => {
     proposalId: prepared.proposal.id,
   })
   assert.deepEqual(expired, { kind: 'missing' })
+})
+
+test('confirmation retries a serializable conflict and applies once', async () => {
+  const state: state = {
+    guildConfig: { guildId: 'guild-1', locale: 'pt-BR', timezone: 'America/Sao_Paulo' },
+    writes: 0,
+    audits: [],
+  }
+  const db = make_db(state)
+  const store = new PanelAiApplyProposalStore()
+  const originalTransaction = db.$transaction.bind(db)
+  let attempts = 0
+  db.$transaction = async (...args: any[]) => {
+    attempts += 1
+    if (attempts === 1) throw serializable_conflict('P2034')
+    return originalTransaction(...args)
+  }
+
+  const prepared = await prepare_panel_ai_apply({
+    db,
+    store,
+    guildId: 'guild-1',
+    userId: 'user-1',
+    pageKey: 'settings',
+    changes: [{ target: 'locale', value: 'en-US' }],
+  })
+  assert.equal(prepared.kind, 'proposal')
+  if (prepared.kind !== 'proposal') assert.fail('Expected proposal')
+
+  const result = await confirm_panel_ai_apply({
+    db,
+    store,
+    guildId: 'guild-1',
+    userId: 'user-1',
+    proposalId: prepared.proposal.id,
+  })
+
+  assert.equal(result.kind, 'applied')
+  assert.equal(attempts, 2)
+  assert.equal(state.writes, 1)
+  assert.equal(state.audits.length, 1)
+})
+
+test('repeated serializable conflicts invalidate the proposal as a conflict', async () => {
+  const state: state = {
+    guildConfig: { guildId: 'guild-1', locale: 'pt-BR', timezone: 'America/Sao_Paulo' },
+    writes: 0,
+    audits: [],
+  }
+  const db = make_db(state)
+  const store = new PanelAiApplyProposalStore()
+  let attempts = 0
+  db.$transaction = async () => {
+    attempts += 1
+    throw serializable_conflict('40001')
+  }
+
+  const prepared = await prepare_panel_ai_apply({
+    db,
+    store,
+    guildId: 'guild-1',
+    userId: 'user-1',
+    pageKey: 'settings',
+    changes: [{ target: 'locale', value: 'en-US' }],
+  })
+  assert.equal(prepared.kind, 'proposal')
+  if (prepared.kind !== 'proposal') assert.fail('Expected proposal')
+
+  const result = await confirm_panel_ai_apply({
+    db,
+    store,
+    guildId: 'guild-1',
+    userId: 'user-1',
+    proposalId: prepared.proposal.id,
+  })
+  assert.deepEqual(result, { kind: 'conflict' })
+  assert.equal(attempts, 3)
+  assert.equal(state.writes, 0)
+  assert.equal(state.audits.length, 0)
+
+  const retry = await confirm_panel_ai_apply({
+    db,
+    store,
+    guildId: 'guild-1',
+    userId: 'user-1',
+    proposalId: prepared.proposal.id,
+  })
+  assert.deepEqual(retry, { kind: 'missing' })
+})
+
+test('unrelated transaction failures are not retried and keep the proposal retryable', async () => {
+  const state: state = {
+    guildConfig: { guildId: 'guild-1', locale: 'pt-BR', timezone: 'America/Sao_Paulo' },
+    writes: 0,
+    audits: [],
+  }
+  const db = make_db(state)
+  const store = new PanelAiApplyProposalStore()
+  const originalTransaction = db.$transaction.bind(db)
+  let attempts = 0
+  db.$transaction = async () => {
+    attempts += 1
+    throw new Error('database unavailable')
+  }
+
+  const prepared = await prepare_panel_ai_apply({
+    db,
+    store,
+    guildId: 'guild-1',
+    userId: 'user-1',
+    pageKey: 'settings',
+    changes: [{ target: 'locale', value: 'en-US' }],
+  })
+  assert.equal(prepared.kind, 'proposal')
+  if (prepared.kind !== 'proposal') assert.fail('Expected proposal')
+
+  await assert.rejects(
+    confirm_panel_ai_apply({
+      db,
+      store,
+      guildId: 'guild-1',
+      userId: 'user-1',
+      proposalId: prepared.proposal.id,
+    }),
+    /database unavailable/,
+  )
+  assert.equal(attempts, 1)
+  assert.equal(state.writes, 0)
+  assert.equal(state.audits.length, 0)
+
+  db.$transaction = originalTransaction
+  const retry = await confirm_panel_ai_apply({
+    db,
+    store,
+    guildId: 'guild-1',
+    userId: 'user-1',
+    proposalId: prepared.proposal.id,
+  })
+  assert.equal(retry.kind, 'applied')
+  assert.equal(state.writes, 1)
+  assert.equal(state.audits.length, 1)
 })
