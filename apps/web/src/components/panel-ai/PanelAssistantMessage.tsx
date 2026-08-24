@@ -1,4 +1,4 @@
-import { Copy, ExternalLink, Highlighter, ListTree, ShieldCheck, Sparkles } from 'lucide-react'
+import { Copy, ExternalLink, Highlighter, ListTree, ShieldCheck, Sparkles, WandSparkles } from 'lucide-react'
 import * as React from 'react'
 import type { panel_ai_action, panel_ai_sensitive_request } from '@yuebot/shared'
 
@@ -6,6 +6,8 @@ import { cn } from '../../lib/cn'
 import { toast_error, toast_success } from '../../store/toast'
 import { Button } from '../ui/button'
 import { PanelAssistantMarkdown } from './PanelAssistantMarkdown'
+import { apply_panel_ai_prefill_action } from './prefill'
+import { resolvePanelAiPageContext } from './resolvePageKey'
 
 type PanelAssistantMessageProps = {
   role: 'user' | 'assistant' | 'thinking' | 'error'
@@ -25,6 +27,7 @@ type PanelAssistantMessageProps = {
 function ActionIcon({ action }: { action: panel_ai_action }) {
   if (action.type === 'navigate') return <ExternalLink className="h-3.5 w-3.5" />
   if (action.type === 'open_section') return <ListTree className="h-3.5 w-3.5" />
+  if (action.type === 'prefill_form') return <WandSparkles className="h-3.5 w-3.5" />
   return <Highlighter className="h-3.5 w-3.5" />
 }
 
@@ -45,6 +48,7 @@ export function PanelAssistantMessage({
   const isUser = role === 'user'
   const isThinking = role === 'thinking'
   const isErrorMsg = isError || role === 'error'
+  const [prefillingActionId, setPrefillingActionId] = React.useState<string | null>(null)
 
   const handleCopy = React.useCallback(async () => {
     try {
@@ -54,6 +58,47 @@ export function PanelAssistantMessage({
       toast_error('Não foi possível copiar. Tente selecionar o texto manualmente.', 'Ella')
     }
   }, [content])
+
+  const handleAction = React.useCallback(async (action: panel_ai_action) => {
+    if (action.type !== 'prefill_form') {
+      onAction?.(action)
+      return
+    }
+
+    if (prefillingActionId) return
+    setPrefillingActionId(action.id)
+    try {
+      const currentPageKey = resolvePanelAiPageContext(window.location.pathname)?.pageKey ?? null
+      const result = await apply_panel_ai_prefill_action(action, currentPageKey)
+
+      if (result.applied === action.changes.length) {
+        toast_success(
+          action.changes.length === 1
+            ? 'Alteração preparada. Revise e clique em Salvar se estiver tudo certo.'
+            : `${action.changes.length} alterações preparadas. Revise e clique em Salvar se estiver tudo certo.`,
+          'Ella',
+        )
+        return
+      }
+
+      if (result.reason === 'wrong-page') {
+        toast_error('Essa sugestão só pode ser preparada na página em que foi proposta.', 'Ella')
+        return
+      }
+
+      if (result.applied > 0) {
+        toast_error(
+          `${result.applied} alteração(ões) foram preparadas, mas ${result.failed} campo(s) não estavam disponíveis. Revise o formulário antes de salvar.`,
+          'Ella',
+        )
+        return
+      }
+
+      toast_error('Não foi possível preparar esses campos no formulário atual.', 'Ella')
+    } finally {
+      setPrefillingActionId(null)
+    }
+  }, [onAction, prefillingActionId])
 
   if (isThinking) {
     return (
@@ -118,7 +163,8 @@ export function PanelAssistantMessage({
                 key={action.id}
                 variant="outline"
                 size="sm"
-                onClick={() => onAction(action)}
+                onClick={() => void handleAction(action)}
+                disabled={prefillingActionId === action.id}
                 className="h-8 gap-1.5 px-2.5 text-xs"
               >
                 <ActionIcon action={action} />

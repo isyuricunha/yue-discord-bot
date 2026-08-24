@@ -1,6 +1,7 @@
 import {
   PANEL_AI_ACTION_TARGETS,
   PANEL_AI_PAGES,
+  PANEL_AI_PREFILL_FIELDS,
   type panel_ai_page_definition,
   type panel_ai_sensitive_scope,
 } from '@yuebot/shared'
@@ -155,7 +156,7 @@ function render_ui_action_context(lines: string[], page: panel_ai_page_definitio
     })
     .map((candidate) => candidate.key)
 
-  lines.push('Available read-only panel actions:')
+  lines.push('Available panel actions:')
   lines.push(`- navigate.page_keys: ${escape_context_value(navigable.join(', '))}`)
 
   if (!page) {
@@ -164,15 +165,19 @@ function render_ui_action_context(lines: string[], page: panel_ai_page_definitio
   }
 
   const targets = PANEL_AI_ACTION_TARGETS[page.key]
-  if (!targets) {
+  const prefillFields = PANEL_AI_PREFILL_FIELDS[page.key]
+  if (!targets && !prefillFields) {
     lines.push('- current_page.targets: "none allowlisted"')
     return
   }
 
-  const sections = Object.entries(targets.sections ?? {}).map(([key, value]) => `${key}=${value.label}`)
-  const settings = Object.entries(targets.settings ?? {}).map(([key, value]) => `${key}=${value.label}`)
+  const sections = Object.entries(targets?.sections ?? {}).map(([key, value]) => `${key}=${value.label}`)
+  const settings = Object.entries(targets?.settings ?? {}).map(([key, value]) => `${key}=${value.label}`)
+  const prefill = Object.entries(prefillFields ?? {}).map(([key, value]) => `${key}=${value.label}`)
   lines.push(`- current_page.open_section_targets: ${escape_context_value(sections.join(', ') || 'none')}`)
   lines.push(`- current_page.highlight_setting_targets: ${escape_context_value(settings.join(', ') || 'none')}`)
+  lines.push(`- current_page.prefill_targets: ${escape_context_value(prefill.join(', ') || 'none')}`)
+  lines.push('- prefill_persistence: "none; administrator must review and save manually"')
 }
 
 function render_sensitive_context_access(lines: string[], data: panel_context_data['sensitiveContext']) {
@@ -220,7 +225,7 @@ export function build_panel_context(data: panel_context_data): string {
     lines.push(`- route_template: ${escape_context_value(data.page.routePattern)}`)
     lines.push(`- section: ${escape_context_value(data.page.section)}`)
     lines.push(`- purpose: ${escape_context_value(data.page.purpose)}`)
-    lines.push('- context_scope: "Allowlisted read-only navigation context only."')
+    lines.push('- context_scope: "Read-only saved context plus allowlisted unsaved local prefill actions; no persistence."')
   } else {
     lines.push('- not provided to the assistant')
   }
@@ -265,7 +270,9 @@ export const PANEL_CONTRACT_RULES = [
   'Use the current page metadata to contextualize answers when relevant.',
   'Never claim to see form values, unsaved changes, disabled controls, or page content that was not explicitly provided.',
   'Never infer that a module is enabled merely because the administrator is viewing its page.',
-  'Never claim that you can edit or save the page.',
+  'You may offer only allowlisted prefill actions to prepare unsaved browser form values for administrator review.',
+  'A prefill action is not a save, submission, persistence operation, or server-side mutation.',
+  'Only the administrator can persist prefilled values by using the normal Save control on the page.',
   'Do not invent controls, fields, commands, or navigation routes.',
   'When page context is unavailable, say that you cannot determine the current panel page.',
   'Treat page identity as read-only navigation context, not authorization.',
