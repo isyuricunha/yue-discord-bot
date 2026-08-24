@@ -19,6 +19,12 @@ on:
 permissions:
   contents: read
 
+# Keep main releases ordered from checks through manifest publication. PR runs
+# receive a unique group and therefore remain independent.
+concurrency:
+  group: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' && 'docker-release-main' || github.run_id }}
+  cancel-in-progress: false
+
 jobs:
   checks:
     name: checks
@@ -28,7 +34,7 @@ jobs:
       DSLIM_NO_HEALTHCHECK: true
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Security - fail on committed secrets
         run: |
@@ -62,7 +68,7 @@ jobs:
         uses: pnpm/action-setup@v4
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
@@ -82,22 +88,21 @@ jobs:
       - name: Build
         run: pnpm build
 
-  release:
-    name: docker/release
+  release-metadata:
+    name: docker/release-metadata
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
-      packages: write
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-    concurrency:
-      group: docker-release-${{ github.ref }}
-      cancel-in-progress: false
+    outputs:
+      release_published: ${{ steps.semantic.outputs.new_release_published }}
+      release_tag: ${{ steps.semantic.outputs.new_release_git_tag }}
     steps:
       - name: Check out the repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
@@ -110,51 +115,167 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Set up QEMU
-        uses: docker/setup-qemu-action@v3
+  docker-build:
+    name: docker/build-${{ matrix.arch }}
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: release-metadata
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: amd64
+            platform: linux/amd64
+            runner: ubuntu-24.04
+          - arch: arm64
+            platform: linux/arm64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    permissions:
+      contents: read
+      packages: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v7
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Generate Docker metadata
-        id: metadata
-        uses: docker/metadata-action@v5
-        with:
-          images: |
-            ${{ secrets.DOCKERHUB_USERNAME }}/yue-discord-bot
-            ghcr.io/${{ github.repository }}
-          flavor: |
-            latest=false
-          tags: |
-            type=raw,value=latest
-            type=raw,value=${{ steps.semantic.outputs.new_release_git_tag }},enable=${{ steps.semantic.outputs.new_release_published == 'true' }}
-          labels: |
-            org.opencontainers.image.title=Yue Discord Bot
-            org.opencontainers.image.description=A biggest bot.
-            org.opencontainers.image.version=${{ steps.semantic.outputs.new_release_published == 'true' && steps.semantic.outputs.new_release_git_tag || github.sha }}
-            org.opencontainers.image.revision=${{ github.sha }}
-            org.opencontainers.image.source=${{ github.repositoryUrl }}
+        uses: docker/setup-buildx-action@v4
 
       - name: Log in to Docker Hub
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+        uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+      - name: Build and push platform image by digest
+        id: build
+        uses: docker/build-push-action@v7
         with:
           context: .
-          platforms: linux/amd64,linux/arm64
-          push: true
-          tags: ${{ steps.metadata.outputs.tags }}
-          labels: ${{ steps.metadata.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+          platforms: ${{ matrix.platform }}
+          labels: |
+            org.opencontainers.image.title=Yue Discord Bot
+            org.opencontainers.image.description=A biggest bot.
+            org.opencontainers.image.version=${{ needs.release-metadata.outputs.release_published == 'true' && needs.release-metadata.outputs.release_tag || github.sha }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+          outputs: |
+            type=image,"name=${{ secrets.DOCKERHUB_USERNAME }}/yue-discord-bot,ghcr.io/${{ github.repository }}",push-by-digest=true,name-canonical=true,push=true
+          cache-from: type=gha,scope=yue-${{ matrix.arch }}
+          cache-to: type=gha,scope=yue-${{ matrix.arch }},mode=max
+
+      - name: Export platform digest
+        run: |
+          set -euo pipefail
+          mkdir -p "${{ runner.temp }}/digests"
+          digest="${{ steps.build.outputs.digest }}"
+          if [ -z "$digest" ]; then
+            echo "ERROR: Docker build did not return a digest"
+            exit 1
+          fi
+          touch "${{ runner.temp }}/digests/${digest#sha256:}"
+
+      - name: Upload platform digest
+        uses: actions/upload-artifact@v7
+        with:
+          name: docker-digest-${{ matrix.arch }}
+          path: ${{ runner.temp }}/digests/*
+          if-no-files-found: error
+          retention-days: 1
+
+  docker-publish:
+    name: docker/release
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs:
+      - release-metadata
+      - docker-build
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+      DOCKERHUB_IMAGE: ${{ secrets.DOCKERHUB_USERNAME }}/yue-discord-bot
+      GHCR_IMAGE: ghcr.io/${{ github.repository }}
+      RELEASE_PUBLISHED: ${{ needs.release-metadata.outputs.release_published }}
+      RELEASE_TAG: ${{ needs.release-metadata.outputs.release_tag }}
+    steps:
+      - name: Download platform digests
+        uses: actions/download-artifact@v8
+        with:
+          path: ${{ runner.temp }}/digests
+          pattern: docker-digest-*
+          merge-multiple: true
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create and push multi-arch manifests
+        working-directory: ${{ runner.temp }}/digests
+        run: |
+          set -euo pipefail
+
+          mapfile -t digest_files < <(find . -maxdepth 1 -type f -printf '%f\n' | sort)
+          if [ "${#digest_files[@]}" -ne 2 ]; then
+            echo "ERROR: expected 2 platform digests, found ${#digest_files[@]}"
+            printf '%s\n' "${digest_files[@]}"
+            exit 1
+          fi
+
+          create_manifest() {
+            local image="$1"
+            local tags=(-t "${image}:latest")
+            local sources=()
+
+            if [ "$RELEASE_PUBLISHED" = "true" ] && [ -n "$RELEASE_TAG" ]; then
+              tags+=(-t "${image}:${RELEASE_TAG}")
+            fi
+
+            for digest in "${digest_files[@]}"; do
+              sources+=("${image}@sha256:${digest}")
+            done
+
+            docker buildx imagetools create "${tags[@]}" "${sources[@]}"
+          }
+
+          create_manifest "$DOCKERHUB_IMAGE"
+          create_manifest "$GHCR_IMAGE"
+
+      - name: Verify published manifests
+        run: |
+          set -euo pipefail
+
+          verify_manifest() {
+            local image="$1"
+            local raw
+            raw="$(docker buildx imagetools inspect "${image}:latest" --raw)"
+
+            jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "amd64")' <<< "$raw" >/dev/null
+            jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "arm64")' <<< "$raw" >/dev/null
+
+            echo "Verified linux/amd64 + linux/arm64: ${image}:latest"
+          }
+
+          verify_manifest "$DOCKERHUB_IMAGE"
+          verify_manifest "$GHCR_IMAGE"
