@@ -13,6 +13,7 @@ import {
 
 const DEFAULT_TTL_MS = 5 * 60 * 1000
 const DEFAULT_MAX_ENTRIES = 1_000
+const SERIALIZABLE_MAX_ATTEMPTS = 3
 
 export type panel_ai_apply_db = Pick<
   typeof prisma,
@@ -81,6 +82,30 @@ const DEFAULTS: Record<panel_ai_apply_page_key, Record<string, panel_ai_prefill_
 
 function same_value(left: panel_ai_prefill_value, right: panel_ai_prefill_value) {
   return left === right
+}
+
+function is_serializable_conflict(error: unknown) {
+  const code = typeof (error as { code?: unknown })?.code === 'string'
+    ? (error as { code: string }).code
+    : ''
+  return code === 'P2034' || code === '40001'
+}
+
+async function with_serializable_retry<T>(
+  db: panel_ai_apply_db,
+  operation: (tx: Prisma.TransactionClient) => Promise<T>,
+) {
+  for (let attempt = 1; attempt <= SERIALIZABLE_MAX_ATTEMPTS; attempt += 1) {
+    try {
+      return await db.$transaction(operation, { isolationLevel: 'Serializable' })
+    } catch (error: unknown) {
+      if (!is_serializable_conflict(error) || attempt === SERIALIZABLE_MAX_ATTEMPTS) {
+        throw error
+      }
+    }
+  }
+
+  throw new Error('Serializable transaction retry loop exhausted')
 }
 
 async function load_current_values(
@@ -326,7 +351,7 @@ export async function confirm_panel_ai_apply(params: {
 
   const proposal = acquired.proposal
   try {
-    const result = await params.db.$transaction(async (tx) => {
+    const result = await with_serializable_retry(params.db, async (tx) => {
       const current = await load_current_values(tx as panel_ai_apply_db, params.guildId, proposal.pageKey)
       const conflict = proposal.changes.some((change) => {
         const value = current[change.target]
@@ -359,7 +384,7 @@ export async function confirm_panel_ai_apply(params: {
       })
 
       return response
-    }, { isolationLevel: 'Serializable' })
+    })
 
     if (!result) {
       params.store.invalidate(proposal.id)
@@ -368,7 +393,11 @@ export async function confirm_panel_ai_apply(params: {
 
     params.store.complete(proposal.id, result)
     return { kind: 'applied', result }
-  } catch (error) {
+  } catch (error: unknown) {
+    if (is_serializable_conflict(error)) {
+      params.store.invalidate(proposal.id)
+      return { kind: 'conflict' }
+    }
     params.store.release(proposal.id)
     throw error
   }
