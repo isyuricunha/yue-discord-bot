@@ -1,9 +1,9 @@
-import { useQueryClient } from '@tanstack/react-query'
 import { Copy, ExternalLink, Highlighter, ListTree, Save, ShieldCheck, Sparkles, WandSparkles } from 'lucide-react'
 import * as React from 'react'
 import type { panel_ai_action, panel_ai_apply_proposal, panel_ai_sensitive_request } from '@yuebot/shared'
 
 import { cn } from '../../lib/cn'
+import { queryClient } from '../../lib/query-client'
 import { toast_error, toast_success } from '../../store/toast'
 import { Button } from '../ui/button'
 import { PanelAssistantMarkdown } from './PanelAssistantMarkdown'
@@ -74,7 +74,6 @@ export function PanelAssistantMessage({
   sensitiveDisabled = false,
   className,
 }: PanelAssistantMessageProps) {
-  const queryClient = useQueryClient()
   const isUser = role === 'user'
   const isThinking = role === 'thinking'
   const isErrorMsg = isError || role === 'error'
@@ -207,7 +206,7 @@ export function PanelAssistantMessage({
     } finally {
       setConfirmingProposalId(null)
     }
-  }, [confirmingProposalId, queryClient, serverProposal])
+  }, [confirmingProposalId, serverProposal])
 
   if (isThinking) {
     return (
@@ -276,6 +275,7 @@ export function PanelAssistantMessage({
                   onClick={() => void handleAction(action)}
                   disabled={prefillingActionId === action.id}
                   className="h-8 gap-1.5 px-2.5 text-xs"
+                  aria-label={action.label}
                 >
                   <ActionIcon action={action} />
                   {action.label}
@@ -292,6 +292,7 @@ export function PanelAssistantMessage({
                     onClick={() => void prepareServerApply(action)}
                     disabled={applied || preparingServerActionId === action.id || confirmingProposalId !== null}
                     className="h-8 gap-1.5 px-2.5 text-xs"
+                    aria-label={applied ? 'Aplicado' : 'Aplicar no servidor'}
                   >
                     <Save className="h-3.5 w-3.5" />
                     {applied ? 'Aplicado' : 'Aplicar no servidor'}
@@ -339,6 +340,7 @@ export function PanelAssistantMessage({
                 onClick={() => void confirmServerApply()}
                 disabled={confirmingProposalId === serverProposal.proposal.id}
                 className="h-8 px-3 text-xs"
+                aria-label="Confirmar e salvar"
               >
                 Confirmar e salvar
               </Button>
@@ -348,6 +350,7 @@ export function PanelAssistantMessage({
                 onClick={() => setServerProposal(null)}
                 disabled={confirmingProposalId === serverProposal.proposal.id}
                 className="h-8 px-3 text-xs"
+                aria-label="Cancelar"
               >
                 Cancelar
               </Button>
