@@ -1,6 +1,7 @@
 import * as React from 'react'
 import { Maximize2, Sparkles, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
+import { get_panel_ai_quick_prompts } from '@yuebot/shared'
 
 import { useMediaQuery } from '../../hooks/use_media_query'
 import { cn } from '../../lib/cn'
@@ -16,12 +17,6 @@ import { usePanelAssistantContext } from './PanelAssistantProvider'
 
 const DRAWER_ID = 'ella-drawer'
 const MOBILE_QUERY = '(max-width: 768px)'
-const QUICK_PROMPTS = [
-  'Quais recursos posso configurar aqui?',
-  'Como funciona o Anti-Raide?',
-  'Revise as configurações deste servidor',
-  'Como configurar as boas-vindas?',
-]
 
 type props = {
   open: boolean
@@ -52,7 +47,12 @@ export function PanelAssistantDrawer({ open, onClose, triggerRef }: props) {
   const confirmClearRef = React.useRef(confirmClear)
   const scrollSeen = React.useRef(assistant.scrollVersion)
   const focusSeen = React.useRef(assistant.focusVersion)
-  const mutation = assistant.operation === 'sending' || assistant.operation === 'retrying' || assistant.operation === 'clearing'
+  const mutation =
+    assistant.operation === 'sending' ||
+    assistant.operation === 'retrying' ||
+    assistant.operation === 'confirming-sensitive' ||
+    assistant.operation === 'clearing'
+  const quickPrompts = get_panel_ai_quick_prompts(assistant.activePageKey)
 
   const scrollToLatest = React.useCallback(() => {
     endRef.current?.scrollIntoView({
@@ -99,9 +99,7 @@ export function PanelAssistantDrawer({ open, onClose, triggerRef }: props) {
 
   React.useLayoutEffect(() => {
     if (pendingFocusRef.current === 'clear-trigger') {
-      if (clearTriggerRef.current?.isConnected) {
-        clearTriggerRef.current.focus()
-      }
+      if (clearTriggerRef.current?.isConnected) clearTriggerRef.current.focus()
       pendingFocusRef.current = null
     }
   })
@@ -132,7 +130,7 @@ export function PanelAssistantDrawer({ open, onClose, triggerRef }: props) {
       if (focusFrameRef.current !== null) cancelAnimationFrame(focusFrameRef.current)
       focusFrameRef.current = null
     }
-  }, [assistant.historyLoading, commandPaletteOpen, mobile, open, scrollToLatest])
+  }, [assistant.historyLoading, assistant.operation, commandPaletteOpen, mobile, open, scrollToLatest])
 
   React.useLayoutEffect(() => {
     if (!open || !mobile || commandPaletteOpen) return
@@ -260,12 +258,34 @@ export function PanelAssistantDrawer({ open, onClose, triggerRef }: props) {
       <div ref={scrollContainerRef} data-testid="ella-drawer-conversation" className="flex-1 overflow-y-auto px-4 py-4">
         {assistant.historyLoading && <div className="space-y-4 py-4" aria-label="Carregando histórico"><Skeleton className="h-4 w-48" /><Skeleton className="h-4 w-64" /></div>}
         {!assistant.historyLoading && assistant.historyError && <PanelAssistantError message={assistant.historyError} onRetry={assistant.reloadHistory} />}
-        {!assistant.historyLoading && !assistant.historyError && !assistant.messages.length && <PanelAssistantEmptyState disabled={assistant.operation !== 'idle'} quickPrompts={QUICK_PROMPTS.map((label) => ({ label, onClick: () => assistant.send(label) }))} className="py-8" />}
-        {assistant.messages.map((message) => <PanelAssistantMessage key={message.id} role={message.status === 'thinking' ? 'thinking' : message.status === 'error' ? 'error' : message.role} content={message.content} isError={message.status === 'error'} onRetry={message.status === 'error' ? () => assistant.retry(message.turnId) : undefined} retryDisabled={assistant.operation !== 'idle'} className="py-2" />)}
+        {!assistant.historyLoading && !assistant.historyError && !assistant.messages.length && (
+          <PanelAssistantEmptyState
+            disabled={assistant.operation !== 'idle'}
+            quickPrompts={quickPrompts.map((label) => ({ label, onClick: () => assistant.send(label) }))}
+            className="py-8"
+          />
+        )}
+        {assistant.messages.map((message) => (
+          <PanelAssistantMessage
+            key={message.id}
+            role={message.status === 'thinking' ? 'thinking' : message.status === 'error' ? 'error' : message.role}
+            content={message.content}
+            isError={message.status === 'error'}
+            onRetry={message.status === 'error' ? () => assistant.retry(message.turnId) : undefined}
+            retryDisabled={assistant.operation !== 'idle'}
+            actions={message.actions}
+            sensitiveRequest={message.sensitiveRequest}
+            onAction={assistant.executeAction}
+            onSensitiveConfirm={(request) => assistant.confirmSensitive(message.turnId, request.id)}
+            onSensitiveDecline={(request) => assistant.declineSensitive(message.turnId, request.id)}
+            sensitiveDisabled={assistant.operation !== 'idle'}
+            className="py-2"
+          />
+        ))}
         <div ref={endRef} />
       </div>
       <div className="shrink-0 border-t border-border/40 bg-canvas px-4 py-3">
-        <PanelAssistantComposer ref={composerRef} value={assistant.draft} onChange={assistant.setDraft} onSend={() => assistant.send()} disabled={assistant.operation !== 'idle' || !!assistant.historyError || !assistant.activeGuildId} loading={assistant.operation === 'sending' || assistant.operation === 'retrying'} />
+        <PanelAssistantComposer ref={composerRef} value={assistant.draft} onChange={assistant.setDraft} onSend={() => assistant.send()} disabled={assistant.operation !== 'idle' || !!assistant.historyError || !assistant.activeGuildId} loading={assistant.operation === 'sending' || assistant.operation === 'retrying' || assistant.operation === 'confirming-sensitive'} />
         <div className="mt-1.5 px-1 text-[11px] text-muted-foreground/50">Enter para enviar · Shift+Enter para quebrar linha</div>
       </div>
     </>
