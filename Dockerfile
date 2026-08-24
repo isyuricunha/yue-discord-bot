@@ -3,6 +3,11 @@
 # Multi-service Dockerfile - API + Bot + Web in one container.
 FROM node:24-slim AS pnpm-base
 
+# All dependency operations run non-interactively. In particular, the
+# production install is allowed to prune the virtual store created by
+# `pnpm fetch` without requiring a TTY.
+ENV CI=true
+
 # Prisma dependency lifecycle scripts inspect OpenSSL even during `pnpm fetch`.
 # Keep it in the common base so dependency caching stays warning-free and the
 # runtime inherits the same library without reinstalling it later.
@@ -59,9 +64,9 @@ COPY apps/web ./apps/web
 RUN pnpm --filter @yuebot/web exec tsc \
     && pnpm --filter @yuebot/web exec vite build
 
-# Link only runtime dependencies from the already fetched store. This stage may
-# contain the pnpm content-addressable store, but the final image copies only
-# /app from it, leaving that cache-only store behind.
+# Prune/link only runtime dependencies from the already fetched virtual store.
+# The clean runtime stage below copies this production /app tree, never the
+# full build-dependency tree.
 FROM deps-cache AS prod-deps
 
 COPY package.json ./
@@ -72,9 +77,9 @@ COPY apps/api/package.json ./apps/api/
 COPY apps/bot/package.json ./apps/bot/
 RUN pnpm install --prod --offline --frozen-lockfile
 
-# Production stage starts from the clean pnpm base, not from a dependency-cache
-# stage. This keeps the pnpm store out of the published image while retaining
-# pnpm for `prisma migrate deploy` in the entrypoint.
+# Production stage starts from the clean pnpm base, not from build-deps. It
+# retains pnpm for `prisma migrate deploy` in the entrypoint but receives only
+# production workspace dependencies from prod-deps.
 FROM pnpm-base AS runtime
 
 RUN apt-get update && apt-get install -y \
