@@ -5,6 +5,14 @@ export type panel_ai_page_context = {
   routeParams?: Record<string, string>
 }
 
+export type panel_ai_prefill_value = string | number | boolean
+
+export type panel_ai_prefill_change = {
+  target: string
+  targetLabel: string
+  value: panel_ai_prefill_value
+}
+
 export type panel_ai_action =
   | {
       id: string
@@ -18,6 +26,13 @@ export type panel_ai_action =
       pageKey: panel_ai_page_key
       target: string
       targetLabel: string
+      label: string
+    }
+  | {
+      id: string
+      type: 'prefill_form'
+      pageKey: panel_ai_page_key
+      changes: panel_ai_prefill_change[]
       label: string
     }
 
@@ -179,6 +194,253 @@ export const PANEL_AI_ACTION_TARGETS: Partial<Record<panel_ai_page_key, page_act
     },
   },
 } as const
+
+type integer_prefill_field = {
+  label: string
+  control: 'input'
+  valueType: 'integer'
+  min: number
+  max: number
+}
+
+type boolean_prefill_field = {
+  label: string
+  control: 'switch'
+  valueType: 'boolean'
+  ariaLabel: string
+}
+
+type enum_prefill_option = {
+  value: string
+  label: string
+}
+
+type enum_prefill_field = {
+  label: string
+  control: 'select'
+  valueType: 'enum'
+  options: readonly enum_prefill_option[]
+}
+
+type string_prefill_field = {
+  label: string
+  control: 'message_editor'
+  valueType: 'string'
+  maxLength: number
+}
+
+export type panel_ai_prefill_field =
+  | integer_prefill_field
+  | boolean_prefill_field
+  | enum_prefill_field
+  | string_prefill_field
+
+export const PANEL_AI_PREFILL_FIELDS: Partial<Record<panel_ai_page_key, Record<string, panel_ai_prefill_field>>> = {
+  automod: {
+    capsEnabled: {
+      label: 'Anti-CAPS',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Habilitar Anti-CAPS',
+    },
+    capsThreshold: {
+      label: 'Limite de CAPS (%)',
+      control: 'input',
+      valueType: 'integer',
+      min: 0,
+      max: 100,
+    },
+    capsMinLength: {
+      label: 'Tamanho mínimo',
+      control: 'input',
+      valueType: 'integer',
+      min: 1,
+      max: 500,
+    },
+    aiModerationEnabled: {
+      label: 'Moderação por IA',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Habilitar moderação por IA',
+    },
+    aiModerationLevel: {
+      label: 'Nível de detecção',
+      control: 'select',
+      valueType: 'enum',
+      options: [
+        { value: 'permissivo', label: 'Permissivo' },
+        { value: 'brando', label: 'Brando' },
+        { value: 'medio', label: 'Médio' },
+        { value: 'rigoroso', label: 'Rigoroso' },
+        { value: 'maximo', label: 'Máximo' },
+      ],
+    },
+  },
+  antiraid: {
+    enabled: {
+      label: 'Proteção contra Raide',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Habilitar Anti-Raide',
+    },
+    joinThreshold: {
+      label: 'Limite de entradas',
+      control: 'input',
+      valueType: 'integer',
+      min: 3,
+      max: 50,
+    },
+    joinTimeWindow: {
+      label: 'Janela de tempo (segundos)',
+      control: 'input',
+      valueType: 'integer',
+      min: 10,
+      max: 300,
+    },
+    cooldown: {
+      label: 'Cooldown após raide (segundos)',
+      control: 'input',
+      valueType: 'integer',
+      min: 60,
+      max: 3_600,
+    },
+  },
+  xp: {
+    enabled: {
+      label: 'Ativar XP (Chat)',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'XP em Texto habilitado',
+    },
+    voiceXpEnabled: {
+      label: 'Ativar Voice XP (Voz)',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Voice XP habilitado',
+    },
+    voiceXpNotificationsEnabled: {
+      label: 'Notificações de XP por Voz',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Notificações habilitadas',
+    },
+    voiceXpRate: {
+      label: 'Pontos a cada 10 minutos (Voice Rate)',
+      control: 'input',
+      valueType: 'integer',
+      min: 1,
+      max: 10_000,
+    },
+    rewardMode: {
+      label: 'Modo de recompensas',
+      control: 'select',
+      valueType: 'enum',
+      options: [
+        { value: 'stack', label: 'Empilhar recompensas anteriores' },
+        { value: 'highest', label: 'Remover recompensas anteriores' },
+      ],
+    },
+  },
+  autorole: {
+    enabled: {
+      label: 'Ativar autorole',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Autorole habilitado',
+    },
+    delaySeconds: {
+      label: 'Aguardar (segundos)',
+      control: 'input',
+      valueType: 'integer',
+      min: 0,
+      max: 7 * 24 * 60 * 60,
+    },
+    onlyAfterFirstMessage: {
+      label: 'Somente após primeira mensagem',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Após mensagem',
+    },
+  },
+  settings: {
+    locale: {
+      label: 'Idioma',
+      control: 'select',
+      valueType: 'enum',
+      options: [
+        { value: 'pt-BR', label: 'Português (Brasil)' },
+        { value: 'en-US', label: 'English (US)' },
+        { value: 'es-ES', label: 'Español' },
+      ],
+    },
+    timezone: {
+      label: 'Fuso horário',
+      control: 'select',
+      valueType: 'enum',
+      options: [
+        { value: 'America/Sao_Paulo', label: 'São Paulo (BRT)' },
+        { value: 'America/New_York', label: 'New York (EST)' },
+        { value: 'Europe/London', label: 'London (GMT)' },
+        { value: 'Asia/Tokyo', label: 'Tokyo (JST)' },
+      ],
+    },
+  },
+  welcome: {
+    welcomeMessage: {
+      label: 'Mensagem de boas-vindas',
+      control: 'message_editor',
+      valueType: 'string',
+      maxLength: 4_000,
+    },
+    leaveMessage: {
+      label: 'Mensagem de saída',
+      control: 'message_editor',
+      valueType: 'string',
+      maxLength: 4_000,
+    },
+  },
+}
+
+export function get_panel_ai_prefill_field(
+  pageKey: panel_ai_page_key,
+  target: string,
+): panel_ai_prefill_field | null {
+  return PANEL_AI_PREFILL_FIELDS[pageKey]?.[target] ?? null
+}
+
+export function validate_panel_ai_prefill_value(
+  pageKey: panel_ai_page_key,
+  target: string,
+  value: unknown,
+): { value: panel_ai_prefill_value } | null {
+  const field = get_panel_ai_prefill_field(pageKey, target)
+  if (!field) return null
+
+  if (field.valueType === 'boolean') {
+    return typeof value === 'boolean' ? { value } : null
+  }
+
+  if (field.valueType === 'integer') {
+    return typeof value === 'number' && Number.isInteger(value) && value >= field.min && value <= field.max
+      ? { value }
+      : null
+  }
+
+  if (field.valueType === 'enum') {
+    if (typeof value !== 'string') return null
+    return field.options.some((option) => option.value === value) ? { value } : null
+  }
+
+  if (typeof value !== 'string' || value.length > field.maxLength) return null
+  return { value }
+}
+
+export function describe_panel_ai_prefill_field(field: panel_ai_prefill_field): string {
+  if (field.valueType === 'boolean') return 'boolean'
+  if (field.valueType === 'integer') return `integer[${field.min},${field.max}]`
+  if (field.valueType === 'enum') return `enum[${field.options.map((option) => option.value).join('|')}]`
+  return `string[max=${field.maxLength}]`
+}
 
 const DEFAULT_QUICK_PROMPTS = [
   'O que posso configurar nesta página?',
