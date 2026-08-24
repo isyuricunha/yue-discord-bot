@@ -124,19 +124,37 @@ async function apply_select(
   field: Extract<panel_ai_prefill_field, { control: 'select' }>,
   value: string,
 ) {
-  if (!field.options.some((candidate) => candidate.value === value)) return false
+  const option = field.options.find((candidate) => candidate.value === value)
+  if (!option) return false
 
   const anchor = find_text_anchor(field.label)
-  if (!anchor) return false
-  const control = find_nearest(anchor, (container) =>
-    container.querySelector<HTMLElement>('[data-yue-select-control="true"]'),
-  )
-  if (!control) return false
+  const selectControl = anchor
+    ? find_nearest(anchor, (container) =>
+      container.querySelector<HTMLElement>('[data-yue-select-control="true"]'),
+    )
+    : null
 
-  const detail: select_local_value_detail = { value, applied: false }
-  control.dispatchEvent(new CustomEvent(SELECT_LOCAL_VALUE_EVENT, { detail }))
-  if (!detail.applied) return false
-  await next_task()
+  if (selectControl) {
+    const detail: select_local_value_detail = { value, applied: false }
+    selectControl.dispatchEvent(new CustomEvent(SELECT_LOCAL_VALUE_EVENT, { detail }))
+    if (!detail.applied) return false
+    await next_task()
+    return true
+  }
+
+  // Some enum-like settings are rendered as mutually exclusive switches
+  // instead of a Select. Resolve only the exact allowlisted option label and
+  // drive the page's existing switch so React remains the owner of form state.
+  const optionAnchor = find_text_anchor(option.label)
+  if (!optionAnchor) return false
+  const switchControl = find_nearest(optionAnchor, (container) =>
+    container.querySelector<HTMLButtonElement>('button[role="switch"]'),
+  )
+  if (!switchControl || switchControl.disabled) return false
+  if (switchControl.getAttribute('aria-checked') !== 'true') {
+    switchControl.click()
+    await next_task()
+  }
   return true
 }
 
