@@ -1,3 +1,4 @@
+import { flushSync } from 'react-dom'
 import {
   get_panel_ai_prefill_field,
   validate_panel_ai_prefill_value,
@@ -129,13 +130,16 @@ async function apply_select(
   )
   if (!trigger || trigger.disabled) return false
 
-  trigger.click()
+  // The Select renders its menu in a portal after opening. Flush the trigger
+  // update so the portal can materialize before we resolve the allowlisted option.
+  flushSync(() => trigger.click())
+  await next_task()
   const choice = await wait_for(() =>
     Array.from(document.querySelectorAll<HTMLButtonElement>('button[role="option"]'))
       .find((candidate) => element_text(candidate) === normalize_text(option.label)) ?? null,
   )
   if (!choice || choice.disabled) return false
-  choice.click()
+  flushSync(() => choice.click())
   await next_task()
   return true
 }
