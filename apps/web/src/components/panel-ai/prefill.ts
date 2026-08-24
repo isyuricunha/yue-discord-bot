@@ -7,6 +7,11 @@ import {
   type panel_ai_prefill_field,
 } from '@yuebot/shared'
 
+import {
+  SELECT_LOCAL_VALUE_EVENT,
+  type select_local_value_detail,
+} from '../ui/select'
+
 type prefill_action = Extract<panel_ai_action, { type: 'prefill_form' }>
 
 export type panel_ai_prefill_result = {
@@ -124,9 +129,13 @@ async function apply_select(
   const anchor = find_text_anchor(field.label)
   if (!anchor) return false
   const control = find_nearest(anchor, (container) =>
-    container.querySelector<HTMLInputElement>('input[type="hidden"][data-yue-select-value="true"]'),
+    container.querySelector<HTMLElement>('[data-yue-select-control="true"]'),
   )
-  if (!control || !set_native_value(control, value)) return false
+  if (!control) return false
+
+  const detail: select_local_value_detail = { value, applied: false }
+  control.dispatchEvent(new CustomEvent(SELECT_LOCAL_VALUE_EVENT, { detail }))
+  if (!detail.applied) return false
   await next_task()
   return true
 }
