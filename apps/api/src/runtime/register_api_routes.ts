@@ -15,6 +15,7 @@ import { coinflipRoutes } from '../routes/coinflip.routes';
 import { ownerRoutes } from '../routes/owner.routes';
 import { panelAiOwnerRoutes } from '../routes/panel_ai_owner.routes';
 import { panelAiRoutes } from '../routes/panel_ai.routes';
+import { panelAiApplyRoutes } from '../routes/panel_ai_apply.routes';
 import { auditRoutes } from '../routes/audit.routes';
 import { triggersRoutes } from '../routes/triggers.routes';
 import { supportRoutes } from '../routes/support.routes';
@@ -48,6 +49,7 @@ export function registerApiRoutes(app: FastifyInstance): void {
   app.register(ownerRoutes, { prefix: '/api' });
   app.register(panelAiOwnerRoutes, { prefix: '/api' });
   app.register(panelAiRoutes, { prefix: '/api' });
+  app.register(panelAiApplyRoutes, { prefix: '/api' });
 
   app.register(livePixRoutes, { prefix: '/api' });
 }
