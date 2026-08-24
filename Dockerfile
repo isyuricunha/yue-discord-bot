@@ -14,8 +14,10 @@ RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
 WORKDIR /app
 
-# Fetch dependency tarballs from lockfile only. This layer survives source and
-# package.json changes as long as pnpm-lock.yaml stays the same.
+# Fetch dependency tarballs from the lockfile once. Build and production
+# installs branch from this stage and link their own node_modules offline.
+# This layer survives source and package.json changes while the lockfile stays
+# unchanged.
 FROM pnpm-base AS deps-cache
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
@@ -57,14 +59,10 @@ COPY apps/web ./apps/web
 RUN pnpm --filter @yuebot/web exec tsc \
     && pnpm --filter @yuebot/web exec vite build
 
-# Fetch only production dependencies from the same lockfile. The install layer
-# is independent from application source changes.
-FROM pnpm-base AS prod-cache
-
-COPY pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm fetch --prod --frozen-lockfile
-
-FROM prod-cache AS prod-deps
+# Link only runtime dependencies from the already fetched store. This stage may
+# contain the pnpm content-addressable store, but the final image copies only
+# /app from it, leaving that cache-only store behind.
+FROM deps-cache AS prod-deps
 
 COPY package.json ./
 COPY packages/database/package.json ./packages/database/
@@ -74,8 +72,10 @@ COPY apps/api/package.json ./apps/api/
 COPY apps/bot/package.json ./apps/bot/
 RUN pnpm install --prod --offline --frozen-lockfile
 
-# Production stage.
-FROM prod-deps AS runtime
+# Production stage starts from the clean pnpm base, not from a dependency-cache
+# stage. This keeps the pnpm store out of the published image while retaining
+# pnpm for `prisma migrate deploy` in the entrypoint.
+FROM pnpm-base AS runtime
 
 RUN apt-get update && apt-get install -y \
     nginx \
@@ -83,6 +83,8 @@ RUN apt-get update && apt-get install -y \
     ca-certificates \
     wget \
     && rm -rf /var/lib/apt/lists/*
+
+COPY --from=prod-deps /app /app
 
 # Copy built files from their independent build stages.
 COPY --from=packages-builder /app/packages/database/dist ./packages/database/dist
