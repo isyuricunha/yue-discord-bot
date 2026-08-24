@@ -22,6 +22,82 @@ test('parses allowlisted actions and strips protocol blocks from visible text', 
   assert.equal(output.actions[2]?.type, 'highlight_setting')
 })
 
+test('parses and normalizes allowlisted local prefill changes', () => {
+  const output = parse_panel_ai_output([
+    'Posso preparar esses valores para você revisar.',
+    '<PANEL_ACTIONS>',
+    JSON.stringify([
+      {
+        type: 'prefill_form',
+        pageKey: 'automod',
+        changes: [
+          { target: 'capsEnabled', value: true },
+          { target: 'capsThreshold', value: 80 },
+          { target: 'capsMinLength', value: 8 },
+          { target: 'aiModerationLevel', value: 'rigoroso' },
+        ],
+      },
+    ]),
+    '</PANEL_ACTIONS>',
+  ].join('\n'))
+
+  assert.equal(output.response, 'Posso preparar esses valores para você revisar.')
+  assert.equal(output.actions.length, 1)
+  const action = output.actions[0]
+  assert.equal(action?.type, 'prefill_form')
+  if (!action || action.type !== 'prefill_form') assert.fail('Expected prefill action')
+  assert.equal(action.label, 'Preparar 4 alterações')
+  assert.deepEqual(
+    action.changes.map(({ target, targetLabel, value }) => ({ target, targetLabel, value })),
+    [
+      { target: 'capsEnabled', targetLabel: 'Anti-CAPS', value: true },
+      { target: 'capsThreshold', targetLabel: 'Limite de CAPS (%)', value: 80 },
+      { target: 'capsMinLength', targetLabel: 'Tamanho mínimo', value: 8 },
+      { target: 'aiModerationLevel', targetLabel: 'Nível de detecção', value: 'rigoroso' },
+    ],
+  )
+})
+
+test('rejects an entire prefill action when any target, value type, range, or duplicate is invalid', () => {
+  const invalidActions = [
+    {
+      type: 'prefill_form',
+      pageKey: 'automod',
+      changes: [{ target: 'inventedSetting', value: true }],
+    },
+    {
+      type: 'prefill_form',
+      pageKey: 'automod',
+      changes: [{ target: 'capsThreshold', value: '80' }],
+    },
+    {
+      type: 'prefill_form',
+      pageKey: 'automod',
+      changes: [{ target: 'capsThreshold', value: 101 }],
+    },
+    {
+      type: 'prefill_form',
+      pageKey: 'settings',
+      changes: [{ target: 'locale', value: 'xx-YY' }],
+    },
+    {
+      type: 'prefill_form',
+      pageKey: 'automod',
+      changes: [
+        { target: 'capsThreshold', value: 75 },
+        { target: 'capsThreshold', value: 80 },
+      ],
+    },
+  ]
+
+  for (const action of invalidActions) {
+    const output = parse_panel_ai_output(
+      `Texto.\n<PANEL_ACTIONS>${JSON.stringify([action])}</PANEL_ACTIONS>`,
+    )
+    assert.deepEqual(output.actions, [])
+  }
+})
+
 test('drops invented pages, dynamic navigation targets, and unknown setting targets', () => {
   const output = parse_panel_ai_output([
     'Texto.',
