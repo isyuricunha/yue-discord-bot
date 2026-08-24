@@ -374,6 +374,7 @@ export class FreeGameScheduler {
 
     // Limitar a 3 notificações por execução para evitar spam
     const giveawaysToNotify = newGiveaways.slice(0, 3)
+    let notifiedCount = 0
 
     // Enviar notificações
     for (const giveaway of giveawaysToNotify) {
@@ -393,6 +394,7 @@ export class FreeGameScheduler {
           components: [row],
           allowedMentions,
         })
+        notifiedCount += 1
 
         // Registrar giveaway como anunciado
         await prisma.freeGameGiveaway.create({
@@ -424,7 +426,7 @@ export class FreeGameScheduler {
     })
 
     logger.info(
-      { guildId: config.guildId, notifiedCount: giveawaysToNotify.length },
+      { guildId: config.guildId, attemptedCount: giveawaysToNotify.length, notifiedCount },
       'Verificação de jogos grátis concluída'
     )
   }
