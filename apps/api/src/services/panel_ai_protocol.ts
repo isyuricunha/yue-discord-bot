@@ -1,9 +1,14 @@
 import { randomUUID } from 'node:crypto'
 import {
+  PANEL_AI_PREFILL_FIELDS,
+  describe_panel_ai_prefill_field,
   find_panel_ai_page,
   get_panel_ai_action_target,
+  get_panel_ai_prefill_field,
+  validate_panel_ai_prefill_value,
   type panel_ai_action,
   type panel_ai_page_key,
+  type panel_ai_prefill_change,
   type panel_ai_sensitive_scope,
 } from '@yuebot/shared'
 
@@ -11,6 +16,7 @@ const ACTIONS_TAG = 'PANEL_ACTIONS'
 const SENSITIVE_TAG = 'PANEL_SENSITIVE_REQUEST'
 const PROTOCOL_PREFIX = '<PANEL_'
 const MAX_ACTIONS = 3
+const MAX_PREFILL_CHANGES = 6
 
 const SENSITIVE_SCOPES = new Set<panel_ai_sensitive_scope>([
   'member_moderation',
@@ -19,20 +25,40 @@ const SENSITIVE_SCOPES = new Set<panel_ai_sensitive_scope>([
   'giveaway_participants',
 ])
 
+const PREFILL_ALLOWLIST = Object.entries(PANEL_AI_PREFILL_FIELDS)
+  .map(([pageKey, fields]) => {
+    const targets = Object.entries(fields ?? {})
+      .map(([target, field]) => `${target}:${describe_panel_ai_prefill_field(field)}`)
+      .join(', ')
+    return `${pageKey}[${targets}]`
+  })
+  .join('; ')
+
 export const PANEL_AI_PROTOCOL_RULES = [
   'Optional machine-readable directives may be appended only after the user-facing answer.',
-  `For read-only panel actions, append <${ACTIONS_TAG}> followed by a JSON array and </${ACTIONS_TAG}>.`,
-  'Each action must be one of: {"type":"navigate","pageKey":"..."}, {"type":"open_section","pageKey":"...","target":"..."}, or {"type":"highlight_setting","pageKey":"...","target":"..."}.',
+  `For panel actions, append <${ACTIONS_TAG}> followed by a JSON array and </${ACTIONS_TAG}>.`,
+  'Read-only actions are: {"type":"navigate","pageKey":"..."}, {"type":"open_section","pageKey":"...","target":"..."}, or {"type":"highlight_setting","pageKey":"...","target":"..."}.',
+  `A local form prefill action is {"type":"prefill_form","pageKey":"...","changes":[{"target":"...","value":...}]}. Use at most ${MAX_PREFILL_CHANGES} changes.`,
+  'Prefill is only for the current panel page. It prepares unsaved browser form values for administrator review; it never saves, submits, persists, or calls a mutation endpoint.',
+  `Prefill allowlist and value constraints: ${PREFILL_ALLOWLIST}.`,
+  'Never invent a prefill page, target, value type, enum value, selector, URL, endpoint, or hidden identifier. If a desired field is not allowlisted, explain that it cannot be prepared automatically.',
   `Use at most ${MAX_ACTIONS} actions. Never invent page keys or target keys.`,
   `When sensitive data is genuinely needed and an allowed scope is listed in context, ask the user for permission in normal language and append <${SENSITIVE_TAG}>{"scope":"..."}</${SENSITIVE_TAG}>.`,
   'Never include sensitive values yourself before explicit user confirmation.',
   'Never claim that a UI action executed. These directives only offer buttons the user may choose to press.',
+  'Never claim that prefilled values were saved. The administrator must still review the form and use the normal Save control.',
 ].join('\n')
+
+type raw_prefill_change = {
+  target?: unknown
+  value?: unknown
+}
 
 type raw_action = {
   type?: unknown
   pageKey?: unknown
   target?: unknown
+  changes?: unknown
 }
 
 function extract_tag(text: string, tag: string): { value: string | null; stripped: string } {
@@ -43,6 +69,32 @@ function extract_tag(text: string, tag: string): { value: string | null; strippe
     value: match[1] ?? null,
     stripped: `${text.slice(0, match.index)}${text.slice(match.index + match[0].length)}`,
   }
+}
+
+function parse_prefill_changes(pageKey: panel_ai_page_key, value: unknown): panel_ai_prefill_change[] | null {
+  if (!Array.isArray(value) || value.length === 0 || value.length > MAX_PREFILL_CHANGES) return null
+
+  const seen = new Set<string>()
+  const changes: panel_ai_prefill_change[] = []
+
+  for (const item of value) {
+    if (!item || typeof item !== 'object' || Array.isArray(item)) return null
+    const raw = item as raw_prefill_change
+    if (typeof raw.target !== 'string' || seen.has(raw.target)) return null
+
+    const field = get_panel_ai_prefill_field(pageKey, raw.target)
+    const validated = validate_panel_ai_prefill_value(pageKey, raw.target, raw.value)
+    if (!field || !validated) return null
+
+    seen.add(raw.target)
+    changes.push({
+      target: raw.target,
+      targetLabel: field.label,
+      value: validated.value,
+    })
+  }
+
+  return changes
 }
 
 function parse_action(value: unknown): panel_ai_action | null {
@@ -66,6 +118,18 @@ function parse_action(value: unknown): panel_ai_action | null {
       type: 'navigate',
       pageKey,
       label: `Abrir ${page.title}`,
+    }
+  }
+
+  if (raw.type === 'prefill_form') {
+    const changes = parse_prefill_changes(pageKey, raw.changes)
+    if (!changes) return null
+    return {
+      id: randomUUID(),
+      type: 'prefill_form',
+      pageKey,
+      changes,
+      label: changes.length === 1 ? 'Preparar alteração' : `Preparar ${changes.length} alterações`,
     }
   }
 
