@@ -1,4 +1,3 @@
-import { flushSync } from 'react-dom'
 import {
   get_panel_ai_prefill_field,
   validate_panel_ai_prefill_value,
@@ -120,26 +119,14 @@ async function apply_select(
   field: Extract<panel_ai_prefill_field, { control: 'select' }>,
   value: string,
 ) {
-  const option = field.options.find((candidate) => candidate.value === value)
-  if (!option) return false
+  if (!field.options.some((candidate) => candidate.value === value)) return false
 
   const anchor = find_text_anchor(field.label)
   if (!anchor) return false
-  const trigger = find_nearest(anchor, (container) =>
-    container.querySelector<HTMLButtonElement>('button[aria-haspopup="listbox"]'),
+  const control = find_nearest(anchor, (container) =>
+    container.querySelector<HTMLInputElement>('input[type="hidden"][data-yue-select-value="true"]'),
   )
-  if (!trigger || trigger.disabled) return false
-
-  // The Select renders its menu in a portal after opening. Flush the trigger
-  // update so the portal can materialize before we resolve the allowlisted option.
-  flushSync(() => trigger.click())
-  await next_task()
-  const choice = await wait_for(() =>
-    Array.from(document.querySelectorAll<HTMLButtonElement>('button[role="option"]'))
-      .find((candidate) => element_text(candidate) === normalize_text(option.label)) ?? null,
-  )
-  if (!choice || choice.disabled) return false
-  flushSync(() => choice.click())
+  if (!control || !set_native_value(control, value)) return false
   await next_task()
   return true
 }
