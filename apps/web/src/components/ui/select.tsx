@@ -21,6 +21,12 @@ import { createPortal } from 'react-dom'
 
 import { cn } from '../../lib/cn'
 
+export const SELECT_LOCAL_VALUE_EVENT = 'yue:select-local-value'
+export type select_local_value_detail = {
+  value: string
+  applied: boolean
+}
+
 type option_data = {
   value: string
   label: React.ReactNode
@@ -147,6 +153,25 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
       },
       [is_controlled, onValueChange]
     )
+
+    React.useEffect(() => {
+      const root = root_ref.current
+      if (!root) return
+
+      const onLocalValue = (event: Event) => {
+        if (disabled || !(event instanceof CustomEvent)) return
+        const detail = event.detail as select_local_value_detail | undefined
+        if (!detail || typeof detail.value !== 'string') return
+        const option = options.find((candidate) => candidate.value === detail.value)
+        if (!option || option.disabled) return
+
+        commit_value(detail.value)
+        detail.applied = true
+      }
+
+      root.addEventListener(SELECT_LOCAL_VALUE_EVENT, onLocalValue)
+      return () => root.removeEventListener(SELECT_LOCAL_VALUE_EVENT, onLocalValue)
+    }, [commit_value, disabled, options])
 
     React.useEffect(() => {
       if (!open) return
@@ -293,20 +318,8 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
         : null
 
     return (
-      <div ref={root_ref} className="relative">
-        <input
-          type="hidden"
-          name={name}
-          value={current_value ?? ''}
-          data-yue-select-value="true"
-          onChange={(event) => {
-            if (disabled) return
-            const next = event.currentTarget.value
-            const option = options.find((candidate) => candidate.value === next)
-            if (!option || option.disabled) return
-            commit_value(next)
-          }}
-        />
+      <div ref={root_ref} data-yue-select-control="true" className="relative">
+        <input type="hidden" name={name} value={current_value ?? ''} />
 
         <button
           id={id}
