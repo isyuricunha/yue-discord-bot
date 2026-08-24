@@ -108,6 +108,48 @@ describe('Panel AI local prefill', () => {
     expect(screen.getByTestId('locale')).toHaveTextContent('en-US')
   })
 
+  test('uses the exact allowlisted option switch for enum-style XP settings', async () => {
+    function Harness() {
+      const [rewardMode, setRewardMode] = React.useState<'stack' | 'highest'>('stack')
+      return (
+        <div>
+          <div>Estilo de recompensas por cargo</div>
+          <div>
+            <div>Empilhar recompensas anteriores</div>
+            <Switch
+              checked={rewardMode === 'stack'}
+              onCheckedChange={(checked) => setRewardMode(checked ? 'stack' : 'highest')}
+              label=""
+            />
+          </div>
+          <div>
+            <div>Remover recompensas anteriores</div>
+            <Switch
+              checked={rewardMode === 'highest'}
+              onCheckedChange={(checked) => setRewardMode(checked ? 'highest' : 'stack')}
+              label=""
+            />
+          </div>
+          <output data-testid="reward-mode">{rewardMode}</output>
+        </div>
+      )
+    }
+
+    render(<Harness />)
+    let result!: Awaited<ReturnType<typeof apply_panel_ai_prefill_action>>
+    await act(async () => {
+      result = await apply_panel_ai_prefill_action(
+        action('xp', [
+          { target: 'rewardMode', targetLabel: 'Modo de recompensas', value: 'highest' },
+        ]),
+        'xp',
+      )
+    })
+
+    expect(result).toEqual({ applied: 1, failed: 0 })
+    expect(screen.getByTestId('reward-mode')).toHaveTextContent('highest')
+  })
+
   test('replaces a welcome message through the editor advanced mode without saving anything', async () => {
     function Harness() {
       const [value, setValue] = React.useState('Mensagem antiga')
