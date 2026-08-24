@@ -294,7 +294,19 @@ export const Select = React.forwardRef<HTMLButtonElement, select_props>(
 
     return (
       <div ref={root_ref} className="relative">
-        <input type="hidden" name={name} value={current_value ?? ''} />
+        <input
+          type="hidden"
+          name={name}
+          value={current_value ?? ''}
+          data-yue-select-value="true"
+          onChange={(event) => {
+            if (disabled) return
+            const next = event.currentTarget.value
+            const option = options.find((candidate) => candidate.value === next)
+            if (!option || option.disabled) return
+            commit_value(next)
+          }}
+        />
 
         <button
           id={id}
