@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { Sparkles, Trash2 } from 'lucide-react'
+import { get_panel_ai_quick_prompts } from '@yuebot/shared'
 
 import { Button } from '../components/ui/button'
 import { Skeleton } from '../components/ui/skeleton'
@@ -9,16 +10,10 @@ import { PanelAssistantError } from '../components/panel-ai/PanelAssistantError'
 import { PanelAssistantMessage } from '../components/panel-ai/PanelAssistantMessage'
 import { usePanelAssistantContext } from '../components/panel-ai/PanelAssistantProvider'
 
-const QUICK_PROMPTS = [
-  'Quais recursos posso configurar aqui?',
-  'Como funciona o Anti-Raide?',
-  'Revise as configurações deste servidor',
-  'Como configurar as boas-vindas?',
-]
-
 export default function PanelAssistantPage() {
   const {
     activeGuildId,
+    activePageKey,
     messages,
     operation,
     historyLoading,
@@ -28,6 +23,9 @@ export default function PanelAssistantPage() {
     reloadHistory,
     send,
     retry,
+    executeAction,
+    confirmSensitive,
+    declineSensitive,
     clearConversation,
     scrollVersion,
     focusVersion,
@@ -42,6 +40,7 @@ export default function PanelAssistantPage() {
   const dialogTitleId = useId()
   const dialogDescriptionId = useId()
   const [showConfirmClear, setShowConfirmClear] = useState(false)
+  const quickPrompts = get_panel_ai_quick_prompts(activePageKey)
 
   useLayoutEffect(() => {
     if (focusVersion === lastFocusVersionRef.current || operation !== 'idle') return
@@ -93,7 +92,11 @@ export default function PanelAssistantPage() {
     return () => document.removeEventListener('keydown', handleKeyDown)
   }, [closeClearDialog, operation, showConfirmClear])
 
-  const mutationActive = operation === 'sending' || operation === 'retrying' || operation === 'clearing'
+  const mutationActive =
+    operation === 'sending' ||
+    operation === 'retrying' ||
+    operation === 'confirming-sensitive' ||
+    operation === 'clearing'
   const hasMessages = messages.length > 0
 
   return (
@@ -164,7 +167,7 @@ export default function PanelAssistantPage() {
           {!historyLoading && messages.length === 0 && !historyError && (
             <PanelAssistantEmptyState
               disabled={operation !== 'idle'}
-              quickPrompts={QUICK_PROMPTS.map((label) => ({ label, onClick: () => send(label) }))}
+              quickPrompts={quickPrompts.map((label) => ({ label, onClick: () => send(label) }))}
             />
           )}
 
@@ -176,6 +179,12 @@ export default function PanelAssistantPage() {
               isError={message.status === 'error'}
               onRetry={message.status === 'error' ? () => retry(message.turnId) : undefined}
               retryDisabled={operation !== 'idle'}
+              actions={message.actions}
+              sensitiveRequest={message.sensitiveRequest}
+              onAction={executeAction}
+              onSensitiveConfirm={(request) => confirmSensitive(message.turnId, request.id)}
+              onSensitiveDecline={(request) => declineSensitive(message.turnId, request.id)}
+              sensitiveDisabled={operation !== 'idle'}
               className="py-2"
             />
           ))}
@@ -193,7 +202,7 @@ export default function PanelAssistantPage() {
             onChange={setDraft}
             onSend={() => send()}
             disabled={operation !== 'idle' || !!historyError || !activeGuildId}
-            loading={operation === 'sending' || operation === 'retrying'}
+            loading={operation === 'sending' || operation === 'retrying' || operation === 'confirming-sensitive'}
             className="shadow-innerBorder"
           />
           <div className="mt-1.5 px-1 text-[11px] text-muted-foreground/50">

@@ -20,17 +20,54 @@ const MAX_MUTE_DURATION_MINUTES = 60
 const MIN_COOLDOWN_SECONDS = 60
 const MAX_COOLDOWN_SECONDS = 3_600
 
-export const SUPPORTED_PANEL_MODULE_PAGE_KEYS = ['settings', 'welcome', 'automod', 'antiraid'] as const
+export const SUPPORTED_PANEL_MODULE_PAGE_KEYS = [
+  'settings',
+  'welcome',
+  'automod',
+  'antiraid',
+  'xp',
+  'autorole',
+  'tickets',
+  'commands',
+  'suggestions',
+  'reaction-roles',
+  'starboard',
+  'free-games',
+  'modlogs',
+  'giveaways',
+  'giveaway-create',
+  'giveaway-details',
+  'members',
+  'member-details',
+] as const
 export type supported_panel_module_page_key = (typeof SUPPORTED_PANEL_MODULE_PAGE_KEYS)[number]
 
 type panel_module_logger = {
   warn: (object: Record<string, unknown>, message: string) => void
 }
 
-type panel_module_db = {
-  guild: Pick<typeof prisma.guild, 'findUnique'>
-  guildAntiRaidConfig: Pick<typeof prisma.guildAntiRaidConfig, 'findUnique'>
-}
+export type panel_module_db = Pick<
+  typeof prisma,
+  | 'guild'
+  | 'guildAntiRaidConfig'
+  | 'guildXpConfig'
+  | 'guildLevelRoleReward'
+  | 'guildAutoroleConfig'
+  | 'guildAutoroleRole'
+  | 'ticketConfig'
+  | 'ticket'
+  | 'guildCommandOverride'
+  | 'guildCommandCooldown'
+  | 'suggestionConfig'
+  | 'suggestion'
+  | 'reactionRolePanel'
+  | 'starboardConfig'
+  | 'starboardPost'
+  | 'freeGameNotification'
+  | 'modLog'
+  | 'giveaway'
+  | 'guildMember'
+>
 
 type raw_record = Record<string, unknown>
 
@@ -52,67 +89,147 @@ export type preload_result<T> =
   | { state: 'loaded'; value: T | null }
   | { state: 'failed' }
 
-type available_settings_context = {
-  pageKey: 'settings'
+type available_context<K extends supported_panel_module_page_key, C extends Record<string, unknown>> = {
+  pageKey: K
   status: 'available'
-  configuration: {
-    locale: (typeof ALLOWED_LOCALES)[number] | null
-    timezone: (typeof ALLOWED_TIMEZONES)[number] | null
-  }
+  configuration: C
 }
 
-type available_welcome_context = {
-  pageKey: 'welcome'
-  status: 'available'
-  configuration: {
-    welcomeChannelConfigured: boolean | null
-    leaveChannelConfigured: boolean | null
-  }
-}
+type available_settings_context = available_context<'settings', {
+  locale: (typeof ALLOWED_LOCALES)[number] | null
+  timezone: (typeof ALLOWED_TIMEZONES)[number] | null
+}>
 
-type available_automod_context = {
-  pageKey: 'automod'
-  status: 'available'
-  configuration: {
-    wordFilterEnabled: boolean | null
-    blockedWordCount: number | null
-    capsEnabled: boolean | null
-    capsThreshold: number | null
-    capsMinLength: number | null
-    capsAction: (typeof ALLOWED_ACTIONS)[number] | null
-    linkFilterEnabled: boolean | null
-    blockAllLinks: boolean | null
-    blockedDomainCount: number | null
-    trustedDomainCount: number | null
-    linkAction: (typeof ALLOWED_ACTIONS)[number] | null
-    linkTimeoutDuration: string | null
-    noRoleLinkProtectionEnabled: boolean | null
-    noRoleAction: (typeof ALLOWED_ACTIONS)[number] | null
-    noRoleTimeoutDuration: string | null
-    linkNotificationsEnabled: boolean | null
-    aiModerationEnabled: boolean | null
-    aiModerationAction: (typeof ALLOWED_ACTIONS)[number] | null
-    aiModerationLevel: (typeof ALLOWED_AI_LEVELS)[number] | null
-  }
-}
+type available_welcome_context = available_context<'welcome', {
+  welcomeChannelConfigured: boolean | null
+  leaveChannelConfigured: boolean | null
+}>
 
-type available_antiraid_context = {
-  pageKey: 'antiraid'
-  status: 'available'
-  configuration: {
-    enabled: boolean | null
-    joinThreshold: number | null
-    joinTimeWindowSeconds: number | null
-    configuredAction: (typeof ALLOWED_ANTIRAID_ACTIONS)[number] | null
-    muteDurationMinutes: number | null
-    exemptRoleCount: number | null
-    exemptChannelCount: number | null
-    cooldownSeconds: number | null
-    notificationChannelConfigured: boolean | null
-    raidCurrentlyActive: boolean | null
-    serverCurrentlyLocked: boolean | null
-  }
-}
+type available_automod_context = available_context<'automod', {
+  wordFilterEnabled: boolean | null
+  blockedWordCount: number | null
+  capsEnabled: boolean | null
+  capsThreshold: number | null
+  capsMinLength: number | null
+  capsAction: (typeof ALLOWED_ACTIONS)[number] | null
+  linkFilterEnabled: boolean | null
+  blockAllLinks: boolean | null
+  blockedDomainCount: number | null
+  trustedDomainCount: number | null
+  linkAction: (typeof ALLOWED_ACTIONS)[number] | null
+  linkTimeoutDuration: string | null
+  noRoleLinkProtectionEnabled: boolean | null
+  noRoleAction: (typeof ALLOWED_ACTIONS)[number] | null
+  noRoleTimeoutDuration: string | null
+  linkNotificationsEnabled: boolean | null
+  aiModerationEnabled: boolean | null
+  aiModerationAction: (typeof ALLOWED_ACTIONS)[number] | null
+  aiModerationLevel: (typeof ALLOWED_AI_LEVELS)[number] | null
+}>
+
+type available_antiraid_context = available_context<'antiraid', {
+  enabled: boolean | null
+  joinThreshold: number | null
+  joinTimeWindowSeconds: number | null
+  configuredAction: (typeof ALLOWED_ANTIRAID_ACTIONS)[number] | null
+  muteDurationMinutes: number | null
+  exemptRoleCount: number | null
+  exemptChannelCount: number | null
+  cooldownSeconds: number | null
+  notificationChannelConfigured: boolean | null
+  raidCurrentlyActive: boolean | null
+  serverCurrentlyLocked: boolean | null
+}>
+
+type available_xp_context = available_context<'xp', {
+  enabled: boolean | null
+  xpMode: string | null
+  xpPerMessage: number | null
+  xpPerVoiceMinute: number | null
+  dailyXpBonusEnabled: boolean | null
+  dailyXpBonusAmount: number | null
+  voiceXpEnabled: boolean | null
+  rewardMode: string | null
+  rewardCount: number
+  ignoredChannelCount: number | null
+  ignoredRoleCount: number | null
+  levelUpChannelConfigured: boolean | null
+}>
+
+type available_autorole_context = available_context<'autorole', {
+  enabled: boolean | null
+  delaySeconds: number | null
+  onlyAfterFirstMessage: boolean | null
+  roleCount: number
+}>
+
+type available_tickets_context = available_context<'tickets', {
+  enabled: boolean | null
+  categoryConfigured: boolean | null
+  logChannelConfigured: boolean | null
+  supportRoleCount: number | null
+  panelChannelConfigured: boolean | null
+  openTicketCount: number
+  closedTicketCount: number
+}>
+
+type available_commands_context = available_context<'commands', {
+  disabledOverrideCount: number
+  customCooldownCount: number
+}>
+
+type available_suggestions_context = available_context<'suggestions', {
+  enabled: boolean | null
+  channelConfigured: boolean | null
+  logChannelConfigured: boolean | null
+  pendingCount: number
+  acceptedCount: number
+  deniedCount: number
+}>
+
+type available_reaction_roles_context = available_context<'reaction-roles', {
+  panelCount: number
+  enabledPanelCount: number
+  publishedPanelCount: number
+  itemCount: number
+}>
+
+type available_starboard_context = available_context<'starboard', {
+  enabled: boolean | null
+  channelConfigured: boolean | null
+  emoji: string | null
+  threshold: number | null
+  ignoreBots: boolean | null
+  postCount: number
+}>
+
+type available_free_games_context = available_context<'free-games', {
+  enabled: boolean | null
+  channelConfigured: boolean | null
+  mentionRoleCount: number | null
+  platformCount: number | null
+  giveawayTypeCount: number | null
+}>
+
+type available_modlogs_context = available_context<'modlogs', {
+  logChannelConfigured: boolean | null
+  totalRecordCount: number
+  recent24hCount: number
+}>
+
+type giveaway_page_key = 'giveaways' | 'giveaway-create' | 'giveaway-details'
+type available_giveaways_context = available_context<giveaway_page_key, {
+  channelConfigured: boolean | null
+  activeCount: number
+  endedCount: number
+  cancelledCount: number
+}>
+
+type member_page_key = 'members' | 'member-details'
+type available_members_context = available_context<member_page_key, {
+  cachedMemberCount: number
+  membersWithWarningsCount: number
+}>
 
 type unavailable_module_context = {
   pageKey: supported_panel_module_page_key
@@ -124,6 +241,17 @@ export type panel_module_context =
   | available_welcome_context
   | available_automod_context
   | available_antiraid_context
+  | available_xp_context
+  | available_autorole_context
+  | available_tickets_context
+  | available_commands_context
+  | available_suggestions_context
+  | available_reaction_roles_context
+  | available_starboard_context
+  | available_free_games_context
+  | available_modlogs_context
+  | available_giveaways_context
+  | available_members_context
   | unavailable_module_context
 
 export type panel_module_context_load_result = {
@@ -147,11 +275,17 @@ function get_allowed_value<T extends string>(value: unknown, allowed: readonly T
   return typeof value === 'string' && allowed.includes(value as T) ? (value as T) : null
 }
 
+function get_short_string(value: unknown, max = 64): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed && trimmed.length <= max && !/[\r\n<>]/.test(trimmed) ? trimmed : null
+}
+
 function get_boolean(value: unknown): boolean | null {
   return typeof value === 'boolean' ? value : null
 }
 
-function get_integer(value: unknown, minimum: number, maximum: number): number | null {
+function get_integer(value: unknown, minimum = 0, maximum = MAX_DATABASE_INTEGER): number | null {
   return typeof value === 'number' && Number.isFinite(value) && Number.isInteger(value) && value >= minimum && value <= maximum
     ? value
     : null
@@ -160,13 +294,17 @@ function get_integer(value: unknown, minimum: number, maximum: number): number |
 function get_json_array_count(value: unknown): number | null {
   if (Array.isArray(value)) return value.length
   if (typeof value !== 'string') return null
-
   try {
     const parsed: unknown = JSON.parse(value)
     return Array.isArray(parsed) ? parsed.length : null
   } catch {
     return null
   }
+}
+
+function configured(value: unknown): boolean | null {
+  if (value === null) return false
+  return typeof value === 'string' ? value.trim().length > 0 : null
 }
 
 function validate_timeout(duration: unknown): string | null {
@@ -215,7 +353,7 @@ async function load_anti_raid_preload(
       },
     })
     return { state: 'loaded', value: to_anti_raid_record(antiRaid) }
-  } catch (error: unknown) {
+  } catch {
     logger?.warn(
       { guildId, ...(pageKey ? { pageKey } : {}), error: 'database read failed' },
       'Failed to load optional Anti-Raid context',
@@ -239,7 +377,6 @@ async function load_guild_config(
 async function load_settings_context(db: panel_module_db, guildId: string): Promise<panel_module_context> {
   const config = await load_guild_config(db, guildId, { locale: true, timezone: true })
   if (!config) return unavailable('settings')
-
   return {
     pageKey: 'settings',
     status: 'available',
@@ -253,13 +390,12 @@ async function load_settings_context(db: panel_module_db, guildId: string): Prom
 async function load_welcome_context(db: panel_module_db, guildId: string): Promise<panel_module_context> {
   const config = await load_guild_config(db, guildId, { welcomeChannelId: true, leaveChannelId: true })
   if (!config) return unavailable('welcome')
-
   return {
     pageKey: 'welcome',
     status: 'available',
     configuration: {
-      welcomeChannelConfigured: config.welcomeChannelId === null ? false : typeof config.welcomeChannelId === 'string' ? true : null,
-      leaveChannelConfigured: config.leaveChannelId === null ? false : typeof config.leaveChannelId === 'string' ? true : null,
+      welcomeChannelConfigured: configured(config.welcomeChannelId),
+      leaveChannelConfigured: configured(config.leaveChannelId),
     },
   }
 }
@@ -290,7 +426,6 @@ async function load_automod_context(db: panel_module_db, guildId: string): Promi
 
   const linkAction = get_allowed_value(config.linkAction, ALLOWED_ACTIONS)
   const noRoleAction = get_allowed_value(config.linkNoRoleAction, ALLOWED_ACTIONS)
-
   return {
     pageKey: 'automod',
     status: 'available',
@@ -320,10 +455,8 @@ async function load_automod_context(db: panel_module_db, guildId: string): Promi
 
 function load_antiraid_context(preload: preload_result<anti_raid_module_record>): panel_module_context {
   if (preload.state === 'failed' || preload.value === null) return unavailable('antiraid')
-
   const antiRaid = preload.value
   const configuredAction = get_allowed_value(antiRaid.action, ALLOWED_ANTIRAID_ACTIONS)
-
   return {
     pageKey: 'antiraid',
     status: 'available',
@@ -338,14 +471,285 @@ function load_antiraid_context(preload: preload_result<anti_raid_module_record>)
       exemptRoleCount: get_json_array_count(antiRaid.exemptRoles),
       exemptChannelCount: get_json_array_count(antiRaid.exemptChannels),
       cooldownSeconds: get_integer(antiRaid.cooldown, MIN_COOLDOWN_SECONDS, MAX_COOLDOWN_SECONDS),
-      notificationChannelConfigured: antiRaid.notificationChannelId === null
-        ? false
-        : typeof antiRaid.notificationChannelId === 'string'
-          ? true
-          : null,
+      notificationChannelConfigured: configured(antiRaid.notificationChannelId),
       raidCurrentlyActive: get_boolean(antiRaid.raidActive),
       serverCurrentlyLocked: get_boolean(antiRaid.locked),
     },
+  }
+}
+
+async function load_xp_context(db: panel_module_db, guildId: string): Promise<panel_module_context> {
+  const [config, rewardCount] = await Promise.all([
+    db.guildXpConfig.findUnique({
+      where: { guildId },
+      select: {
+        enabled: true,
+        xpMode: true,
+        xpPerMessage: true,
+        xpPerVoiceMinute: true,
+        dailyXpBonusEnabled: true,
+        dailyXpBonusAmount: true,
+        voiceXpEnabled: true,
+        rewardMode: true,
+        ignoredChannelIds: true,
+        ignoredRoleIds: true,
+        levelUpChannelId: true,
+      },
+    }),
+    db.guildLevelRoleReward.count({ where: { guildId } }),
+  ])
+  if (!config) return unavailable('xp')
+  return {
+    pageKey: 'xp',
+    status: 'available',
+    configuration: {
+      enabled: get_boolean(config.enabled),
+      xpMode: get_short_string(config.xpMode),
+      xpPerMessage: get_integer(config.xpPerMessage),
+      xpPerVoiceMinute: get_integer(config.xpPerVoiceMinute),
+      dailyXpBonusEnabled: get_boolean(config.dailyXpBonusEnabled),
+      dailyXpBonusAmount: get_integer(config.dailyXpBonusAmount),
+      voiceXpEnabled: get_boolean(config.voiceXpEnabled),
+      rewardMode: get_short_string(config.rewardMode),
+      rewardCount,
+      ignoredChannelCount: get_json_array_count(config.ignoredChannelIds),
+      ignoredRoleCount: get_json_array_count(config.ignoredRoleIds),
+      levelUpChannelConfigured: configured(config.levelUpChannelId),
+    },
+  }
+}
+
+async function load_autorole_context(db: panel_module_db, guildId: string): Promise<panel_module_context> {
+  const [config, roleCount] = await Promise.all([
+    db.guildAutoroleConfig.findUnique({
+      where: { guildId },
+      select: { enabled: true, delaySeconds: true, onlyAfterFirstMessage: true },
+    }),
+    db.guildAutoroleRole.count({ where: { guildId } }),
+  ])
+  if (!config) return unavailable('autorole')
+  return {
+    pageKey: 'autorole',
+    status: 'available',
+    configuration: {
+      enabled: get_boolean(config.enabled),
+      delaySeconds: get_integer(config.delaySeconds),
+      onlyAfterFirstMessage: get_boolean(config.onlyAfterFirstMessage),
+      roleCount,
+    },
+  }
+}
+
+async function load_tickets_context(db: panel_module_db, guildId: string): Promise<panel_module_context> {
+  const [config, openTicketCount, closedTicketCount] = await Promise.all([
+    db.ticketConfig.findUnique({
+      where: { guildId },
+      select: {
+        enabled: true,
+        categoryId: true,
+        logChannelId: true,
+        supportRoleIds: true,
+        panelChannelId: true,
+      },
+    }),
+    db.ticket.count({ where: { guildId, status: 'open' } }),
+    db.ticket.count({ where: { guildId, status: 'closed' } }),
+  ])
+  if (!config) return unavailable('tickets')
+  return {
+    pageKey: 'tickets',
+    status: 'available',
+    configuration: {
+      enabled: get_boolean(config.enabled),
+      categoryConfigured: configured(config.categoryId),
+      logChannelConfigured: configured(config.logChannelId),
+      supportRoleCount: get_json_array_count(config.supportRoleIds),
+      panelChannelConfigured: configured(config.panelChannelId),
+      openTicketCount,
+      closedTicketCount,
+    },
+  }
+}
+
+async function load_commands_context(db: panel_module_db, guildId: string): Promise<panel_module_context> {
+  const [disabledOverrideCount, customCooldownCount] = await Promise.all([
+    db.guildCommandOverride.count({ where: { guildId, enabled: false } }),
+    db.guildCommandCooldown.count({ where: { guildId } }),
+  ])
+  return {
+    pageKey: 'commands',
+    status: 'available',
+    configuration: { disabledOverrideCount, customCooldownCount },
+  }
+}
+
+async function load_suggestions_context(db: panel_module_db, guildId: string): Promise<panel_module_context> {
+  const [config, pendingCount, acceptedCount, deniedCount] = await Promise.all([
+    db.suggestionConfig.findUnique({ where: { guildId }, select: { enabled: true, channelId: true, logChannelId: true } }),
+    db.suggestion.count({ where: { guildId, status: 'pending' } }),
+    db.suggestion.count({ where: { guildId, status: 'accepted' } }),
+    db.suggestion.count({ where: { guildId, status: 'denied' } }),
+  ])
+  if (!config) return unavailable('suggestions')
+  return {
+    pageKey: 'suggestions',
+    status: 'available',
+    configuration: {
+      enabled: get_boolean(config.enabled),
+      channelConfigured: configured(config.channelId),
+      logChannelConfigured: configured(config.logChannelId),
+      pendingCount,
+      acceptedCount,
+      deniedCount,
+    },
+  }
+}
+
+async function load_reaction_roles_context(db: panel_module_db, guildId: string): Promise<panel_module_context> {
+  const panels = await db.reactionRolePanel.findMany({
+    where: { guildId },
+    select: { enabled: true, messageId: true, _count: { select: { items: true } } },
+  })
+  return {
+    pageKey: 'reaction-roles',
+    status: 'available',
+    configuration: {
+      panelCount: panels.length,
+      enabledPanelCount: panels.filter((panel) => panel.enabled).length,
+      publishedPanelCount: panels.filter((panel) => Boolean(panel.messageId)).length,
+      itemCount: panels.reduce((total, panel) => total + panel._count.items, 0),
+    },
+  }
+}
+
+async function load_starboard_context(db: panel_module_db, guildId: string): Promise<panel_module_context> {
+  const [config, postCount] = await Promise.all([
+    db.starboardConfig.findUnique({
+      where: { guildId },
+      select: { enabled: true, channelId: true, emoji: true, threshold: true, ignoreBots: true },
+    }),
+    db.starboardPost.count({ where: { guildId } }),
+  ])
+  if (!config) return unavailable('starboard')
+  return {
+    pageKey: 'starboard',
+    status: 'available',
+    configuration: {
+      enabled: get_boolean(config.enabled),
+      channelConfigured: configured(config.channelId),
+      emoji: get_short_string(config.emoji, 16),
+      threshold: get_integer(config.threshold, 1, 100),
+      ignoreBots: get_boolean(config.ignoreBots),
+      postCount,
+    },
+  }
+}
+
+async function load_free_games_context(db: panel_module_db, guildId: string): Promise<panel_module_context> {
+  const config = await db.freeGameNotification.findUnique({
+    where: { guildId },
+    select: { isEnabled: true, channelId: true, roleIds: true, platforms: true, giveawayTypes: true },
+  })
+  if (!config) return unavailable('free-games')
+  return {
+    pageKey: 'free-games',
+    status: 'available',
+    configuration: {
+      enabled: get_boolean(config.isEnabled),
+      channelConfigured: configured(config.channelId),
+      mentionRoleCount: get_json_array_count(config.roleIds),
+      platformCount: get_json_array_count(config.platforms),
+      giveawayTypeCount: get_json_array_count(config.giveawayTypes),
+    },
+  }
+}
+
+async function load_modlogs_context(db: panel_module_db, guildId: string): Promise<panel_module_context> {
+  const since = new Date(Date.now() - 24 * 60 * 60 * 1000)
+  const [config, totalRecordCount, recent24hCount] = await Promise.all([
+    load_guild_config(db, guildId, { modLogChannelId: true }),
+    db.modLog.count({ where: { guildId } }),
+    db.modLog.count({ where: { guildId, createdAt: { gte: since } } }),
+  ])
+  if (!config) return unavailable('modlogs')
+  return {
+    pageKey: 'modlogs',
+    status: 'available',
+    configuration: {
+      logChannelConfigured: configured(config.modLogChannelId),
+      totalRecordCount,
+      recent24hCount,
+    },
+  }
+}
+
+async function load_giveaways_context(
+  db: panel_module_db,
+  guildId: string,
+  pageKey: giveaway_page_key,
+): Promise<panel_module_context> {
+  const [config, activeCount, endedCount, cancelledCount] = await Promise.all([
+    load_guild_config(db, guildId, { giveawayChannelId: true }),
+    db.giveaway.count({ where: { guildId, ended: false, cancelled: false } }),
+    db.giveaway.count({ where: { guildId, ended: true, cancelled: false } }),
+    db.giveaway.count({ where: { guildId, cancelled: true } }),
+  ])
+  if (!config) return unavailable(pageKey)
+  return {
+    pageKey,
+    status: 'available',
+    configuration: {
+      channelConfigured: configured(config.giveawayChannelId),
+      activeCount,
+      endedCount,
+      cancelledCount,
+    },
+  }
+}
+
+async function load_members_context(
+  db: panel_module_db,
+  guildId: string,
+  pageKey: member_page_key,
+): Promise<panel_module_context> {
+  const [cachedMemberCount, membersWithWarningsCount] = await Promise.all([
+    db.guildMember.count({ where: { guildId } }),
+    db.guildMember.count({ where: { guildId, warnings: { gt: 0 } } }),
+  ])
+  return {
+    pageKey,
+    status: 'available',
+    configuration: { cachedMemberCount, membersWithWarningsCount },
+  }
+}
+
+async function load_page_context(
+  db: panel_module_db,
+  guildId: string,
+  pageKey: supported_panel_module_page_key,
+  antiRaid: preload_result<anti_raid_module_record>,
+): Promise<panel_module_context> {
+  switch (pageKey) {
+    case 'settings': return load_settings_context(db, guildId)
+    case 'welcome': return load_welcome_context(db, guildId)
+    case 'automod': return load_automod_context(db, guildId)
+    case 'antiraid': return load_antiraid_context(antiRaid)
+    case 'xp': return load_xp_context(db, guildId)
+    case 'autorole': return load_autorole_context(db, guildId)
+    case 'tickets': return load_tickets_context(db, guildId)
+    case 'commands': return load_commands_context(db, guildId)
+    case 'suggestions': return load_suggestions_context(db, guildId)
+    case 'reaction-roles': return load_reaction_roles_context(db, guildId)
+    case 'starboard': return load_starboard_context(db, guildId)
+    case 'free-games': return load_free_games_context(db, guildId)
+    case 'modlogs': return load_modlogs_context(db, guildId)
+    case 'giveaways':
+    case 'giveaway-create':
+    case 'giveaway-details':
+      return load_giveaways_context(db, guildId, pageKey)
+    case 'members':
+    case 'member-details':
+      return load_members_context(db, guildId, pageKey)
   }
 }
 
@@ -361,15 +765,11 @@ export async function load_panel_module_context(params: {
   if (!pageKey) return { moduleContext: null, antiRaid }
 
   try {
-    const moduleContext = pageKey === 'settings'
-      ? await load_settings_context(params.db, params.guildId)
-      : pageKey === 'welcome'
-        ? await load_welcome_context(params.db, params.guildId)
-        : pageKey === 'automod'
-          ? await load_automod_context(params.db, params.guildId)
-          : load_antiraid_context(antiRaid)
-    return { moduleContext, antiRaid }
-  } catch (error: unknown) {
+    return {
+      moduleContext: await load_page_context(params.db, params.guildId, pageKey, antiRaid),
+      antiRaid,
+    }
+  } catch {
     params.logger?.warn(
       { guildId: params.guildId, pageKey, error: 'database read failed' },
       'Failed to load optional panel module context',

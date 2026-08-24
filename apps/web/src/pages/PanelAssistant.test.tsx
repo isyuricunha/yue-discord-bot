@@ -211,14 +211,15 @@ describe('PanelAssistantPage', () => {
   test('quick prompt submits its exact visible text once', async () => {
     await renderWithHistory()
     mockFetch.mockResolvedValueOnce(makeResponse({ response: 'Answer' }))
-    const prompt = screen.getByRole('button', { name: 'Como funciona o Anti-Raide?' })
+    const promptText = 'O que você sabe sobre este servidor?'
+    const prompt = screen.getByRole('button', { name: promptText })
     await userEvent.click(prompt)
 
     await waitFor(() => expect(mockFetch).toHaveBeenLastCalledWith(
       expect.stringContaining('/panel-ai/chat'),
-      expect.objectContaining({ body: JSON.stringify({ message: 'Como funciona o Anti-Raide?', pageContext: { pageKey: 'assistant' } }) })
+      expect.objectContaining({ body: JSON.stringify({ message: promptText, pageContext: { pageKey: 'assistant' } }) })
     ))
-    expect(screen.getAllByText('Como funciona o Anti-Raide?')).toHaveLength(1)
+    expect(screen.getAllByText(promptText)).toHaveLength(1)
   })
 
   test('clear success removes messages and restores composer focus', async () => {
