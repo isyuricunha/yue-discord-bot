@@ -161,6 +161,10 @@ jobs:
         with:
           context: .
           platforms: ${{ matrix.platform }}
+          # Per-platform provenance turns digest outputs into nested OCI indexes
+          # and complicates later manifest assembly. The final image is composed
+          # explicitly from two plain platform manifests instead.
+          provenance: false
           labels: |
             org.opencontainers.image.title=Yue Discord Bot
             org.opencontainers.image.description=A biggest bot.
@@ -168,7 +172,7 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
             org.opencontainers.image.source=${{ github.repositoryUrl }}
           outputs: |
-            type=image,"name=${{ secrets.DOCKERHUB_USERNAME }}/yue-discord-bot,ghcr.io/${{ github.repository }}",push-by-digest=true,name-canonical=true,push=true
+            type=image,"name=${{ secrets.DOCKERHUB_USERNAME }}/yue-discord-bot,ghcr.io/${{ github.repository }}",push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true
           cache-from: type=gha,scope=yue-${{ matrix.arch }}
           cache-to: type=gha,scope=yue-${{ matrix.arch }},mode=max
 
@@ -266,16 +270,35 @@ jobs:
         run: |
           set -euo pipefail
 
+          platform_digests() {
+            jq -r '
+              .manifests[]
+              | select(.platform.os == "linux")
+              | select(.platform.architecture == "amd64" or .platform.architecture == "arm64")
+              | "\(.platform.architecture)=\(.digest)"
+            ' | sort
+          }
+
           verify_manifest() {
             local image="$1"
             local raw
             raw="$(docker buildx imagetools inspect "${image}:latest" --raw)"
 
+            jq -e '.manifests | length == 2' <<< "$raw" >/dev/null
             jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "amd64")' <<< "$raw" >/dev/null
             jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "arm64")' <<< "$raw" >/dev/null
 
-            echo "Verified linux/amd64 + linux/arm64: ${image}:latest"
+            echo "Verified exactly linux/amd64 + linux/arm64: ${image}:latest"
           }
+
+          dockerhub_raw="$(docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:latest" --raw)"
+          ghcr_raw="$(docker buildx imagetools inspect "${GHCR_IMAGE}:latest" --raw)"
 
           verify_manifest "$DOCKERHUB_IMAGE"
           verify_manifest "$GHCR_IMAGE"
+
+          diff \
+            <(platform_digests <<< "$dockerhub_raw") \
+            <(platform_digests <<< "$ghcr_raw")
+
+          echo "Verified matching platform digests across Docker Hub and GHCR"
