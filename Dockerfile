@@ -3,6 +3,13 @@
 # Multi-service Dockerfile - API + Bot + Web in one container.
 FROM node:24-slim AS pnpm-base
 
+# Prisma dependency lifecycle scripts inspect OpenSSL even during `pnpm fetch`.
+# Keep it in the common base so dependency caching stays warning-free and the
+# runtime inherits the same library without reinstalling it later.
+RUN apt-get update && apt-get install -y \
+    openssl \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
 
 WORKDIR /app
@@ -28,10 +35,6 @@ RUN pnpm install --offline --frozen-lockfile
 
 # Build shared packages once. App-only changes can reuse this whole stage.
 FROM build-deps AS packages-builder
-
-RUN apt-get update && apt-get install -y \
-    openssl \
-    && rm -rf /var/lib/apt/lists/*
 
 COPY tsconfig.json ./
 COPY packages ./packages
@@ -77,7 +80,6 @@ FROM prod-deps AS runtime
 RUN apt-get update && apt-get install -y \
     nginx \
     supervisor \
-    openssl \
     ca-certificates \
     wget \
     && rm -rf /var/lib/apt/lists/*
