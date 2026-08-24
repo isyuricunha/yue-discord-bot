@@ -1,314 +1,161 @@
-# Yue Discord Bot (YueBot)
+<p align="center">
+  <img src="apps/web/public/icon.png" width="150" alt="Yue Bot" />
+</p>
 
-YueBot is a feature-rich Discord bot with a modern web admin panel. It includes moderation tools, XP/levels, giveaways, economy, music, AI-powered features, and more.
+<h1 align="center">Yue Discord Bot</h1>
 
-> **This bot is production-ready.** However, I do not provide support for custom deployments or other instances.
+<p align="center">
+  A multifunctional Discord bot with a complete web dashboard for managing communities, moderation, entertainment and automation.
+</p>
 
-## Commands
+<p align="center">
+  <a href="https://github.com/isyuricunha/yue-discord-bot/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/isyuricunha/yue-discord-bot/actions/workflows/ci.yml/badge.svg" /></a>
+  <img alt="Node.js 24+" src="https://img.shields.io/badge/Node.js-24%2B-339933?logo=node.js&logoColor=white" />
+  <img alt="Docker" src="https://img.shields.io/badge/Docker-amd64%20%7C%20arm64-2496ED?logo=docker&logoColor=white" />
+  <img alt="License" src="https://img.shields.io/badge/License-AGPL--3.0-orange" />
+</p>
 
-YueBot offers a wide variety of commands organized by category:
+---
 
-### Moderation
+## About
 
-- **Ban**: Ban members from your server
-- **Kick**: Remove members from your server
-- **Mute**: Temporarily mute members
-- **Unmute**: Unmute muted members
-- **Warn**: Warn members for violations
-- **Unwarn**: Remove warnings from members
-- **Baninfo**: Check ban information
-- **Modlog**: View moderation logs
-- **Antiraid**: Configure anti-raid protection
-- **Lock/Unlock**: Lock and unlock channels
-- **Clear**: Bulk delete messages
+**Yue** started as a Discord bot and grew into a full community management platform.
 
-### XP & Levels
+The bot handles everyday Discord interactions while the web dashboard gives server administrators a cleaner way to configure features, inspect activity and manage the community without relying only on commands.
 
-- **Rank**: Check your level and XP
-- **Leaderboard**: View top members by XP
-- **Levelup**: Configure level up messages
-- **Prestige**: Reset your level for rewards
-- **Transfer**: Transfer XP to another member
+The project is actively used in production and is built as a monorepo containing the Discord bot, API, web panel and shared packages.
 
-### Giveaways
+> **Self-hosting note:** the source is public, but I do not provide support for custom or third-party deployments.
 
-- **Sorteio**: Create giveaways with custom titles, descriptions, and winner counts
-- **Sorteio-lista**: Create giveaways with a predefined list of items
-- **Sorteio-wizard**: Interactive giveaway creation with step-by-step guide
+## Highlights
 
-### Economy & Games
+- 🛡️ **Moderation & security** — bans, mutes, warnings, mod logs, AutoMod, AntiRaid, channel locks and audit tools.
+- 📊 **XP & community** — levels, leaderboards, profiles, badges, birthdays, autoroles and member management.
+- 🎉 **Giveaways & events** — giveaways, polls, events, suggestions, tickets and reaction roles.
+- 💰 **Economy & fun** — luazinhas, bank, shop, inventory, coinflip, anime, Pokédex, pets, trivia and waifu/husbando systems.
+- 🎵 **Music** — playback, queue, playlists, DJ controls and Lavalink support.
+- ⭐ **Community tools** — welcome messages, starboard, keyword triggers, custom commands, fan arts and free-game notifications.
+- ❤️ **Support system** — optional LivePix integration for support plans and automatic Discord role delivery after confirmed payments.
+- ✨ **Optional smart features** — Discord chat assistant, panel assistant and automated content moderation when the related providers are configured.
 
-- **Coinflip**: Flip coins for luazinhas (in-game currency)
-- **Bank**: Check your bank balance
-- **Shop**: Browse and purchase items
-- **Inventory**: View your collected items
-- **Daily**: Claim daily rewards
-- **Loja**: Create and manage shop items
+## Web dashboard
 
-### Music
+The dashboard is one of Yue's main parts. After signing in with Discord, administrators can manage their servers through a modern interface instead of configuring everything through slash commands.
 
-- **Play**: Play music from YouTube, Spotify, and other sources
-- **Skip**: Skip the current track
-- **Stop**: Stop playback and clear queue
-- **Volume**: Adjust playback volume
-- **Queue**: View the current music queue
-- **Nowplaying**: See what's currently playing
-- **Playlist**: Manage playlists
-- **DJ**: Configure music settings
+It currently includes areas for moderation, AutoMod, AntiRaid, audit logs, members, giveaways, XP, autoroles, tickets, suggestions, reaction roles, starboard, welcome messages, music, custom commands, keyword triggers, support plans and more.
 
-### AI Features
+Owner-only tools are also available for global administration and panel configuration.
 
-- **Ask**: Chat with the configured Mistral runtime
-- **Auto-moderation**: AI-powered content moderation (requires OpenAI API key)
+## Tech stack
 
-### Waifu Collection
-
-- **Waifu**: View waifu information
-- **Husbando**: View husbando information
-- **Marry**: Marry your favorite character
-- **Divorce**: Divorce your current waifu/husbando
-- **Casar**: Alternative marry command
-- **Divorciar**: Alternative divorce command
-- **Ranking**: View waifu collection rankings
-- **Wishlist**: Manage your wishlist
-- **Meuharem**: View your harem
-- **Infocasamento**: View marriage information
-- **Waifupontos**: Manage waifu points
-
-### Profile & Social
-
-- **Profile**: View your profile with XP, badges, and statistics
-- **Badges**: Manage and view badges
-- **Aniversario**: Set your birthday
-
-### Fan Art
-
-- **Fanart**: Submit and view fan art submissions
-- **Verify Message**: Verify messages for fan art submissions
-
-### Utility
-
-- **Ping**: Check bot latency
-- **Poll**: Create polls
-- **Evento**: Create event announcements
-- **Pet**: Interact with virtual pets
-- **Trivia**: Play anime trivia games
-- **Gatilho**: Configure trigger words
-- **Config**: Configure server settings
-- **Ticket**: Create support tickets
-- **Reaction Roles**: Set up reaction roles
-- **Report**: Report issues
-- **Say**: Make the bot say something
-- **Afk**: Set AFK status
-- **Voltei**: Remove AFK status
-- **Limpar**: Clean messages
-- **Painel**: Create custom panels
-
-## Tech Stack
-
-- **Backend**: Node.js 24+, TypeScript, Fastify API
-- **Database**: PostgreSQL + Prisma ORM
-- **Frontend**: React + Vite
-- **Discord**: Discord.js v14
-- **Package Manager**: pnpm
-- **Infrastructure**: Redis (for queues), Docker support
-- **AI Services**: Mistral AI, OpenAI (optional), and an optional OpenAI-compatible panel provider
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js 24+
-- pnpm 10+
-- PostgreSQL 15+
-- Redis 6+ (for job queues)
-- Discord Application (bot token + OAuth)
-- Lavalink server (for music features, optional)
-
-### Local Development
-
-```bash
-# Install dependencies
-pnpm install
-
-# Copy environment file
-cp .env.example .env
-
-# Generate Prisma client
-pnpm db:generate
-
-# Push database schema
-pnpm db:push
-
-# Run database migrations
-pnpm db:migrate
-
-# Run database seed (optional)
-pnpm db:seed
-
-# Run all services (bot, API, web)
-pnpm dev
-```
-
-Or run individually:
-
-```bash
-pnpm dev:bot    # Discord bot
-pnpm dev:api    # API server
-pnpm dev:web    # Web panel
-```
-
-Default URLs:
-
-- Web UI: <http://localhost:5173>
-- API: <http://localhost:3000>
-
-### Deploy Slash Commands
-
-```bash
-pnpm --filter @yuebot/bot deploy-commands
-```
+| Part | Technology |
+| --- | --- |
+| Discord bot | Node.js, TypeScript, Discord.js |
+| API | Fastify |
+| Web panel | React, Vite |
+| Database | PostgreSQL, Prisma |
+| Cache / queues | Redis |
+| Music | Lavalink |
+| Package manager | pnpm |
+| Deployment | Docker |
 
 ## Docker
 
-### Using Docker Compose
+Yue is published as a multi-architecture image for **linux/amd64** and **linux/arm64**.
+
+Docker Hub:
 
 ```bash
-# With internal PostgreSQL
-docker compose -f docker-compose.dockerhub.internal-db.yml up -d --build
+docker pull isyuricunha/yue-discord-bot:latest
 ```
 
-Ports:
-
-- Web: <http://localhost:80>
-- API: <http://localhost:3000>
-
-### Using Pre-built Image
+GitHub Container Registry:
 
 ```bash
-docker pull isyuricunha/yue-discord-bot
+docker pull ghcr.io/isyuricunha/yue-discord-bot:latest
 ```
 
-### Environment Variables
+The repository includes Compose examples for both internal and external PostgreSQL setups, using either Docker Hub or GHCR images.
 
-YueBot uses multiple environment files for different purposes:
+A simple starting point is:
 
-- **`.env`**: Main configuration file (copy from `.env.example`)
-- **`.env.local`**: Local overrides (copy from `.env.local.example`)
+```bash
+cp .env.docker.example .env
+# Fill in the required Discord, database and authentication values.
 
-#### Required Variables
-
-- `DATABASE_URL` - PostgreSQL connection string
-- `DISCORD_TOKEN` - Your Discord bot token
-- `DISCORD_CLIENT_ID` - Your Discord application client ID
-- `DISCORD_CLIENT_SECRET` - Your Discord application client secret
-- `JWT_SECRET` - Session secret (32+ characters minimum)
-- `INTERNAL_API_SECRET` - Secret for API <-> Bot communication
-- `DISCORD_REDIRECT_URI` - OAuth callback URL (e.g., `http://localhost:3000/api/auth/callback`)
-
-#### Database & Caching
-
-- `REDIS_URL` - Redis connection string (e.g., `redis://localhost:6379`)
-- `REDIS_PASSWORD` - Redis password if required
-- `KEYWORD_TRIGGER_CACHE_TTL_MS` - Bot keyword trigger cache lifetime in milliseconds (default: `10000`; set to `0` to disable stored entries)
-- `SUGGESTION_CONFIG_CACHE_TTL_MS` - Bot suggestion config cache lifetime in milliseconds (default: `10000`; set to `0` to disable stored entries)
-
-#### AI Services (Optional)
-
-Enable AI features by providing API keys:
-
-**Mistral AI** (primary):
-
-- `MISTRAL_API_KEY` - Your Mistral API key
-- `MISTRAL_AGENT_ID` - Optional Mistral agent ID for tool-enabled conversations
-- `MISTRAL_IMAGE_AGENT_ID` - Optional Mistral agent ID configured with the `image_generation` connector for chat image generation
-- `MISTRAL_MODEL` - Model to use (default: `mistral-small-latest`)
-- `MISTRAL_TEMPERATURE` - Temperature for responses (default: `0.2`)
-- `MISTRAL_MAX_TOKENS` - Max tokens per response (default: `512`)
-
-**Panel assistant (optional):**
-
-- `MISTRAL_PANEL_AGENT_ID` - Dedicated Mistral Agent for panel chat; configure it without connectors or tools
-- `CUSTOM_PROVIDER_BASE_URL` - Base URL of a generic OpenAI-compatible provider
-- `CUSTOM_PROVIDER_API_KEY` - Optional bearer key for that provider; it is never stored in the database
-- `PANEL_AI_CHAT_TIMEOUT_MS` - Panel chat timeout (default: `90000`, maximum: `180000`)
-- `CUSTOM_PROVIDER_MODEL_LIST_TIMEOUT_MS` - Manual model-list refresh timeout (fixed at five minutes)
-
-The Owner chooses the global panel runtime in **Admin → Ella no Painel**. The custom catalog is fetched only when requested, cached in the database, and keeps the previous catalog if a refresh fails. Guild Admins/Owners can use the panel chat, but cannot change its provider or model. The panel chat has no web, image, attachment, or tool access.
-
-### v3 breaking changes
-
-- Groq and all multi-key/round-robin Mistral fallback variables were removed.
-- Use one `MISTRAL_API_KEY` for Discord AI and rename any prompt mount to `prompts/system_prompt.txt`.
-- Conversation cache variables are now `AI_CONTEXT_*`; remove any `GROQ_CONTEXT_*` settings.
-
-**OpenAI** (auto-moderation):
-
-- `OPENAI_API_KEY` - Your OpenAI API key for AI-powered moderation
-- `OPENAI_MODERATION_IMAGE_MAX_BYTES` - Max size downloaded per image before moderation (default: `20971520`)
-- `OPENAI_MODERATION_IMAGE_PAYLOAD_MAX_BYTES` - Max image payload sent to moderation per request (default: `47185920`)
-
-#### LivePix Support Payments (Optional)
-
-LivePix support payments are configured per guild from the web panel under **Suporte > Apoios**. Members use `/apoiar` in Discord, choose one of the guild-defined plans, and receive the configured role only after Yue verifies the LivePix payment with the connected LivePix account.
-
-Required when `LIVEPIX_ENABLED=true`:
-
-- `LIVEPIX_CLIENT_ID` - LivePix OAuth application client ID
-- `LIVEPIX_CLIENT_SECRET` - LivePix OAuth application client secret
-- `LIVEPIX_OAUTH_REDIRECT_URI` - Public API callback URL, for example `https://api.example.com/api/livepix/oauth/callback`
-- `LIVEPIX_WEBHOOK_URL` - Public API webhook URL used for deployment validation and operator display, for example `https://yuebot.yuricunha.com/api/livepix/webhook`
-- `LIVEPIX_PAYMENT_RETURN_URL` - Public return URL passed to LivePix payment creation, for example `https://api.example.com/api/livepix/return`
-- `LIVEPIX_TOKEN_ENCRYPTION_KEY` - 32-byte secret used to encrypt LivePix access tokens and checkout URLs at rest. It can be a 64-character hex string, base64 that decodes to 32 bytes, or a raw 32-byte string.
-
-Optional:
-
-- `LIVEPIX_OWNER_GUILD_IDS` - Comma-separated guild IDs allowed to use the bot owner's LivePix credentials instead of guild OAuth.
-
-Operational notes:
-
-- Configure the application-level notification URL manually in the LivePix application dashboard before accepting payments. For Yue production, set it to `https://yuebot.yuricunha.com/api/livepix/webhook`.
-- Yue relies on the LivePix application dashboard notification URL to receive webhook events from connected users. It does not call the per-user `GET /v2/webhooks` or `POST /v2/webhooks` APIs during account connection, dashboard loading, checkout creation, or normal startup.
-- The bot needs Discord `Manage Roles`, and the supporter role must be below the bot's highest role.
-- Plans are one-time payments in BRL cents with a fixed duration in days. Recurring subscriptions are not implemented.
-- Users do not link Discord accounts to LivePix. Yue correlates checkout rows by provider payment reference, then fetches the payment from the connected account before granting roles.
-- Webhooks are deduplicated and sanitized before persistence. Raw webhook bodies, access tokens, and checkout URLs are not exposed in API responses.
-- OAuth access tokens are encrypted at rest. If an OAuth token expires, reconnect the LivePix account from the dashboard.
-- If role synchronization fails because of permissions or hierarchy, fix the Discord role setup and use the dashboard retry action.
-
-#### Music Features (Optional)
-
-For music functionality, configure Lavalink:
-
-```env
-LAVALINK_NODES='[{"name": "Node 1", "url": "localhost:2333", "auth": "youshallnotpass", "secure": false}]'
-LAVALINK_DISABLED_NODES="Node 1,Old Public Node"
+docker compose -f docker-compose.dockerhub.internal-db.yml up -d
 ```
 
-Set `enabled: false` on a node entry, or list node names in `LAVALINK_DISABLED_NODES`, to keep unstable external Lavalink nodes out of the runtime connection pool.
+Optional integrations such as Lavalink, LivePix, Mistral and OpenAI can be enabled through environment variables when needed.
 
-#### Admin Configuration
+## Local development
 
-- `BADGE_ADMIN_USER_IDS` - Comma-separated list of user IDs who can manage badges
-- `FAN_ART_REVIEWER_USER_IDS` - Comma-separated list of user IDs who can review fan art
+### Requirements
 
-## Useful Commands
+- Node.js 24+
+- pnpm 10+
+- PostgreSQL
+- Redis
+- A Discord application
 
-| Command | Description |
-|---------|-------------|
-| `pnpm install` | Install all dependencies |
-| `pnpm dev` | Run all services (bot + API + web) |
-| `pnpm dev:bot` | Run only the Discord bot |
-| `pnpm dev:api` | Run only the API server |
-| `pnpm dev:web` | Run only the web panel |
-| `pnpm db:generate` | Generate Prisma client |
-| `pnpm db:push` | Push database schema changes |
-| `pnpm db:migrate` | Run database migrations |
-| `pnpm db:seed` | Seed database with initial data |
-| `pnpm deploy-commands` | Deploy Discord slash commands |
-| `pnpm build` | Build all applications |
-| `pnpm lint` | Run linter checks |
+Then:
+
+```bash
+git clone https://github.com/isyuricunha/yue-discord-bot.git
+cd yue-discord-bot
+
+cp .env.example .env
+pnpm install
+pnpm db:generate
+pnpm db:migrate
+pnpm dev
+```
+
+The development command starts the workspace services together. You can also run them separately:
+
+```bash
+pnpm dev:bot
+pnpm dev:api
+pnpm dev:web
+```
+
+Default development URLs:
+
+- Web panel: `http://localhost:5173`
+- API: `http://localhost:3000`
+
+## Project structure
+
+```text
+apps/
+├── bot/        Discord bot
+├── api/        HTTP API
+└── web/        React dashboard
+
+packages/
+├── database/   Prisma and database package
+├── livepix/    LivePix integration
+└── shared/     Shared code and types
+
+prompts/        Runtime prompt files
+```
+
+Everything lives in a single pnpm workspace so the bot, API, panel and shared packages can evolve together.
+
+## Useful commands
+
+```bash
+pnpm dev          # Run the development workspace
+pnpm build        # Build all applications and packages
+pnpm lint         # Run lint checks
+pnpm type-check   # Run TypeScript checks
+pnpm test         # Run tests
+pnpm db:generate  # Generate the Prisma client
+pnpm db:migrate   # Run database migrations
+```
 
 ## License
 
-AGPL-3.0 - See [LICENSE](LICENSE) file.
+Yue Discord Bot is licensed under the **GNU Affero General Public License v3.0**.
+
+See [LICENSE](LICENSE) for the full license text.
