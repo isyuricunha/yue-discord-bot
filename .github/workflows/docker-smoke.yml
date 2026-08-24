@@ -50,7 +50,4 @@ jobs:
           context: .
           platforms: ${{ matrix.platform }}
           outputs: type=cacheonly
-          cache-from: |
-            type=gha,scope=yue-${{ matrix.arch }}
-            type=gha,scope=yue-pr-${{ matrix.arch }}
-          cache-to: type=gha,scope=yue-pr-${{ matrix.arch }},mode=max
+          cache-from: type=gha,scope=yue-${{ matrix.arch }}
