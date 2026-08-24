@@ -1,6 +1,7 @@
-import { Copy, ExternalLink, Highlighter, ListTree, ShieldCheck, Sparkles, WandSparkles } from 'lucide-react'
+import { useQueryClient } from '@tanstack/react-query'
+import { Copy, ExternalLink, Highlighter, ListTree, Save, ShieldCheck, Sparkles, WandSparkles } from 'lucide-react'
 import * as React from 'react'
-import type { panel_ai_action, panel_ai_sensitive_request } from '@yuebot/shared'
+import type { panel_ai_action, panel_ai_apply_proposal, panel_ai_sensitive_request } from '@yuebot/shared'
 
 import { cn } from '../../lib/cn'
 import { toast_error, toast_success } from '../../store/toast'
@@ -8,6 +9,11 @@ import { Button } from '../ui/button'
 import { PanelAssistantMarkdown } from './PanelAssistantMarkdown'
 import { apply_panel_ai_prefill_action } from './prefill'
 import { resolvePanelAiPageContext } from './resolvePageKey'
+import {
+  can_apply_panel_ai_action,
+  confirm_panel_ai_server_apply,
+  prepare_panel_ai_server_apply,
+} from './server_apply'
 
 type PanelAssistantMessageProps = {
   role: 'user' | 'assistant' | 'thinking' | 'error'
@@ -24,11 +30,34 @@ type PanelAssistantMessageProps = {
   className?: string
 }
 
+type prefill_action = Extract<panel_ai_action, { type: 'prefill_form' }>
+
+type active_server_proposal = {
+  action: prefill_action
+  proposal: panel_ai_apply_proposal
+}
+
 function ActionIcon({ action }: { action: panel_ai_action }) {
   if (action.type === 'navigate') return <ExternalLink className="h-3.5 w-3.5" />
   if (action.type === 'open_section') return <ListTree className="h-3.5 w-3.5" />
   if (action.type === 'prefill_form') return <WandSparkles className="h-3.5 w-3.5" />
   return <Highlighter className="h-3.5 w-3.5" />
+}
+
+function current_guild_id() {
+  const match = /^\/guild\/([^/]+)/.exec(window.location.pathname)
+  if (!match?.[1]) return null
+  try {
+    return decodeURIComponent(match[1])
+  } catch {
+    return null
+  }
+}
+
+function display_apply_value(value: string | number | boolean) {
+  if (value === true) return 'Ativado'
+  if (value === false) return 'Desativado'
+  return String(value)
 }
 
 export function PanelAssistantMessage({
@@ -45,10 +74,15 @@ export function PanelAssistantMessage({
   sensitiveDisabled = false,
   className,
 }: PanelAssistantMessageProps) {
+  const queryClient = useQueryClient()
   const isUser = role === 'user'
   const isThinking = role === 'thinking'
   const isErrorMsg = isError || role === 'error'
   const [prefillingActionId, setPrefillingActionId] = React.useState<string | null>(null)
+  const [preparingServerActionId, setPreparingServerActionId] = React.useState<string | null>(null)
+  const [confirmingProposalId, setConfirmingProposalId] = React.useState<string | null>(null)
+  const [serverProposal, setServerProposal] = React.useState<active_server_proposal | null>(null)
+  const [appliedActionIds, setAppliedActionIds] = React.useState<Set<string>>(() => new Set())
 
   const handleCopy = React.useCallback(async () => {
     try {
@@ -99,6 +133,81 @@ export function PanelAssistantMessage({
       setPrefillingActionId(null)
     }
   }, [onAction, prefillingActionId])
+
+  const prepareServerApply = React.useCallback(async (action: prefill_action) => {
+    if (preparingServerActionId || confirmingProposalId) return
+    const currentPageKey = resolvePanelAiPageContext(window.location.pathname)?.pageKey ?? null
+    if (currentPageKey !== action.pageKey) {
+      toast_error('Essa aplicação só pode ser confirmada na página em que foi proposta.', 'Ella')
+      return
+    }
+    const guildId = current_guild_id()
+    if (!guildId) {
+      toast_error('Não foi possível identificar o servidor atual.', 'Ella')
+      return
+    }
+
+    setPreparingServerActionId(action.id)
+    try {
+      const result = await prepare_panel_ai_server_apply(guildId, action)
+      if (!result.ok) {
+        toast_error('Não foi possível preparar o diff no servidor. Tente novamente.', 'Ella')
+        return
+      }
+      if (result.noop) {
+        toast_success('Esses valores já estão aplicados no servidor.', 'Ella')
+        setAppliedActionIds((current) => new Set(current).add(action.id))
+        return
+      }
+      setServerProposal({ action, proposal: result.proposal })
+    } finally {
+      setPreparingServerActionId(null)
+    }
+  }, [confirmingProposalId, preparingServerActionId])
+
+  const confirmServerApply = React.useCallback(async () => {
+    if (!serverProposal || confirmingProposalId) return
+    const guildId = current_guild_id()
+    const currentPageKey = resolvePanelAiPageContext(window.location.pathname)?.pageKey ?? null
+    if (!guildId || currentPageKey !== serverProposal.proposal.pageKey) {
+      setServerProposal(null)
+      toast_error('Você saiu da página da proposta. Peça uma nova alteração à Ella.', 'Ella')
+      return
+    }
+
+    const { action, proposal } = serverProposal
+    setConfirmingProposalId(proposal.id)
+    try {
+      const result = await confirm_panel_ai_server_apply(guildId, proposal.id)
+      if (!result.ok) {
+        if (result.status === 409) {
+          setServerProposal(null)
+          toast_error('A configuração mudou desde a proposta. Peça à Ella para revisar novamente.', 'Ella')
+          return
+        }
+        if (result.status === 404) {
+          setServerProposal(null)
+          toast_error('Essa proposta expirou. Peça uma nova alteração à Ella.', 'Ella')
+          return
+        }
+        toast_error('Não foi possível aplicar as alterações no servidor.', 'Ella')
+        return
+      }
+
+      await apply_panel_ai_prefill_action(action, currentPageKey)
+      await queryClient.invalidateQueries()
+      setAppliedActionIds((current) => new Set(current).add(action.id))
+      setServerProposal(null)
+      toast_success(
+        result.result.changes.length === 1
+          ? 'Alteração aplicada e salva no servidor.'
+          : `${result.result.changes.length} alterações aplicadas e salvas no servidor.`,
+        'Ella',
+      )
+    } finally {
+      setConfirmingProposalId(null)
+    }
+  }, [confirmingProposalId, queryClient, serverProposal])
 
   if (isThinking) {
     return (
@@ -158,19 +267,91 @@ export function PanelAssistantMessage({
 
         {actions.length > 0 && onAction && (
           <div className="mt-3 flex flex-wrap gap-2" aria-label="Ações sugeridas pela Ella">
-            {actions.map((action) => (
+            {actions.flatMap((action) => {
+              const buttons = [
+                <Button
+                  key={`${action.id}-default`}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void handleAction(action)}
+                  disabled={prefillingActionId === action.id}
+                  className="h-8 gap-1.5 px-2.5 text-xs"
+                >
+                  <ActionIcon action={action} />
+                  {action.label}
+                </Button>,
+              ]
+
+              if (can_apply_panel_ai_action(action)) {
+                const applied = appliedActionIds.has(action.id)
+                buttons.push(
+                  <Button
+                    key={`${action.id}-server`}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => void prepareServerApply(action)}
+                    disabled={applied || preparingServerActionId === action.id || confirmingProposalId !== null}
+                    className="h-8 gap-1.5 px-2.5 text-xs"
+                  >
+                    <Save className="h-3.5 w-3.5" />
+                    {applied ? 'Aplicado' : 'Aplicar no servidor'}
+                  </Button>,
+                )
+              }
+              return buttons
+            })}
+          </div>
+        )}
+
+        {serverProposal && (
+          <div className="mt-3 rounded-xl border border-accent/30 bg-accent/5 p-3" role="group" aria-label="Confirmação de alterações da Ella">
+            <div className="flex items-start gap-2.5">
+              <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-accent/10 text-accent">
+                <ShieldCheck className="h-4 w-4" />
+              </span>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold">Confirmar alterações no servidor</div>
+                <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
+                  Este diff foi recalculado no servidor. Confirmar irá persistir exatamente os campos abaixo.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-3 space-y-2">
+              {serverProposal.proposal.changes.map((change) => (
+                <div key={change.target} className="rounded-lg border border-border/60 bg-surface/50 px-3 py-2 text-xs">
+                  <div className="font-medium text-foreground">{change.targetLabel}</div>
+                  <div className="mt-1 flex flex-wrap items-center gap-2 text-muted-foreground">
+                    <span className="line-through">{display_apply_value(change.before)}</span>
+                    <span aria-hidden="true">→</span>
+                    <span className="font-semibold text-foreground">{display_apply_value(change.after)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <p className="mt-3 text-xs font-medium text-foreground">
+              Nada será salvo até você clicar em Confirmar. A proposta expira em poucos minutos.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
               <Button
-                key={action.id}
-                variant="outline"
                 size="sm"
-                onClick={() => void handleAction(action)}
-                disabled={prefillingActionId === action.id}
-                className="h-8 gap-1.5 px-2.5 text-xs"
+                onClick={() => void confirmServerApply()}
+                disabled={confirmingProposalId === serverProposal.proposal.id}
+                className="h-8 px-3 text-xs"
               >
-                <ActionIcon action={action} />
-                {action.label}
+                Confirmar e salvar
               </Button>
-            ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setServerProposal(null)}
+                disabled={confirmingProposalId === serverProposal.proposal.id}
+                className="h-8 px-3 text-xs"
+              >
+                Cancelar
+              </Button>
+            </div>
           </div>
         )}
 
