@@ -148,14 +148,6 @@ export default async function giveawayEntryEditRoutes(fastify: FastifyInstance) 
         const min = typeof giveaway.minChoices === 'number' ? giveaway.minChoices : null
         const max = typeof giveaway.maxChoices === 'number' ? giveaway.maxChoices : null
 
-        if (min !== null && choices.length < min) {
-          return { ok: false as const, code: 400 as const, error: `You must choose at least ${min} items` as const }
-        }
-
-        if (max !== null && choices.length > max) {
-          return { ok: false as const, code: 400 as const, error: `You can choose at most ${max} items` as const }
-        }
-
         const { invalid, resolved } = match_giveaway_choices({
           availableItems: items,
           choices,
@@ -165,6 +157,14 @@ export default async function giveawayEntryEditRoutes(fastify: FastifyInstance) 
 
         if (invalid.length > 0) {
           return { ok: false as const, code: 400 as const, error: 'Invalid choices' as const, invalid }
+        }
+
+        if (min !== null && unique_resolved.length < min) {
+          return { ok: false as const, code: 400 as const, error: `You must choose at least ${min} items` as const }
+        }
+
+        if (max !== null && unique_resolved.length > max) {
+          return { ok: false as const, code: 400 as const, error: `You can choose at most ${max} items` as const }
         }
 
         const consume = await tx.giveawayEntryEditToken.updateMany({

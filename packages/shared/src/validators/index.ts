@@ -505,7 +505,6 @@ export const guildAntiRaidConfigSchema = z.object({
   action: z.enum(['mute', 'kick', 'ban']).optional(),
   duration: z.number().int().min(1).max(60).optional(),
   exemptRoles: z.array(z.string()).optional(),
-  exemptChannels: z.array(z.string()).optional(),
   cooldown: z.number().int().min(60).max(3600).optional(),
   notificationChannelId: z.string().nullable().optional(),
 });

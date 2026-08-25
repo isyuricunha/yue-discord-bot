@@ -15,11 +15,9 @@ import {
   SupportRoleSyncStatus,
   prisma,
 } from '@yuebot/database'
-import { can_access_guild } from '../utils/guild_access'
 import { validation_error_details } from '../utils/validation_error'
 import { safe_error_details } from '../utils/safe_error'
 import {
-  is_guild_admin,
   remove_support_entitlement_role,
   sync_support_entitlement_role,
   validate_support_role,
@@ -33,43 +31,20 @@ import {
   SupportApiError,
 } from '../services/support/livepix_connections'
 import { CONFIG } from '../config'
-
-type authz_result =
-  | { ok: true; userId: string; isOwner: boolean }
-  | { ok: false }
-
-async function require_guild_admin(
-  request: FastifyRequest,
-  reply: FastifyReply,
-  guildId: string
-): Promise<authz_result> {
-  const user = request.user
-
-  if (!can_access_guild(user, guildId)) {
-    await reply.code(403).send({ error: 'Forbidden' })
-    return { ok: false }
-  }
-
-  const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
-  if (!guild) {
-    await reply.code(404).send({ error: 'Guild not found' })
-    return { ok: false }
-  }
-
-  if (!user.isOwner) {
-    const admin = await is_guild_admin(guildId, user.userId, request.log)
-    if (!admin.isAdmin) {
-      await reply.code(403).send({ error: 'Forbidden' })
-      return { ok: false }
-    }
-  }
-
-  return { ok: true, userId: user.userId, isOwner: user.isOwner }
-}
+import { requireGuildAdmin } from './guilds/authorization'
+import {
+  create_support_plan_locked,
+  update_support_plan_locked,
+  SupportPlanWriteError,
+} from '../services/support/plan_writes'
 
 function send_support_error(reply: FastifyReply, error: unknown) {
   if (error instanceof SupportApiError) {
     return reply.code(error.statusCode).send({ error: error.message })
+  }
+
+  if (error instanceof SupportPlanWriteError) {
+    return reply.code(400).send({ error: error.message })
   }
 
   return reply.code(500).send({ error: 'Internal server error' })
@@ -193,7 +168,7 @@ function serialize_entitlement(entitlement: {
   }
 }
 
-async function get_or_create_support_config(guildId: string) {
+async function get_support_config(guildId: string) {
   return (
     (await prisma.guildSupportConfig.findUnique({
       where: { guildId },
@@ -204,49 +179,14 @@ async function get_or_create_support_config(guildId: string) {
         reminderEnabled: true,
         reminderDaysBefore: true,
       },
-    })) ??
-    (await prisma.guildSupportConfig.create({
-      data: { guildId },
-      select: {
-        enabled: true,
-        title: true,
-        description: true,
-        reminderEnabled: true,
-        reminderDaysBefore: true,
-      },
-    }))
+    })) ?? {
+      enabled: false,
+      title: 'Apoios',
+      description: 'Escolha um plano para apoiar este servidor.',
+      reminderEnabled: true,
+      reminderDaysBefore: 3,
+    }
   )
-}
-
-async function assert_plan_name_available(guildId: string, name: string, excludingPlanId?: string) {
-  const active_plans = await prisma.supportPlan.findMany({
-    where: {
-      guildId,
-      archivedAt: null,
-      ...(excludingPlanId ? { id: { not: excludingPlanId } } : {}),
-    },
-    select: { name: true },
-  })
-
-  const normalized = name.trim().toLocaleLowerCase('pt-BR')
-  if (active_plans.some((plan) => plan.name.trim().toLocaleLowerCase('pt-BR') === normalized)) {
-    throw new SupportApiError(400, 'A support plan with this name already exists')
-  }
-}
-
-async function assert_active_plan_limit(guildId: string, excludingPlanId?: string) {
-  const count = await prisma.supportPlan.count({
-    where: {
-      guildId,
-      archivedAt: null,
-      enabled: true,
-      ...(excludingPlanId ? { id: { not: excludingPlanId } } : {}),
-    },
-  })
-
-  if (count >= 25) {
-    throw new SupportApiError(400, 'A guild can have at most 25 active support plans')
-  }
 }
 
 async function assert_role_manageable(guildId: string, roleId: string, request: FastifyRequest) {
@@ -276,14 +216,12 @@ async function build_role_warnings(guildId: string, roleIds: string[], request: 
 
 export async function supportRoutes(fastify: FastifyInstance) {
   fastify.get('/:guildId/support', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const [config, connection, plans] = await Promise.all([
-      get_or_create_support_config(guildId),
+      get_support_config(guildId),
       prisma.livePixConnection.findUnique({ where: { guildId } }),
       prisma.supportPlan.findMany({
         where: { guildId },
@@ -309,11 +247,9 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.put('/:guildId/support/config', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const parsed = supportConfigUpdateSchema.safeParse(request.body)
     if (!parsed.success) {
@@ -352,14 +288,12 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/:guildId/support/livepix/oauth/start', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     try {
-      const result = await create_livepix_oauth_authorization({ guildId, userId: authz.userId })
+      const result = await create_livepix_oauth_authorization({ guildId, userId: request.user.userId })
       return reply.send({ success: true, authorizationUrl: result.authorizationUrl })
     } catch (error) {
       request.log.warn({ err: safe_error_details(error), guildId }, 'Failed to start LivePix OAuth')
@@ -368,14 +302,12 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/:guildId/support/livepix/owner/connect', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     try {
-      const connection = await connect_livepix_owner_guild({ guildId, userId: authz.userId })
+      const connection = await connect_livepix_owner_guild({ guildId, userId: request.user.userId })
       return reply.send({ success: true, connection })
     } catch (error) {
       request.log.warn({ err: safe_error_details(error), guildId }, 'Failed to connect owner LivePix account')
@@ -384,22 +316,18 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/:guildId/support/livepix/disconnect', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const connection = await disconnect_livepix_connection(guildId)
     return reply.send({ success: true, connection })
   })
 
   fastify.get('/:guildId/support/plans', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const plans = await prisma.supportPlan.findMany({
       where: { guildId },
@@ -410,11 +338,9 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/:guildId/support/plans', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const parsed = supportPlanCreateSchema.safeParse(request.body)
     if (!parsed.success) {
@@ -424,23 +350,8 @@ export async function supportRoutes(fastify: FastifyInstance) {
 
     try {
       const input = parsed.data
-      if (input.enabled ?? true) await assert_active_plan_limit(guildId)
-      await assert_plan_name_available(guildId, input.name)
       await assert_role_manageable(guildId, input.roleId, request)
-
-      const plan = await prisma.supportPlan.create({
-        data: {
-          guildId,
-          name: input.name,
-          description: input.description,
-          amountCents: input.amountCents,
-          durationDays: input.durationDays,
-          roleId: input.roleId,
-          enabled: input.enabled ?? true,
-          sortOrder: input.sortOrder ?? 0,
-        },
-      })
-
+      const plan = await create_support_plan_locked({ guildId, ...input })
       return reply.code(201).send({ success: true, plan: serialize_plan(plan) })
     } catch (error) {
       request.log.warn({ err: safe_error_details(error), guildId }, 'Failed to create support plan')
@@ -449,11 +360,9 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.put('/:guildId/support/plans/:planId', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId, planId } = request.params as { guildId: string; planId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const parsed = supportPlanUpdateSchema.safeParse(request.body)
     if (!parsed.success) {
@@ -461,36 +370,11 @@ export async function supportRoutes(fastify: FastifyInstance) {
       return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
     }
 
-    const existing = await prisma.supportPlan.findUnique({ where: { id: planId } })
-    if (!existing || existing.guildId !== guildId) {
-      return reply.code(404).send({ error: 'Support plan not found' })
-    }
-
     try {
       const input = parsed.data
-      if (input.name !== undefined) await assert_plan_name_available(guildId, input.name, planId)
       if (input.roleId !== undefined) await assert_role_manageable(guildId, input.roleId, request)
-
-      const next_enabled = input.enabled ?? existing.enabled
-      const archived_at = input.archived === true ? new Date() : existing.archivedAt
-      if (next_enabled && archived_at === null && (!existing.enabled || input.enabled === true)) {
-        await assert_active_plan_limit(guildId, planId)
-      }
-
-      const plan = await prisma.supportPlan.update({
-        where: { id: planId },
-        data: {
-          ...(input.name !== undefined ? { name: input.name } : {}),
-          ...(input.description !== undefined ? { description: input.description } : {}),
-          ...(input.amountCents !== undefined ? { amountCents: input.amountCents } : {}),
-          ...(input.durationDays !== undefined ? { durationDays: input.durationDays } : {}),
-          ...(input.roleId !== undefined ? { roleId: input.roleId } : {}),
-          ...(input.enabled !== undefined ? { enabled: input.enabled } : {}),
-          ...(input.sortOrder !== undefined ? { sortOrder: input.sortOrder } : {}),
-          ...(input.archived === true ? { archivedAt: new Date(), enabled: false } : {}),
-        },
-      })
-
+      const plan = await update_support_plan_locked({ guildId, planId, ...input })
+      if (!plan) return reply.code(404).send({ error: 'Support plan not found' })
       return reply.send({ success: true, plan: serialize_plan(plan) })
     } catch (error) {
       request.log.warn({ err: safe_error_details(error), guildId, planId }, 'Failed to update support plan')
@@ -499,11 +383,9 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/:guildId/support/plans/reorder', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const parsed = supportPlansReorderSchema.safeParse(request.body)
     if (!parsed.success) {
@@ -534,11 +416,9 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.get('/:guildId/support/payments', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const parsed = supportPaymentListQuerySchema.safeParse(request.query)
     if (!parsed.success) {
@@ -583,11 +463,9 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.get('/:guildId/support/entitlements', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const parsed = supportEntitlementListQuerySchema.safeParse(request.query)
     if (!parsed.success) {
@@ -613,11 +491,9 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/:guildId/support/entitlements/:entitlementId/revoke', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId, entitlementId } = request.params as { guildId: string; entitlementId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const parsed = supportEntitlementRevokeSchema.safeParse(request.body ?? {})
     if (!parsed.success) {
@@ -654,11 +530,9 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/:guildId/support/entitlements/:entitlementId/retry-role-sync', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId, entitlementId } = request.params as { guildId: string; entitlementId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const entitlement = await prisma.supportEntitlement.findUnique({
       where: { id: entitlementId },
@@ -673,11 +547,9 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/:guildId/support/payments/:paymentPublicId/retry-role-sync', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId, paymentPublicId } = request.params as { guildId: string; paymentPublicId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const payment = await prisma.supportPayment.findUnique({
       where: { publicId: paymentPublicId },
@@ -692,11 +564,9 @@ export async function supportRoutes(fastify: FastifyInstance) {
   })
 
   fastify.post('/:guildId/support/maintenance/mark-expired-oauth', {
-    preHandler: [fastify.authenticate],
+    preHandler: [fastify.authenticate, requireGuildAdmin],
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const authz = await require_guild_admin(request, reply, guildId)
-    if (!authz.ok) return
 
     const connection = await prisma.livePixConnection.findUnique({ where: { guildId } })
     if (!connection || connection.status !== LivePixConnectionStatus.CONNECTED || !connection.tokenExpiresAt) {

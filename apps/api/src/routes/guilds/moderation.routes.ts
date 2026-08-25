@@ -456,7 +456,6 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
           action: 'mute',
           duration: 10,
           exemptRoles: [],
-          exemptChannels: [],
           cooldown: 300,
           notificationChannelId: null,
           raidActive: false,
@@ -465,7 +464,23 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
       })
     }
 
-    return reply.send({ success: true, config })
+    return reply.send({
+      success: true,
+      config: {
+        enabled: config.enabled,
+        joinThreshold: config.joinThreshold,
+        joinTimeWindow: config.joinTimeWindow,
+        action: config.action,
+        duration: config.duration,
+        exemptRoles: config.exemptRoles,
+        cooldown: config.cooldown,
+        notificationChannelId: config.notificationChannelId,
+        raidActive: config.raidActive,
+        locked: config.locked,
+        lastRaidAt: config.lastRaidAt,
+        raidEndsAt: config.raidEndsAt,
+      },
+    })
   })
 
   fastify.put('/:guildId/antiraid-config', {
@@ -489,7 +504,6 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
         ...(input.action !== undefined ? { action: input.action } : {}),
         ...(input.duration !== undefined ? { duration: input.duration } : {}),
         ...(input.exemptRoles !== undefined ? { exemptRoles: input.exemptRoles } : {}),
-        ...(input.exemptChannels !== undefined ? { exemptChannels: input.exemptChannels } : {}),
         ...(input.cooldown !== undefined ? { cooldown: input.cooldown } : {}),
         ...(input.notificationChannelId !== undefined
           ? { notificationChannelId: input.notificationChannelId }
@@ -503,7 +517,6 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
         action: input.action ?? 'mute',
         duration: input.duration ?? 10,
         exemptRoles: input.exemptRoles ?? [],
-        exemptChannels: input.exemptChannels ?? [],
         cooldown: input.cooldown ?? 300,
         notificationChannelId: input.notificationChannelId ?? null,
         raidActive: false,

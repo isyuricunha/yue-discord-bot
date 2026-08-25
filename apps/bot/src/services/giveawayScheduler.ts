@@ -7,6 +7,7 @@ import { getSendableChannel } from '../utils/discord'
 import { safe_error_details } from '../utils/safe_error'
 import { Queue, Worker, Job } from 'bullmq'
 import { get_redis_connection } from './queue.connection'
+import { enqueue_discord_delivery } from './discordDelivery.service'
 
 export class GiveawayScheduler {
   private client: Client
@@ -301,38 +302,51 @@ export class GiveawayScheduler {
       logger.info(`Finalizando sorteio: ${giveaway.id}`)
 
       const eligibleEntries = giveaway.entries.filter((e: any) => !e.disqualified)
-      
+
       if (eligibleEntries.length === 0) {
-        const claimed = await prisma.giveaway.updateMany({
-          where: { id: giveaway.id, ended: false, cancelled: false },
-          data: { ended: true },
+        await prisma.$transaction(async (tx) => {
+          const claimed = await tx.giveaway.updateMany({
+            where: { id: giveaway.id, ended: false, cancelled: false },
+            data: { ended: true },
+          })
+          if (claimed.count === 0) return
+
+          await enqueue_discord_delivery(tx, {
+            dedupeKey: `giveaway:${giveaway.id}:result`,
+            kind: 'giveaway_result',
+            guildId: giveaway.guildId,
+            channelId: giveaway.channelId,
+            payload: { giveawayId: giveaway.id },
+          })
+          await enqueue_discord_delivery(tx, {
+            dedupeKey: `giveaway:${giveaway.id}:message-edit`,
+            kind: 'giveaway_message_edit',
+            guildId: giveaway.guildId,
+            channelId: giveaway.channelId,
+            payload: { giveawayId: giveaway.id },
+          })
         })
-        if (claimed.count > 0) await this.announceNoWinners(giveaway)
         return
       }
 
-      // Selecionar vencedores considerando chances por cargo
       const winnerCount = Math.min(giveaway.maxWinners, eligibleEntries.length)
       const selectedWinners = await this.selectWinnersWithRoleChances(giveaway, eligibleEntries, winnerCount)
 
-      // Se for sorteio com lista, distribuir prêmios baseado em preferências
       let winnersData: any[] = []
       if (giveaway.format === 'list' && giveaway.availableItems) {
         const items = Array.isArray(giveaway.availableItems)
           ? normalize_giveaway_items_list(giveaway.availableItems as string[])
           : []
-
         winnersData = assign_giveaway_prizes({ winners: selectedWinners, availableItems: items })
       } else {
-        winnersData = selectedWinners.map((w: any) => ({
-          userId: w.userId,
-          username: w.username,
+        winnersData = selectedWinners.map((winner: any) => ({
+          userId: winner.userId,
+          username: winner.username,
           prize: null,
           prizeIndex: null,
         }))
       }
 
-      // Persistência atômica: apenas um worker/fallback pode finalizar o sorteio.
       const persisted = await prisma.$transaction(async (tx) => {
         const claimed = await tx.giveaway.updateMany({
           where: { id: giveaway.id, ended: false, cancelled: false },
@@ -342,14 +356,38 @@ export class GiveawayScheduler {
 
         if (winnersData.length > 0) {
           await tx.giveawayWinner.createMany({
-            data: winnersData.map((w: any) => ({
+            data: winnersData.map((winner: any) => ({
               giveawayId: giveaway.id,
-              userId: w.userId,
-              username: w.username,
-              prize: w.prize,
-              prizeIndex: w.prizeIndex,
+              userId: winner.userId,
+              username: winner.username,
+              prize: winner.prize,
+              prizeIndex: winner.prizeIndex,
             })),
             skipDuplicates: true,
+          })
+        }
+
+        await enqueue_discord_delivery(tx, {
+          dedupeKey: `giveaway:${giveaway.id}:result`,
+          kind: 'giveaway_result',
+          guildId: giveaway.guildId,
+          channelId: giveaway.channelId,
+          payload: { giveawayId: giveaway.id },
+        })
+        await enqueue_discord_delivery(tx, {
+          dedupeKey: `giveaway:${giveaway.id}:message-edit`,
+          kind: 'giveaway_message_edit',
+          guildId: giveaway.guildId,
+          channelId: giveaway.channelId,
+          payload: { giveawayId: giveaway.id },
+        })
+        for (const winner of winnersData) {
+          await enqueue_discord_delivery(tx, {
+            dedupeKey: `giveaway:${giveaway.id}:winner-dm:${winner.userId}`,
+            kind: 'giveaway_winner_dm',
+            guildId: giveaway.guildId,
+            userId: winner.userId,
+            payload: { giveawayId: giveaway.id, userId: winner.userId },
           })
         }
 
@@ -358,14 +396,7 @@ export class GiveawayScheduler {
 
       if (!persisted) {
         logger.info({ giveawayId: giveaway.id }, 'Sorteio já finalizado por outro worker')
-        return
       }
-
-      // Anunciar vencedores
-      await this.announceWinners(giveaway, winnersData)
-      
-      // Enviar DM para vencedores
-      await this.notifyWinners(giveaway, winnersData)
     } catch (error) {
       logger.error({ err: safe_error_details(error) }, `Erro ao finalizar sorteio ${giveaway.id}`)
     }
@@ -432,152 +463,4 @@ export class GiveawayScheduler {
     return uniqueWinners
   }
 
-  private async notifyWinners(giveaway: any, winners: any[]) {
-    // Buscar o nome do servidor
-    let serverName = 'Servidor desconhecido'
-    try {
-      const guild = await this.client.guilds.fetch(giveaway.guildId).catch(() => null)
-      if (guild) {
-        serverName = guild.name
-      }
-    } catch (error) {
-      logger.warn({ err: safe_error_details(error) }, 'Erro ao buscar nome do servidor para DM de vencedor')
-    }
-
-    for (const winner of winners) {
-      try {
-        const user = await this.client.users.fetch(winner.userId)
-        
-        // Criar embed profissional para o vencedor
-        const winnerEmbed = new EmbedBuilder()
-          .setColor(COLORS.GIVEAWAY)
-          .setTitle(`${EMOJIS.GIVEAWAY} Parabéns! Você ganhou um sorteio!`)
-          .setDescription(
-            `Você foi selecionado como vencedor no sorteio: **${giveaway.title}**`
-          )
-          .addFields(
-            { 
-              name: '🎁 Sorteio', 
-              value: giveaway.title, 
-              inline: true 
-            },
-            { 
-              name: '🏠 Servidor', 
-              value: serverName, 
-              inline: true 
-            },
-            ...(winner.prize 
-              ? [{ name: '🎯 Prêmio', value: winner.prize, inline: false } as any]
-              : []
-            ),
-            { 
-              name: '📅 Data', 
-              value: new Date().toLocaleString('pt-BR', { 
-                timeZone: 'America/Sao_Paulo',
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-              }), 
-              inline: true 
-            }
-          )
-          .setFooter({ 
-            text: 'Obrigado por participar! 🎉',
-            iconURL: this.client.user?.avatarURL() || undefined
-          })
-          .setTimestamp()
-
-        await user.send({ embeds: [winnerEmbed] })
-        
-        // Marcar como notificado
-        await prisma.giveawayWinner.updateMany({
-          where: { 
-            giveawayId: giveaway.id,
-            userId: winner.userId 
-          },
-          data: { notified: true }
-        })
-        
-        logger.info({ winnerId: winner.userId, giveawayId: giveaway.id }, 'DM de vencedor enviado com sucesso')
-      } catch (error) {
-        // Usuário pode ter DM desativado - não é um erro crítico
-        logger.warn({ err: safe_error_details(error), winnerId: winner.userId }, 'Não foi possível enviar DM para vencedor (provavelmente tem DM desativado)')
-      }
-    }
-  }
-
-  private async announceWinners(giveaway: any, winners: any[]) {
-    try {
-      const channel = await this.client.channels.fetch(giveaway.channelId)
-      const sendableChannel = getSendableChannel(channel)
-      if (!sendableChannel) return
-
-      // Criar mensagem de resultados
-      let resultsText = ''
-      if (giveaway.format === 'list' && winners[0]?.prize) {
-        // Formato com prêmios
-        resultsText = winners.map(w => `<@${w.userId}>: **${w.prize}**`).join('\n')
-      } else {
-        // Formato simples
-        resultsText = winners.map(w => `<@${w.userId}>`).join(', ')
-      }
-      
-      const embed = new EmbedBuilder()
-        .setTitle(`🎊 Sorteio Finalizado: ${giveaway.title}`)
-        .setDescription(`**Vencedores:**\n${resultsText}\n\nParabéns! 🎉`)
-        .setColor(0x10B981)
-        .setFooter({ text: `${winners.length} vencedor(es)` })
-        .setTimestamp()
-
-      await sendableChannel.send({ embeds: [embed] })
-
-      // Tentar editar mensagem original
-      if (giveaway.messageId) {
-        try {
-          const message = await sendableChannel.messages.fetch(giveaway.messageId)
-          const oldEmbed = message.embeds[0]
-          
-          if (oldEmbed) {
-            const newEmbed = new EmbedBuilder()
-              .setTitle(`🏁 ${oldEmbed.title || giveaway.title}`)
-              .setDescription(oldEmbed.description || giveaway.description)
-              .addFields(
-                { name: '🏆 Vencedores', value: `${winners.length}`, inline: true },
-                { name: '⏰ Finalizado', value: '<t:' + Math.floor(Date.now() / 1000) + ':R>', inline: true },
-                { name: '📋 Participantes', value: String(giveaway.entries.length), inline: true }
-              )
-              .setColor(0xEF4444)
-              .setFooter({ text: 'Sorteio finalizado!' })
-              .setTimestamp()
-
-            await message.edit({ embeds: [newEmbed] })
-          }
-        } catch (error) {
-          logger.warn({ err: safe_error_details(error) }, 'Não foi possível editar mensagem do sorteio')
-        }
-      }
-    } catch (error) {
-      logger.error({ err: safe_error_details(error) }, 'Erro ao anunciar vencedores')
-    }
-  }
-
-  private async announceNoWinners(giveaway: any) {
-    try {
-      const channel = await this.client.channels.fetch(giveaway.channelId)
-      const sendableChannel = getSendableChannel(channel)
-      if (!sendableChannel) return
-
-      const embed = new EmbedBuilder()
-        .setTitle(`😔 Sorteio Finalizado: ${giveaway.title}`)
-        .setDescription('Nenhum participante elegível. O sorteio foi cancelado.')
-        .setColor(0xEF4444)
-        .setTimestamp()
-
-      await sendableChannel.send({ embeds: [embed] })
-    } catch (error) {
-      logger.error({ err: safe_error_details(error) }, 'Erro ao anunciar sorteio sem vencedores')
-    }
-  }
 }

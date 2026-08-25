@@ -5,6 +5,7 @@ import { logger } from '../utils/logger'
 import { handleGuildMemberUpdate } from '../events/guildMemberUpdate'
 import { handleAutoModerationActionExecution } from '../events/autoModerationActionExecution'
 import { handleVoiceStateUpdate } from '../events/voiceStateUpdate'
+import { update_user_member_snapshots } from '../services/guildMemberSnapshot.service'
 
 export function register_discord_events(client: Client): void {
   client.on('guildCreate', async (guild) => {
@@ -87,6 +88,14 @@ export function register_discord_events(client: Client): void {
 
   client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
     await handleGuildMemberUpdate(oldMember, newMember)
+  })
+
+  client.on(Events.UserUpdate, async (_oldUser, newUser) => {
+    try {
+      await update_user_member_snapshots(newUser)
+    } catch (error) {
+      logger.error({ error, userId: newUser.id }, 'Erro ao atualizar snapshots do usuário')
+    }
   })
 
   client.on(Events.AutoModerationActionExecution, async (execution) => {

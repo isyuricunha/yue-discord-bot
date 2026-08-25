@@ -33,10 +33,6 @@ type guild_roles_response = {
   roles: Array<{ id: string; name: string; color: number; position: number; managed: boolean }>;
 };
 
-type guild_members_response = {
-  members: Array<{ userId: string; username: string; avatar: string | null; joinedAt: string | null }>;
-};
-
 type guild_info_response = {
   guild: {
     id: string
@@ -208,7 +204,7 @@ type cache_entry<T> = {
 
 type internal_cache_key = string;
 
-type resource = 'channels' | 'roles' | 'members' | 'info' | 'counts' | 'is_admin';
+type resource = 'channels' | 'roles' | 'info' | 'counts' | 'is_admin';
 
 type cache_state = {
   cache: Map<internal_cache_key, cache_entry<unknown>>;
@@ -525,14 +521,6 @@ export async function get_guild_roles(guild_id: string, log: FastifyBaseLogger) 
   });
 }
 
-export async function get_guild_members(guild_id: string, log: FastifyBaseLogger) {
-  const key = build_key('members', guild_id);
-
-  return await get_cached<guild_members_response>(key, async () => {
-    const url = `http://${CONFIG.internalApi.host}:${CONFIG.internalApi.port}/internal/guilds/${guild_id}/members`;
-    return (await fetch_with_timeout_ms(url, log, 20_000)) as guild_members_response;
-  });
-}
 
 export async function is_guild_admin(guild_id: string, user_id: string, log: FastifyBaseLogger) {
   const key = build_admin_key(guild_id, user_id)

@@ -5,8 +5,8 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
-import { getSendableChannel } from '../utils/discord'
 import { normalize_http_url } from '../utils/http_url'
+import { enqueue_discord_delivery } from './discordDelivery.service'
 import {
   gamerPowerService,
   GAMERPOWER_PLATFORMS,
@@ -235,13 +235,10 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
 // ============================================
 
 export class FreeGameScheduler {
-  private client: Client
   private intervalCheck: NodeJS.Timeout | null = null
   private running = false
 
-  constructor(client: Client) {
-    this.client = client
-  }
+  constructor(_client: Client) {}
 
   /**
    * Inicia o scheduler
@@ -384,22 +381,10 @@ export class FreeGameScheduler {
       return
     }
 
-    // Buscar canal
-    const channel = await this.client.channels.fetch(config.channelId).catch(() => null)
-    const sendableChannel = getSendableChannel(channel)
-
-    if (!sendableChannel) {
-      logger.warn(
-        { guildId: config.guildId, channelId: config.channelId },
-        'Canal de notificação não é enviável'
-      )
-      return
-    }
-
     // Obter cargo(s) para mencionar
     const roleIds = Array.isArray(config.roleIds) ? config.roleIds : []
-    const roleMention = roleIds.length > 0 
-      ? roleIds.map((id) => (id === config.guildId || id === 'everyone' || id === '@everyone') ? '@everyone' : `<@&${id}>`).join(' ') 
+    const roleMention = roleIds.length > 0
+      ? roleIds.map((id) => (id === config.guildId || id === 'everyone' || id === '@everyone') ? '@everyone' : `<@&${id}>`).join(' ')
       : null
     const mentionRoleIds = roleIds.filter((id) => id !== config.guildId && id !== 'everyone' && id !== '@everyone')
     const allowEveryone = roleIds.some((id) => id === config.guildId || id === 'everyone' || id === '@everyone')
@@ -410,49 +395,51 @@ export class FreeGameScheduler {
         }
       : undefined
 
-    // Limitar a 3 notificações por execução para evitar spam
     const giveawaysToNotify = newGiveaways.slice(0, 3)
-    let notifiedCount = 0
+    let queuedCount = 0
 
-    // Enviar notificações
     for (const giveaway of giveawaysToNotify) {
       try {
         const embed = createNotificationEmbed(giveaway)
-        
         const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder()
-            .setLabel('Pegar Agora')
-            .setStyle(ButtonStyle.Link)
-            .setURL(getGiveawayUrl(giveaway))
+          new ButtonBuilder().setLabel('Pegar Agora').setStyle(ButtonStyle.Link).setURL(getGiveawayUrl(giveaway)),
         )
 
-        await sendableChannel.send({
-          content: roleMention || undefined,
-          embeds: [embed],
-          components: [row],
-          allowedMentions,
-        })
-        notifiedCount += 1
+        const queued = await prisma.$transaction(async (tx) => {
+          const reserved = await tx.freeGameGiveaway.createMany({
+            data: [{ giveawayId: String(giveaway.id), guildId: config.guildId }],
+            skipDuplicates: true,
+          })
+          if (reserved.count === 0) return false
 
-        // Registrar giveaway como anunciado
-        await prisma.freeGameGiveaway.create({
-          data: {
-            giveawayId: String(giveaway.id),
+          await enqueue_discord_delivery(tx, {
+            dedupeKey: `free-game:${config.guildId}:${giveaway.id}`,
+            kind: 'free_game_announcement',
             guildId: config.guildId,
-          },
+            channelId: config.channelId,
+            payload: {
+              message: {
+                content: roleMention || undefined,
+                embeds: [embed.toJSON()],
+                components: [row.toJSON()],
+                allowedMentions,
+              },
+            },
+          })
+          return true
         })
 
-        logger.info(
-          { guildId: config.guildId, giveawayId: giveaway.id, title: giveaway.title },
-          'Notificação de jogo grátis enviada'
-        )
-
-        // Pequeno delay entre mensagens para evitar rate limiting
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+        if (queued) {
+          queuedCount += 1
+          logger.info(
+            { guildId: config.guildId, giveawayId: giveaway.id, title: giveaway.title },
+            'Notificação de jogo grátis enfileirada',
+          )
+        }
       } catch (error) {
         logger.error(
           { err: safe_error_details(error), guildId: config.guildId, giveawayId: giveaway.id },
-          'Erro ao enviar notificação de jogo grátis'
+          'Erro ao enfileirar notificação de jogo grátis',
         )
       }
     }
@@ -464,7 +451,7 @@ export class FreeGameScheduler {
     })
 
     logger.info(
-      { guildId: config.guildId, attemptedCount: giveawaysToNotify.length, notifiedCount },
+      { guildId: config.guildId, attemptedCount: giveawaysToNotify.length, queuedCount },
       'Verificação de jogos grátis concluída'
     )
   }
