@@ -1,0 +1,45 @@
+name: Core runtime performance cleanup
+
+on:
+  push:
+    branches:
+      - fix/core-runtime-reliability
+
+permissions:
+  contents: write
+
+jobs:
+  optimize:
+    runs-on: ubuntu-24.04
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply runtime cleanup
+        run: |
+          python .github/core-runtime-stage2.py
+          rm .github/core-runtime-stage2.py
+          rm .github/workflows/core-runtime-stage2.yml
+      - name: Validate
+        run: |
+          pnpm lint
+          pnpm type-check
+          pnpm test
+          pnpm build
+          pnpm knip
+      - name: Commit validated changes
+        run: |
+          git config user.name 'Ella Mizuki'
+          git config user.email 'ella@yuricunha.com'
+          git add -A
+          git commit -m 'perf(core): reduce repeated reads and external calls'
+          git push origin HEAD:fix/core-runtime-reliability
