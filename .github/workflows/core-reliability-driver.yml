@@ -47,6 +47,8 @@ jobs:
           PY
           pnpm --dir packages/database exec prisma format --schema prisma/schema.prisma
           pnpm db:generate
+          rm .github/workflows/core-reliability-stage1.yml
+          rm .github/workflows/core-reliability-driver.yml
       - name: Validate
         run: |
           pnpm lint
@@ -56,8 +58,6 @@ jobs:
           pnpm knip
       - name: Commit validated changes
         run: |
-          rm .github/workflows/core-reliability-stage1.yml
-          rm .github/workflows/core-reliability-driver.yml
           git config user.name 'Ella Mizuki'
           git config user.email 'ella@yuricunha.com'
           git add -A
