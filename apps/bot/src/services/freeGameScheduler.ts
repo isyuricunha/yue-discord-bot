@@ -60,6 +60,25 @@ function normalizePlatforms(platforms: unknown): string[] {
   return []
 }
 
+
+function matchesGuildGiveawayFilters(
+  giveaway: GamerPowerGiveaway,
+  config: { platforms: string[]; giveawayTypes: string[] }
+): boolean {
+  const configured_platforms = new Set(config.platforms.map((platform) => platform.toLowerCase()))
+  const giveaway_platforms = normalizePlatforms(giveaway.platforms).map((platform) => platform.toLowerCase())
+  const platform_matches =
+    configured_platforms.size === 0 ||
+    giveaway_platforms.some((platform) => configured_platforms.has(platform))
+
+  const configured_types = new Set(config.giveawayTypes.map((type) => type.toLowerCase()))
+  const type_matches =
+    configured_types.size === 0 ||
+    configured_types.has(String(giveaway.type ?? '').toLowerCase())
+
+  return platform_matches && type_matches
+}
+
 // ============================================
 // Helper Functions - PT-BR localization
 // ============================================
@@ -287,7 +306,14 @@ export class FreeGameScheduler {
 
       logger.info(`🎮 Verificando jogos grátis para ${guildConfigs.length} guild(s)`)
 
-      // Para cada guild, verificar e notificar
+      // O catálogo é global. Buscar uma vez por ciclo evita uma chamada externa por guild.
+      const catalog = await gamerPowerService.getAllGiveaways({ sortBy: 'date' })
+      if (catalog.length === 0) {
+        logger.debug('Nenhum giveaway ativo retornado pela GamerPower')
+        return
+      }
+
+      // Para cada guild, filtrar o catálogo localmente e notificar.
       for (const config of guildConfigs) {
         // Transform raw Prisma config to typed config
         const processedConfig = {
@@ -297,7 +323,7 @@ export class FreeGameScheduler {
           platforms: extractStringArray(config.platforms),
           giveawayTypes: extractStringArray(config.giveawayTypes),
         }
-        await this.processGuild(processedConfig).catch((err) => {
+        await this.processGuild(processedConfig, catalog).catch((err) => {
           logger.error(
             { err: safe_error_details(err), guildId: config.guildId },
             'Erro ao processar notificações de jogos grátis para guild'
@@ -319,27 +345,32 @@ export class FreeGameScheduler {
     roleIds: string[]
     platforms: string[]
     giveawayTypes: string[]
-  }) {
+  }, catalog?: GamerPowerGiveaway[]) {
     if (!config.channelId) {
       logger.warn({ guildId: config.guildId }, 'Guild sem canal configurado para notificações')
       return
     }
 
-    // Buscar giveaways da API
-    const giveaways = await gamerPowerService.getAllGiveaways({
-      platforms: config.platforms.length > 0 ? config.platforms : undefined,
-      types: config.giveawayTypes.length > 0 ? config.giveawayTypes : undefined,
-      sortBy: 'date',
-    })
+    const giveaways = catalog
+      ? catalog.filter((giveaway) => matchesGuildGiveawayFilters(giveaway, config))
+      : await gamerPowerService.getAllGiveaways({
+          platforms: config.platforms.length > 0 ? config.platforms : undefined,
+          types: config.giveawayTypes.length > 0 ? config.giveawayTypes : undefined,
+          sortBy: 'date',
+        })
 
     if (giveaways.length === 0) {
       logger.debug({ guildId: config.guildId }, 'Nenhum giveaway encontrado para esta guild')
       return
     }
 
-    // Buscar giveaways já anunciados para esta guild
+    // Consultar apenas IDs presentes no catálogo atual, não todo o histórico da guild.
+    const current_giveaway_ids = giveaways.map((giveaway) => String(giveaway.id))
     const announcedGiveaways = await prisma.freeGameGiveaway.findMany({
-      where: { guildId: config.guildId },
+      where: {
+        guildId: config.guildId,
+        giveawayId: { in: current_giveaway_ids },
+      },
       select: { giveawayId: true },
     })
 

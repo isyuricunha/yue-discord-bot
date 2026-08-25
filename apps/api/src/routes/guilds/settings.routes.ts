@@ -17,25 +17,23 @@ export async function guildSettingsRoutes(fastify: FastifyInstance) {
     preHandler: access,
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const config =
-      (await prisma.guildConfig.findUnique({
-        where: { guildId },
-        select: {
-          welcomeChannelId: true,
-          leaveChannelId: true,
-          welcomeMessage: true,
-          leaveMessage: true,
-        },
-      })) ??
-      (await prisma.guildConfig.create({ data: { guildId } }))
+    const config = await prisma.guildConfig.findUnique({
+      where: { guildId },
+      select: {
+        welcomeChannelId: true,
+        leaveChannelId: true,
+        welcomeMessage: true,
+        leaveMessage: true,
+      },
+    })
 
     return reply.send({
       success: true,
       config: {
-        welcomeChannelId: config.welcomeChannelId,
-        leaveChannelId: config.leaveChannelId,
-        welcomeMessage: config.welcomeMessage,
-        leaveMessage: config.leaveMessage,
+        welcomeChannelId: config?.welcomeChannelId ?? null,
+        leaveChannelId: config?.leaveChannelId ?? null,
+        welcomeMessage: config?.welcomeMessage ?? null,
+        leaveMessage: config?.leaveMessage ?? null,
       },
     })
   })
@@ -82,16 +80,14 @@ export async function guildSettingsRoutes(fastify: FastifyInstance) {
     preHandler: access,
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const config =
-      (await prisma.guildConfig.findUnique({
-        where: { guildId },
-        select: { announcementChannelId: true },
-      })) ??
-      (await prisma.guildConfig.create({ data: { guildId } }))
+    const config = await prisma.guildConfig.findUnique({
+      where: { guildId },
+      select: { announcementChannelId: true },
+    })
 
     return reply.send({
       success: true,
-      config: { announcementChannelId: config.announcementChannelId },
+      config: { announcementChannelId: config?.announcementChannelId ?? null },
     })
   })
 
@@ -126,16 +122,14 @@ export async function guildSettingsRoutes(fastify: FastifyInstance) {
     preHandler: access,
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const config =
-      (await prisma.guildConfig.findUnique({
-        where: { guildId },
-        select: { giveawayChannelId: true },
-      })) ??
-      (await prisma.guildConfig.create({ data: { guildId } }))
+    const config = await prisma.guildConfig.findUnique({
+      where: { guildId },
+      select: { giveawayChannelId: true },
+    })
 
     return reply.send({
       success: true,
-      config: { giveawayChannelId: config.giveawayChannelId },
+      config: { giveawayChannelId: config?.giveawayChannelId ?? null },
     })
   })
 
@@ -170,25 +164,23 @@ export async function guildSettingsRoutes(fastify: FastifyInstance) {
     preHandler: access,
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const config =
-      (await prisma.guildConfig.findUnique({
-        where: { guildId },
-        select: {
-          prefix: true,
-          locale: true,
-          timezone: true,
-          auditLogChannelId: true,
-        },
-      })) ??
-      (await prisma.guildConfig.create({ data: { guildId } }))
+    const config = await prisma.guildConfig.findUnique({
+      where: { guildId },
+      select: {
+        prefix: true,
+        locale: true,
+        timezone: true,
+        auditLogChannelId: true,
+      },
+    })
 
     return reply.send({
       success: true,
       config: {
-        prefix: config.prefix ?? '/',
-        locale: config.locale ?? 'pt-BR',
-        timezone: config.timezone ?? 'America/Sao_Paulo',
-        auditLogChannelId: config.auditLogChannelId,
+        prefix: config?.prefix ?? '/',
+        locale: config?.locale ?? 'pt-BR',
+        timezone: config?.timezone ?? 'America/Sao_Paulo',
+        auditLogChannelId: config?.auditLogChannelId ?? null,
       },
     })
   })

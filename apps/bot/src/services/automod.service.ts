@@ -13,6 +13,7 @@ import { extract_ai_moderation_image_urls } from './automod.ai_images'
 import { build_ai_moderation_thresholds } from './automod.ai_thresholds'
 import { can_apply_automod_action, required_channel_permissions_for_automod_action } from './automod.permissions'
 import { safe_error_details } from '../utils/safe_error'
+import { GuildResourceCache } from '../utils/guild_resource_cache'
 import { check_automod_link_message, type automod_action } from './automod.links'
 
 interface AutoModResult {
@@ -68,8 +69,10 @@ function normalize_string_array(value: unknown): string[] {
 }
 
 class AutoModService {
-  private configCache: Map<string, { config: GuildConfig | null; timestamp: number }> = new Map();
-  private readonly CACHE_TTL = 5 * 60 * 1000; // 5 minutos
+  private readonly configCache = new GuildResourceCache<GuildConfig | null>(
+    (guildId) => prisma.guildConfig.findUnique({ where: { guildId } }),
+    { cache_ttl_ms: 5 * 60 * 1000, max_entries: 2000 },
+  )
 
   private async upsertMemberRow(member: GuildMember): Promise<void> {
     await prisma.guildMember.upsert({
@@ -162,23 +165,11 @@ class AutoModService {
   }
 
   private async getGuildConfig(guildId: string): Promise<GuildConfig | null> {
-    const cached = this.configCache.get(guildId);
-    const now = Date.now();
-
-    if (cached && now - cached.timestamp < this.CACHE_TTL) {
-      return cached.config;
-    }
-
     try {
-      const config = await prisma.guildConfig.findUnique({
-        where: { guildId },
-      });
-
-      this.configCache.set(guildId, { config, timestamp: now });
-      return config;
+      return await this.configCache.get(guildId)
     } catch (error) {
-      logger.error({ error }, 'Erro ao buscar config do guild');
-      return null;
+      logger.error({ error, guildId }, 'Erro ao buscar config do guild')
+      return null
     }
   }
 
@@ -659,7 +650,7 @@ class AutoModService {
 
   // Método para limpar cache (útil quando config é atualizada)
   clearCache(guildId: string): void {
-    this.configCache.delete(guildId);
+    this.configCache.invalidate(guildId);
   }
 }
 

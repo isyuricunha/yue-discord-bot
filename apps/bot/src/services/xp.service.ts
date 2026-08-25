@@ -4,6 +4,7 @@ import type { GuildXpConfig } from '@yuebot/database';
 import { pick_discord_message_template_variant, render_discord_message_template } from '@yuebot/shared';
 import { logger } from '../utils/logger';
 import { with_serializable_retry } from '../utils/prisma-transaction';
+import { GuildResourceCache } from '../utils/guild_resource_cache';
 import { inventoryService } from './inventory.service'
 
 const XP_TRANSFER_TAX_PERCENT = 10; // 10% tax on XP transfers
@@ -93,14 +94,23 @@ type XpLevelUpContext = {
 };
 
 class XpService {
-  private config_cache: Map<string, { config: GuildXpConfig | null; timestamp: number }> = new Map();
-  private readonly CACHE_TTL = 5 * 60 * 1000;
+  private readonly config_cache = new GuildResourceCache<GuildXpConfig | null>(
+    async (guild_id) => {
+      try {
+        return await prisma.guildXpConfig.findUnique({ where: { guildId: guild_id } })
+      } catch (error) {
+        logger.error({ error, guildId: guild_id }, 'Erro ao buscar config de XP')
+        return null
+      }
+    },
+    { cache_ttl_ms: 5 * 60 * 1000, max_entries: 2000 },
+  )
 
   private xp_boost_cache: Map<string, { multiplier: number; timestamp: number }> = new Map()
   private readonly XP_BOOST_TTL = 30 * 1000
 
   clear_cache(guild_id: string) {
-    this.config_cache.delete(guild_id)
+    this.config_cache.invalidate(guild_id)
   }
 
   async transfer_xp(input: {
@@ -262,22 +272,7 @@ class XpService {
   }
 
   private async get_guild_xp_config(guild_id: string): Promise<GuildXpConfig | null> {
-    const cached = this.config_cache.get(guild_id);
-    const now = Date.now();
-
-    if (cached && now - cached.timestamp < this.CACHE_TTL) {
-      return cached.config;
-    }
-
-    try {
-      const config = await prisma.guildXpConfig.findUnique({ where: { guildId: guild_id } });
-      this.config_cache.set(guild_id, { config, timestamp: now });
-      return config;
-    } catch (error) {
-      logger.error({ error, guildId: guild_id }, 'Erro ao buscar config de XP');
-      this.config_cache.set(guild_id, { config: null, timestamp: now });
-      return null;
-    }
+    return this.config_cache.get(guild_id)
   }
 
   async handle_message(message: Message): Promise<void> {

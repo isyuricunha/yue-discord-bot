@@ -158,6 +158,8 @@ export class GamerPowerService {
    */
   async getAllGiveaways(options?: GetAllGiveawaysOptions): Promise<GamerPowerGiveaway[]> {
     const primary_url = this.build_giveaways_url(options)
+    const cached = this.get_cache<GamerPowerGiveaway[]>(primary_url)
+    if (cached) return cached
 
     try {
       const data = await this.fetch_json<GamerPowerGiveaway[]>(primary_url, 'GamerPower giveaways')
@@ -183,13 +185,13 @@ export class GamerPowerService {
         }
       }
 
-      const cached = this.get_cache<GamerPowerGiveaway[]>(primary_url)
-      if (cached) {
+      const stale_cache = this.get_cache<GamerPowerGiveaway[]>(primary_url)
+      if (stale_cache) {
         logger.warn(
           { err: safe_error_details(error), url: primary_url },
           'GamerPower giveaways request failed; using cached response'
         )
-        return cached
+        return stale_cache
       }
 
       logger.warn(
