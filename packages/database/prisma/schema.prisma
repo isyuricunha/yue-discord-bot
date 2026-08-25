@@ -202,20 +202,22 @@ model GuildMember {
 }
 
 model ModLog {
-  id          String      @id @default(cuid())
-  guildId     String
-  userId      String
-  moderatorId String
-  action      String
-  reason      String?
-  duration    String?
-  metadata    Json?
-  createdAt   DateTime    @default(now())
-  guild       Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  member      GuildMember @relation(fields: [userId, guildId], references: [userId, guildId], onDelete: Cascade)
+  id            String      @id @default(cuid())
+  guildId       String
+  userId        String
+  moderatorId   String
+  action        String
+  reason        String?
+  duration      String?
+  metadata      Json?
+  createdAt     DateTime    @default(now())
+  warnExpiredAt DateTime?
+  guild         Guild       @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  member        GuildMember @relation(fields: [userId, guildId], references: [userId, guildId], onDelete: Cascade)
 
   @@index([guildId, createdAt])
   @@index([userId])
+  @@index([guildId, action, warnExpiredAt, createdAt], map: "mod_logs_warn_expiration_idx")
   @@map("mod_logs")
 }
 
@@ -307,6 +309,7 @@ model GiveawayWinner {
   createdAt  DateTime @default(now())
   giveaway   Giveaway @relation(fields: [giveawayId], references: [id], onDelete: Cascade)
 
+  @@unique([giveawayId, userId], map: "giveaway_winners_giveaway_user_key")
   @@index([giveawayId])
   @@map("giveaway_winners")
 }
@@ -330,27 +333,34 @@ model GiveawayEntryEditToken {
 }
 
 model ScheduledEvent {
-  id              String    @id @default(cuid())
-  guildId         String
-  channelId       String
-  creatorId       String
-  title           String
-  description     String?
-  startsAt        DateTime
-  ended           Boolean   @default(false)
-  cancelled       Boolean   @default(false)
-  reminder24hSent Boolean   @default(false)
-  reminder1hSent  Boolean   @default(false)
-  reminder10mSent Boolean   @default(false)
-  reminder24hAt   DateTime?
-  reminder1hAt    DateTime?
-  reminder10mAt   DateTime?
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
-  guild           Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  id                   String    @id @default(cuid())
+  guildId              String
+  channelId            String
+  creatorId            String
+  title                String
+  description          String?
+  startsAt             DateTime
+  ended                Boolean   @default(false)
+  cancelled            Boolean   @default(false)
+  reminder24hSent      Boolean   @default(false)
+  reminder1hSent       Boolean   @default(false)
+  reminder10mSent      Boolean   @default(false)
+  reminder24hAt        DateTime?
+  reminder1hAt         DateTime?
+  reminder10mAt        DateTime?
+  reminder24hClaimedAt DateTime?
+  reminder1hClaimedAt  DateTime?
+  reminder10mClaimedAt DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+  guild                Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@index([guildId, startsAt])
   @@index([guildId, ended, cancelled, startsAt])
+  @@index([ended, cancelled, startsAt], map: "scheduled_events_due_end_idx")
+  @@index([ended, cancelled, reminder24hSent, reminder24hAt], map: "scheduled_events_24h_due_idx")
+  @@index([ended, cancelled, reminder1hSent, reminder1hAt], map: "scheduled_events_1h_due_idx")
+  @@index([ended, cancelled, reminder10mSent, reminder10mAt], map: "scheduled_events_10m_due_idx")
   @@map("scheduled_events")
 }
 
@@ -511,6 +521,7 @@ model GuildAutorolePending {
 
   @@unique([guildId, userId])
   @@index([guildId, executeAt])
+  @@index([waitForFirstMessage, executeAt, updatedAt], map: "autorole_pending_due_idx")
   @@map("guild_autorole_pendings")
 }
 
@@ -791,23 +802,26 @@ model SuggestionVote {
 }
 
 model Poll {
-  id        String     @id @default(cuid())
-  guildId   String
-  channelId String
-  messageId String     @unique
-  question  String
-  options   Json
-  multiVote Boolean    @default(false)
-  endsAt    DateTime
-  ended     Boolean    @default(false)
-  createdBy String
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  votes     PollVote[]
-  guild     Guild      @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  id                         String     @id @default(cuid())
+  guildId                    String
+  channelId                  String
+  messageId                  String     @unique
+  question                   String
+  options                    Json
+  multiVote                  Boolean    @default(false)
+  endsAt                     DateTime
+  ended                      Boolean    @default(false)
+  createdBy                  String
+  createdAt                  DateTime   @default(now())
+  updatedAt                  DateTime   @updatedAt
+  expirationClaimedAt        DateTime?
+  expirationNotifiedAt       DateTime?
+  expirationMessageUpdatedAt DateTime?
+  votes                      PollVote[]
+  guild                      Guild      @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
   @@index([guildId, ended])
-  @@index([endsAt])
+  @@index([ended, endsAt], map: "polls_due_expiration_idx")
   @@map("polls")
 }
 
@@ -1047,29 +1061,31 @@ model Purchase {
 }
 
 model InventoryItem {
-  id               String    @id @default(cuid())
-  userId           String
-  guildId          String?
-  purchaseId       String?
-  shopItemId       String?
-  kind             String
-  title            String
-  description      String?
-  quantity         Int       @default(1)
-  usedQuantity     Int       @default(0)
-  metadata         Json?
-  activatedAt      DateTime?
-  expiresAt        DateTime?
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
-  expiredHandledAt DateTime?
-  guild            Guild?    @relation(fields: [guildId], references: [id], onDelete: Cascade)
-  purchase         Purchase? @relation(fields: [purchaseId], references: [id])
-  shopItem         ShopItem? @relation(fields: [shopItemId], references: [id])
-  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id                  String    @id @default(cuid())
+  userId              String
+  guildId             String?
+  purchaseId          String?
+  shopItemId          String?
+  kind                String
+  title               String
+  description         String?
+  quantity            Int       @default(1)
+  usedQuantity        Int       @default(0)
+  metadata            Json?
+  activatedAt         DateTime?
+  expiresAt           DateTime?
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+  expiredHandledAt    DateTime?
+  expirationClaimedAt DateTime?
+  guild               Guild?    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+  purchase            Purchase? @relation(fields: [purchaseId], references: [id])
+  shopItem            ShopItem? @relation(fields: [shopItemId], references: [id])
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, createdAt])
   @@index([userId, guildId, kind, expiresAt])
+  @@index([expiredHandledAt, expiresAt], map: "inventory_items_due_expiration_idx")
   @@map("inventory_items")
 }
 
@@ -1112,26 +1128,26 @@ model UserProfile {
 }
 
 model BotSettings {
-  id              String   @id
-  presenceEnabled Boolean  @default(false)
-  presenceStatus  String   @default("online")
-  activityType    String?
-  activityName    String?
-  activityUrl     String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  appDescription  String?
-  blockedGuildIds Json     @default("[]")
-  panelAiProvider String @default("mistral")
-  customProviderModel String?
-  panelAiFallbackEnabled Boolean @default(false)
-  customProviderReasoningMode String @default("omit")
-  panelAiSensitiveContextEnabled Boolean @default(false)
-  customProviderModelCatalog Json @default("[]")
+  id                                 String    @id
+  presenceEnabled                    Boolean   @default(false)
+  presenceStatus                     String    @default("online")
+  activityType                       String?
+  activityName                       String?
+  activityUrl                        String?
+  createdAt                          DateTime  @default(now())
+  updatedAt                          DateTime  @updatedAt
+  appDescription                     String?
+  blockedGuildIds                    Json      @default("[]")
+  panelAiProvider                    String    @default("mistral")
+  customProviderModel                String?
+  panelAiFallbackEnabled             Boolean   @default(false)
+  customProviderReasoningMode        String    @default("omit")
+  panelAiSensitiveContextEnabled     Boolean   @default(false)
+  customProviderModelCatalog         Json      @default("[]")
   customProviderModelCatalogSyncedAt DateTime?
-  customProviderModelCatalogError String?
-  panelAiConversationVersion Int @default(1)
-  discordAiTextFallbackEnabled Boolean @default(false)
+  customProviderModelCatalogError    String?
+  panelAiConversationVersion         Int       @default(1)
+  discordAiTextFallbackEnabled       Boolean   @default(false)
 
   @@map("bot_settings")
 }

@@ -1,117 +1,124 @@
-import { Client } from 'discord.js';
-import { prisma } from '@yuebot/database';
+import { Client } from 'discord.js'
+import { prisma } from '@yuebot/database'
 
-import { logger } from '../utils/logger';
-import { safe_error_details } from '../utils/safe_error';
-import { pollService, poll_option } from './poll.service';
+import { logger } from '../utils/logger'
+import { safe_error_details } from '../utils/safe_error'
+import { pollService, poll_option } from './poll.service'
+
+const CLAIM_LEASE_MS = 5 * 60 * 1000
 
 export class PollExpirationScheduler {
-  private interval: NodeJS.Timeout | null = null;
-  private client: Client;
+  private interval: NodeJS.Timeout | null = null
+  private running = false
 
-  constructor(client: Client) {
-    this.client = client;
-  }
+  constructor(private client: Client) {}
 
   start() {
-    if (this.interval) return;
-
-    this.interval = setInterval(() => {
-      void this.tick();
-    }, 60_000);
-
-    void this.tick();
-    logger.info('📊 Poll expiration scheduler started');
+    if (this.interval) return
+    this.interval = setInterval(() => void this.tick(), 60_000)
+    void this.tick()
+    logger.info('📊 Poll expiration scheduler started')
   }
 
   stop() {
-    if (!this.interval) return;
-    clearInterval(this.interval);
-    this.interval = null;
-    logger.info('📊 Poll expiration scheduler stopped');
+    if (!this.interval) return
+    clearInterval(this.interval)
+    this.interval = null
+    logger.info('📊 Poll expiration scheduler stopped')
   }
 
   private async tick() {
+    if (this.running) return
+    this.running = true
     try {
-      const now = new Date();
-
+      const now = new Date()
+      const stale_claim = new Date(now.getTime() - CLAIM_LEASE_MS)
       const expiredPolls = await prisma.poll.findMany({
         where: {
-          ended: false,
-          endsAt: { lte: now },
+endsAt: { lte: now },
+AND: [
+  { OR: [{ ended: false }, { expirationNotifiedAt: null }, { expirationMessageUpdatedAt: null }] },
+  { OR: [{ expirationClaimedAt: null }, { expirationClaimedAt: { lt: stale_claim } }] },
+],
         },
         orderBy: { endsAt: 'asc' },
         take: 50,
-      });
+      })
 
       for (const poll of expiredPolls) {
-        await this.handlePollExpiration({
-          id: poll.id,
-          channelId: poll.channelId,
-          messageId: poll.messageId,
-          question: poll.question,
-          options: poll.options as poll_option[],
-          multiVote: poll.multiVote,
-          endsAt: poll.endsAt,
-          ended: poll.ended,
-          createdAt: poll.createdAt,
-        });
+        await this.handlePollExpiration(poll, now, stale_claim)
       }
     } catch (error) {
-      logger.error({ err: safe_error_details(error) }, 'Error processing poll expiration scheduler');
+      logger.error({ err: safe_error_details(error) }, 'Error processing poll expiration scheduler')
+    } finally {
+      this.running = false
     }
   }
 
-  private async handlePollExpiration(poll: {
-    id: string;
-    channelId: string;
-    messageId: string;
-    question: string;
-    options: poll_option[];
-    multiVote: boolean;
-    endsAt: Date;
-    ended: boolean;
-    createdAt: Date;
-  }) {
+  private async handlePollExpiration(
+    poll: {
+      id: string
+      channelId: string
+      messageId: string
+      question: string
+      options: unknown
+      multiVote: boolean
+      endsAt: Date
+      createdAt: Date
+      expirationNotifiedAt: Date | null
+      expirationMessageUpdatedAt: Date | null
+    },
+    now: Date,
+    stale_claim: Date,
+  ) {
+    const claimed = await prisma.poll.updateMany({
+      where: {
+        id: poll.id,
+        OR: [{ expirationClaimedAt: null }, { expirationClaimedAt: { lt: stale_claim } }],
+      },
+      data: { ended: true, expirationClaimedAt: now },
+    })
+    if (claimed.count === 0) return
+
     try {
-      // Mark the poll as ended
-      await prisma.poll.update({
-        where: { id: poll.id },
-        data: { ended: true },
-      });
+      if (!poll.expirationNotifiedAt) {
+        await pollService.sendPollExpirationNotification(
+this.client as unknown as Parameters<typeof pollService.sendPollExpirationNotification>[0],
+{
+  id: poll.id,
+  channelId: poll.channelId,
+  question: poll.question,
+  options: poll.options as poll_option[],
+}
+        )
+        await prisma.poll.update({ where: { id: poll.id }, data: { expirationNotifiedAt: new Date() } })
+      }
 
-      // Send notification to the channel
-      await pollService.sendPollExpirationNotification(
-        this.client as unknown as Parameters<typeof pollService.sendPollExpirationNotification>[0],
-        {
-          id: poll.id,
-          channelId: poll.channelId,
-          question: poll.question,
-          options: poll.options,
-        }
-      );
+      if (!poll.expirationMessageUpdatedAt) {
+        await pollService.updatePollMessage(
+{
+  messageId: poll.messageId,
+  channelId: poll.channelId,
+  question: poll.question,
+  options: poll.options as poll_option[],
+  multiVote: poll.multiVote,
+  endsAt: poll.endsAt,
+  ended: true,
+  createdAt: poll.createdAt,
+},
+this.client as unknown as Parameters<typeof pollService.updatePollMessage>[1]
+        )
+        await prisma.poll.update({ where: { id: poll.id }, data: { expirationMessageUpdatedAt: new Date() } })
+      }
 
-      // Update the poll message to show ended status
-      await pollService.updatePollMessage(
-        {
-          messageId: poll.messageId,
-          channelId: poll.channelId,
-          question: poll.question,
-          options: poll.options,
-          multiVote: poll.multiVote,
-          endsAt: poll.endsAt,
-          ended: true,
-          createdAt: poll.createdAt,
-        },
-        this.client as unknown as Parameters<typeof pollService.updatePollMessage>[1]
-      );
-
-      logger.info({ pollId: poll.id, question: poll.question }, 'Poll expired and notification sent');
+      logger.info({ pollId: poll.id, question: poll.question }, 'Poll expired and delivery completed')
     } catch (error) {
-      logger.error(
-        { err: safe_error_details(error), pollId: poll.id },
-        'Failed to process poll expiration'
-      );
+      logger.error({ err: safe_error_details(error), pollId: poll.id }, 'Failed to process poll expiration')
+    } finally {
+      await prisma.poll.updateMany({
+        where: { id: poll.id, expirationClaimedAt: now },
+        data: { expirationClaimedAt: null },
+      }).catch(() => undefined)
     }
   }
 }

@@ -13,6 +13,7 @@ export class GiveawayScheduler {
   private queue: Queue
   private worker: Worker
   private intervalCheck: NodeJS.Timeout | null = null
+  private intervalRunning = false
 
   constructor(client: Client) {
     this.client = client
@@ -51,7 +52,9 @@ export class GiveawayScheduler {
   start() {
     // Manter um interval rápido apenas para a detecção inicial/publicação de sorteios 
     // e para redirecionar o final para o BullMQ se não tiver no cache dele.
-    this.intervalCheck = setInterval(() => this.checkAndScheduleGiveaways(), 15000)
+    if (this.intervalCheck) return
+    this.intervalCheck = setInterval(() => void this.runIntervalCheck(), 15000)
+    void this.runIntervalCheck()
     logger.info('🎉 Scheduler de sorteios (BullMQ) iniciado')
   }
 
@@ -219,6 +222,16 @@ export class GiveawayScheduler {
     }
   }
 
+  private async runIntervalCheck() {
+    if (this.intervalRunning) return
+    this.intervalRunning = true
+    try {
+      await this.checkAndScheduleGiveaways()
+    } finally {
+      this.intervalRunning = false
+    }
+  }
+
   private async checkAndScheduleGiveaways() {
     try {
       const now = new Date()
@@ -290,12 +303,11 @@ export class GiveawayScheduler {
       const eligibleEntries = giveaway.entries.filter((e: any) => !e.disqualified)
       
       if (eligibleEntries.length === 0) {
-        await prisma.giveaway.update({
-          where: { id: giveaway.id },
+        const claimed = await prisma.giveaway.updateMany({
+          where: { id: giveaway.id, ended: false, cancelled: false },
           data: { ended: true },
         })
-        
-        await this.announceNoWinners(giveaway)
+        if (claimed.count > 0) await this.announceNoWinners(giveaway)
         return
       }
 
@@ -320,24 +332,34 @@ export class GiveawayScheduler {
         }))
       }
 
-      // Salvar vencedores
-      await prisma.$transaction([
-        ...winnersData.map((w: any) => 
-          prisma.giveawayWinner.create({
-            data: {
+      // Persistência atômica: apenas um worker/fallback pode finalizar o sorteio.
+      const persisted = await prisma.$transaction(async (tx) => {
+        const claimed = await tx.giveaway.updateMany({
+          where: { id: giveaway.id, ended: false, cancelled: false },
+          data: { ended: true },
+        })
+        if (claimed.count === 0) return false
+
+        if (winnersData.length > 0) {
+          await tx.giveawayWinner.createMany({
+            data: winnersData.map((w: any) => ({
               giveawayId: giveaway.id,
               userId: w.userId,
               username: w.username,
               prize: w.prize,
               prizeIndex: w.prizeIndex,
-            },
+            })),
+            skipDuplicates: true,
           })
-        ),
-        prisma.giveaway.update({
-          where: { id: giveaway.id },
-          data: { ended: true },
-        }),
-      ])
+        }
+
+        return true
+      })
+
+      if (!persisted) {
+        logger.info({ giveawayId: giveaway.id }, 'Sorteio já finalizado por outro worker')
+        return
+      }
 
       // Anunciar vencedores
       await this.announceWinners(giveaway, winnersData)
@@ -356,15 +378,17 @@ export class GiveawayScheduler {
       return shuffled.slice(0, winnerCount)
     }
 
-    // Criar pool de entradas considerando multiplicadores de cargo
+    // Criar pool de entradas considerando multiplicadores de cargo.
+    // A guild é resolvida uma única vez; membros usam cache antes da API.
     const entryPool: any[] = []
+    const guild = this.client.guilds.cache.get(giveaway.guildId) ?? await this.client.guilds.fetch(giveaway.guildId).catch(() => null)
+    if (!guild) {
+      const shuffled = eligibleEntries.sort(() => Math.random() - 0.5)
+      return shuffled.slice(0, winnerCount)
+    }
     
     for (const entry of eligibleEntries) {
-      // Buscar membro para verificar cargos
-      const guild = await this.client.guilds.fetch(giveaway.guildId).catch(() => null)
-      if (!guild) continue
-      
-      const member = await guild.members.fetch(entry.userId).catch(() => null)
+      const member = guild.members.cache.get(entry.userId) ?? await guild.members.fetch(entry.userId).catch(() => null)
       if (!member) continue
       
       // Calcular multiplicador baseado nos cargos do usuário
