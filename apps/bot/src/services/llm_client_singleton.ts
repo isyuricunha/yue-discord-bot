@@ -44,10 +44,6 @@ function summarize_llm_env_config(): {
 	};
 }
 
-export function init_llm_client(): void {
-	if (cached !== undefined) return;
-	get_llm_client();
-}
 
 export function reset_llm_client_singleton_for_tests(): void {
 	cached = undefined;

@@ -9,7 +9,7 @@ import { getApiUrl } from '../env'
 
 const API_URL = getApiUrl()
 
-export type chat_send_result =
+type chat_send_result =
   | {
       ok: true
       response: string

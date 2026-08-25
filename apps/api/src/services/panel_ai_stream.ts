@@ -48,7 +48,7 @@ function extract_text_chunk(content: unknown): string {
   return ''
 }
 
-export function extract_mistral_stream_delta(event: unknown): string {
+function extract_mistral_stream_delta(event: unknown): string {
   if (!event || typeof event !== 'object') return ''
   const eventRecord = event as { data?: unknown }
   const data = (eventRecord.data ?? event) as { type?: unknown; content?: unknown }

@@ -133,7 +133,7 @@ function role_payload(role: Role) {
   }
 }
 
-export class SupportService {
+class SupportService {
   private readonly livepixClient = new LivePixClient()
   private ownerTokenCache: LivePixClientCredentialsTokenCache | null = null
 
@@ -1053,4 +1053,3 @@ export class SupportService {
 }
 
 export const supportService = new SupportService()
-export const supportCustomIdPrefix = SUPPORT_CUSTOM_ID_PREFIX

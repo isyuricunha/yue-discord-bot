@@ -20,7 +20,7 @@ const MAX_MUTE_DURATION_MINUTES = 60
 const MIN_COOLDOWN_SECONDS = 60
 const MAX_COOLDOWN_SECONDS = 3_600
 
-export const SUPPORTED_PANEL_MODULE_PAGE_KEYS = [
+const SUPPORTED_PANEL_MODULE_PAGE_KEYS = [
   'settings',
   'welcome',
   'automod',
@@ -40,7 +40,7 @@ export const SUPPORTED_PANEL_MODULE_PAGE_KEYS = [
   'members',
   'member-details',
 ] as const
-export type supported_panel_module_page_key = (typeof SUPPORTED_PANEL_MODULE_PAGE_KEYS)[number]
+type supported_panel_module_page_key = (typeof SUPPORTED_PANEL_MODULE_PAGE_KEYS)[number]
 
 type panel_module_logger = {
   warn: (object: Record<string, unknown>, message: string) => void
