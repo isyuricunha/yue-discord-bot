@@ -8,7 +8,7 @@
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
+import { toast_error } from '../../../store/toast'
 import { getApiUrl } from '../../../env'
 import type { Guild } from '../types'
 
@@ -54,7 +54,7 @@ export function useGuildSummary(guildId: string): UseGuildSummaryResult {
   useEffect(() => {
     if (queryIsError) {
       const errorMessage = queryError?.message || 'Não foi possível carregar os dados do servidor'
-      toast.error(errorMessage)
+      toast_error(errorMessage)
       console.error('Failed to fetch guild summary:', queryError)
     }
   }, [queryIsError, queryError])

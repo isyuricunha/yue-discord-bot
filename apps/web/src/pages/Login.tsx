@@ -57,7 +57,7 @@ export default function LoginPage() {
               aria-label="Ir para página inicial do Yue Bot"
             >
               <div className="grid h-8 w-8 place-items-center rounded-xl border border-border/80 bg-surface-raised shadow-innerBorder">
-                <img src="/icon.png" alt="" className="h-5 w-5 rounded" aria-hidden="true" />
+                <img src="/icon-192.png" alt="" className="h-5 w-5 rounded" aria-hidden="true" />
               </div>
               <span className="text-sm font-semibold tracking-tight text-foreground">Yue Bot</span>
             </NavLink>
@@ -78,7 +78,7 @@ export default function LoginPage() {
               {/* Logo e tagline */}
               <div className="text-center mb-8 animate-fadeIn">
                 <div className="mx-auto mb-4 grid h-16 w-16 place-items-center rounded-2xl border border-border/80 bg-surface-raised shadow-innerBorder">
-                  <img src="/icon.png" alt="Yue Bot" className="h-10 w-10 rounded-xl" />
+                  <img src="/icon-192.png" alt="Yue Bot" className="h-10 w-10 rounded-xl" />
                 </div>
                 <h1 className="text-3xl font-semibold tracking-tight text-foreground mb-1">
                   Yue Bot

@@ -25,7 +25,7 @@ export function PublicShell() {
         <div className="flex h-12 items-center justify-between px-5">
           <div className="flex items-center gap-3">
             <div className="grid h-8 w-8 place-items-center rounded-2xl border border-border/80 bg-surface-raised shadow-innerBorder">
-              <img src="/icon.png" alt="Yue" className="h-5 w-5 rounded" />
+              <img src="/icon-192.png" alt="Yue" className="h-5 w-5 rounded" />
             </div>
             <div>
               <div className="text-sm font-semibold tracking-tight">Yue</div>

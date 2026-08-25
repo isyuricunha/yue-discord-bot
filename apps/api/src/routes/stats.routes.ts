@@ -98,6 +98,7 @@ export async function statsRoutes(fastify: FastifyInstance) {
             moderatorId: true,
             reason: true,
             createdAt: true,
+            member: { select: { username: true } },
           },
         }),
         prisma.modLog.findMany({
@@ -130,6 +131,10 @@ export async function statsRoutes(fastify: FastifyInstance) {
       const totalMembers = typeof guildCounts?.approximateMemberCount === 'number'
         ? guildCounts.approximateMemberCount
         : 0
+      const recentActionsWithUsers = recentActions.map(({ member, ...action }) => ({
+        ...action,
+        userName: member.username,
+      }))
 
       return reply.send({
         success: true,
@@ -139,7 +144,7 @@ export async function statsRoutes(fastify: FastifyInstance) {
         activeGiveaways,
         totalGiveaways,
         bannedWords,
-        recentActions,
+        recentActions: recentActionsWithUsers,
         actionsByType,
         chartData,
       })
