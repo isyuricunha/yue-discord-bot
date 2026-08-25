@@ -85,20 +85,14 @@ test('GamerPowerService.getAllGiveaways: falls back on 404 by retrying without t
   assert.ok(!second.includes('type='))
 })
 
-test('GamerPowerService.getAllGiveaways: uses cached response after transient network failure', async () => {
+test('GamerPowerService.getAllGiveaways: serves a fresh cached response without a second HTTP request', async () => {
   const calls: string[] = []
   const cached = [{ id: 123, title: 'Cached Giveaway' } as any]
 
   const http_get: http_get = async <T>(url: string, _options) => {
     calls.push(url)
 
-    if (calls.length === 1) {
-      return { data: cached as unknown as T }
-    }
-
-    const err: any = new Error('socket reset')
-    err.code = 'ECONNRESET'
-    throw err
+    return { data: cached as unknown as T }
   }
 
   const service = new GamerPowerService({
@@ -112,5 +106,5 @@ test('GamerPowerService.getAllGiveaways: uses cached response after transient ne
 
   assert.deepEqual(first, cached)
   assert.deepEqual(second, cached)
-  assert.equal(calls.length, 2)
+  assert.equal(calls.length, 1)
 })

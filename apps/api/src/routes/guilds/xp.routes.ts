@@ -17,16 +17,71 @@ export async function guildXpRoutes(fastify: FastifyInstance) {
     preHandler: access,
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const config =
-      (await prisma.guildXpConfig.findUnique({ where: { guildId } })) ??
-      (await prisma.guildXpConfig.create({ data: { guildId } }))
+    const config = await prisma.guildXpConfig.findUnique({
+      where: { guildId },
+      select: {
+        enabled: true,
+        xpMode: true,
+        xpPerMessage: true,
+        xpPerVoiceMinute: true,
+        xpBonusMinLength: true,
+        xpBonusAmount: true,
+        dailyXpBonusEnabled: true,
+        dailyXpBonusAmount: true,
+        voiceXpEnabled: true,
+        voiceXpRate: true,
+        minMessageLength: true,
+        minUniqueLength: true,
+        typingCps: true,
+        xpDivisorMin: true,
+        xpDivisorMax: true,
+        xpCap: true,
+        ignoredChannelIds: true,
+        ignoredRoleIds: true,
+        roleXpMultipliers: true,
+        rewardMode: true,
+        levelUpEnabled: true,
+        levelUpChannelId: true,
+        levelUpMessage: true,
+        voiceXpNotificationsEnabled: true,
+      },
+    })
 
     const rewards = await prisma.guildLevelRoleReward.findMany({
       where: { guildId },
       orderBy: { level: 'asc' },
     })
 
-    return reply.send({ success: true, config, rewards })
+    return reply.send({
+      success: true,
+      config: config ?? {
+        enabled: true,
+        xpMode: 'formula',
+        xpPerMessage: 1,
+        xpPerVoiceMinute: 1,
+        xpBonusMinLength: 0,
+        xpBonusAmount: 0,
+        dailyXpBonusEnabled: false,
+        dailyXpBonusAmount: 0,
+        voiceXpEnabled: false,
+        voiceXpRate: 10,
+        minMessageLength: 5,
+        minUniqueLength: 12,
+        typingCps: 7,
+        xpDivisorMin: 7,
+        xpDivisorMax: 4,
+        xpCap: 35,
+        ignoredChannelIds: [],
+        ignoredRoleIds: [],
+        roleXpMultipliers: {},
+        rewardMode: 'stack',
+        levelUpEnabled: true,
+        levelUpChannelId: null,
+        levelUpMessage: null,
+        voiceXpNotificationsEnabled: true,
+      },
+      rewards,
+    })
   })
 
   fastify.put('/:guildId/xp-config', {
@@ -222,9 +277,14 @@ export async function guildXpRoutes(fastify: FastifyInstance) {
     preHandler: access,
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const config =
-      (await prisma.guildAutoroleConfig.findUnique({ where: { guildId } })) ??
-      (await prisma.guildAutoroleConfig.create({ data: { guildId } }))
+    const config = await prisma.guildAutoroleConfig.findUnique({
+      where: { guildId },
+      select: {
+        enabled: true,
+        delaySeconds: true,
+        onlyAfterFirstMessage: true,
+      },
+    })
 
     const roles = await prisma.guildAutoroleRole.findMany({
       where: { guildId },
@@ -233,7 +293,11 @@ export async function guildXpRoutes(fastify: FastifyInstance) {
 
     return reply.send({
       success: true,
-      config,
+      config: config ?? {
+        enabled: false,
+        delaySeconds: 0,
+        onlyAfterFirstMessage: false,
+      },
       roleIds: roles.map((role) => role.roleId),
     })
   })

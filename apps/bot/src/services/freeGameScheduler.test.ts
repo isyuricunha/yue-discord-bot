@@ -116,3 +116,49 @@ test('failed free-game sends are not reported as notifications', async (t) => {
     notifiedCount: 0,
   })
 })
+
+
+test('free-game scheduler fetches the GamerPower catalog once for multiple guilds', async () => {
+  const original_configs = (prisma.freeGameNotification as any).findMany
+  const original_get_all = (gamerPowerService as any).getAllGiveaways
+  const original_debug = (logger as any).debug
+  const original_info = (logger as any).info
+
+  let catalog_calls = 0
+  try {
+    ;(logger as any).debug = () => undefined
+    ;(logger as any).info = () => undefined
+
+    ;(prisma.freeGameNotification as any).findMany = async () => [
+      {
+        guildId: 'guild-1',
+        channelId: 'channel-1',
+        roleIds: [],
+        platforms: [],
+        giveawayTypes: [],
+      },
+      {
+        guildId: 'guild-2',
+        channelId: 'channel-2',
+        roleIds: [],
+        platforms: ['steam'],
+        giveawayTypes: ['game'],
+      },
+    ]
+
+    ;(gamerPowerService as any).getAllGiveaways = async () => {
+      catalog_calls += 1
+      return []
+    }
+
+    const scheduler = new FreeGameScheduler({} as any)
+    await (scheduler as any).processGuildNotifications()
+
+    assert.equal(catalog_calls, 1)
+  } finally {
+    ;(prisma.freeGameNotification as any).findMany = original_configs
+    ;(gamerPowerService as any).getAllGiveaways = original_get_all
+    ;(logger as any).debug = original_debug
+    ;(logger as any).info = original_info
+  }
+})

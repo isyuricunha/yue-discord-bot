@@ -19,8 +19,7 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
     preHandler: access,
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const config =
-      (await prisma.guildConfig.findUnique({
+    const config = await prisma.guildConfig.findUnique({
         where: { guildId },
         select: {
           muteRoleId: true,
@@ -54,10 +53,43 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
           aiModerationLevel: true,
           aiModerationThresholds: true,
         },
-      })) ??
-      (await prisma.guildConfig.create({ data: { guildId } }))
+      })
 
-    return reply.send({ success: true, config })
+    return reply.send({
+      success: true,
+      config: config ?? {
+        muteRoleId: null,
+        muteRoleIds: [],
+        wordFilterEnabled: false,
+        bannedWords: [],
+        wordFilterWhitelistChannels: [],
+        wordFilterWhitelistRoles: [],
+        capsEnabled: false,
+        capsThreshold: 70,
+        capsMinLength: 10,
+        capsAction: 'warn',
+        capsWhitelistChannels: [],
+        capsWhitelistRoles: [],
+        linkFilterEnabled: false,
+        linkBlockAll: false,
+        bannedDomains: [],
+        allowedDomains: [],
+        linkAction: 'delete',
+        linkTimeoutDuration: '5m',
+        linkNoRoleEnabled: false,
+        linkNoRoleAction: 'mute',
+        linkNoRoleTimeoutDuration: '10m',
+        linkNotifyEnabled: true,
+        linkWhitelistChannels: [],
+        linkWhitelistRoles: [],
+        warnThresholds: [],
+        warnExpiration: 30,
+        aiModerationEnabled: false,
+        aiModerationAction: 'delete',
+        aiModerationLevel: 'medio',
+        aiModerationThresholds: {},
+      },
+    })
   })
 
   fastify.put('/:guildId/automod-config', {
@@ -316,18 +348,16 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
     preHandler: access,
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const config =
-      (await prisma.guildConfig.findUnique({
-        where: { guildId },
-        select: { modLogChannelId: true, modLogMessage: true },
-      })) ??
-      (await prisma.guildConfig.create({ data: { guildId } }))
+    const config = await prisma.guildConfig.findUnique({
+      where: { guildId },
+      select: { modLogChannelId: true, modLogMessage: true },
+    })
 
     return reply.send({
       success: true,
       config: {
-        modLogChannelId: config.modLogChannelId,
-        modLogMessage: config.modLogMessage,
+        modLogChannelId: config?.modLogChannelId ?? null,
+        modLogMessage: config?.modLogMessage ?? null,
       },
     })
   })

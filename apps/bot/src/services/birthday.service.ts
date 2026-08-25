@@ -101,12 +101,33 @@ export async function getUpcomingBirthdays(
   guildId: string,
   daysAhead: number = 30
 ): Promise<{ birthday: user_birthday; userId: string; username: string; avatar: string | null }[]> {
-  const now = new Date();
-  const currentDay = now.getDate();
-  const currentMonth = now.getMonth() + 1;
-  
-  // Get all birthdays
-  const allBirthdays = await prisma.userBirthday.findMany({
+  const now = new Date()
+  const safe_days_ahead = Math.max(0, Math.min(366, Math.floor(daysAhead)))
+  const day_month_pairs = new Map<string, { day: number; month: number; offset: number }>()
+
+  for (let offset = 0; offset <= safe_days_ahead; offset += 1) {
+    const date = new Date(now.getFullYear(), now.getMonth(), now.getDate() + offset, 12)
+    const day = date.getDate()
+    const month = date.getMonth() + 1
+    const key = `${month}:${day}`
+    if (!day_month_pairs.has(key)) {
+      day_month_pairs.set(key, { day, month, offset })
+    }
+
+    // Preserve the previous JavaScript Date behavior for Feb 29 birthdays:
+    // in non-leap years, new Date(year, 1, 29) normalizes to March 1.
+    if (month === 3 && day === 1) {
+      const feb_last_day = new Date(date.getFullYear(), 2, 0).getDate()
+      if (feb_last_day === 28 && !day_month_pairs.has('2:29')) {
+        day_month_pairs.set('2:29', { day: 29, month: 2, offset })
+      }
+    }
+  }
+
+  const birthdays = await prisma.userBirthday.findMany({
+    where: {
+      OR: Array.from(day_month_pairs.values()).map(({ day, month }) => ({ day, month })),
+    },
     select: {
       id: true,
       userId: true,
@@ -116,85 +137,43 @@ export async function getUpcomingBirthdays(
       createdAt: true,
       updatedAt: true,
     },
-  });
-  
-  // Get guild members
-  const guildMembers = await prisma.guildMember.findMany({
+  })
+
+  if (birthdays.length === 0) return []
+
+  const user_ids = birthdays.map((birthday) => birthday.userId)
+  const guild_members = await prisma.guildMember.findMany({
     where: {
       guildId,
+      userId: { in: user_ids },
     },
     select: {
       userId: true,
       username: true,
       avatar: true,
     },
-  });
-  
-  // Create a map of userId to member
-  const memberMap = new Map<string, { username: string; avatar: string | null }>();
-  guildMembers.forEach(member => {
-    memberMap.set(member.userId, { username: member.username, avatar: member.avatar });
-  });
-  
-  // Filter birthdays that are in guild and upcoming
-  const upcoming: { birthday: user_birthday; userId: string; username: string; avatar: string | null }[] = [];
-  
-  for (const birthday of allBirthdays) {
-    const member = memberMap.get(birthday.userId);
-    if (!member) continue;
-    
-    // Calculate days until birthday
-    let birthdayMonth = birthday.month;
-    let birthdayDay = birthday.day;
-    
-    // If birthday has passed this year, it's next year
-    let isPast = false;
-    if (birthdayMonth < currentMonth || (birthdayMonth === currentMonth && birthdayDay < currentDay)) {
-      isPast = true;
-    }
-    
-    // Calculate days until birthday
-    let daysUntil: number;
-    if (isPast) {
-      // Birthday passed, calculate days until next year
-      const now2 = new Date(now.getFullYear() + 1, birthdayMonth - 1, birthdayDay);
-      daysUntil = Math.ceil((now2.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    } else {
-      const birthdayDate = new Date(now.getFullYear(), birthdayMonth - 1, birthdayDay);
-      daysUntil = Math.ceil((birthdayDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    }
-    
-    if (daysUntil <= daysAhead) {
-      upcoming.push({
+  })
+
+  const member_by_id = new Map(
+    guild_members.map((member) => [member.userId, { username: member.username, avatar: member.avatar }])
+  )
+
+  return birthdays
+    .flatMap((birthday) => {
+      const member = member_by_id.get(birthday.userId)
+      if (!member) return []
+
+      const offset = day_month_pairs.get(`${birthday.month}:${birthday.day}`)?.offset
+      if (offset === undefined || offset > safe_days_ahead) return []
+
+      return [{
         birthday,
         userId: birthday.userId,
         username: member.username,
         avatar: member.avatar,
-      });
-    }
-  }
-  
-  // Sort by days until birthday
-  upcoming.sort((a, b) => {
-    const aDays = getDaysUntil(new Date().getFullYear(), a.birthday.month, a.birthday.day);
-    const bDays = getDaysUntil(new Date().getFullYear(), b.birthday.month, b.birthday.day);
-    return aDays - bDays;
-  });
-  
-  return upcoming;
-}
-
-function getDaysUntil(year: number, month: number, day: number): number {
-  const now = new Date();
-  const currentDay = now.getDate();
-  const currentMonth = now.getMonth() + 1;
-  
-  if (month < currentMonth || (month === currentMonth && day < currentDay)) {
-    // Birthday passed this year
-    const nextBirthday = new Date(year + 1, month - 1, day);
-    return Math.ceil((nextBirthday.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  } else {
-    const birthdayDate = new Date(year, month - 1, day);
-    return Math.ceil((birthdayDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-  }
+        offset,
+      }]
+    })
+    .sort((a, b) => a.offset - b.offset)
+    .map(({ offset: _offset, ...item }) => item)
 }

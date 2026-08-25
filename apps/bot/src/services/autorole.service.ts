@@ -2,6 +2,7 @@ import type { Guild, GuildMember, Message } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
 import { AutorolePendingIndex } from './autorole_pending_index'
+import { GuildResourceCache } from '../utils/guild_resource_cache'
 
 type autorole_config = {
   enabled: boolean
@@ -22,8 +23,10 @@ function normalize_config(config: { enabled: boolean; delaySeconds: number; only
 }
 
 class AutoroleService {
-  private config_cache: Map<string, { config: autorole_config; timestamp: number }> = new Map()
-  private readonly CACHE_TTL = 5 * 60 * 1000
+  private readonly config_cache = new GuildResourceCache<autorole_config>(
+    (guild_id) => this.load_guild_config(guild_id),
+    { cache_ttl_ms: 5 * 60 * 1000, max_entries: 2000 },
+  )
   private readonly pending_first_message_index = new AutorolePendingIndex(
     () => prisma.guildAutorolePending.findMany({
       where: { waitForFirstMessage: true },
@@ -31,14 +34,7 @@ class AutoroleService {
     })
   )
 
-  private async get_guild_config(guild_id: string): Promise<autorole_config> {
-    const cached = this.config_cache.get(guild_id)
-    const now = Date.now()
-
-    if (cached && now - cached.timestamp < this.CACHE_TTL) {
-      return cached.config
-    }
-
+  private async load_guild_config(guild_id: string): Promise<autorole_config> {
     const config_row = await prisma.guildAutoroleConfig.findUnique({
       where: { guildId: guild_id },
       select: {
@@ -56,8 +52,6 @@ class AutoroleService {
         onlyAfterFirstMessage: false,
         roleIds: [],
       }
-
-      this.config_cache.set(guild_id, { config, timestamp: now })
       return config
     }
 
@@ -70,13 +64,15 @@ class AutoroleService {
       ...normalize_config(config_row),
       roleIds: roles.map((r) => r.roleId),
     }
-
-    this.config_cache.set(guild_id, { config, timestamp: now })
     return config
   }
 
+  private async get_guild_config(guild_id: string): Promise<autorole_config> {
+    return this.config_cache.get(guild_id)
+  }
+
   clear_cache(guild_id: string) {
-    this.config_cache.delete(guild_id)
+    this.config_cache.invalidate(guild_id)
   }
 
   async initialize_pending_index(): Promise<void> {
