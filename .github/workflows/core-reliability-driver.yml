@@ -1,0 +1,57 @@
+name: Core reliability migration
+
+on:
+  push:
+    branches:
+      - fix/core-runtime-reliability
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Apply migration payload
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          source = Path('.github/workflows/core-reliability-stage1.yml').read_text()
+          start_marker = "          python <<'PY'\n"
+          end_marker = "\n          PY\n\n          pnpm exec prisma format"
+          start = source.index(start_marker) + len(start_marker)
+          end = source.index(end_marker, start)
+          lines = source[start:end].splitlines()
+          payload = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines)
+          exec(compile(payload, 'core-reliability-stage1.py', 'exec'))
+          PY
+          pnpm exec prisma format --schema packages/database/prisma/schema.prisma
+          pnpm db:generate
+      - name: Validate
+        run: |
+          pnpm lint
+          pnpm type-check
+          pnpm test
+          pnpm build
+          pnpm knip
+      - name: Commit validated changes
+        run: |
+          rm .github/workflows/core-reliability-stage1.yml
+          rm .github/workflows/core-reliability-driver.yml
+          git config user.name 'Ella Mizuki'
+          git config user.email 'ella@yuricunha.com'
+          git add -A
+          git commit -m 'fix(core): harden scheduled background jobs'
+          git push origin HEAD:fix/core-runtime-reliability
