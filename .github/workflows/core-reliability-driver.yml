@@ -36,8 +36,16 @@ jobs:
           lines = source[start:end].splitlines()
           payload = '\n'.join(line[10:] if line.startswith('          ') else line for line in lines)
           exec(compile(payload, 'core-reliability-stage1.py', 'exec'))
+
+          migration = Path('packages/database/prisma/migrations/20260825050000_harden_scheduled_jobs/migration.sql')
+          sql = migration.read_text()
+          unique = 'CREATE UNIQUE INDEX "giveaway_winners_giveaway_user_key" ON "giveaway_winners"("giveawayId", "userId");'
+          dedupe = '''WITH ranked AS (\n  SELECT "id", ROW_NUMBER() OVER (\n    PARTITION BY "giveawayId", "userId"\n    ORDER BY "createdAt" ASC, "id" ASC\n  ) AS rn\n  FROM "giveaway_winners"\n)\nDELETE FROM "giveaway_winners"\nWHERE "id" IN (SELECT "id" FROM ranked WHERE rn > 1);\n\n'''
+          if unique not in sql:
+              raise SystemExit('giveaway winner unique index statement missing')
+          migration.write_text(sql.replace(unique, dedupe + unique, 1))
           PY
-          pnpm exec prisma format --schema packages/database/prisma/schema.prisma
+          pnpm --dir packages/database exec prisma format --schema prisma/schema.prisma
           pnpm db:generate
       - name: Validate
         run: |
