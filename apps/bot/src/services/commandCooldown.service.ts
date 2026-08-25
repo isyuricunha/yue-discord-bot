@@ -1,51 +1,36 @@
 import { prisma } from '@yuebot/database'
 import { DEFAULT_COMMAND_COOLDOWNS } from '@yuebot/shared'
+import { BoundedTtlCache } from '../utils/bounded_ttl_cache'
 import { logger } from '../utils/logger'
+import { with_serializable_retry } from '../utils/prisma-transaction'
 import { safe_error_details } from '../utils/safe_error'
 
-type cooldown_cache_entry = {
-  cooldown_seconds: number
-  expires_at_ms: number
-}
-
-const cooldown_cache = new Map<string, cooldown_cache_entry>()
+const CACHE_TTL_MS = 60_000
+const cooldown_cache = new BoundedTtlCache<string, number>({ ttl_ms: CACHE_TTL_MS, max_entries: 5000 })
 
 function cooldown_cache_key(guild_id: string, command_name: string) {
   return `${guild_id}:${command_name}`
 }
 
-const CACHE_TTL_MS = 60_000 // 1 minute cache
+type cooldown_reservation = {
+  onCooldown: boolean
+  remainingSeconds: number
+  reservationUsedAt: Date | null
+}
 
 export const commandCooldownService = {
-  /**
-   * Get the cooldown for a command in a guild
-   * Returns 0 if no cooldown is set
-   */
   async getCooldown(guild_id: string, command_name: string): Promise<number> {
     const key = cooldown_cache_key(guild_id, command_name)
-    const now = Date.now()
-
     const cached = cooldown_cache.get(key)
-    if (cached && cached.expires_at_ms > now) {
-      return cached.cooldown_seconds
-    }
+    if (cached !== undefined) return cached
 
     try {
-      // Check database for custom cooldown
       const dbCooldown = await prisma.guildCommandCooldown.findUnique({
-        where: {
-          guildId_commandName: {
-            guildId: guild_id,
-            commandName: command_name,
-          },
-        },
+        where: { guildId_commandName: { guildId: guild_id, commandName: command_name } },
         select: { cooldownSeconds: true },
       })
-
-      // Use custom cooldown or fall back to default
       const cooldown = dbCooldown?.cooldownSeconds ?? DEFAULT_COMMAND_COOLDOWNS[command_name] ?? 0
-
-      cooldown_cache.set(key, { cooldown_seconds: cooldown, expires_at_ms: now + CACHE_TTL_MS })
+      cooldown_cache.set(key, cooldown)
       return cooldown
     } catch (error) {
       logger.error({ err: safe_error_details(error), guild_id, command_name }, 'Erro ao buscar cooldown de comando')
@@ -53,105 +38,86 @@ export const commandCooldownService = {
     }
   },
 
-  /**
-   * Check if a user is on cooldown for a command
-   * Returns remaining seconds if on cooldown, 0 if not on cooldown
-   */
-  async checkCooldown(guild_id: string, user_id: string, command_name: string): Promise<number> {
+  async consumeCooldown(guild_id: string, user_id: string, command_name: string): Promise<cooldown_reservation> {
     const cooldown_seconds = await this.getCooldown(guild_id, command_name)
-
-    if (cooldown_seconds === 0) {
-      return 0
+    if (cooldown_seconds <= 0) {
+      return { onCooldown: false, remainingSeconds: 0, reservationUsedAt: null }
     }
 
     try {
-      const lastUsed = await prisma.userCommandCooldown.findFirst({
-        where: {
-          userId: user_id,
-          guildId: guild_id,
-          commandName: command_name,
-        },
-        orderBy: { usedAt: 'desc' },
-        select: { usedAt: true },
-      })
+      return await with_serializable_retry(async (tx) => {
+        const now = new Date()
+        const current = await tx.userCommandCooldown.findUnique({
+          where: {
+            guildId_userId_commandName: {
+              guildId: guild_id,
+              userId: user_id,
+              commandName: command_name,
+            },
+          },
+          select: { usedAt: true },
+        })
 
-      if (!lastUsed) {
-        return 0
-      }
+        if (current) {
+          const remaining_ms = cooldown_seconds * 1000 - (now.getTime() - current.usedAt.getTime())
+          if (remaining_ms > 0) {
+            return {
+              onCooldown: true as const,
+              remainingSeconds: Math.ceil(remaining_ms / 1000),
+              reservationUsedAt: null,
+            }
+          }
+        }
 
-      const now = new Date()
-      const cooldown_ms = cooldown_seconds * 1000
-      const elapsed_ms = now.getTime() - lastUsed.usedAt.getTime()
-      const remaining_seconds = Math.ceil((cooldown_ms - elapsed_ms) / 1000)
+        await tx.userCommandCooldown.upsert({
+          where: {
+            guildId_userId_commandName: {
+              guildId: guild_id,
+              userId: user_id,
+              commandName: command_name,
+            },
+          },
+          update: { usedAt: now },
+          create: { guildId: guild_id, userId: user_id, commandName: command_name, usedAt: now },
+        })
 
-      return remaining_seconds > 0 ? remaining_seconds : 0
+        return { onCooldown: false as const, remainingSeconds: 0, reservationUsedAt: now }
+      }, { max_attempts: 10 })
     } catch (error) {
-      logger.error({ err: safe_error_details(error), guild_id, user_id, command_name }, 'Erro ao verificar cooldown de comando')
-      return 0
+      logger.error({ err: safe_error_details(error), guild_id, user_id, command_name }, 'Erro ao reservar cooldown de comando')
+      // Preserve the existing fail-open behavior if cooldown storage is unavailable.
+      return { onCooldown: false, remainingSeconds: 0, reservationUsedAt: null }
     }
   },
 
-  /**
-   * Record a command usage for cooldown tracking
-   */
-  async recordUsage(guild_id: string, user_id: string, command_name: string): Promise<void> {
-    const cooldown_seconds = await this.getCooldown(guild_id, command_name)
-
-    if (cooldown_seconds === 0) {
-      return
-    }
-
+  async releaseCooldown(guild_id: string, user_id: string, command_name: string, reservation_used_at: Date): Promise<void> {
     try {
-      await prisma.userCommandCooldown.create({
-        data: {
-          userId: user_id,
-          guildId: guild_id,
-          commandName: command_name,
-        },
-      })
-
-      // Cleanup old entries (older than the cooldown period + 1 hour)
-      const cutoff = new Date(Date.now() - (cooldown_seconds * 1000 + 3600 * 1000))
       await prisma.userCommandCooldown.deleteMany({
         where: {
           guildId: guild_id,
+          userId: user_id,
           commandName: command_name,
-          usedAt: { lt: cutoff },
+          usedAt: reservation_used_at,
         },
       })
     } catch (error) {
-      logger.error({ err: safe_error_details(error), guild_id, user_id, command_name }, 'Erro ao registrar uso de comando')
+      logger.error({ err: safe_error_details(error), guild_id, user_id, command_name }, 'Erro ao liberar cooldown após falha de comando')
     }
   },
 
-  /**
-   * Clear the cache for a specific guild
-   */
   clearCache(guild_id?: string): void {
-    if (guild_id) {
-      // Clear only entries for this guild
-      for (const key of cooldown_cache.keys()) {
-        if (key.startsWith(`${guild_id}:`)) {
-          cooldown_cache.delete(key)
-        }
-      }
-    } else {
+    if (!guild_id) {
       cooldown_cache.clear()
+      return
     }
+
+    // Keys are bounded. Rebuilding individual keys is preferable to exposing
+    // the cache internals just for prefix deletion; configured routes normally
+    // know which command changed, while a guild-wide clear can safely flush all.
+    cooldown_cache.clear()
   },
 
-  /**
-   * Check if user is admin (to bypass cooldown)
-   * This should be called with the member object from Discord
-   */
-  async isUserAdmin(guild_id: string, user_id: string, member: { permissions: { has: (permission: bigint) => boolean } } | null): Promise<boolean> {
-    // If member is null, assume not admin
-    if (!member) {
-      return false
-    }
-
-    // Check if user has administrator permission
-    // PermissionFlagsBits.Administrator = 0x8n
-    return member.permissions.has(0x8n)
+  async isUserAdmin(_guild_id: string, _user_id: string, member: { permissions: { has: (permission: bigint) => boolean } } | null): Promise<boolean> {
+    return Boolean(member?.permissions.has(0x8n))
   },
 }

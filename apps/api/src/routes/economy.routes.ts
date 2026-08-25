@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database'
-import { economyAdminAdjustSchema, economyTransferSchema } from '@yuebot/shared'
+import { dailyRewardConfigSchema, economyAdminAdjustSchema, economyTransferSchema } from '@yuebot/shared'
 import { is_guild_admin } from '../internal/bot_internal_api'
 
 import { validation_error_details } from '../utils/validation_error'
@@ -116,12 +116,9 @@ export async function economyRoutes(fastify: FastifyInstance) {
         create: { userId: input.toUserId, balance: 0n },
       })
 
-      // Use SELECT FOR UPDATE to acquire row-level locks, preventing race conditions
-      // Using type assertion as Prisma types may not fully recognize the 'for' option
-      const from_wallet = await (tx.wallet.findFirst as any)({
+      const from_wallet = await tx.wallet.findUnique({
         where: { userId: user.userId },
         select: { balance: true },
-        for: 'update',
       })
 
       if ((from_wallet?.balance ?? 0n) < amount) {
@@ -321,46 +318,13 @@ export async function economyRoutes(fastify: FastifyInstance) {
       }
     }
 
-    const body = request.body as {
-      enabled?: boolean
-      rewardAmount?: string
-      streakBonus?: string
-      maxStreakBonus?: number
+    const parsed = dailyRewardConfigSchema.safeParse(request.body)
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
     }
 
-    const updateData: {
-      enabled?: boolean
-      rewardAmount?: bigint
-      streakBonus?: bigint
-      maxStreakBonus?: number
-    } = {}
-
-    if (body.enabled !== undefined) {
-      updateData.enabled = body.enabled
-    }
-
-    if (body.rewardAmount !== undefined) {
-      const amount = BigInt(body.rewardAmount)
-      if (amount < 0n) {
-        return reply.code(400).send({ error: 'Invalid reward amount' })
-      }
-      updateData.rewardAmount = amount
-    }
-
-    if (body.streakBonus !== undefined) {
-      const bonus = BigInt(body.streakBonus)
-      if (bonus < 0n) {
-        return reply.code(400).send({ error: 'Invalid streak bonus' })
-      }
-      updateData.streakBonus = bonus
-    }
-
-    if (body.maxStreakBonus !== undefined) {
-      if (body.maxStreakBonus < 0) {
-        return reply.code(400).send({ error: 'Invalid max streak bonus' })
-      }
-      updateData.maxStreakBonus = body.maxStreakBonus
-    }
+    const updateData = parsed.data
 
     const config = await prisma.guildDailyRewardConfig.upsert({
       where: { guildId },

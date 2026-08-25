@@ -61,30 +61,21 @@ async function run_lavalink_action(action: () => unknown): Promise<void> {
   }
 }
 
-async function check_command_cooldown(
+async function consume_command_cooldown(
   guild_id: string,
   user_id: string,
   command_name: string,
   member: GuildMember | null
-): Promise<{ onCooldown: boolean; remainingSeconds: number }> {
+): Promise<{ onCooldown: boolean; remainingSeconds: number; reservationUsedAt: Date | null }> {
   try {
-    // Check if user is admin (bypass cooldown)
-    if (member) {
-      const is_admin = member.permissions.has(0x8n) // Administrator permission
-      if (is_admin) {
-        return { onCooldown: false, remainingSeconds: 0 }
-      }
+    if (member?.permissions.has(0x8n)) {
+      return { onCooldown: false, remainingSeconds: 0, reservationUsedAt: null }
     }
 
-    const remaining_seconds = await commandCooldownService.checkCooldown(guild_id, user_id, command_name)
-    return {
-      onCooldown: remaining_seconds > 0,
-      remainingSeconds: remaining_seconds,
-    }
+    return await commandCooldownService.consumeCooldown(guild_id, user_id, command_name)
   } catch (error) {
-    logger.error({ err: safe_error_details(error), guild_id, user_id, command_name }, 'Erro ao verificar cooldown')
-    // On error, allow the command
-    return { onCooldown: false, remainingSeconds: 0 }
+    logger.error({ err: safe_error_details(error), guild_id, user_id, command_name }, 'Erro ao reservar cooldown')
+    return { onCooldown: false, remainingSeconds: 0, reservationUsedAt: null }
   }
 }
 
@@ -142,6 +133,8 @@ export async function handleInteractionCreate(interaction: Interaction) {
       return;
     }
 
+    let cooldown_reservation: Date | null = null
+
     if (guild_id) {
       const disabled = await is_command_disabled(guild_id, 'slash', interaction.commandName)
       if (disabled) {
@@ -158,7 +151,8 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
       // Check cooldown
       const member = interaction.member as GuildMember | null
-      const cooldown = await check_command_cooldown(guild_id, interaction.user.id, interaction.commandName, member)
+      const cooldown = await consume_command_cooldown(guild_id, interaction.user.id, interaction.commandName, member)
+      cooldown_reservation = cooldown.reservationUsedAt
       if (cooldown.onCooldown) {
         try {
           await safe_reply_ephemeral(interaction, {
@@ -173,14 +167,11 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
     try {
       await command.execute(interaction);
-      
-      // Record command usage for cooldown tracking
-      if (guild_id) {
-        await commandCooldownService.recordUsage(guild_id, interaction.user.id, interaction.commandName).catch((err) => {
-          logger.error({ err, guild_id, user_id: interaction.user.id, command: interaction.commandName }, 'Erro ao registrar uso de comando')
-        })
-      }
+
     } catch (error) {
+      if (guild_id && cooldown_reservation) {
+        await commandCooldownService.releaseCooldown(guild_id, interaction.user.id, interaction.commandName, cooldown_reservation)
+      }
       logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao executar comando');
 
       try {
@@ -201,6 +192,8 @@ export async function handleInteractionCreate(interaction: Interaction) {
       return;
     }
 
+    let cooldown_reservation: Date | null = null
+
     if (guild_id) {
       const disabled = await is_command_disabled(guild_id, 'context', interaction.commandName)
       if (disabled) {
@@ -217,7 +210,8 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
       // Check cooldown
       const member = interaction.member as GuildMember | null
-      const cooldown = await check_command_cooldown(guild_id, interaction.user.id, interaction.commandName, member)
+      const cooldown = await consume_command_cooldown(guild_id, interaction.user.id, interaction.commandName, member)
+      cooldown_reservation = cooldown.reservationUsedAt
       if (cooldown.onCooldown) {
         try {
           await safe_reply_ephemeral(interaction, {
@@ -232,14 +226,11 @@ export async function handleInteractionCreate(interaction: Interaction) {
 
     try {
       await command.execute(interaction);
-      
-      // Record command usage for cooldown tracking
-      if (guild_id) {
-        await commandCooldownService.recordUsage(guild_id, interaction.user.id, interaction.commandName).catch((err) => {
-          logger.error({ err, guild_id, user_id: interaction.user.id, command: interaction.commandName }, 'Erro ao registrar uso de comando')
-        })
-      }
+
     } catch (error) {
+      if (guild_id && cooldown_reservation) {
+        await commandCooldownService.releaseCooldown(guild_id, interaction.user.id, interaction.commandName, cooldown_reservation)
+      }
       logger.error({ err: safe_error_details(error), command: interaction.commandName }, 'Erro ao executar context menu comando');
 
       try {

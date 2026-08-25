@@ -1,9 +1,13 @@
-import { prisma, Prisma } from '@yuebot/database'
+import { prisma } from '@yuebot/database'
+import {
+  DAILY_REWARD_MAX_AMOUNT,
+  DAILY_REWARD_MAX_STREAK_BONUS,
+  DAILY_REWARD_MAX_STREAK_DAYS,
+} from '@yuebot/shared'
+import { with_serializable_retry } from '../utils/prisma-transaction'
 
 const COOLDOWN_HOURS = 24
 const COOLDOWN_MS = COOLDOWN_HOURS * 60 * 60 * 1000
-
-type tx_client = Prisma.TransactionClient
 
 interface GuildConfig {
   enabled: boolean
@@ -32,59 +36,49 @@ interface ClaimResult {
 
 type claim_result = ClaimResult | { success: false; error: 'cooldown' | 'disabled' | 'not_found' }
 
+function normalize_config(config: GuildConfig): GuildConfig {
+  return {
+    enabled: config.enabled,
+    rewardAmount: config.rewardAmount < 0n ? 0n : config.rewardAmount > DAILY_REWARD_MAX_AMOUNT ? DAILY_REWARD_MAX_AMOUNT : config.rewardAmount,
+    streakBonus: config.streakBonus < 0n ? 0n : config.streakBonus > DAILY_REWARD_MAX_STREAK_BONUS ? DAILY_REWARD_MAX_STREAK_BONUS : config.streakBonus,
+    maxStreakBonus: Math.max(0, Math.min(DAILY_REWARD_MAX_STREAK_DAYS, config.maxStreakBonus)),
+  }
+}
+
 class DailyRewardService {
   async getGuildConfig(guildId: string): Promise<GuildConfig> {
-    const config = await prisma.guildDailyRewardConfig.findUnique({
-      where: { guildId },
-    })
+    const config = await prisma.guildDailyRewardConfig.findUnique({ where: { guildId } })
 
-    if (!config) {
-      return {
-        enabled: true,
-        rewardAmount: 1000n,
-        streakBonus: 100n,
-        maxStreakBonus: 30,
-      }
-    }
-
-    return {
-      enabled: config.enabled,
-      rewardAmount: config.rewardAmount,
-      streakBonus: config.streakBonus,
-      maxStreakBonus: config.maxStreakBonus,
-    }
+    return normalize_config(config
+      ? {
+          enabled: config.enabled,
+          rewardAmount: config.rewardAmount,
+          streakBonus: config.streakBonus,
+          maxStreakBonus: config.maxStreakBonus,
+        }
+      : {
+          enabled: true,
+          rewardAmount: 1000n,
+          streakBonus: 100n,
+          maxStreakBonus: 30,
+        })
   }
 
   async canClaim(userId: string, guildId: string): Promise<{ canClaim: boolean; nextClaimAt: Date | null }> {
     const config = await this.getGuildConfig(guildId)
-    if (!config.enabled) {
-      return { canClaim: false, nextClaimAt: null }
-    }
+    if (!config.enabled) return { canClaim: false, nextClaimAt: null }
 
-    const dailyReward = await prisma.userDailyReward.findUnique({
-      where: { userId },
-    })
+    const dailyReward = await prisma.userDailyReward.findUnique({ where: { userId } })
+    if (!dailyReward) return { canClaim: true, nextClaimAt: null }
 
-    if (!dailyReward) {
-      return { canClaim: true, nextClaimAt: null }
-    }
-
-    const now = new Date()
-    const lastClaim = new Date(dailyReward.lastClaimDate)
-    const nextClaimAt = new Date(lastClaim.getTime() + COOLDOWN_MS)
-
-    if (now >= nextClaimAt) {
-      return { canClaim: true, nextClaimAt: null }
-    }
-
-    return { canClaim: false, nextClaimAt }
+    const nextClaimAt = new Date(dailyReward.lastClaimDate.getTime() + COOLDOWN_MS)
+    return Date.now() >= nextClaimAt.getTime()
+      ? { canClaim: true, nextClaimAt: null }
+      : { canClaim: false, nextClaimAt }
   }
 
   async getStreakInfo(userId: string): Promise<StreakInfo> {
-    const dailyReward = await prisma.userDailyReward.findUnique({
-      where: { userId },
-    })
-
+    const dailyReward = await prisma.userDailyReward.findUnique({ where: { userId } })
     if (!dailyReward) {
       return {
         streakCount: 0,
@@ -95,10 +89,8 @@ class DailyRewardService {
       }
     }
 
-    const now = new Date()
-    const lastClaim = new Date(dailyReward.lastClaimDate)
-    const nextClaimAt = new Date(lastClaim.getTime() + COOLDOWN_MS)
-    const canClaim = now >= nextClaimAt
+    const nextClaimAt = new Date(dailyReward.lastClaimDate.getTime() + COOLDOWN_MS)
+    const canClaim = Date.now() >= nextClaimAt.getTime()
 
     return {
       streakCount: dailyReward.streakCount,
@@ -111,50 +103,32 @@ class DailyRewardService {
 
   async claimReward(userId: string, guildId: string): Promise<claim_result> {
     const config = await this.getGuildConfig(guildId)
-    if (!config.enabled) {
-      return { success: false, error: 'disabled' }
-    }
+    if (!config.enabled) return { success: false, error: 'disabled' }
 
-    const { canClaim: canClaimNow, nextClaimAt } = await this.canClaim(userId, guildId)
-    if (!canClaimNow) {
-      return { success: false, error: 'cooldown' }
-    }
+    return await with_serializable_retry(async (tx) => {
+      const now = new Date()
+      const dailyReward = await tx.userDailyReward.findUnique({ where: { userId } })
 
-    const dailyReward = await prisma.userDailyReward.findUnique({
-      where: { userId },
-    })
-
-    const now = new Date()
-    let newStreakCount = 1
-
-    if (dailyReward) {
-      const lastClaim = new Date(dailyReward.lastClaimDate)
-      const hoursSinceLastClaim = (now.getTime() - lastClaim.getTime()) / (1000 * 60 * 60)
-
-      if (hoursSinceLastClaim >= COOLDOWN_HOURS - 1 && hoursSinceLastClaim <= COOLDOWN_HOURS + 1) {
-        newStreakCount = dailyReward.streakCount + 1
-      } else if (hoursSinceLastClaim > COOLDOWN_HOURS + 1) {
-        newStreakCount = 1
+      if (dailyReward) {
+        const nextClaimAt = new Date(dailyReward.lastClaimDate.getTime() + COOLDOWN_MS)
+        if (now < nextClaimAt) return { success: false as const, error: 'cooldown' as const }
       }
-    }
 
-    const streakBonus = BigInt(Math.min(newStreakCount, config.maxStreakBonus)) * config.streakBonus
-    const totalReward = config.rewardAmount + streakBonus
+      let newStreakCount = 1
+      if (dailyReward) {
+        const hoursSinceLastClaim = (now.getTime() - dailyReward.lastClaimDate.getTime()) / (1000 * 60 * 60)
+        if (hoursSinceLastClaim >= COOLDOWN_HOURS - 1 && hoursSinceLastClaim <= COOLDOWN_HOURS + 1) {
+          newStreakCount = dailyReward.streakCount + 1
+        }
+      }
 
-    await prisma.$transaction(async (tx) => {
-      await tx.user.upsert({
-        where: { id: userId },
-        update: {},
-        create: { id: userId },
-      })
+      const streakBonus = BigInt(Math.min(newStreakCount, config.maxStreakBonus)) * config.streakBonus
+      const totalReward = config.rewardAmount + streakBonus
 
-      await tx.wallet.upsert({
-        where: { userId },
-        update: {},
-        create: { userId, balance: 0n },
-      })
+      await tx.user.upsert({ where: { id: userId }, update: {}, create: { id: userId } })
+      await tx.wallet.upsert({ where: { userId }, update: {}, create: { userId, balance: 0n } })
 
-      await tx.userDailyReward.upsert({
+      const dailyAfter = await tx.userDailyReward.upsert({
         where: { userId },
         update: {
           lastClaimDate: now,
@@ -167,6 +141,7 @@ class DailyRewardService {
           streakCount: newStreakCount,
           totalClaims: 1,
         },
+        select: { totalClaims: true },
       })
 
       const wallet = await tx.wallet.update({
@@ -185,74 +160,57 @@ class DailyRewardService {
         },
       })
 
-      return wallet
-    })
-
-    const wallet = await prisma.wallet.findUnique({
-      where: { userId },
-      select: { balance: true },
-    })
-
-    const dailyRewardAfter = await prisma.userDailyReward.findUnique({
-      where: { userId },
-      select: { totalClaims: true },
-    })
-
-    return {
-      success: true,
-      rewardAmount: config.rewardAmount,
-      streakBonus,
-      totalReward,
-      newStreakCount,
-      newTotalClaims: dailyRewardAfter?.totalClaims ?? 0,
-      newBalance: wallet?.balance ?? 0n,
-    }
+      return {
+        success: true as const,
+        rewardAmount: config.rewardAmount,
+        streakBonus,
+        totalReward,
+        newStreakCount,
+        newTotalClaims: dailyAfter.totalClaims,
+        newBalance: wallet.balance,
+      }
+    }, { max_attempts: 10 })
   }
 
   async getGuildConfigOrNull(guildId: string): Promise<GuildConfig | null> {
-    const config = await prisma.guildDailyRewardConfig.findUnique({
-      where: { guildId },
-    })
-
-    if (!config) {
-      return null
-    }
-
-    return {
+    const config = await prisma.guildDailyRewardConfig.findUnique({ where: { guildId } })
+    if (!config) return null
+    return normalize_config({
       enabled: config.enabled,
       rewardAmount: config.rewardAmount,
       streakBonus: config.streakBonus,
       maxStreakBonus: config.maxStreakBonus,
-    }
+    })
   }
 
   async updateGuildConfig(
     guildId: string,
-    data: {
-      enabled?: boolean
-      rewardAmount?: bigint
-      streakBonus?: bigint
-      maxStreakBonus?: number
-    }
+    data: { enabled?: boolean; rewardAmount?: bigint; streakBonus?: bigint; maxStreakBonus?: number }
   ): Promise<GuildConfig> {
-    const updated = await prisma.guildDailyRewardConfig.upsert({
-      where: { guildId },
-      update: data,
-      create: {
-        guildId,
-        enabled: data.enabled ?? true,
-        rewardAmount: data.rewardAmount ?? 1000n,
-        streakBonus: data.streakBonus ?? 100n,
-        maxStreakBonus: data.maxStreakBonus ?? 30,
-      },
+    const normalized = normalize_config({
+      enabled: data.enabled ?? true,
+      rewardAmount: data.rewardAmount ?? 1000n,
+      streakBonus: data.streakBonus ?? 100n,
+      maxStreakBonus: data.maxStreakBonus ?? 30,
     })
 
-    return {
+    const updated = await prisma.guildDailyRewardConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(data.enabled === undefined ? {} : { enabled: normalized.enabled }),
+        ...(data.rewardAmount === undefined ? {} : { rewardAmount: normalized.rewardAmount }),
+        ...(data.streakBonus === undefined ? {} : { streakBonus: normalized.streakBonus }),
+        ...(data.maxStreakBonus === undefined ? {} : { maxStreakBonus: normalized.maxStreakBonus }),
+      },
+      create: { guildId, ...normalized },
+    })
+
+    return normalize_config({
       enabled: updated.enabled,
       rewardAmount: updated.rewardAmount,
       streakBonus: updated.streakBonus,
       maxStreakBonus: updated.maxStreakBonus,
-    }
+    })
   }
 }
 

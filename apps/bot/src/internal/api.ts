@@ -3,6 +3,17 @@ import { PermissionFlagsBits } from 'discord.js';
 import type { Client, GuildBasedChannel, GuildMember, Role, User, RESTPostAPIApplicationCommandsJSONBody } from 'discord.js';
 import { prisma } from '@yuebot/database';
 import { discord_timeout_max_ms, parseDurationMs } from '@yuebot/shared'
+import {
+  internal_moderation_body_schema,
+  internal_music_action_body_schema,
+  internal_panel_publish_body_schema,
+  internal_profile_body_schema,
+  internal_support_role_body_schema,
+  type internal_moderation_body,
+  type internal_panel_publish_body,
+  type internal_profile_body,
+  type internal_support_role_body,
+} from '@yuebot/shared/internal-api-contract'
 import { CONFIG } from '../config';
 import { moderationLogService } from '../services/moderationLog.service';
 import { ticketService } from '../services/ticket.service';
@@ -24,6 +35,7 @@ type internal_api_options = {
   host: string;
   port: number;
   secret: string;
+  maxBodyBytes: number;
 };
 
 type api_error_body = {
@@ -49,29 +61,14 @@ type send_message_body = {
   imageUrl?: string | null;
 };
 
-type ticket_panel_publish_body = {
-  moderatorId: string
-  channelId: string
-}
+type ticket_panel_publish_body = internal_panel_publish_body
+type reaction_role_panel_publish_body = internal_panel_publish_body
 
-type reaction_role_panel_publish_body = {
-  moderatorId: string
-  channelId: string
-}
-
-type support_role_validate_body = {
-  roleId: string
-}
+type support_role_validate_body = internal_support_role_body
 
 type moderation_action = 'ban' | 'unban' | 'kick' | 'timeout' | 'untimeout'
 
-type moderation_body = {
-  moderatorId: string
-  userId: string
-  reason?: string
-  duration?: string
-  deleteMessageDays?: number
-}
+type moderation_body = internal_moderation_body
 
 type admin_check_response = {
   isAdmin: boolean
@@ -124,10 +121,7 @@ type presence_update_response = {
   }
 }
 
-type profile_sync_body = {
-  userId: string
-  bio: string | null
-}
+type profile_sync_body = internal_profile_body
 
 type profile_sync_response = {
   success: true
@@ -314,71 +308,57 @@ function required_permission_for_action(action: moderation_action) {
 }
 
 function is_valid_moderation_body(body: unknown): body is moderation_body {
-  if (!body || typeof body !== 'object') return false
-  const b = body as Record<string, unknown>
-  if (typeof b.moderatorId !== 'string' || b.moderatorId.trim().length === 0) return false
-  if (typeof b.userId !== 'string' || b.userId.trim().length === 0) return false
-  if (b.reason !== undefined && typeof b.reason !== 'string') return false
-  if (b.duration !== undefined && typeof b.duration !== 'string') return false
-  if (b.deleteMessageDays !== undefined && typeof b.deleteMessageDays !== 'number') return false
-  return true
+  return internal_moderation_body_schema.safeParse(body).success
 }
 
 function is_valid_ticket_panel_publish_body(body: unknown): body is ticket_panel_publish_body {
-  if (!body || typeof body !== 'object') return false
-  const b = body as Record<string, unknown>
-  if (typeof b.moderatorId !== 'string' || b.moderatorId.trim().length === 0) return false
-  if (typeof b.channelId !== 'string' || b.channelId.trim().length === 0) return false
-  return true
+  return internal_panel_publish_body_schema.safeParse(body).success
 }
 
 function is_valid_reaction_role_panel_publish_body(body: unknown): body is reaction_role_panel_publish_body {
-  if (!body || typeof body !== 'object') return false
-  const b = body as Record<string, unknown>
-  if (typeof b.moderatorId !== 'string' || b.moderatorId.trim().length === 0) return false
-  if (typeof b.channelId !== 'string' || b.channelId.trim().length === 0) return false
-  return true
+  return internal_panel_publish_body_schema.safeParse(body).success
 }
 
 function is_valid_support_role_validate_body(body: unknown): body is support_role_validate_body {
-  if (!body || typeof body !== 'object') return false
-  const b = body as Record<string, unknown>
-  return typeof b.roleId === 'string' && b.roleId.trim().length > 0
+  return internal_support_role_body_schema.safeParse(body).success
 }
 
 function normalize_profile_sync_body(body: unknown): profile_sync_body | null {
-  if (!body || typeof body !== 'object') return null
-  const b = body as Record<string, unknown>
-
-  const user_id = typeof b.userId === 'string' ? b.userId.trim() : ''
-  if (!user_id) return null
-
-  const bio_raw = b.bio
-  if (bio_raw === null || bio_raw === undefined) {
-    return { userId: user_id, bio: null }
-  }
-
-  if (typeof bio_raw !== 'string') return null
-  const bio = bio_raw.trim()
-  if (bio.length === 0) return { userId: user_id, bio: null }
-  if (bio.length > 300) return null
-
-  return { userId: user_id, bio }
+  const parsed = internal_profile_body_schema.safeParse(body)
+  return parsed.success ? parsed.data : null
 }
 
-async function read_json_body(req: http.IncomingMessage): Promise<unknown> {
-  const chunks: Buffer[] = [];
+class InternalApiBodyTooLargeError extends Error {
+  constructor() {
+    super('Internal API request body is too large')
+    this.name = 'InternalApiBodyTooLargeError'
+  }
+}
+
+async function read_json_body(req: http.IncomingMessage, max_bytes: number): Promise<unknown> {
+  const chunks: Buffer[] = []
+  let total = 0
 
   for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk)));
+    const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(String(chunk))
+    total += buffer.byteLength
+    if (total > max_bytes) throw new InternalApiBodyTooLargeError()
+    chunks.push(buffer)
   }
 
-  if (chunks.length === 0) return null;
+  if (chunks.length === 0) return null
+  const raw = Buffer.concat(chunks, total).toString('utf8')
+  if (!raw.trim()) return null
+  return JSON.parse(raw) as unknown
+}
 
-  const raw = Buffer.concat(chunks).toString('utf8');
-  if (!raw.trim()) return null;
-
-  return JSON.parse(raw) as unknown;
+async function read_json_body_or_null(req: http.IncomingMessage, max_bytes: number): Promise<unknown> {
+  try {
+    return await read_json_body(req, max_bytes)
+  } catch (error) {
+    if (error instanceof InternalApiBodyTooLargeError) throw error
+    return null
+  }
 }
 
 function pick_channel(channel: GuildBasedChannel) {
@@ -689,7 +669,7 @@ export function start_internal_api(client: Client, options: internal_api_options
 
       if (req.method === 'POST') {
         if (url.pathname === '/internal/presence') {
-          const body = await read_json_body(req).catch(() => null)
+          const body = await read_json_body_or_null(req, options.maxBodyBytes)
           const parsed = normalize_presence_body(body)
           if (!parsed) {
             return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
@@ -709,7 +689,7 @@ export function start_internal_api(client: Client, options: internal_api_options
         }
 
         if (url.pathname === '/internal/app-description') {
-          const body = await read_json_body(req).catch(() => null)
+          const body = await read_json_body_or_null(req, options.maxBodyBytes)
           const parsed = normalize_app_description_body(body)
           if (!parsed) {
             return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
@@ -725,7 +705,7 @@ export function start_internal_api(client: Client, options: internal_api_options
         }
 
         if (url.pathname === '/internal/profile') {
-          const body = await read_json_body(req).catch(() => null)
+          const body = await read_json_body_or_null(req, options.maxBodyBytes)
           const parsed = normalize_profile_sync_body(body)
           if (!parsed) {
             return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
@@ -769,7 +749,7 @@ export function start_internal_api(client: Client, options: internal_api_options
 
         const support_role_validate = extract_support_role_validate_params(url.pathname)
         if (support_role_validate) {
-          const body = await read_json_body(req).catch(() => null)
+          const body = await read_json_body_or_null(req, options.maxBodyBytes)
           if (!is_valid_support_role_validate_body(body)) {
             return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
           }
@@ -804,7 +784,7 @@ export function start_internal_api(client: Client, options: internal_api_options
 
         const ticket_panel_params = extract_ticket_panel_publish_params(url.pathname)
         if (ticket_panel_params) {
-          const body = await read_json_body(req).catch(() => null)
+          const body = await read_json_body_or_null(req, options.maxBodyBytes)
           if (!is_valid_ticket_panel_publish_body(body)) {
             return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
           }
@@ -874,7 +854,7 @@ export function start_internal_api(client: Client, options: internal_api_options
 
         const rr_publish_params = extract_reaction_role_panel_publish_params(url.pathname)
         if (rr_publish_params) {
-          const body = await read_json_body(req).catch(() => null)
+          const body = await read_json_body_or_null(req, options.maxBodyBytes)
           if (!is_valid_reaction_role_panel_publish_body(body)) {
             return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
           }
@@ -943,7 +923,7 @@ export function start_internal_api(client: Client, options: internal_api_options
 
         const message_params = extract_send_message_params(url.pathname);
         if (message_params) {
-          const body = await read_json_body(req).catch(() => null);
+          const body = await read_json_body_or_null(req, options.maxBodyBytes);
           const content =
             body && typeof (body as send_message_body).content === 'string'
               ? (body as send_message_body).content
@@ -1000,7 +980,7 @@ export function start_internal_api(client: Client, options: internal_api_options
 
         const moderation_params = extract_moderation_params(url.pathname)
         if (moderation_params) {
-          const body = await read_json_body(req).catch(() => null)
+          const body = await read_json_body_or_null(req, options.maxBodyBytes)
           if (!is_valid_moderation_body(body)) {
             return send_json(res, 400, { error: 'Invalid body' } satisfies api_error_body)
           }
@@ -1297,10 +1277,13 @@ export function start_internal_api(client: Client, options: internal_api_options
 
         const music_action = extract_music_action_params(url.pathname)
         if (music_action) {
-          const body = await read_json_body(req).catch(() => null) as music_action_body | null
-          if (!body || !['pause', 'resume', 'skip', 'stop', 'volume'].includes(body.action)) {
+          const parsed_music_body = internal_music_action_body_schema.safeParse(
+            await read_json_body_or_null(req, options.maxBodyBytes)
+          )
+          if (!parsed_music_body.success) {
             return send_json(res, 400, { error: 'Invalid music action' } satisfies api_error_body)
           }
+          const body = parsed_music_body.data
 
           const player = musicService?.kazagumo?.players.get(music_action.guildId)
           if (!player) {
@@ -1384,6 +1367,9 @@ export function start_internal_api(client: Client, options: internal_api_options
 
       return send_json(res, 200, { roles: result });
     } catch (error) {
+      if (error instanceof InternalApiBodyTooLargeError) {
+        return send_json(res, 413, { error: 'Request body too large' } satisfies api_error_body)
+      }
       log.error({ err: safe_error_details(error) }, 'Internal API error');
       return send_json(res, 500, { error: 'Internal server error' } satisfies api_error_body);
     }

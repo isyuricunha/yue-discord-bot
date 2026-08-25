@@ -1,6 +1,12 @@
 import { CONFIG } from '../config';
 import type { FastifyBaseLogger } from 'fastify';
 import { safe_error_details } from '../utils/safe_error';
+import type {
+  internal_moderation_body,
+  internal_music_action_body,
+  internal_panel_publish_body,
+  internal_profile_body,
+} from '@yuebot/shared/internal-api-contract'
 
 export class InternalBotApiError extends Error {
   constructor(
@@ -55,19 +61,13 @@ type send_guild_message_options = {
   imageUrl?: string | null
 }
 
-type ticket_panel_publish_body = {
-  moderatorId: string
-  channelId: string
-}
+type ticket_panel_publish_body = internal_panel_publish_body
 
 type ticket_panel_publish_response = {
   messageId: string
 }
 
-type reaction_role_panel_publish_body = {
-  moderatorId: string
-  channelId: string
-}
+type reaction_role_panel_publish_body = internal_panel_publish_body
 
 type reaction_role_panel_publish_response = {
   messageId: string
@@ -96,10 +96,7 @@ type set_presence_response = {
   }
 }
 
-type set_profile_body = {
-  userId: string
-  bio: string | null
-}
+type set_profile_body = internal_profile_body
 
 type set_profile_response = {
   success: true
@@ -118,10 +115,7 @@ type set_app_description_response = {
   appDescription: string | null
 }
 
-export type music_action_body = {
-  action: 'pause' | 'resume' | 'skip' | 'stop' | 'volume'
-  volume?: number
-}
+export type music_action_body = internal_music_action_body
 
 type music_status_response = {
   hasSession: boolean
@@ -201,13 +195,7 @@ type bot_stats_response = {
   users: number
 }
 
-type moderate_member_body = {
-  moderatorId: string
-  userId: string
-  reason?: string
-  duration?: string
-  deleteMessageDays?: number
-}
+type moderate_member_body = internal_moderation_body
 
 type moderate_member_response = {
   success: true

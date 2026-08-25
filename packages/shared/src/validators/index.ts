@@ -139,6 +139,17 @@ export const economyAdminAdjustSchema = z.object({
   reason: z.string().min(1).max(200).optional(),
 });
 
+export const DAILY_REWARD_MAX_AMOUNT = 10_000n
+export const DAILY_REWARD_MAX_STREAK_BONUS = 1_000n
+export const DAILY_REWARD_MAX_STREAK_DAYS = 30
+
+export const dailyRewardConfigSchema = z.object({
+  enabled: z.boolean().optional(),
+  rewardAmount: z.coerce.bigint().min(0n).max(DAILY_REWARD_MAX_AMOUNT).optional(),
+  streakBonus: z.coerce.bigint().min(0n).max(DAILY_REWARD_MAX_STREAK_BONUS).optional(),
+  maxStreakBonus: z.coerce.number().int().min(0).max(DAILY_REWARD_MAX_STREAK_DAYS).optional(),
+}).strict();
+
 export const coinflipCreateBetSchema = z.object({
   opponentId: z.string().min(1),
   betAmount: z.coerce.bigint().gt(0n),

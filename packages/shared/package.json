@@ -22,6 +22,12 @@
       "import": "./dist/esm/template_placeholders.js",
       "require": "./dist/template_placeholders.js",
       "default": "./dist/template_placeholders.js"
+    },
+    "./internal-api-contract": {
+      "types": "./dist/internal_api_contract.d.ts",
+      "import": "./dist/esm/internal_api_contract.js",
+      "require": "./dist/internal_api_contract.js",
+      "default": "./dist/internal_api_contract.js"
     }
   },
   "scripts": {

@@ -113,6 +113,10 @@ class XpService {
     this.config_cache.invalidate(guild_id)
   }
 
+  async get_config(guild_id: string): Promise<GuildXpConfig | null> {
+    return await this.config_cache.get(guild_id)
+  }
+
   async transfer_xp(input: {
     from_user_id: string;
     to_user_id: string;

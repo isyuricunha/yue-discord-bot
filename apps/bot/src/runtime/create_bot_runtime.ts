@@ -26,6 +26,7 @@ import { apply_startup_app_description } from '../services/app_description.servi
 import { initMusicService } from '../services/music.service'
 import { initDjModeService, djModeService } from '../services/dj_mode.service'
 import { antiRaidService } from '../services/antiRaid.service'
+import { voiceXpService } from '../services/voiceXp.service'
 import { RuntimeLifecycle } from './lifecycle'
 import { prune_stale_guilds_from_database, sync_guilds_to_database } from './guild_sync'
 import { register_discord_events } from './register_discord_events'
@@ -125,6 +126,7 @@ export function createBotRuntime(): BotRuntime {
       host: CONFIG.internalApi.host,
       port: CONFIG.internalApi.port,
       secret: CONFIG.internalApi.secret,
+      maxBodyBytes: CONFIG.internalApi.maxBodyBytes,
     })
     lifecycle.register_started('internal bot API', () => close_server(internal_server))
 
@@ -139,6 +141,10 @@ export function createBotRuntime(): BotRuntime {
     await loadContextMenuCommands(client)
     logger.info(`✅ ${client.contextMenuCommands.size} context menu comando(s) carregado(s)`)
 
+    await lifecycle.start_service('voice XP service', {
+      start: () => voiceXpService.start(client),
+      stop: () => voiceXpService.stop(),
+    })
     await lifecycle.start_service('giveaway scheduler', new GiveawayScheduler(client))
     await lifecycle.start_service('AniList watchlist scheduler', new AniListWatchlistScheduler(client))
     await lifecycle.start_service('warn expiration service', new WarnExpirationService(client))
