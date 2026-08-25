@@ -4,41 +4,41 @@ import { logger } from '../utils/logger'
 
 export class AutoroleScheduler {
   private interval: NodeJS.Timeout | null = null
+  private running = false
 
   constructor(private client: Client) {}
 
   start() {
-    this.interval = setInterval(() => {
-      this.tick()
-    }, 30 * 1000)
-
-    this.tick()
-
+    if (this.interval) return
+    this.interval = setInterval(() => void this.tick(), 30 * 1000)
+    void this.tick()
     logger.info('🧩 Scheduler de autorole iniciado')
   }
 
   stop() {
-    if (this.interval) {
-      clearInterval(this.interval)
-      this.interval = null
-      logger.info('🧩 Scheduler de autorole parado')
-    }
+    if (!this.interval) return
+    clearInterval(this.interval)
+    this.interval = null
+    logger.info('🧩 Scheduler de autorole parado')
   }
 
   private async tick() {
+    if (this.running) return
+    this.running = true
     try {
       logger.debug('Iniciando tick do scheduler de autorole')
       await autoroleService.process_due(async (guild_id) => {
         try {
-          return await this.client.guilds.fetch(guild_id)
+return this.client.guilds.cache.get(guild_id) ?? await this.client.guilds.fetch(guild_id)
         } catch {
-          return null
+return null
         }
       })
       logger.debug('Tick do scheduler de autorole concluído')
     } catch (error) {
-      const err = error as Error
-      logger.error({ err }, 'Erro ao processar scheduler de autorole')
+      logger.error({ err: error as Error }, 'Erro ao processar scheduler de autorole')
+    } finally {
+      this.running = false
     }
   }
 }

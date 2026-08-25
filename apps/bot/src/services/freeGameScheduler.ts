@@ -218,6 +218,7 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
 export class FreeGameScheduler {
   private client: Client
   private intervalCheck: NodeJS.Timeout | null = null
+  private running = false
 
   constructor(client: Client) {
     this.client = client
@@ -231,18 +232,12 @@ export class FreeGameScheduler {
     const intervalMs = intervalMinutes * 60 * 1000
 
     // Use simple interval for checking (simpler than BullMQ repeat for this use case)
-    this.intervalCheck = setInterval(
-      () => this.processGuildNotifications().catch((err) => {
-        logger.error({ err: safe_error_details(err) }, 'Erro ao processar notificações de jogos grátis')
-      }),
-      intervalMs
-    )
+    if (this.intervalCheck) return
+    this.intervalCheck = setInterval(() => void this.run_once(), intervalMs)
 
     // Also add initial job to run immediately
     setTimeout(
-      () => this.processGuildNotifications().catch((err) => {
-        logger.error({ err: safe_error_details(err) }, 'Erro ao processar notificações iniciais de jogos grátis')
-      }),
+      () => void this.run_once(),
       5000 // Wait 5 seconds after startup before first check
     )
 
@@ -258,6 +253,18 @@ export class FreeGameScheduler {
       this.intervalCheck = null
     }
     logger.info('🎮 FreeGame scheduler parado')
+  }
+
+  private async run_once() {
+    if (this.running) return
+    this.running = true
+    try {
+      await this.processGuildNotifications()
+    } catch (error) {
+      logger.error({ err: safe_error_details(error) }, 'Erro ao processar notificações de jogos grátis')
+    } finally {
+      this.running = false
+    }
   }
 
   /**
