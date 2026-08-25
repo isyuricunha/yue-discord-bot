@@ -198,14 +198,14 @@ export interface LlmCustomProvider {
 export type AiFallbackSettingsLoader = () => Promise<AiFallbackSettings>;
 export type TimeoutMsProvider = () => number;
 
-export type TimeoutHandle = {
+type TimeoutHandle = {
 	promise: Promise<never>;
 	cancel: () => void;
 };
 
 export type TimeoutFactory = (timeoutMs: number) => TimeoutHandle;
 
-export function create_mistral_timeout(timeoutMs: number): TimeoutHandle {
+function create_mistral_timeout(timeoutMs: number): TimeoutHandle {
 	let timer: ReturnType<typeof setTimeout> | null = null;
 	const promise = new Promise<never>((_, reject) => {
 		timer = setTimeout(() => reject(new MistralTimeoutError()), timeoutMs);

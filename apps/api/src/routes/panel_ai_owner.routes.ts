@@ -35,7 +35,7 @@ export type panel_ai_owner_deps = {
   testPanelAiRuntime: (runtime: panel_ai_runtime, deps?: any) => Promise<any>
 }
 
-export function mistral_panel_agent_is_configured(): boolean {
+function mistral_panel_agent_is_configured(): boolean {
   return Boolean(process.env.MISTRAL_PANEL_AGENT_ID?.trim()) && Boolean(process.env.MISTRAL_API_KEY?.trim())
 }
 

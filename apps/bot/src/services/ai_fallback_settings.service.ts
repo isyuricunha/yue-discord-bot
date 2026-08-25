@@ -10,7 +10,7 @@ export type AiFallbackSettings = {
 	customProviderReasoningMode: custom_provider_reasoning_mode;
 };
 
-export type AiFallbackSettingsRow = {
+type AiFallbackSettingsRow = {
 	discordAiTextFallbackEnabled: boolean;
 	customProviderModel: string | null;
 	customProviderReasoningMode: string;

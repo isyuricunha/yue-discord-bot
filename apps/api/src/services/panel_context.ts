@@ -8,7 +8,7 @@ import {
 import { PANEL_AI_PROTOCOL_RULES } from './panel_ai_protocol'
 import { panel_module_context } from './panel_module_context'
 
-export type panel_context_guild = {
+type panel_context_guild = {
   id: string
   name: string
   config?: {
@@ -18,7 +18,7 @@ export type panel_context_guild = {
   } | null
 }
 
-export type panel_context_anti_raid = {
+type panel_context_anti_raid = {
   enabled: boolean | null
   raidActive: boolean | null
   locked: boolean | null

@@ -143,7 +143,7 @@ type custom_provider_message = {
   content: string
 }
 
-export type mistral_agent_input = {
+type mistral_agent_input = {
   object: 'entry'
   type: 'message.input'
   role: 'user' | 'assistant'
@@ -168,7 +168,7 @@ export type panel_ai_runtime_event = {
   success?: boolean
 }
 
-export type panel_ai_event_logger = (event: panel_ai_runtime_event) => void
+type panel_ai_event_logger = (event: panel_ai_runtime_event) => void
 
 export type panel_ai_dependencies = {
   mistralAgentId?: string
@@ -243,7 +243,7 @@ const MISTRAL_RUNTIME_CONTEXT_PREAMBLE = [
   'Use it only as factual context when answering the final user message.',
 ].join('\n')
 
-export function build_mistral_agent_inputs(
+function build_mistral_agent_inputs(
   context: string,
   messages: readonly panel_ai_message[],
 ): mistral_agent_input[] {
@@ -334,11 +334,8 @@ export function extract_mistral_text(outputs: unknown): string {
   return extract_message_output_text(message_outputs[message_outputs.length - 1])
 }
 
-export function is_eligible_mistral_fallback_error(error: unknown): boolean {
-  return classify_mistral_failure(error).eligible
-}
 
-export async function complete_with_mistral_agent(
+async function complete_with_mistral_agent(
   agentId: string,
   context: string,
   messages: readonly panel_ai_message[],
@@ -380,7 +377,7 @@ export async function complete_with_mistral_agent(
   }
 }
 
-export async function complete_with_custom_provider(input: {
+async function complete_with_custom_provider(input: {
   model: string
   persona: string
   context: string
