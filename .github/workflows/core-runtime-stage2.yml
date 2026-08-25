@@ -27,7 +27,9 @@ jobs:
       - name: Apply runtime cleanup
         run: |
           python .github/core-runtime-stage2.py
+          python .github/core-runtime-stage2-fix.py
           rm .github/core-runtime-stage2.py
+          rm .github/core-runtime-stage2-fix.py
           rm .github/workflows/core-runtime-stage2.yml
       - name: Validate
         run: |
