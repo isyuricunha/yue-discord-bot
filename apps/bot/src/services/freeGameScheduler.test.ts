@@ -27,16 +27,17 @@ function make_giveaway(id: number): GamerPowerGiveaway {
   }
 }
 
-test('failed free-game sends are not reported as notifications', async (t) => {
+test('free-game notifications reserve durable deliveries before Discord I/O', async (t) => {
   const giveawayDelegate = prisma.freeGameGiveaway as any
   const notificationDelegate = prisma.freeGameNotification as any
+  const prismaClient = prisma as any
   const gamerPower = gamerPowerService as any
   const testLogger = logger as any
 
   const originals = {
     getAllGiveaways: gamerPower.getAllGiveaways,
     findMany: giveawayDelegate.findMany,
-    create: giveawayDelegate.create,
+    transaction: prismaClient.$transaction,
     update: notificationDelegate.update,
     info: testLogger.info,
     error: testLogger.error,
@@ -45,7 +46,7 @@ test('failed free-game sends are not reported as notifications', async (t) => {
   t.after(() => {
     gamerPower.getAllGiveaways = originals.getAllGiveaways
     giveawayDelegate.findMany = originals.findMany
-    giveawayDelegate.create = originals.create
+    prismaClient.$transaction = originals.transaction
     notificationDelegate.update = originals.update
     testLogger.info = originals.info
     testLogger.error = originals.error
@@ -54,11 +55,26 @@ test('failed free-game sends are not reported as notifications', async (t) => {
   gamerPower.getAllGiveaways = async () => [make_giveaway(1), make_giveaway(2), make_giveaway(3)]
   giveawayDelegate.findMany = async () => []
 
-  let recordedGiveaways = 0
-  giveawayDelegate.create = async () => {
-    recordedGiveaways += 1
-    return {}
-  }
+  let reservedGiveaways = 0
+  const deliveries: Array<{ dedupeKey: string; kind: string }> = []
+  prismaClient.$transaction = async (operation: (tx: any) => Promise<unknown>) =>
+    operation({
+      freeGameGiveaway: {
+        createMany: async ({ data, skipDuplicates }: any) => {
+          assert.equal(skipDuplicates, true)
+          assert.equal(data.length, 1)
+          reservedGiveaways += 1
+          return { count: 1 }
+        },
+      },
+      discordDelivery: {
+        upsert: async ({ where, create }: any) => {
+          assert.equal(where.dedupeKey, create.dedupeKey)
+          deliveries.push({ dedupeKey: create.dedupeKey, kind: create.kind })
+          return create
+        },
+      },
+    })
 
   let lastCheckedUpdates = 0
   notificationDelegate.update = async () => {
@@ -81,7 +97,7 @@ test('failed free-game sends are not reported as notifications', async (t) => {
         id: 'channel-1',
         send: async () => {
           sendAttempts += 1
-          throw Object.assign(new Error('Missing Permissions'), { code: 50013 })
+          return {}
         },
       }),
     },
@@ -106,14 +122,21 @@ test('failed free-game sends are not reported as notifications', async (t) => {
     giveawayTypes: [],
   })
 
-  assert.equal(sendAttempts, 3)
-  assert.equal(recordedGiveaways, 0, 'failed sends must remain eligible for a later retry')
+  assert.equal(sendAttempts, 0, 'reservation phase must not perform Discord I/O')
+  assert.equal(reservedGiveaways, 3)
+  assert.equal(deliveries.length, 3)
+  assert.deepEqual(deliveries.map((delivery) => delivery.kind), [
+    'free_game_announcement',
+    'free_game_announcement',
+    'free_game_announcement',
+  ])
+  assert.equal(new Set(deliveries.map((delivery) => delivery.dedupeKey)).size, 3)
   assert.equal(lastCheckedUpdates, 1)
   assert.equal(completionLogs.length, 1)
   assert.deepEqual(completionLogs[0]?.object, {
     guildId: 'guild-1',
     attemptedCount: 3,
-    notifiedCount: 0,
+    queuedCount: 3,
   })
 })
 

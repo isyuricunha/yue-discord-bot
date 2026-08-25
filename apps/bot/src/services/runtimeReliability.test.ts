@@ -286,8 +286,7 @@ test('core runtime retry and idempotency guards', async (t) => {
 
     let ended = false
     let winner_writes = 0
-    let announcements = 0
-    let notifications = 0
+    const delivery_keys: string[] = []
 
     try {
       ;(prisma as any).$transaction = async (operation: (tx: any) => Promise<unknown>) =>
@@ -307,17 +306,17 @@ test('core runtime retry and idempotency guards', async (t) => {
               return { count: data.length }
             },
           },
+          discordDelivery: {
+            upsert: async ({ where }: any) => {
+              delivery_keys.push(where.dedupeKey)
+              return {}
+            },
+          },
         })
 
       const scheduler = Object.create(GiveawayScheduler.prototype) as any
       scheduler.client = {}
       scheduler.selectWinnersWithRoleChances = async (_giveaway: unknown, entries: unknown[]) => entries.slice(0, 1)
-      scheduler.announceWinners = async () => {
-        announcements += 1
-      }
-      scheduler.notifyWinners = async () => {
-        notifications += 1
-      }
 
       const giveaway = {
         id: 'giveaway-1',
@@ -334,8 +333,11 @@ test('core runtime retry and idempotency guards', async (t) => {
       await scheduler.endGiveaway(giveaway)
 
       assert.equal(winner_writes, 1)
-      assert.equal(announcements, 1)
-      assert.equal(notifications, 1)
+      assert.deepEqual(delivery_keys.sort(), [
+        'giveaway:giveaway-1:message-edit',
+        'giveaway:giveaway-1:result',
+        'giveaway:giveaway-1:winner-dm:user-1',
+      ])
     } finally {
       ;(prisma as any).$transaction = original_transaction
     }

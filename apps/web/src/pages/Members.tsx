@@ -1,13 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { useState } from 'react'
+import { useDeferredValue, useState } from 'react'
 import { Search, Shield, AlertTriangle, User } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, PageHeader, ModuleLayout } from '../components/ui'
 
 const API_URL = getApiUrl()
+const ITEMS_PER_PAGE = 12
 
 interface Member {
   id: string
@@ -19,48 +20,46 @@ interface Member {
   notes: string | null
 }
 
+interface MemberPage {
+  success: boolean
+  members: Member[]
+  total: number
+  page: number
+  limit: number
+  totalPages: number
+}
+
 export default function MembersPage() {
   const { guildId } = useParams()
   const navigate = useNavigate()
   const [searchTerm, setSearchTerm] = useState('')
+  const deferredSearch = useDeferredValue(searchTerm.trim())
   const [warningFilter, setWarningFilter] = useState('all')
   const [page, setPage] = useState(1)
-  const itemsPerPage = 12
 
   const {
-    data: members,
+    data,
     isLoading,
     isError,
     refetch,
   } = useQuery({
-    queryKey: ['members', guildId],
+    queryKey: ['members', guildId, page, deferredSearch, warningFilter],
     queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/members`)
-      return (response.data as { success: boolean; members: Member[] }).members
+      const response = await axios.get<MemberPage>(`${API_URL}/api/guilds/${guildId}/members`, {
+        params: {
+          page,
+          limit: ITEMS_PER_PAGE,
+          ...(deferredSearch ? { search: deferredSearch } : {}),
+          ...(warningFilter !== 'all' ? { warnings: warningFilter } : {}),
+        },
+      })
+      return response.data
     },
   })
 
-  // Filtrar membros
-  const filteredMembers = members?.filter(member => {
-    // Filtro por busca
-    const matchesSearch = member.username.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      member.userId.includes(searchTerm)
-    
-    if (!matchesSearch) return false
-
-    // Filtro por warnings
-    if (warningFilter === 'clean') return member.warnings === 0
-    if (warningFilter === 'low') return member.warnings >= 1 && member.warnings <= 3
-    if (warningFilter === 'high') return member.warnings >= 4
-    
-    return true
-  })
-
-  // Paginação
-  const totalPages = Math.ceil((filteredMembers?.length || 0) / itemsPerPage)
-  const startIndex = (page - 1) * itemsPerPage
-  const paginatedMembers = filteredMembers?.slice(startIndex, startIndex + itemsPerPage)
-
+  const members = data?.members ?? []
+  const total = data?.total ?? 0
+  const totalPages = data?.totalPages ?? 1
   const has_filters = searchTerm.trim().length > 0 || warningFilter !== 'all'
 
   return (
@@ -86,8 +85,8 @@ export default function MembersPage() {
             <Input
               placeholder="Buscar por nome ou ID..."
               value={searchTerm}
-              onChange={(e) => {
-                setSearchTerm(e.target.value)
+              onChange={(event) => {
+                setSearchTerm(event.target.value)
                 setPage(1)
               }}
               className="pl-11"
@@ -124,18 +123,16 @@ export default function MembersPage() {
             )}
           </div>
 
-          {has_filters && (
-            <div className="text-sm text-muted-foreground">
-              {(filteredMembers?.length || 0)} membro{(filteredMembers?.length || 0) !== 1 ? 's' : ''} encontrado{(filteredMembers?.length || 0) !== 1 ? 's' : ''}
-            </div>
-          )}
+          <div className="text-sm text-muted-foreground">
+            {total} membro{total !== 1 ? 's' : ''} encontrado{total !== 1 ? 's' : ''}
+          </div>
         </CardContent>
       </Card>
 
       {isLoading ? (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 9 }).map((_, i) => (
-            <Card key={i} className="overflow-hidden">
+          {Array.from({ length: 9 }).map((_, index) => (
+            <Card key={index} className="overflow-hidden">
               <CardContent className="p-5">
                 <div className="flex items-center gap-4">
                   <Skeleton className="h-12 w-12 rounded-2xl" />
@@ -144,23 +141,19 @@ export default function MembersPage() {
                     <Skeleton className="mt-2 h-3 w-1/2" />
                   </div>
                 </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <Skeleton className="h-8 w-20" />
-                  <Skeleton className="h-9 w-28" />
-                </div>
               </CardContent>
             </Card>
           ))}
         </div>
-      ) : !paginatedMembers || paginatedMembers.length === 0 ? (
+      ) : members.length === 0 ? (
         <EmptyState
-          title={searchTerm ? 'Nenhum membro encontrado' : 'Nenhum membro registrado'}
-          description={searchTerm ? 'Tente ajustar os filtros ou o termo de busca.' : 'Este servidor não retornou membros.'}
+          title={has_filters ? 'Nenhum membro encontrado' : 'Nenhum membro registrado'}
+          description={has_filters ? 'Tente ajustar os filtros ou o termo de busca.' : 'Este servidor não possui membros registrados.'}
         />
       ) : (
         <>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {paginatedMembers.map((member) => (
+            {members.map((member) => (
               <Card key={member.id} className="group transition-colors hover:border-accent/50">
                 <CardContent className="p-5">
                   <div className="flex items-start gap-4">
@@ -192,11 +185,7 @@ export default function MembersPage() {
                       <span className="text-muted-foreground">warns</span>
                     </div>
 
-                    <Button
-                      size="sm"
-                      onClick={() => navigate(`/guild/${guildId}/members/${member.userId}`)}
-                      className="shrink-0"
-                    >
+                    <Button size="sm" onClick={() => navigate(`/guild/${guildId}/members/${member.userId}`)} className="shrink-0">
                       <Shield className="h-4 w-4" />
                       Detalhes
                     </Button>
@@ -212,22 +201,16 @@ export default function MembersPage() {
             ))}
           </div>
 
-          {/* Paginação */}
           {totalPages > 1 && (
             <div className="mt-8 flex items-center justify-between gap-4">
               <p className="text-sm text-muted-foreground">
-                Página {page} de {totalPages} • {filteredMembers?.length || 0} membros
+                Página {page} de {totalPages} • {total} membros
               </p>
               <div className="flex items-center gap-2">
-                <Button variant="outline" size="sm" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
+                <Button variant="outline" size="sm" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page === 1}>
                   Anterior
                 </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-                  disabled={page === totalPages}
-                >
+                <Button variant="outline" size="sm" onClick={() => setPage((value) => Math.min(totalPages, value + 1))} disabled={page >= totalPages}>
                   Próxima
                 </Button>
               </div>

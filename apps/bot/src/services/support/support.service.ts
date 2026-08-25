@@ -39,6 +39,7 @@ import { CONFIG } from '../../config'
 import { logger } from '../../utils/logger'
 import { safe_error_details } from '../../utils/safe_error'
 import { safe_defer_ephemeral, safe_reply_ephemeral } from '../../utils/interaction'
+import { enqueue_discord_delivery } from '../discordDelivery.service'
 
 const SUPPORT_CUSTOM_ID_PREFIX = 'support:'
 const SUPPORT_PENDING_WINDOW_MS = 15 * 60 * 1000
@@ -310,10 +311,6 @@ class SupportService {
       }
     }
 
-    await this.send_payment_dm(client, guild, payment.userId, fulfilled.expiresAt).catch((error) => {
-      logger.info({ err: safe_error_details(error), guildId: guild.id }, 'Support payment DM could not be delivered')
-    })
-
     return {
       success: true,
       status: fulfilled.alreadyFulfilled ? 'already_fulfilled' : 'fulfilled',
@@ -444,27 +441,51 @@ class SupportService {
     }
   }
 
-  async run_expiration_batch(client: Client) {
+  async run_expiration_batch(_client: Client) {
+    const now = new Date()
     const expired = await prisma.supportEntitlement.findMany({
       where: {
-        status: SupportEntitlementStatus.ACTIVE,
-        expiresAt: { lte: new Date() },
+        OR: [
+          { status: SupportEntitlementStatus.ACTIVE, expiresAt: { lte: now } },
+          { status: SupportEntitlementStatus.EXPIRED, roleSyncStatus: { not: SupportRoleSyncStatus.SYNCED } },
+        ],
       },
       take: 50,
       orderBy: { expiresAt: 'asc' },
     })
 
     for (const entitlement of expired) {
-      await prisma.supportEntitlement.update({
-        where: { id: entitlement.id },
-        data: { status: SupportEntitlementStatus.EXPIRED, roleSyncStatus: SupportRoleSyncStatus.PENDING },
+      const queued = await prisma.$transaction(async (tx) => {
+        if (entitlement.status === SupportEntitlementStatus.ACTIVE) {
+          const claimed = await tx.supportEntitlement.updateMany({
+            where: { id: entitlement.id, status: SupportEntitlementStatus.ACTIVE, expiresAt: { lte: now } },
+            data: { status: SupportEntitlementStatus.EXPIRED, roleSyncStatus: SupportRoleSyncStatus.PENDING },
+          })
+          if (claimed.count === 0) return false
+        } else {
+          await tx.supportEntitlement.updateMany({
+            where: { id: entitlement.id, status: SupportEntitlementStatus.EXPIRED },
+            data: { roleSyncStatus: SupportRoleSyncStatus.PENDING },
+          })
+        }
+
+        await enqueue_discord_delivery(tx, {
+          dedupeKey: `support:${entitlement.id}:role-remove:${entitlement.expiresAt.toISOString()}`,
+          kind: 'support_role_remove',
+          guildId: entitlement.guildId,
+          userId: entitlement.userId,
+          payload: { entitlementId: entitlement.id, expiresAt: entitlement.expiresAt.toISOString() },
+        })
+        return true
       })
-      await this.remove_entitlement_role(client, entitlement.id)
-      await this.audit(entitlement.guildId, entitlement.userId, null, 'support.entitlement_expired', { roleId: entitlement.roleId })
+
+      if (queued) {
+        await this.audit(entitlement.guildId, entitlement.userId, null, 'support.entitlement_expired', { roleId: entitlement.roleId })
+      }
     }
   }
 
-  async run_reminder_batch(client: Client) {
+  async run_reminder_batch(_client: Client) {
     const configs = await prisma.guildSupportConfig.findMany({
       where: { enabled: true, reminderEnabled: true },
       select: { guildId: true, reminderDaysBefore: true },
@@ -485,29 +506,27 @@ class SupportService {
       })
 
       for (const entitlement of entitlements) {
-        const guild = await client.guilds.fetch(entitlement.guildId).catch(() => null)
-        if (!guild) continue
+        await prisma.$transaction(async (tx) => {
+          const claimed = await tx.supportEntitlement.updateMany({
+            where: {
+              id: entitlement.id,
+              guildId: config.guildId,
+              status: SupportEntitlementStatus.ACTIVE,
+              expiresAt: { gte: window_start, lte: window_end },
+              lastReminderAt: null,
+            },
+            data: { lastReminderAt: now },
+          })
+          if (claimed.count === 0) return
 
-        const claimed = await prisma.supportEntitlement.updateMany({
-          where: {
-            id: entitlement.id,
-            guildId: config.guildId,
-            status: SupportEntitlementStatus.ACTIVE,
-            expiresAt: { gte: window_start, lte: window_end },
-            lastReminderAt: null,
-          },
-          data: { lastReminderAt: new Date() },
+          await enqueue_discord_delivery(tx, {
+            dedupeKey: `support:${entitlement.id}:reminder:${entitlement.expiresAt.toISOString()}`,
+            kind: 'support_reminder_dm',
+            guildId: entitlement.guildId,
+            userId: entitlement.userId,
+            payload: { entitlementId: entitlement.id, expiresAt: entitlement.expiresAt.toISOString() },
+          })
         })
-        if (claimed.count === 0) continue
-
-        const sent = await this.send_expiration_reminder_dm(client, guild, entitlement).catch((error) => {
-          logger.info({ err: safe_error_details(error), guildId: guild.id }, 'Support reminder DM could not be delivered')
-          return false
-        })
-
-        if (sent) {
-          await this.audit(entitlement.guildId, entitlement.userId, null, 'support.reminder_sent', { roleId: entitlement.roleId })
-        }
       }
     }
   }
@@ -952,6 +971,14 @@ class SupportService {
         },
       })
 
+      await enqueue_discord_delivery(tx, {
+        dedupeKey: `support:${payment.id}:payment-dm`,
+        kind: 'support_payment_dm',
+        guildId: payment.guildId,
+        userId: payment.userId,
+        payload: { entitlementId: entitlement.id, expiresAt: entitlement.expiresAt.toISOString() },
+      })
+
       return { entitlementId: entitlement.id, expiresAt: entitlement.expiresAt, alreadyFulfilled: false }
     })
   }
@@ -1014,27 +1041,6 @@ class SupportService {
     if (entitlement) {
       await this.audit(entitlement.guildId, entitlement.userId, null, 'support.role_sync_failed', { roleId: entitlement.roleId, reason })
     }
-  }
-
-  private async send_payment_dm(client: Client, guild: Guild, user_id: string, expires_at: Date) {
-    const user = await client.users.fetch(user_id)
-    await user.send({
-      content:
-        `Seu pagamento em **${guild.name}** foi confirmado e o cargo foi atualizado.\n` +
-        `Expira em: <t:${Math.floor(expires_at.getTime() / 1000)}:F>`,
-      allowedMentions: { parse: [] },
-    })
-  }
-
-  private async send_expiration_reminder_dm(client: Client, guild: Guild, entitlement: SupportEntitlement) {
-    const user = await client.users.fetch(entitlement.userId)
-    await user.send({
-      content:
-        `Seu apoio em **${guild.name}** expira em <t:${Math.floor(entitlement.expiresAt.getTime() / 1000)}:F>.\n` +
-        'Use `/apoiar` no servidor se quiser renovar.',
-      allowedMentions: { parse: [] },
-    })
-    return true
   }
 
   private async audit(guild_id: string, user_id: string | null, payment_id: string | null, action: string, metadata: Record<string, unknown>) {

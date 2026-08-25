@@ -1,6 +1,7 @@
 import { prisma } from '@yuebot/database'
 
 import { aniListService, type anilist_anime, type anilist_manga } from './anilist.service'
+import { enqueue_discord_delivery } from './discordDelivery.service'
 
 type anilist_media_type = 'anime' | 'manga'
 
@@ -270,6 +271,73 @@ class AniListWatchlistService {
         nextAiringEpisode: input.nextAiringEpisode ?? null,
         nextCheckAt: input.nextCheckAt,
       },
+    })
+  }
+
+  async queue_episode_notifications(input: {
+    id: string
+    userId: string
+    title: string
+    siteUrl: string | null
+    imageUrl: string | null
+    airingAt: number
+    episode: number
+    nextAiringAt: number | null
+    nextAiringEpisode: number | null
+    nextCheckAt: Date
+  }): Promise<boolean> {
+    const [dm_enabled, channels] = await Promise.all([
+      this.get_dm_enabled(input.userId),
+      this.list_channels_for_user(input.userId),
+    ])
+
+    return await prisma.$transaction(async (tx) => {
+      const claimed = await tx.aniListWatchlistItem.updateMany({
+        where: {
+          id: input.id,
+          OR: [
+            { lastNotifiedAiringAt: null },
+            { lastNotifiedAiringAt: { not: input.airingAt } },
+          ],
+        },
+        data: {
+          nextAiringAt: input.nextAiringAt,
+          nextAiringEpisode: input.nextAiringEpisode,
+          nextCheckAt: input.nextCheckAt,
+          lastNotifiedAiringAt: input.airingAt,
+        },
+      })
+      if (claimed.count === 0) return false
+
+      const payload = {
+        title: input.title,
+        siteUrl: input.siteUrl,
+        imageUrl: input.imageUrl,
+        airingAt: input.airingAt,
+        episode: input.episode,
+      }
+
+      if (dm_enabled) {
+        await enqueue_discord_delivery(tx, {
+          dedupeKey: `anilist:${input.id}:${input.airingAt}:dm`,
+          kind: 'anilist_episode_dm',
+          userId: input.userId,
+          payload,
+        })
+      }
+
+      for (const channel of channels) {
+        await enqueue_discord_delivery(tx, {
+          dedupeKey: `anilist:${input.id}:${input.airingAt}:channel:${channel.channelId}`,
+          kind: 'anilist_episode_channel',
+          guildId: channel.guildId,
+          userId: input.userId,
+          channelId: channel.channelId,
+          payload,
+        })
+      }
+
+      return true
     })
   }
 

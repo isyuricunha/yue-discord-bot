@@ -1,92 +1,91 @@
-import { FastifyInstance } from 'fastify'
-import { prisma } from '@yuebot/database'
+import type { FastifyInstance } from 'fastify'
+import { Prisma, prisma } from '@yuebot/database'
 import { memberModerationActionSchema, memberNotesUpdateSchema } from '@yuebot/shared'
 
-import { InternalBotApiError, get_guild_members, is_guild_admin, moderate_guild_member } from '../internal/bot_internal_api'
-import { safe_error_details } from '../utils/safe_error'
-import { can_access_guild } from '../utils/guild_access'
+import { InternalBotApiError, moderate_guild_member } from '../internal/bot_internal_api'
 import { public_error_message } from '../utils/public_error'
+import { safe_error_details } from '../utils/safe_error'
+import { parse_query_integer } from '../utils/pagination'
 import { validation_error_details } from '../utils/validation_error'
+import { requireGuildAdmin } from './guilds/authorization'
+
+function member_warning_filter(value: unknown): Prisma.IntFilter | number | undefined {
+  if (value === 'clean') return 0
+  if (value === 'low') return { gte: 1, lte: 3 }
+  if (value === 'high') return { gte: 4 }
+  return undefined
+}
 
 export async function membersRoutes(fastify: FastifyInstance) {
-  // Get all members for a guild
+  const admin = [fastify.authenticate, requireGuildAdmin]
+
   fastify.get('/guilds/:guildId/members', {
-    preHandler: [fastify.authenticate],
+    preHandler: admin,
   }, async (request, reply) => {
     const { guildId } = request.params as { guildId: string }
-    const user = request.user
+    const query = request.query && typeof request.query === 'object'
+      ? request.query as Record<string, unknown>
+      : {}
+    const page = parse_query_integer(query.page, { fallback: 1, min: 1 })
+    const limit = parse_query_integer(query.limit, { fallback: 12, min: 1, max: 100 })
+    const search = typeof query.search === 'string' ? query.search.trim().slice(0, 100) : ''
+    const warnings = member_warning_filter(query.warnings)
 
-    if (!can_access_guild(user, guildId)) {
-      return reply.code(403).send({ error: 'Forbidden' })
-    }
-
-    if (!user.isOwner) {
-      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
-      if (!isAdmin) {
-        return reply.code(403).send({ error: 'Forbidden' })
-      }
+    const where: Prisma.GuildMemberWhereInput = {
+      guildId,
+      ...(warnings !== undefined ? { warnings } : {}),
+      ...(search
+        ? {
+            OR: [
+              { username: { contains: search, mode: 'insensitive' } },
+              { userId: { contains: search } },
+            ],
+          }
+        : {}),
     }
 
     try {
-      const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
-      if (!guild) {
-        return reply.code(404).send({ error: 'Guild not found' })
-      }
+      const [total, members] = await Promise.all([
+        prisma.guildMember.count({ where }),
+        prisma.guildMember.findMany({
+          where,
+          orderBy: [{ username: 'asc' }, { userId: 'asc' }],
+          skip: (page - 1) * limit,
+          take: limit,
+          select: {
+            id: true,
+            userId: true,
+            username: true,
+            avatar: true,
+            joinedAt: true,
+            warnings: true,
+            notes: true,
+          },
+        }),
+      ])
 
-      // Always fetch fresh member data from Discord API
-      // This ensures we have the complete member list, not just those with warnings
-      const data = await get_guild_members(guildId, request.log)
-
-      // Update database with fresh data (upsert to handle new/updated members)
-      if (data.members.length > 0) {
-        await prisma.guildMember.createMany({
-          data: data.members
-            .filter((m) => Boolean(m.joinedAt))
-            .map((m) => ({
-              guildId,
-              userId: m.userId,
-              username: m.username,
-              avatar: m.avatar,
-              joinedAt: new Date(m.joinedAt as string),
-            })),
-          skipDuplicates: true,
-        })
-      }
-
-      // Return fresh data from Discord API, not stale database data
-      return reply.send({ success: true, members: data.members })
+      return reply.send({
+        success: true,
+        members,
+        total,
+        page,
+        limit,
+        totalPages: Math.max(1, Math.ceil(total / limit)),
+      })
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to list guild members')
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
 
-  // Get member details with history
   fastify.get('/guilds/:guildId/members/:userId', {
-    preHandler: [fastify.authenticate],
+    preHandler: admin,
   }, async (request, reply) => {
     const { guildId, userId } = request.params as { guildId: string; userId: string }
-    const user = request.user
-
-    if (!can_access_guild(user, guildId)) {
-      return reply.code(403).send({ error: 'Forbidden' })
-    }
-
-    if (!user.isOwner) {
-      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
-      if (!isAdmin) {
-        return reply.code(403).send({ error: 'Forbidden' })
-      }
-    }
 
     try {
       const member = await prisma.guildMember.findUnique({
-        where: {
-          userId_guildId: {
-            userId,
-            guildId,
-          },
-        },
+        where: { userId_guildId: { userId, guildId } },
         include: {
           modLogs: {
             orderBy: { createdAt: 'desc' },
@@ -95,10 +94,7 @@ export async function membersRoutes(fastify: FastifyInstance) {
         },
       })
 
-      if (!member) {
-        return reply.code(404).send({ error: 'Member not found' })
-      }
-
+      if (!member) return reply.code(404).send({ error: 'Member not found' })
       return reply.send({ success: true, member })
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to get member details')
@@ -106,61 +102,35 @@ export async function membersRoutes(fastify: FastifyInstance) {
     }
   })
 
-  // Update member notes
   fastify.patch('/guilds/:guildId/members/:userId', {
-    preHandler: [fastify.authenticate],
+    preHandler: admin,
   }, async (request, reply) => {
     const { guildId, userId } = request.params as { guildId: string; userId: string }
-    const user = request.user
-
     const parsed = memberNotesUpdateSchema.safeParse(request.body)
     if (!parsed.success) {
       const details = validation_error_details(fastify, parsed.error)
       return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
     }
 
-    const { notes } = parsed.data
-
-    if (!can_access_guild(user, guildId)) {
-      return reply.code(403).send({ error: 'Forbidden' })
-    }
-
-    if (!user.isOwner) {
-      const { isAdmin } = await is_guild_admin(guildId, user.userId, request.log)
-      if (!isAdmin) {
-        return reply.code(403).send({ error: 'Forbidden' })
-      }
-    }
-
     try {
       const member = await prisma.guildMember.update({
-        where: {
-          userId_guildId: {
-            userId,
-            guildId,
-          },
-        },
-        data: { notes },
+        where: { userId_guildId: { userId, guildId } },
+        data: { notes: parsed.data.notes },
       })
-
       return reply.send({ success: true, member })
     } catch (error: unknown) {
       const prismaError = error as { code?: unknown }
-      if (prismaError.code === 'P2025') {
-        return reply.code(404).send({ error: 'Member not found' })
-      }
-
+      if (prismaError.code === 'P2025') return reply.code(404).send({ error: 'Member not found' })
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to update member notes')
       return reply.code(500).send({ error: 'Internal server error' })
     }
   })
 
-  // Moderate member (ban/kick/timeout/etc)
   fastify.post('/guilds/:guildId/members/:userId/moderate', {
-    preHandler: [fastify.authenticate],
+    preHandler: admin,
   }, async (request, reply) => {
     const { guildId, userId } = request.params as { guildId: string; userId: string }
-    const user = request.user as { userId?: string } & Parameters<typeof can_access_guild>[0]
+    const moderator_id = request.user.userId
     const parsed = memberModerationActionSchema.safeParse(request.body)
 
     if (!parsed.success) {
@@ -168,39 +138,9 @@ export async function membersRoutes(fastify: FastifyInstance) {
       return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
     }
 
-    if (!can_access_guild(user, guildId)) {
-      return reply.code(403).send({ error: 'Forbidden' })
-    }
-
-    const guild = await prisma.guild.findUnique({ where: { id: guildId }, select: { id: true } })
-    if (!guild) {
-      return reply.code(404).send({ error: 'Guild not found' })
-    }
-
-    const moderator_id = user.userId
-    if (typeof moderator_id !== 'string' || moderator_id.length === 0) {
-      return reply.code(401).send({ error: 'Unauthorized' })
-    }
-
-    // Security: Explicitly verify admin privileges for moderation actions
-    // Bot owners can bypass this check, but regular users must be guild admins
-    if (!user.isOwner) {
-      const adminCheck = await is_guild_admin(guildId, moderator_id, request.log)
-      if (!adminCheck || adminCheck.isAdmin !== true) {
-        request.log.warn({ guildId, moderatorId: moderator_id }, 'Non-admin user attempted moderation action')
-        return reply.code(403).send({ error: 'Forbidden' })
-      }
-    }
-
     try {
       const action = parsed.data.action
-
-      const base = {
-        guildId,
-        action,
-        moderatorId: moderator_id,
-        userId,
-      } as const
+      const base = { guildId, action, moderatorId: moderator_id, userId } as const
 
       if (action === 'ban') {
         await moderate_guild_member({
@@ -231,22 +171,17 @@ export async function membersRoutes(fastify: FastifyInstance) {
             ? String((body as Record<string, unknown>).error)
             : null
 
-        // If it's a user/action error (4xx), return it as-is so the UI can show the real reason.
         if (upstream_status >= 400 && upstream_status < 500) {
-          const message = upstream_error && upstream_error.trim().length > 0
-            ? upstream_error
-            : `Request rejected by bot (status ${upstream_status})`
-          return reply.code(upstream_status).send({ error: message })
+          return reply.code(upstream_status).send({
+            error: upstream_error?.trim() || `Request rejected by bot (status ${upstream_status})`,
+          })
         }
 
         request.log.error(
           { err: safe_error_details(error), upstreamStatus: upstream_status, upstreamError: upstream_error },
           'Bot internal API returned server error'
         )
-
-        return reply
-          .code(502)
-          .send({ error: public_error_message(fastify, 'Failed to moderate member', 'Bad gateway') })
+        return reply.code(502).send({ error: public_error_message(fastify, 'Failed to moderate member', 'Bad gateway') })
       }
 
       request.log.error({ err: safe_error_details(error) }, 'Failed to moderate member via bot internal API')

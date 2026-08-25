@@ -17,6 +17,7 @@ import { InventoryExpirationScheduler } from '../services/inventoryExpirationSch
 import { AniListWatchlistScheduler } from '../services/anilistWatchlistScheduler'
 import { PollExpirationScheduler } from '../services/pollExpirationScheduler'
 import { SupportScheduler } from '../services/support/supportScheduler'
+import { DiscordDeliveryScheduler } from '../services/discordDeliveryScheduler'
 import { initModerationPersistenceService } from '../services/moderationPersistence.service'
 import { initPunishmentRoleService } from '../services/punishmentRole.service'
 import { get_llm_client } from '../services/llm_client_singleton'
@@ -141,6 +142,7 @@ export function createBotRuntime(): BotRuntime {
     await loadContextMenuCommands(client)
     logger.info(`✅ ${client.contextMenuCommands.size} context menu comando(s) carregado(s)`)
 
+    await lifecycle.start_service('Discord delivery scheduler', new DiscordDeliveryScheduler(client))
     await lifecycle.start_service('voice XP service', {
       start: () => voiceXpService.start(client),
       stop: () => voiceXpService.stop(),

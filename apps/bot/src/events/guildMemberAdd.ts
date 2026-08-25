@@ -6,9 +6,25 @@ import { welcomeService } from '../services/welcome.service'
 import { antiRaidService } from '../services/antiRaid.service'
 import { afkService } from '../services/afk.service'
 import { supportService } from '../services/support/support.service'
+import { upsert_guild_member_snapshot } from '../services/guildMemberSnapshot.service'
 import { logger } from '../utils/logger'
 
 export async function handleGuildMemberAdd(member: GuildMember) {
+  // Security gate first: during an active raid this also applies the configured action
+  // to the new member and avoids doing welcome/autorole/support work for the hostile join.
+  try {
+    const blocked_by_antiraid = await antiRaidService.trackJoin(member.guild.id, member)
+    if (blocked_by_antiraid) return
+  } catch (error) {
+    logger.error({ error }, 'Erro ao processar anti-raid (guildMemberAdd)')
+  }
+
+  try {
+    await upsert_guild_member_snapshot(member)
+  } catch (error) {
+    logger.error({ error }, 'Erro ao sincronizar snapshot do membro (guildMemberAdd)')
+  }
+
   // Auto-remove AFK when user joins (they're back)
   try {
     const existingAfk = await afkService.getAfk(member.id, member.guild.id);
@@ -55,10 +71,4 @@ export async function handleGuildMemberAdd(member: GuildMember) {
     logger.error({ error }, 'Erro ao processar mensagem de boas-vindas (guildMemberAdd)')
   }
 
-  // Track join for anti-raid detection
-  try {
-    await antiRaidService.trackJoin(member.guild.id, member)
-  } catch (error) {
-    logger.error({ error }, 'Erro ao processar anti-raid (guildMemberAdd)')
-  }
 }

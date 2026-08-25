@@ -62,6 +62,28 @@ model Guild {
   @@map("guilds")
 }
 
+model DiscordDelivery {
+  id          String    @id @default(cuid())
+  dedupeKey   String    @unique
+  kind        String
+  guildId     String?
+  userId      String?
+  channelId   String?
+  payload     Json
+  availableAt DateTime  @default(now())
+  claimedAt   DateTime?
+  deliveredAt DateTime?
+  failedAt    DateTime?
+  attempts    Int       @default(0)
+  lastError   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([deliveredAt, failedAt, availableAt, claimedAt], map: "discord_deliveries_due_idx")
+  @@index([guildId, createdAt], map: "discord_deliveries_guild_idx")
+  @@map("discord_deliveries")
+}
+
 model GuildDjConfig {
   id                 String   @id @default(cuid())
   guildId            String   @unique
@@ -91,11 +113,14 @@ model GuildAntiRaidConfig {
   notificationChannelId String?
   raidActive            Boolean   @default(false)
   lastRaidAt            DateTime?
+  raidEndsAt             DateTime?
   locked                Boolean   @default(false)
+  lockedEveryonePermissions String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
   guild                 Guild     @relation(fields: [guildId], references: [id], onDelete: Cascade)
 
+  @@index([raidActive, raidEndsAt], map: "guild_anti_raid_configs_raid_recovery_idx")
   @@map("guild_anti_raid_configs")
 }
 

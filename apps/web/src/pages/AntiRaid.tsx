@@ -8,7 +8,7 @@ import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
-import { Hash, X } from 'lucide-react'
+import { X } from 'lucide-react'
 
 const API_URL = getApiUrl()
 
@@ -35,7 +35,6 @@ interface AntiRaidConfig {
     action: antiraid_action
     duration: number
     exemptRoles: string[]
-    exemptChannels: string[]
     cooldown: number
     notificationChannelId: string | null
     raidActive: boolean
@@ -65,7 +64,6 @@ export default function AntiRaidPage() {
                 action: 'mute',
                 duration: 10,
                 exemptRoles: [],
-                exemptChannels: [],
                 cooldown: 300,
                 notificationChannelId: null,
                 raidActive: false,
@@ -166,29 +164,13 @@ export default function AntiRaidPage() {
         }
     }
 
-    const toggleExemptChannel = (channelId: string) => {
-        if (!channelId) return
-        const current = config.exemptChannels || []
-        if (current.includes(channelId)) {
-            setConfig({ ...config, exemptChannels: current.filter((id) => id !== channelId) })
-        } else {
-            setConfig({ ...config, exemptChannels: [...current, channelId] })
-        }
-    }
 
     const getRoleMap = () => {
         const map: Record<string, any> = {}
         for (const r of roles) map[r.id] = r
         return map
     }
-    const getChannelMap = () => {
-        const map: Record<string, any> = {}
-        for (const c of channels) map[c.id] = c
-        return map
-    }
-
     const roleMap = getRoleMap()
-    const channelMap = getChannelMap()
 
     return (
         <div className="mx-auto w-full max-w-7xl space-y-6">
@@ -432,10 +414,10 @@ export default function AntiRaidPage() {
                             </div>
 
                             <div className="text-sm text-muted-foreground">
-                                Configure cargos e canais específicos que nunca sofrerão ações do sistema Anti-Raide.
+                                Configure cargos que nunca sofrerão ações do sistema Anti-Raide.
                             </div>
 
-                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+                            <div className="max-w-xl">
                                 <div className="space-y-3">
                                     <div className="text-sm font-medium">Cargos Isentos</div>
                                     <Select value="" onValueChange={toggleExemptRole} disabled={isLoading}>
@@ -472,36 +454,6 @@ export default function AntiRaidPage() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-3">
-                                    <div className="text-sm font-medium">Canais Isentos</div>
-                                    <Select value="" onValueChange={toggleExemptChannel} disabled={isLoading}>
-                                        <option value="">Adicionar canal...</option>
-                                        {channels.map((c: any) => (
-                                            <option key={c.id} value={c.id}>
-                                                #{c.name}
-                                            </option>
-                                        ))}
-                                    </Select>
-                                    <div className="flex flex-wrap gap-2 mt-2">
-                                        {(config.exemptChannels || []).map((channelId) => {
-                                            const channel = channelMap[channelId]
-                                            return (
-                                                <Badge
-                                                    key={channelId}
-                                                    className="flex items-center gap-1.5 cursor-pointer hover:bg-destructive/20 hover:text-destructive hover:border-destructive transition-colors"
-                                                    onClick={() => toggleExemptChannel(channelId)}
-                                                >
-                                                    <Hash className="w-3 h-3 opacity-50" />
-                                                    {channel ? channel.name : channelId}
-                                                    <X className="w-3 h-3 ml-1 opacity-50" />
-                                                </Badge>
-                                            )
-                                        })}
-                                        {!(config.exemptChannels?.length) && (
-                                            <span className="text-xs text-muted-foreground italic">Nenhum canal isento</span>
-                                        )}
-                                    </div>
-                                </div>
                             </div>
                         </CardContent>
                     </Card>
