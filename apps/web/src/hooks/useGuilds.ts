@@ -2,7 +2,7 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import axios from 'axios'
 import { getApiUrl, getDiscordClientId } from '../env'
-import { toast } from 'sonner'
+import { toast_error } from '../store/toast'
 
 export interface Guild {
   id: string
@@ -83,7 +83,7 @@ export function useGuilds(options: UseGuildsOptions = {}): UseGuildsResult {
   useEffect(() => {
     if (queryIsError) {
       const errorMessage = queryError?.message || 'Não foi possível carregar seus servidores'
-      toast.error(errorMessage)
+      toast_error(errorMessage)
       console.error('Failed to fetch guilds:', queryError)
     }
   }, [queryIsError, queryError])

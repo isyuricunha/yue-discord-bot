@@ -203,7 +203,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
           {!collapsed && (
             <div className="flex items-center gap-3">
               <div className="grid h-9 w-9 place-items-center rounded-2xl bg-surface-raised border border-border/80 shadow-innerBorder">
-                <img src="/icon.png" alt="Yue logo - Control panel" className="h-5 w-5 rounded" />
+                <img src="/icon-192.png" alt="Yue logo - Control panel" className="h-5 w-5 rounded" />
               </div>
               <div className="leading-tight">
                 <div className="text-sm font-semibold">Yue</div>

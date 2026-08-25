@@ -39,7 +39,7 @@ export function getActionFormat(action: string) {
 import { useMutation } from '@tanstack/react-query'
 import axios from 'axios'
 import { getApiUrl } from '../../env'
-import { toast } from 'sonner'
+import { toast_error, toast_success } from '../../store/toast'
 import { ExternalLink } from 'lucide-react'
 
 const API_URL = getApiUrl()
@@ -57,10 +57,10 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
       })
     },
     onSuccess: (_, variables) => {
-      toast.success(`Ação ${variables.action.toUpperCase()} efetuada com sucesso!`)
+      toast_success(`Ação ${variables.action.toUpperCase()} efetuada com sucesso!`)
     },
     onError: (err: any) => {
-      toast.error(err.response?.data?.error || 'Erro ao aplicar ação de moderação.')
+      toast_error(err.response?.data?.error || 'Erro ao aplicar ação de moderação.')
     }
   })
 

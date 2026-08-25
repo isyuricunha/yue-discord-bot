@@ -3,7 +3,7 @@
  *
  * @returns {JSX.Element} Estrutura principal da aplicação
  */
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { matchPath, Outlet, useLocation } from 'react-router-dom'
 
 import { cn } from '../../lib/cn'
@@ -11,18 +11,25 @@ import { ToastViewport } from '../ui'
 import { Seo } from '../seo/seo'
 import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
-import { CommandPalette } from '../command_palette'
 import { useKeyboardShortcuts } from '../../hooks/use_keyboard'
 import { RouteLoading } from './route_loading'
 import { getPanelAssistantGuildId, PanelAssistantProvider } from '../panel-ai/PanelAssistantProvider'
-import { PanelAssistantDrawer } from '../panel-ai/PanelAssistantDrawer'
+import { useCommandPaletteStore } from '../../store/command_palette'
 
 const STORAGE_KEY = 'yuebot-sidebar-collapsed'
+
+const CommandPalette = lazy(() =>
+  import('../command_palette').then(({ CommandPalette }) => ({ default: CommandPalette })),
+)
+const PanelAssistantDrawer = lazy(() =>
+  import('../panel-ai/PanelAssistantDrawer').then(({ PanelAssistantDrawer }) => ({ default: PanelAssistantDrawer })),
+)
 
 export function AppShell() {
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
   const [ellaDrawerOpen, setEllaDrawerOpen] = useState(false)
+  const commandPaletteOpen = useCommandPaletteStore((state) => state.isOpen)
   const ellaTriggerRef = useRef<HTMLButtonElement>(null)
 
   useKeyboardShortcuts()
@@ -74,14 +81,22 @@ export function AppShell() {
           </div>
         </div>
 
-        <PanelAssistantDrawer
-          open={visibleEllaDrawer}
-          onClose={() => setEllaDrawerOpen(false)}
-          triggerRef={ellaTriggerRef}
-        />
+        {visibleEllaDrawer && (
+          <Suspense fallback={null}>
+            <PanelAssistantDrawer
+              open
+              onClose={() => setEllaDrawerOpen(false)}
+              triggerRef={ellaTriggerRef}
+            />
+          </Suspense>
+        )}
 
         <ToastViewport />
-        <CommandPalette />
+        {commandPaletteOpen && (
+          <Suspense fallback={null}>
+            <CommandPalette />
+          </Suspense>
+        )}
       </div>
     </PanelAssistantProvider>
   )

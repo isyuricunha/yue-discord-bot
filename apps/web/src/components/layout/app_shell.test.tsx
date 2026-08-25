@@ -93,7 +93,7 @@ describe('AppShell Ella integration', () => {
 
     const trigger = screen.getByRole('button', { name: 'Abrir Ella' })
     await user.click(trigger)
-    expect(screen.getAllByRole('complementary', { name: 'Assistente Ella' })).toHaveLength(1)
+    expect(await screen.findAllByRole('complementary', { name: 'Assistente Ella' })).toHaveLength(1)
     await screen.findByText('Shared history')
     await user.type(screen.getByLabelText('Campo de mensagem'), 'Shared draft')
 
@@ -117,7 +117,7 @@ describe('AppShell Ella integration', () => {
     const user = userEvent.setup()
     renderShell()
     await user.click(screen.getByRole('button', { name: 'Abrir Ella' }))
-    expect(screen.getByTestId('ella-drawer-portal')).toBeInTheDocument()
+    expect(await screen.findByTestId('ella-drawer-portal')).toBeInTheDocument()
     expect(document.body.style.overflow).toBe('hidden')
 
     await act(async () => navigateTo('/badges'))

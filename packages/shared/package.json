@@ -11,6 +11,12 @@
       "require": "./dist/index.js",
       "default": "./dist/index.js"
     },
+    "./env": {
+      "types": "./dist/env.d.ts",
+      "import": "./dist/esm/env.js",
+      "require": "./dist/env.js",
+      "default": "./dist/env.js"
+    },
     "./template_placeholders": {
       "types": "./dist/template_placeholders.d.ts",
       "import": "./dist/esm/template_placeholders.js",

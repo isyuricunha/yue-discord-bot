@@ -1,15 +1,15 @@
-import { useMemo } from 'react'
+import { lazy, Suspense } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useParams, useNavigate } from 'react-router-dom'
 import axios from 'axios'
 import { ArrowLeft, Users, Shield, Trophy, AlertCircle, Settings, FileText, User } from 'lucide-react'
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
 
 import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Skeleton } from '../components/ui'
 import { get_modlog_action_label } from '../lib/modlog'
 
 const API_URL = getApiUrl()
+const OverviewCharts = lazy(() => import('./components/OverviewCharts'))
 
 type guild_summary = {
   id: string
@@ -31,6 +31,7 @@ interface GuildStats {
     moderatorId: string
     reason: string | null
     createdAt: string
+    userName: string | null
   }[]
   actionsByType?: Record<string, number>
   chartData?: {
@@ -73,27 +74,8 @@ export default function OverviewPage() {
     },
   })
 
-  const {
-    data: members_data,
-  } = useQuery({
-    queryKey: ['members', guildId],
-    queryFn: async () => {
-      const response = await axios.get(`${API_URL}/api/guilds/${guildId}/members`)
-      return (response.data as { success: boolean; members: { userId: string; username: string; avatar: string | null }[] }).members
-    },
-  })
-
-  const member_by_id = useMemo(() => {
-    const map = new Map<string, string>()
-    for (const m of members_data ?? []) {
-      map.set(m.userId, m.username)
-    }
-    return map
-  }, [members_data])
-
-  function resolve_user(userId: string): string {
-    const name = member_by_id.get(userId)
-    return name ? `@${name}` : `#${userId.slice(-5)}`
+  function resolve_user(userId: string, userName: string | null): string {
+    return userName ? `@${userName}` : `#${userId.slice(-5)}`
   }
 
   const is_loading = guildLoading || statsLoading
@@ -248,64 +230,22 @@ export default function OverviewPage() {
 
       {/* Estatísticas Cronológicas */}
       {!is_loading && stats?.chartData && stats.chartData.length > 0 && (
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-sm font-medium mb-4">Ingresso de Membros (7 dias)</div>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height={256}>
-                  <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorMembers" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--cursor-accent-navy)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="var(--cursor-accent-navy)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--yu-border-default)" vertical={false} />
-                    <XAxis dataKey="date" stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--cursor-bg-popover)', borderColor: 'var(--yu-border-default)', borderRadius: 'var(--yu-radius-popover)', boxShadow: 'var(--cursor-floating-shadow)' }}
-                      itemStyle={{ color: 'var(--cursor-text-primary)' }}
-                    />
-                    <Area type="monotone" dataKey="newMembers" name="Novos Membros" stroke="var(--cursor-accent-navy)" fillOpacity={1} fill="url(#colorMembers)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-sm font-medium mb-4">Economia & Moderação (7 dias)</div>
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height={256}>
-                  <AreaChart data={stats.chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <defs>
-                      <linearGradient id="colorEcon" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--cursor-accent-yellow)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="var(--cursor-accent-yellow)" stopOpacity={0} />
-                      </linearGradient>
-                      <linearGradient id="colorMod" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--cursor-accent-red)" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="var(--cursor-accent-red)" stopOpacity={0} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--yu-border-default)" vertical={false} />
-                    <XAxis dataKey="date" stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} />
-                    <YAxis stroke="var(--cursor-text-muted)" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}`} />
-                    <Tooltip
-                      contentStyle={{ backgroundColor: 'var(--cursor-bg-popover)', borderColor: 'var(--yu-border-default)', borderRadius: 'var(--yu-radius-popover)', boxShadow: 'var(--cursor-floating-shadow)' }}
-                      itemStyle={{ color: 'var(--cursor-text-primary)' }}
-                    />
-                    <Area type="monotone" dataKey="economy" name="Transações Globais" stroke="var(--cursor-accent-yellow)" fillOpacity={1} fill="url(#colorEcon)" />
-                    <Area type="monotone" dataKey="moderationActions" name="Ações de Mod." stroke="var(--cursor-accent-red)" fillOpacity={1} fill="url(#colorMod)" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+        <Suspense
+          fallback={
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+              {[0, 1].map((index) => (
+                <Card key={index}>
+                  <CardContent className="p-6">
+                    <Skeleton className="mb-4 h-4 w-48" />
+                    <Skeleton className="h-64 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          }
+        >
+          <OverviewCharts data={stats.chartData} />
+        </Suspense>
       )}
 
       {Boolean(stats?.actionsByType && Object.keys(stats.actionsByType).length > 0) && (
@@ -360,7 +300,7 @@ export default function OverviewPage() {
                         <span className="text-muted-foreground">Usuário:</span>{' '}
                         <span className="inline-flex items-center gap-1 font-medium">
                           <User className="h-3 w-3 text-muted-foreground" />
-                          {resolve_user(action.userId)}
+                          {resolve_user(action.userId, action.userName)}
                         </span>
                       </div>
                       {action.reason && (

@@ -5,6 +5,7 @@
  */
 import { useEffect, useCallback } from 'react'
 import { useNavigate, useParams, useLocation } from 'react-router-dom'
+import { useCommandPaletteStore } from '../store/command_palette'
 
 type shortcut_handler = (e: KeyboardEvent) => void
 
@@ -16,6 +17,7 @@ export function useKeyboardShortcuts() {
   const navigate = useNavigate()
   const { guildId } = useParams()
   const location = useLocation()
+  const toggleCommandPalette = useCommandPaletteStore((state) => state.toggle)
 
   const goBack = useCallback(() => {
     if (location.pathname !== '/') {
@@ -67,7 +69,13 @@ export function useKeyboardShortcuts() {
     let bufferTimeout: ReturnType<typeof setTimeout> | null = null
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if meta/ctrl key is pressed (except for specific combos)
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        toggleCommandPalette()
+        return
+      }
+
+      // Ignore other meta/ctrl shortcuts.
       if (e.metaKey || e.ctrlKey) return
 
       // Ignore if typing in input fields (except Escape)
@@ -104,5 +112,5 @@ export function useKeyboardShortcuts() {
       window.removeEventListener('keydown', handleKeyDown)
       if (bufferTimeout) clearTimeout(bufferTimeout)
     }
-  }, [goBack, goToDashboard, goToGuild, location.pathname, guildId])
+  }, [goBack, goToDashboard, goToGuild, location.pathname, guildId, toggleCommandPalette])
 }

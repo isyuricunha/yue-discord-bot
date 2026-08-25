@@ -1,4 +1,4 @@
-import { load_env } from '@yuebot/shared';
+import { load_env } from '@yuebot/shared/env';
 import { parse_livepix_encryption_key } from '@yuebot/livepix';
 
 const REQUIRED_RUNTIME_ENV_VARS = [

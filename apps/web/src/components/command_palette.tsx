@@ -18,7 +18,7 @@ type command_item = {
 }
 
 export function CommandPalette() {
-  const { isOpen, close, toggle } = useCommandPaletteStore()
+  const { isOpen, close } = useCommandPaletteStore()
   const [query, setQuery] = React.useState('')
   const [selectedIndex, setSelectedIndex] = React.useState(0)
   const navigate = useNavigate()
@@ -279,10 +279,6 @@ export function CommandPalette() {
 
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-        e.preventDefault()
-        toggle()
-      }
       if (e.key === 'Escape' && isOpen) {
         e.preventDefault()
         close()
