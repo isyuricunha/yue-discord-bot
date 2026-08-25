@@ -1,0 +1,121 @@
+name: Web performance migration v2
+
+on:
+  push:
+    branches:
+      - perf/web-runtime-optimization
+    paths:
+      - .github/workflows/web-perf-migration-v2.yml
+
+permissions:
+  contents: write
+
+jobs:
+  migrate:
+    runs-on: ubuntu-24.04
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v7
+        with:
+          ref: perf/web-runtime-optimization
+          fetch-depth: 1
+
+      - name: Replay migration and update lazy-load tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 <<'PY'
+          from pathlib import Path
+          import subprocess
+
+          workflow = Path('.github/workflows/web-perf-migration.yml').read_text().splitlines()
+
+          def extract_run(step_name: str) -> str:
+              marker = f'      - name: {step_name}'
+              try:
+                  start = workflow.index(marker)
+              except ValueError as exc:
+                  raise RuntimeError(f'missing source step: {step_name}') from exc
+
+              run_line = None
+              for index in range(start + 1, len(workflow)):
+                  line = workflow[index]
+                  if line.startswith('      - name: '):
+                      break
+                  if line == '        run: |':
+                      run_line = index + 1
+                      break
+              if run_line is None:
+                  raise RuntimeError(f'missing run block: {step_name}')
+
+              block = []
+              for line in workflow[run_line:]:
+                  if line and not line.startswith('          '):
+                      break
+                  block.append(line[10:] if line.startswith('          ') else '')
+              return '\n'.join(block)
+
+          for step in ('Apply web performance changes', 'Optimize Yue image assets'):
+              subprocess.run(['bash', '-euo', 'pipefail', '-c', extract_run(step)], check=True)
+
+          test_path = Path('apps/web/src/components/layout/app_shell.test.tsx')
+          test = test_path.read_text()
+          old = "    expect(screen.getAllByRole('complementary', { name: 'Assistente Ella' })).toHaveLength(1)"
+          new = "    expect(await screen.findAllByRole('complementary', { name: 'Assistente Ella' })).toHaveLength(1)"
+          if test.count(old) != 1:
+              raise RuntimeError('expected cold drawer assertion not found exactly once')
+          test = test.replace(old, new, 1)
+
+          old_mobile = "    expect(screen.getByTestId('ella-drawer-portal')).toBeInTheDocument()"
+          new_mobile = "    expect(await screen.findByTestId('ella-drawer-portal')).toBeInTheDocument()"
+          if test.count(old_mobile) != 1:
+              raise RuntimeError('expected cold mobile drawer assertion not found exactly once')
+          test_path.write_text(test.replace(old_mobile, new_mobile, 1))
+          PY
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Refresh lockfile
+        run: pnpm install --lockfile-only
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate lint
+        run: pnpm lint
+
+      - name: Validate type-check
+        run: pnpm type-check
+
+      - name: Validate tests
+        run: pnpm test
+
+      - name: Build and capture bundle sizes
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm build 2>&1 | tee /tmp/web-perf-build.log
+          echo '--- Web bundle summary ---'
+          grep 'apps/web build: dist/' /tmp/web-perf-build.log || true
+
+      - name: Commit validated optimization
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm .github/workflows/web-perf-migration.yml
+          rm .github/workflows/web-perf-migration-v2.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git diff --cached --stat
+          git commit -m 'perf(web): reduce initial payload and overview cost'
+          git push origin HEAD:perf/web-runtime-optimization
