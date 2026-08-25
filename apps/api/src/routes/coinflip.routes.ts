@@ -268,18 +268,10 @@ export async function coinflipRoutes(fastify: FastifyInstance) {
       await tx.wallet.upsert({ where: { userId: game.challengerId }, update: {}, create: { userId: game.challengerId, balance: 0n } })
       await tx.wallet.upsert({ where: { userId: game.opponentId }, update: {}, create: { userId: game.opponentId, balance: 0n } })
 
-      // Use SELECT FOR UPDATE to acquire row-level locks, preventing race conditions
-      // Using type assertion as Prisma types may not fully recognize the 'for' option
-      const challenger_wallet = await (tx.wallet.findFirst as any)({
-        where: { userId: game.challengerId },
-        select: { balance: true },
-        for: 'update',
-      })
-      const opponent_wallet = await (tx.wallet.findFirst as any)({
-        where: { userId: game.opponentId },
-        select: { balance: true },
-        for: 'update',
-      })
+      const [challenger_wallet, opponent_wallet] = await Promise.all([
+        tx.wallet.findUnique({ where: { userId: game.challengerId }, select: { balance: true } }),
+        tx.wallet.findUnique({ where: { userId: game.opponentId }, select: { balance: true } }),
+      ])
 
       const bet = game.betAmount
 

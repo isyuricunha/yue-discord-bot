@@ -380,15 +380,20 @@ model OwnerActionLog {
   @@map("owner_action_logs")
 }
 
-model Session {
-  id        String   @id @default(cuid())
-  userId    String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
 
-  @@index([userId])
-  @@map("sessions")
+model VoiceXpSession {
+  id            String   @id @default(cuid())
+  guildId       String
+  userId        String
+  username      String?
+  startedAt     DateTime
+  lastAwardedAt DateTime
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([guildId, userId])
+  @@index([lastAwardedAt])
+  @@map("voice_xp_sessions")
 }
 
 model GuildXpConfig {
@@ -1463,8 +1468,7 @@ model UserCommandCooldown {
   commandName String
   usedAt      DateTime @default(now())
 
-  @@index([guildId, userId, commandName])
-  @@index([usedAt])
+  @@unique([guildId, userId, commandName])
   @@map("user_command_cooldowns")
 }
 

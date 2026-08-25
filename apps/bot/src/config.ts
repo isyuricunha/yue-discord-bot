@@ -1,26 +1,8 @@
-import { load_env } from '@yuebot/shared/env';
+import { load_env, parse_env_boolean, parse_env_csv, parse_env_port, parse_env_positive_int } from '@yuebot/shared/env';
 import { parse_livepix_encryption_key } from '@yuebot/livepix';
 
 load_env();
 
-function parse_int_env(value: string | undefined, fallback: number) {
-  if (value === undefined) return fallback;
-  const parsed = Number.parseInt(value, 10);
-  if (Number.isNaN(parsed)) return fallback;
-  return parsed;
-}
-
-function parse_csv_env(value: string | undefined) {
-  return (value ?? '')
-    .split(',')
-    .map((v) => v.trim())
-    .filter(Boolean);
-}
-
-function parse_boolean_env(value: string | undefined, fallback: boolean) {
-  if (value === undefined) return fallback
-  return ['1', 'true', 'yes', 'on'].includes(value.toLowerCase())
-}
 
 function required_env(name: string): string {
   const value = process.env[name]
@@ -44,7 +26,7 @@ function required_env_one_of(names: string[], label: string): string {
   )
 }
 
-const internal_api_port = parse_int_env(process.env.BOT_INTERNAL_PORT, 3100)
+const internal_api_port = parse_env_port(process.env.BOT_INTERNAL_PORT, 3100)
 
 export const CONFIG = {
   discord: {
@@ -54,11 +36,12 @@ export const CONFIG = {
   internalApi: {
     host: process.env.BOT_INTERNAL_BIND_HOST || process.env.BOT_INTERNAL_HOST || '127.0.0.1',
     port: internal_api_port,
+    maxBodyBytes: parse_env_positive_int(process.env.INTERNAL_API_MAX_BODY_BYTES, 65_536, 1024 * 1024),
     secret: process.env.INTERNAL_API_SECRET || '',
   },
   readiness: {
     host: process.env.BOT_READINESS_HOST || process.env.BOT_INTERNAL_BIND_HOST || process.env.BOT_INTERNAL_HOST || '127.0.0.1',
-    port: parse_int_env(process.env.BOT_READINESS_PORT, internal_api_port + 1),
+    port: parse_env_port(process.env.BOT_READINESS_PORT, internal_api_port + 1),
   },
   database: {
     url: process.env.DATABASE_URL || '',
@@ -66,20 +49,20 @@ export const CONFIG = {
   environment: process.env.NODE_ENV || 'development',
   logLevel: process.env.LOG_LEVEL || 'info',
   admin: {
-    ownerUserIds: parse_csv_env(process.env.OWNER_USER_IDS),
-    badgeAdminUserIds: parse_csv_env(process.env.BADGE_ADMIN_USER_IDS),
-    fanArtReviewerUserIds: parse_csv_env(process.env.FAN_ART_REVIEWER_USER_IDS),
+    ownerUserIds: parse_env_csv(process.env.OWNER_USER_IDS),
+    badgeAdminUserIds: parse_env_csv(process.env.BADGE_ADMIN_USER_IDS),
+    fanArtReviewerUserIds: parse_env_csv(process.env.FAN_ART_REVIEWER_USER_IDS),
   },
   redis: {
     url: process.env.REDIS_URL || 'redis://localhost:6379',
   },
   livePix: {
-    enabled: parse_boolean_env(process.env.LIVEPIX_ENABLED, false),
+    enabled: parse_env_boolean(process.env.LIVEPIX_ENABLED, false),
     clientId: process.env.LIVEPIX_CLIENT_ID || '',
     clientSecret: process.env.LIVEPIX_CLIENT_SECRET || '',
     paymentReturnUrl: process.env.LIVEPIX_PAYMENT_RETURN_URL || process.env.LIVEPIX_RETURN_URL || '',
     tokenEncryptionKey: process.env.LIVEPIX_TOKEN_ENCRYPTION_KEY || '',
-    ownerGuildIds: parse_csv_env(process.env.LIVEPIX_OWNER_GUILD_IDS),
+    ownerGuildIds: parse_env_csv(process.env.LIVEPIX_OWNER_GUILD_IDS),
   },
 } as const;
 
@@ -98,7 +81,7 @@ export function assert_bot_runtime_env(): void {
     throw new Error('INTERNAL_API_SECRET deve ter no mínimo 32 caracteres')
   }
 
-  if (parse_boolean_env(process.env.LIVEPIX_ENABLED, false)) {
+  if (parse_env_boolean(process.env.LIVEPIX_ENABLED, false)) {
     const missing = [
       'LIVEPIX_CLIENT_ID',
       'LIVEPIX_CLIENT_SECRET',

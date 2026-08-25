@@ -31,6 +31,7 @@ import { conversation_queue } from "../services/conversation_queue";
 import { is_within_continuation_window } from "../services/conversation_continuation";
 import {
 	build_user_prompt_from_invocation,
+	contains_yue_keyword,
 	remove_bot_mention,
 	remove_leading_yue,
 } from "../services/conversation_invocation";
@@ -254,18 +255,26 @@ export async function handleMessageCreate(message: Message) {
 	const llm_client = get_llm_client();
 	if (llm_client) {
 		const key = conversation_key_from_message(message);
+		const bot_user_id = message.client.user?.id ?? null;
+		const mentions_bot = bot_user_id ? message.mentions.users.has(bot_user_id) : false;
+		const conversation_backend = get_conversation_backend();
+		const continuation_seconds = parse_int_env(
+			process.env.AI_CONTEXT_CONTINUATION_SECONDS,
+			120
+		);
+		const initial_last_activity = await conversation_backend
+			.get_last_activity_ms(key)
+			.catch(() => null);
+		const recently_active = is_within_continuation_window({
+			now_ms: Date.now(),
+			last_activity_ms: typeof initial_last_activity === "number" ? initial_last_activity : null,
+			continuation_seconds,
+		});
+		const explicit_invocation = mentions_bot || contains_yue_keyword(message.content ?? "");
+		const has_reply_reference = Boolean(message.reference?.messageId);
 
-		await conversation_queue.run(key, async () => {
-			const bot_user_id = message.client.user?.id ?? null;
-			const mentions_bot = bot_user_id
-				? message.mentions.users.has(bot_user_id)
-				: false;
-
-			const conversation_backend = get_conversation_backend();
-			const continuation_seconds = parse_int_env(
-				process.env.AI_CONTEXT_CONTINUATION_SECONDS,
-				120
-			);
+		if (explicit_invocation || has_reply_reference || recently_active) {
+			await conversation_queue.run(key, async () => {
 			const last_activity = await conversation_backend
 				.get_last_activity_ms(key)
 				.catch(() => null);
@@ -411,7 +420,8 @@ Question: ${user_prompt}`
 					}
 				}
 			}
-		});
+			});
+		}
 	}
 
 	try {

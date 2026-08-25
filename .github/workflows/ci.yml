@@ -29,9 +29,25 @@ jobs:
   checks:
     name: checks
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: yuebot
+          POSTGRES_DB: yuebot_test
+          POSTGRES_HOST_AUTH_METHOD: trust
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U yuebot -d yuebot_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
       DSLIM_NO_HEALTHCHECK: true
+      DATABASE_URL: postgresql://yuebot@127.0.0.1:5432/yuebot_test
+      RUN_DATABASE_INTEGRATION: "1"
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
@@ -76,6 +92,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # Replay the complete migration history against an empty PostgreSQL database.
+      # Compatibility migrations keep already-applied historical checksums untouched
+      # while making fresh installs reproducible.
+      - name: Replay database migrations
+        working-directory: packages/database
+        run: pnpm exec prisma migrate deploy
+
+      - name: Verify migration schema has no drift
+        working-directory: packages/database
+        run: pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+
       - name: Lint
         run: pnpm lint
 
@@ -87,6 +114,9 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Dead-code audit
+        run: pnpm knip
 
   release-metadata:
     name: docker/release-metadata
