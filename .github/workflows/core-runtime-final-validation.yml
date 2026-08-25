@@ -1,0 +1,41 @@
+name: Core runtime final validation
+
+on:
+  push:
+    branches:
+      - fix/core-runtime-reliability
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    if: ${{ github.actor != 'github-actions[bot]' }}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.32.1
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Validate final branch state
+        run: |
+          rm .github/workflows/core-runtime-final-validation.yml
+          pnpm lint
+          pnpm type-check
+          pnpm test
+          pnpm build
+          pnpm knip
+      - name: Remove validation workflow
+        run: |
+          git config user.name 'Ella Mizuki'
+          git config user.email 'ella@yuricunha.com'
+          git add -A
+          git commit -m 'chore: finalize core runtime validation'
+          git push origin HEAD:fix/core-runtime-reliability
