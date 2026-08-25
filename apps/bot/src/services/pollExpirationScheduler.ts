@@ -35,11 +35,11 @@ export class PollExpirationScheduler {
       const stale_claim = new Date(now.getTime() - CLAIM_LEASE_MS)
       const expiredPolls = await prisma.poll.findMany({
         where: {
-endsAt: { lte: now },
-AND: [
-  { OR: [{ ended: false }, { expirationNotifiedAt: null }, { expirationMessageUpdatedAt: null }] },
-  { OR: [{ expirationClaimedAt: null }, { expirationClaimedAt: { lt: stale_claim } }] },
-],
+          endsAt: { lte: now },
+          AND: [
+            { OR: [{ ended: false }, { expirationNotifiedAt: null }, { expirationMessageUpdatedAt: null }] },
+            { OR: [{ expirationClaimedAt: null }, { expirationClaimedAt: { lt: stale_claim } }] },
+          ],
         },
         orderBy: { endsAt: 'asc' },
         take: 50,
@@ -82,32 +82,34 @@ AND: [
 
     try {
       if (!poll.expirationNotifiedAt) {
-        await pollService.sendPollExpirationNotification(
-this.client as unknown as Parameters<typeof pollService.sendPollExpirationNotification>[0],
-{
-  id: poll.id,
-  channelId: poll.channelId,
-  question: poll.question,
-  options: poll.options as poll_option[],
-}
+        const notified = await pollService.sendPollExpirationNotification(
+          this.client as unknown as Parameters<typeof pollService.sendPollExpirationNotification>[0],
+          {
+            id: poll.id,
+            channelId: poll.channelId,
+            question: poll.question,
+            options: poll.options as poll_option[],
+          }
         )
+        if (!notified) throw new Error('poll expiration notification was not sent')
         await prisma.poll.update({ where: { id: poll.id }, data: { expirationNotifiedAt: new Date() } })
       }
 
       if (!poll.expirationMessageUpdatedAt) {
-        await pollService.updatePollMessage(
-{
-  messageId: poll.messageId,
-  channelId: poll.channelId,
-  question: poll.question,
-  options: poll.options as poll_option[],
-  multiVote: poll.multiVote,
-  endsAt: poll.endsAt,
-  ended: true,
-  createdAt: poll.createdAt,
-},
-this.client as unknown as Parameters<typeof pollService.updatePollMessage>[1]
+        const message_updated = await pollService.updatePollMessage(
+          {
+            messageId: poll.messageId,
+            channelId: poll.channelId,
+            question: poll.question,
+            options: poll.options as poll_option[],
+            multiVote: poll.multiVote,
+            endsAt: poll.endsAt,
+            ended: true,
+            createdAt: poll.createdAt,
+          },
+          this.client as unknown as Parameters<typeof pollService.updatePollMessage>[1]
         )
+        if (!message_updated) throw new Error('poll message was not updated')
         await prisma.poll.update({ where: { id: poll.id }, data: { expirationMessageUpdatedAt: new Date() } })
       }
 
