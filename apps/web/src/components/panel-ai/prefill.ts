@@ -77,11 +77,15 @@ function next_task() {
   return new Promise<void>((resolve) => window.setTimeout(resolve, 0))
 }
 
+function delay(ms: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+}
+
 async function wait_for<T>(read: () => T | null, attempts = 20): Promise<T | null> {
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     const value = read()
     if (value) return value
-    await new Promise<void>((resolve) => window.setTimeout(resolve, 25))
+    await delay(25)
   }
   return null
 }
@@ -215,6 +219,18 @@ async function apply_change(
   return false
 }
 
+async function apply_change_with_retry(
+  pageKey: panel_ai_page_key,
+  change: panel_ai_prefill_change,
+  attempts = 24,
+): Promise<boolean> {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (await apply_change(pageKey, change)) return true
+    await delay(50)
+  }
+  return false
+}
+
 export async function apply_panel_ai_prefill_action(
   action: prefill_action,
   currentPageKey: panel_ai_page_key | null,
@@ -244,7 +260,7 @@ export async function apply_panel_ai_prefill_action(
   let applied = 0
   let failed = 0
   for (const change of ordered) {
-    if (await apply_change(action.pageKey, change)) applied += 1
+    if (await apply_change_with_retry(action.pageKey, change)) applied += 1
     else failed += 1
   }
 

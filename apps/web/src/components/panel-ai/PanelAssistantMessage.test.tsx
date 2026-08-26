@@ -140,4 +140,78 @@ describe('PanelAssistantMessage', () => {
     await waitFor(() => expect(screen.getByRole('button', { name: 'Aplicado' })).toBeDisabled())
     expect(toast_success).toHaveBeenCalledWith('Alteração aplicada e salva no servidor.', 'Ella')
   })
+
+  test('server apply works from the Ella page for a different configuration page', async () => {
+    window.history.pushState({}, '', '/guild/guild-1/assistant')
+    const action: panel_ai_action = {
+      id: 'prefill-ai-moderation',
+      type: 'prefill_form',
+      pageKey: 'automod',
+      label: 'Preparar 2 alterações',
+      changes: [
+        { target: 'aiModerationEnabled', targetLabel: 'Moderação por IA', value: true },
+        { target: 'aiModerationLevel', targetLabel: 'Nível de detecção', value: 'permissivo' },
+      ],
+    }
+
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          noop: false,
+          proposal: {
+            id: 'proposal-ai-moderation',
+            pageKey: 'automod',
+            expiresAt: new Date(Date.now() + 60_000).toISOString(),
+            changes: [
+              { target: 'aiModerationEnabled', targetLabel: 'Moderação por IA', before: false, after: true },
+              { target: 'aiModerationLevel', targetLabel: 'Nível de detecção', before: 'medio', after: 'permissivo' },
+            ],
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          success: true,
+          result: {
+            proposalId: 'proposal-ai-moderation',
+            pageKey: 'automod',
+            appliedAt: new Date().toISOString(),
+            replayed: false,
+            changes: [
+              { target: 'aiModerationEnabled', targetLabel: 'Moderação por IA', before: false, after: true },
+              { target: 'aiModerationLevel', targetLabel: 'Nível de detecção', before: 'medio', after: 'permissivo' },
+            ],
+          },
+        }),
+      })
+    vi.stubGlobal('fetch', fetchMock)
+
+    renderMessage(
+      <PanelAssistantMessage
+        role="assistant"
+        content="Posso ativar e deixar no permissivo."
+        actions={[action]}
+        onAction={vi.fn()}
+      />,
+    )
+
+    await userEvent.click(screen.getByRole('button', { name: 'Aplicar no servidor' }))
+    expect(await screen.findByRole('group', { name: 'Confirmação de alterações da Ella' })).toBeTruthy()
+    expect(screen.getByText('Desativado')).toBeTruthy()
+    expect(screen.getByText('Ativado')).toBeTruthy()
+    expect(screen.getByText('medio')).toBeTruthy()
+    expect(screen.getByText('permissivo')).toBeTruthy()
+
+    await userEvent.click(screen.getByRole('button', { name: 'Confirmar e salvar' }))
+
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Aplicado' })).toBeDisabled())
+    expect(window.location.pathname).toBe('/guild/guild-1/assistant')
+    expect(toast_success).toHaveBeenCalledWith('2 alterações aplicadas e salvas no servidor.', 'Ella')
+  })
 })
