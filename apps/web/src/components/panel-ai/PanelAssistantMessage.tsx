@@ -60,6 +60,18 @@ function display_apply_value(value: string | number | boolean) {
   return String(value)
 }
 
+function delay(ms: number) {
+  return new Promise<void>((resolve) => window.setTimeout(resolve, ms))
+}
+
+async function wait_for_page(pageKey: prefill_action['pageKey'], attempts = 40) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    if (resolvePanelAiPageContext(window.location.pathname)?.pageKey === pageKey) return true
+    await delay(50)
+  }
+  return false
+}
+
 export function PanelAssistantMessage({
   role,
   content,
@@ -101,7 +113,17 @@ export function PanelAssistantMessage({
     if (prefillingActionId) return
     setPrefillingActionId(action.id)
     try {
-      const currentPageKey = resolvePanelAiPageContext(window.location.pathname)?.pageKey ?? null
+      let currentPageKey = resolvePanelAiPageContext(window.location.pathname)?.pageKey ?? null
+      if (currentPageKey !== action.pageKey) {
+        onAction?.(action)
+        const reachedPage = await wait_for_page(action.pageKey)
+        if (!reachedPage) {
+          toast_error('Não foi possível abrir a página necessária para preparar a alteração.', 'Ella')
+          return
+        }
+        currentPageKey = action.pageKey
+      }
+
       const result = await apply_panel_ai_prefill_action(action, currentPageKey)
 
       if (result.applied === action.changes.length) {
@@ -111,11 +133,6 @@ export function PanelAssistantMessage({
             : `${action.changes.length} alterações preparadas. Revise e clique em Salvar se estiver tudo certo.`,
           'Ella',
         )
-        return
-      }
-
-      if (result.reason === 'wrong-page') {
-        toast_error('Essa sugestão só pode ser preparada na página em que foi proposta.', 'Ella')
         return
       }
 
@@ -135,11 +152,6 @@ export function PanelAssistantMessage({
 
   const prepareServerApply = React.useCallback(async (action: prefill_action) => {
     if (preparingServerActionId || confirmingProposalId) return
-    const currentPageKey = resolvePanelAiPageContext(window.location.pathname)?.pageKey ?? null
-    if (currentPageKey !== action.pageKey) {
-      toast_error('Essa aplicação só pode ser confirmada na página em que foi proposta.', 'Ella')
-      return
-    }
     const guildId = current_guild_id()
     if (!guildId) {
       toast_error('Não foi possível identificar o servidor atual.', 'Ella')
@@ -167,10 +179,9 @@ export function PanelAssistantMessage({
   const confirmServerApply = React.useCallback(async () => {
     if (!serverProposal || confirmingProposalId) return
     const guildId = current_guild_id()
-    const currentPageKey = resolvePanelAiPageContext(window.location.pathname)?.pageKey ?? null
-    if (!guildId || currentPageKey !== serverProposal.proposal.pageKey) {
+    if (!guildId) {
       setServerProposal(null)
-      toast_error('Você saiu da página da proposta. Peça uma nova alteração à Ella.', 'Ella')
+      toast_error('Não foi possível identificar o servidor atual.', 'Ella')
       return
     }
 
@@ -193,8 +204,7 @@ export function PanelAssistantMessage({
         return
       }
 
-      await apply_panel_ai_prefill_action(action, currentPageKey)
-      await queryClient.invalidateQueries()
+      const currentPageKey = resolvePanelAiPageContext(window.location.pathname)?.pageKey ?? null
       setAppliedActionIds((current) => new Set(current).add(action.id))
       setServerProposal(null)
       toast_success(
@@ -203,6 +213,11 @@ export function PanelAssistantMessage({
           : `${result.result.changes.length} alterações aplicadas e salvas no servidor.`,
         'Ella',
       )
+
+      await queryClient.invalidateQueries()
+      if (currentPageKey === action.pageKey) {
+        void apply_panel_ai_prefill_action(action, currentPageKey).catch(() => undefined)
+      }
     } finally {
       setConfirmingProposalId(null)
     }

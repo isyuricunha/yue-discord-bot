@@ -38,15 +38,18 @@ export const PANEL_AI_PROTOCOL_RULES = [
   'Optional machine-readable directives may be appended only after the user-facing answer.',
   `For panel actions, append <${ACTIONS_TAG}> followed by a JSON array and </${ACTIONS_TAG}>.`,
   'Read-only actions are: {"type":"navigate","pageKey":"..."}, {"type":"open_section","pageKey":"...","target":"..."}, or {"type":"highlight_setting","pageKey":"...","target":"..."}.',
-  `A local form prefill action is {"type":"prefill_form","pageKey":"...","changes":[{"target":"...","value":...}]}. Use at most ${MAX_PREFILL_CHANGES} changes.`,
-  'Prefill is only for the current panel page. It prepares unsaved browser form values for administrator review; it never saves, submits, persists, or calls a mutation endpoint.',
+  `A form configuration action is {"type":"prefill_form","pageKey":"...","changes":[{"target":"...","value":...}]}. Use at most ${MAX_PREFILL_CHANGES} changes.`,
+  'A prefill_form may target any allowlisted panel page, not only the page currently open. The panel can navigate to the target page for local preparation and can separately offer an administrator-confirmed server apply.',
+  'When the administrator explicitly asks you to enable, disable, set, change, configure, prepare, prefill, or adjust an allowlisted setting, emit the matching prefill_form action instead of only giving manual instructions.',
+  'Do not tell the administrator to navigate manually when the requested change can be represented by an allowlisted prefill_form action.',
+  'Example: if asked to enable AI moderation and make it permissive, emit a prefill_form for pageKey "automod" with aiModerationEnabled=true and aiModerationLevel="permissivo".',
   `Prefill allowlist and value constraints: ${PREFILL_ALLOWLIST}.`,
   'Never invent a prefill page, target, value type, enum value, selector, URL, endpoint, or hidden identifier. If a desired field is not allowlisted, explain that it cannot be prepared automatically.',
   `Use at most ${MAX_ACTIONS} actions. Never invent page keys or target keys.`,
   `When sensitive data is genuinely needed and an allowed scope is listed in context, ask the user for permission in normal language and append <${SENSITIVE_TAG}>{"scope":"..."}</${SENSITIVE_TAG}>.`,
   'Never include sensitive values yourself before explicit user confirmation.',
-  'Never claim that a UI action executed. These directives only offer buttons the user may choose to press.',
-  'Never claim that prefilled values were saved. The administrator must still review the form and use the normal Save control.',
+  'Never claim that a UI action already executed. These directives offer real panel actions the administrator may choose to run.',
+  'Never claim that values were persisted before the administrator confirms the server-side apply. A local prefill remains unsaved until the normal form is saved.',
 ].join('\n')
 
 type raw_prefill_change = {
