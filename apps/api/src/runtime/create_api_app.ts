@@ -35,8 +35,16 @@ export function createApiApp(): ApiAppResources {
         paths: ['req.headers.authorization', 'req.headers.cookie', 'res.headers["set-cookie"]'],
         remove: true,
       },
-      transport: CONFIG.environment === 'development'
-        ? { target: 'pino-pretty', options: { colorize: true } }
+      transport: CONFIG.logFormat === 'pretty'
+        ? {
+            target: 'pino-pretty',
+            options: {
+              colorize: Boolean(process.stdout.isTTY),
+              translateTime: 'SYS:HH:MM:ss',
+              ignore: 'pid,hostname',
+              messageFormat: '{msg}',
+            },
+          }
         : undefined,
     },
   });
