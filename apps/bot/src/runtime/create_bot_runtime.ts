@@ -29,6 +29,7 @@ import { initMusicService } from '../services/music.service'
 import { initDjModeService, djModeService } from '../services/dj_mode.service'
 import { antiRaidService } from '../services/antiRaid.service'
 import { voiceXpService } from '../services/voiceXp.service'
+import { install_serialized_message_xp } from '../services/xpWriteSerialization.service'
 import { RuntimeLifecycle } from './lifecycle'
 import { prune_stale_guilds_from_database, sync_guilds_to_database } from './guild_sync'
 import { register_discord_events } from './register_discord_events'
@@ -165,6 +166,7 @@ export function createBotRuntime(): BotRuntime {
     started = true
 
     assert_bot_runtime_env()
+    install_serialized_message_xp()
     register_discord_events(client)
 
     lifecycle.register_started('database', () => prisma.$disconnect())
