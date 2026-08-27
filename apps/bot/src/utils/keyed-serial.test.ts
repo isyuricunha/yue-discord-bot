@@ -40,22 +40,26 @@ test('KeyedSerialExecutor runs work for the same key sequentially', async () => 
 test('KeyedSerialExecutor allows different keys to run concurrently', async () => {
   const executor = new KeyedSerialExecutor()
   const release = deferred()
+  const started_a = deferred()
+  const started_b = deferred()
   const started: string[] = []
 
   const first = executor.run('guild:user-a', async () => {
     started.push('a')
+    started_a.resolve()
     await release.promise
   })
   const second = executor.run('guild:user-b', async () => {
     started.push('b')
+    started_b.resolve()
     await release.promise
   })
 
-  await Promise.resolve()
-  assert.deepEqual(started.sort(), ['a', 'b'])
-
+  await Promise.all([started_a.promise, started_b.promise])
   release.resolve()
   await Promise.all([first, second])
+
+  assert.deepEqual(started.sort(), ['a', 'b'])
 })
 
 test('KeyedSerialExecutor keeps the queue usable after a failed operation', async () => {
