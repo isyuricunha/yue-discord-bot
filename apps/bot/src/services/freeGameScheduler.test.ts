@@ -135,7 +135,7 @@ test('free-game notifications reserve durable deliveries before Discord I/O', as
 
   const completionLogs: Array<{ object: Record<string, unknown>; message: string }> = []
   testLogger.info = (object: Record<string, unknown>, message: string) => {
-    if (message === 'Verificação de jogos grátis concluída') {
+    if (message === '🎮 Jogos grátis: guild concluída') {
       completionLogs.push({ object, message })
     }
   }
