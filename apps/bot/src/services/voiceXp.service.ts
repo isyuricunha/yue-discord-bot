@@ -4,6 +4,7 @@ import { logger } from '../utils/logger'
 import { KeyedSerialExecutor } from '../utils/keyed-serial'
 import { with_serializable_retry } from '../utils/prisma-transaction'
 import { compute_level_from_xp, xpService } from './xp.service'
+import { run_serialized_xp_write } from './xpWriteSerialization.service'
 
 const MINUTE_MS = 60_000
 const FLUSH_INTERVAL_MS = 60_000
@@ -122,66 +123,68 @@ class VoiceXpService {
     return await this.session_operations.run(this.session_key(guild_id, user_id), async () => {
       const config = await xpService.get_config(guild_id)
 
-      return await with_serializable_retry(async (tx) => {
-        const session = await tx.voiceXpSession.findUnique({
-          where: { guildId_userId: { guildId: guild_id, userId: user_id } },
-        })
-        if (!session) return null
+      return await run_serialized_xp_write(guild_id, user_id, async () => {
+        return await with_serializable_retry(async (tx) => {
+          const session = await tx.voiceXpSession.findUnique({
+            where: { guildId_userId: { guildId: guild_id, userId: user_id } },
+          })
+          if (!session) return null
 
-        if (!config?.enabled || !config.voiceXpEnabled) {
-          await tx.voiceXpSession.delete({ where: { id: session.id } })
-          return null
-        }
+          if (!config?.enabled || !config.voiceXpEnabled) {
+            await tx.voiceXpSession.delete({ where: { id: session.id } })
+            return null
+          }
 
-        const minutes = voice_full_minutes(session.lastAwardedAt, now)
-        if (minutes <= 0) {
-          if (remove_after) await tx.voiceXpSession.delete({ where: { id: session.id } })
-          return null
-        }
+          const minutes = voice_full_minutes(session.lastAwardedAt, now)
+          if (minutes <= 0) {
+            if (remove_after) await tx.voiceXpSession.delete({ where: { id: session.id } })
+            return null
+          }
 
-        const configured_per_minute = config.xpPerVoiceMinute ?? 1
-        const legacy_per_minute = Math.floor((config.voiceXpRate ?? 10) / 10)
-        const xp_per_minute = configured_per_minute > 0 ? configured_per_minute : legacy_per_minute
-        const earned_xp = Math.max(0, minutes * xp_per_minute)
-        const checkpoint = advance_voice_checkpoint(session.lastAwardedAt, minutes)
+          const configured_per_minute = config.xpPerVoiceMinute ?? 1
+          const legacy_per_minute = Math.floor((config.voiceXpRate ?? 10) / 10)
+          const xp_per_minute = configured_per_minute > 0 ? configured_per_minute : legacy_per_minute
+          const earned_xp = Math.max(0, minutes * xp_per_minute)
+          const checkpoint = advance_voice_checkpoint(session.lastAwardedAt, minutes)
 
-        if (earned_xp <= 0) {
+          if (earned_xp <= 0) {
+            if (remove_after) await tx.voiceXpSession.delete({ where: { id: session.id } })
+            else await tx.voiceXpSession.update({ where: { id: session.id }, data: { lastAwardedAt: checkpoint } })
+            return null
+          }
+
+          const existing = await tx.guildXpMember.findUnique({
+            where: { userId_guildId: { userId: user_id, guildId: guild_id } },
+          })
+          const current_xp = existing?.xp ?? 0
+          const current_level = existing?.level ?? compute_level_from_xp(current_xp)
+          const new_xp = current_xp + earned_xp
+          const new_level = compute_level_from_xp(new_xp)
+
+          const updated = await tx.guildXpMember.upsert({
+            where: { userId_guildId: { userId: user_id, guildId: guild_id } },
+            create: {
+              userId: user_id,
+              guildId: guild_id,
+              xp: new_xp,
+              level: new_level,
+              prestige: 0,
+              lastVoiceXpAt: now,
+            },
+            update: {
+              xp: new_xp,
+              level: new_level,
+              lastVoiceXpAt: now,
+            },
+            select: { xp: true, updatedAt: true },
+          })
+
           if (remove_after) await tx.voiceXpSession.delete({ where: { id: session.id } })
           else await tx.voiceXpSession.update({ where: { id: session.id }, data: { lastAwardedAt: checkpoint } })
-          return null
-        }
 
-        const existing = await tx.guildXpMember.findUnique({
-          where: { userId_guildId: { userId: user_id, guildId: guild_id } },
-        })
-        const current_xp = existing?.xp ?? 0
-        const current_level = existing?.level ?? compute_level_from_xp(current_xp)
-        const new_xp = current_xp + earned_xp
-        const new_level = compute_level_from_xp(new_xp)
-
-        const updated = await tx.guildXpMember.upsert({
-          where: { userId_guildId: { userId: user_id, guildId: guild_id } },
-          create: {
-            userId: user_id,
-            guildId: guild_id,
-            xp: new_xp,
-            level: new_level,
-            prestige: 0,
-            lastVoiceXpAt: now,
-          },
-          update: {
-            xp: new_xp,
-            level: new_level,
-            lastVoiceXpAt: now,
-          },
-          select: { xp: true, updatedAt: true },
-        })
-
-        if (remove_after) await tx.voiceXpSession.delete({ where: { id: session.id } })
-        else await tx.voiceXpSession.update({ where: { id: session.id }, data: { lastAwardedAt: checkpoint } })
-
-        return { current_level, new_level, member_xp: updated }
-      }, { max_attempts: 10 })
+          return { current_level, new_level, member_xp: updated }
+        }, { max_attempts: 10 })
+      })
     })
   }
 
