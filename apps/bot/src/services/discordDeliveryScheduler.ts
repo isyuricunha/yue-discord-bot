@@ -275,7 +275,7 @@ export class DiscordDeliveryScheduler {
       .setDescription(oldEmbed.description || giveaway.description)
       .addFields(
         { name: '🏆 Vencedores', value: String(giveaway.winners.length), inline: true },
-        { name: '⏰ Finalizado', value: `<t:${Math.floor(Date.now() / 1000)}:R> (<t:${Math.floor(Date.now() / 1000)}:F>)`, inline: true },
+        { name: '⏰ Finalizado', value: `<t:${Math.floor(Date.now() / 1000)}:R>`, inline: true },
         { name: '📋 Participantes', value: String(giveaway.entries.length), inline: true },
       )
       .setColor(0xEF4444)
