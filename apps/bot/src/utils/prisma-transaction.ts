@@ -36,7 +36,8 @@ export function serializable_retry_delay_ms(
   const exponent = Math.max(0, Math.min(10, attempt - 1))
   const cap = Math.min(max, base * (2 ** exponent))
   const floor = Math.floor(cap / 2)
-  return floor + Math.floor(Math.max(0, Math.min(1, random())) * (cap - floor + 1))
+  const sample = Math.min(0.9999999999999999, Math.max(0, random()))
+  return floor + Math.floor(sample * (cap - floor + 1))
 }
 
 export async function with_serializable_retry<T>(
