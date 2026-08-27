@@ -18,6 +18,7 @@ import { AniListWatchlistScheduler } from '../services/anilistWatchlistScheduler
 import { PollExpirationScheduler } from '../services/pollExpirationScheduler'
 import { SupportScheduler } from '../services/support/supportScheduler'
 import { DiscordDeliveryScheduler } from '../services/discordDeliveryScheduler'
+import { RuntimeHeartbeatService } from '../services/runtimeHeartbeat.service'
 import { initModerationPersistenceService } from '../services/moderationPersistence.service'
 import { initPunishmentRoleService } from '../services/punishmentRole.service'
 import { get_llm_client } from '../services/llm_client_singleton'
@@ -156,6 +157,7 @@ export function createBotRuntime(): BotRuntime {
     await lifecycle.start_service('poll expiration scheduler', new PollExpirationScheduler(client))
     await lifecycle.start_service('free game scheduler', new FreeGameScheduler(client))
     await lifecycle.start_service('support scheduler', new SupportScheduler(client))
+    await lifecycle.start_service('runtime heartbeat', new RuntimeHeartbeatService(client))
   }
 
   async function start(): Promise<void> {
