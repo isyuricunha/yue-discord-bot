@@ -95,6 +95,7 @@ export const CONFIG = {
     timeWindowMs: parse_env_positive_int(process.env.RATE_LIMIT_TIME_WINDOW, 60 * 1000, 60 * 60 * 1000),
   },
   environment: process.env.NODE_ENV || 'development',
+  logFormat: process.env.LOG_FORMAT?.trim().toLowerCase() === 'json' ? 'json' : 'pretty',
 } as const;
 
 export function get_api_runtime_env_errors(env: NodeJS.ProcessEnv): string[] {

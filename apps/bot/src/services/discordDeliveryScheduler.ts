@@ -52,6 +52,17 @@ function required_number(value: unknown, name: string): number {
   return value
 }
 
+function delivery_log_data(row: DiscordDelivery, attempt: number) {
+  return {
+    deliveryId: row.id,
+    kind: row.kind,
+    guildId: row.guildId,
+    channelId: row.channelId,
+    userId: row.userId,
+    attempt,
+  }
+}
+
 export class DiscordDeliveryScheduler {
   private timer: NodeJS.Timeout | null = null
   private running = false
@@ -63,7 +74,7 @@ export class DiscordDeliveryScheduler {
     this.timer = setInterval(() => void this.run_once(), INTERVAL_MS)
     this.timer.unref?.()
     void this.run_once()
-    logger.info('📨 Durable Discord delivery scheduler started')
+    logger.info('📨 Scheduler de entregas Discord iniciado')
   }
 
   stop() {
@@ -110,6 +121,13 @@ export class DiscordDeliveryScheduler {
             where: { id: row.id },
             data: { deliveredAt: new Date(), claimedAt: null, lastError: null },
           })
+
+          const log_data = delivery_log_data(row, attempt)
+          if (row.kind === 'free_game_announcement') {
+            logger.info(log_data, '✅ Jogo grátis entregue no Discord')
+          } else {
+            logger.debug(log_data, '✅ Entrega Discord concluída')
+          }
         } catch (error) {
           const terminal = is_terminal_discord_delivery_error(error) || attempt >= MAX_ATTEMPTS
           const message = error_message(error)
@@ -123,9 +141,14 @@ export class DiscordDeliveryScheduler {
                   lastError: message,
                 },
           })
-          const log_data = { deliveryId: row.id, kind: row.kind, attempt, terminal, err: safe_error_details(error) }
-          if (terminal) logger.error(log_data, 'Durable Discord delivery permanently failed')
-          else logger.warn(log_data, 'Durable Discord delivery will retry')
+          const log_data = {
+            ...delivery_log_data(row, attempt),
+            terminal,
+            errorCode: error_code(error) || undefined,
+            err: safe_error_details(error),
+          }
+          if (terminal) logger.error(log_data, '❌ Entrega Discord falhou permanentemente')
+          else logger.warn(log_data, '⚠️ Entrega Discord falhou; nova tentativa agendada')
         }
       }
     } finally {

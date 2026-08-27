@@ -68,18 +68,18 @@ export function load_env(options: load_env_options = {}) {
   const envPath = candidates.find((candidate) => fs.existsSync(candidate));
 
   if (envPath) {
-    config({ path: envPath });
+    config({ path: envPath, quiet: true });
 
     const envLocalPath = path.resolve(path.dirname(envPath), '.env.local');
     if (fs.existsSync(envLocalPath)) {
-      config({ path: envLocalPath, override: true });
+      config({ path: envLocalPath, override: true, quiet: true });
     }
 
     apply_ai_prompt_path_aliases();
     return { loaded: true as const, path: envPath };
   }
 
-  config();
+  config({ quiet: true });
   apply_ai_prompt_path_aliases();
   return { loaded: false as const, path: undefined };
 }
