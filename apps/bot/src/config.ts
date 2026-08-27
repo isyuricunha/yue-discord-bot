@@ -48,6 +48,7 @@ export const CONFIG = {
   },
   environment: process.env.NODE_ENV || 'development',
   logLevel: process.env.LOG_LEVEL || 'info',
+  logFormat: process.env.LOG_FORMAT?.trim().toLowerCase() === 'json' ? 'json' : 'pretty',
   admin: {
     ownerUserIds: parse_env_csv(process.env.OWNER_USER_IDS),
     badgeAdminUserIds: parse_env_csv(process.env.BADGE_ADMIN_USER_IDS),
