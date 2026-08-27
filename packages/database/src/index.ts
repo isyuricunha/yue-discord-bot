@@ -17,7 +17,12 @@ export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
     adapter: prismaAdapter,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    // In production, Prisma query-engine errors are surfaced by the thrown
+    // exception and logged by the service that owns the operation. Keeping
+    // engine-level `error` logging enabled also prints transient SERIALIZABLE
+    // conflicts before the application retry layer can recover them, which
+    // makes healthy retries look like failures in container logs.
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : [],
   });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
