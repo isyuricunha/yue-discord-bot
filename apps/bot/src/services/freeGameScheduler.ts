@@ -266,7 +266,7 @@ export class FreeGameScheduler {
     this.intervalCheck = setInterval(() => void this.run_once(), intervalMs)
     setTimeout(() => void this.run_once(), 5000)
 
-    logger.info(`🎮 FreeGame scheduler iniciado (intervalo: ${intervalMinutes} minutos)`)
+    logger.info(`🎮 Jogos grátis: scheduler iniciado (${intervalMinutes} min)`)
   }
 
   async stop() {
@@ -274,7 +274,7 @@ export class FreeGameScheduler {
       clearInterval(this.intervalCheck)
       this.intervalCheck = null
     }
-    logger.info('🎮 FreeGame scheduler parado')
+    logger.info('🎮 Jogos grátis: scheduler parado')
   }
 
   private async run_once() {
@@ -283,7 +283,7 @@ export class FreeGameScheduler {
     try {
       await this.processGuildNotifications()
     } catch (error) {
-      logger.error({ err: safe_error_details(error) }, 'Erro ao processar notificações de jogos grátis')
+      logger.error({ err: safe_error_details(error) }, '❌ Jogos grátis: ciclo falhou')
     } finally {
       this.running = false
     }
@@ -299,21 +299,21 @@ export class FreeGameScheduler {
       })
 
       if (guildConfigs.length === 0) {
-        logger.info('🎮 Nenhuma guild com notificações de jogos grátis ativadas')
+        logger.info('🎮 Jogos grátis: nenhuma guild ativada')
         return
       }
 
-      logger.info(`🎮 Verificando jogos grátis para ${guildConfigs.length} guild(s)`)
+      logger.info({ guildCount: guildConfigs.length }, '🎮 Jogos grátis: verificando guilds')
 
       const catalog = await gamerPowerService.getAllGiveaways({ sortBy: 'date' })
       if (catalog.length === 0) {
-        logger.warn({ guildCount: guildConfigs.length }, '🎮 GamerPower não retornou giveaways ativos')
+        logger.warn({ guildCount: guildConfigs.length }, '⚠️ Jogos grátis: GamerPower retornou catálogo vazio')
         return
       }
 
       logger.info(
         { guildCount: guildConfigs.length, catalogCount: catalog.length },
-        '🎮 Catálogo de jogos grátis carregado',
+        '🎮 Jogos grátis: catálogo carregado',
       )
 
       const cycle = empty_summary(catalog.length)
@@ -342,7 +342,7 @@ export class FreeGameScheduler {
           failedGuildCount += 1
           logger.error(
             { err: safe_error_details(error), guildId: config.guildId },
-            'Erro ao processar notificações de jogos grátis para guild',
+            '❌ Jogos grátis: guild falhou',
           )
         }
       }
@@ -353,10 +353,10 @@ export class FreeGameScheduler {
           failedGuildCount,
           ...cycle,
         },
-        '🎮 Ciclo de jogos grátis concluído',
+        '🎮 Jogos grátis: ciclo concluído',
       )
     } catch (error) {
-      logger.error({ err: safe_error_details(error) }, 'Erro ao buscar configurações de notificações')
+      logger.error({ err: safe_error_details(error) }, '❌ Jogos grátis: falha ao carregar configurações')
     }
   }
 
@@ -371,7 +371,7 @@ export class FreeGameScheduler {
     const summary = empty_summary(catalog_count)
 
     if (!config.channelId) {
-      logger.warn({ guildId: config.guildId }, 'Guild sem canal configurado para notificações')
+      logger.warn({ guildId: config.guildId }, '⚠️ Jogos grátis: guild sem canal configurado')
       return summary
     }
 
@@ -518,19 +518,19 @@ export class FreeGameScheduler {
             summary.queuedCount += 1
             logger.info(
               { guildId: config.guildId, giveawayId: giveaway.id, title: giveaway.title },
-              'Notificação de jogo grátis enfileirada',
+              '📤 Jogo grátis enfileirado',
             )
           } else if (result === 'reopened') {
             summary.reopenedCount += 1
             logger.info(
               { guildId: config.guildId, giveawayId: giveaway.id, title: giveaway.title },
-              'Notificação de jogo grátis reaberta após falha anterior',
+              '♻️ Jogo grátis reaberto após falha anterior',
             )
           }
         } catch (error) {
           logger.error(
             { err: safe_error_details(error), guildId: config.guildId, giveawayId: giveaway.id },
-            'Erro ao enfileirar notificação de jogo grátis',
+            '❌ Jogo grátis: falha ao enfileirar',
           )
         }
       }
@@ -543,7 +543,7 @@ export class FreeGameScheduler {
 
     logger.info(
       { guildId: config.guildId, ...summary },
-      'Verificação de jogos grátis concluída',
+      '🎮 Jogos grátis: guild concluída',
     )
 
     return summary
