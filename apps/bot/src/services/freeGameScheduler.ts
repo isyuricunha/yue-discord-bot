@@ -1,27 +1,55 @@
-import { Client, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } from 'discord.js'
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, Client, EmbedBuilder } from 'discord.js'
 
 import { prisma } from '@yuebot/database'
-import { COLORS, EMOJIS } from '@yuebot/shared'
+import { COLORS } from '@yuebot/shared'
 
+import { normalize_http_url } from '../utils/http_url'
 import { logger } from '../utils/logger'
 import { safe_error_details } from '../utils/safe_error'
-import { normalize_http_url } from '../utils/http_url'
-import { enqueue_discord_delivery } from './discordDelivery.service'
+import { enqueue_discord_delivery, reopen_discord_delivery } from './discordDelivery.service'
 import {
-  gamerPowerService,
   GAMERPOWER_PLATFORMS,
   GAMERPOWER_TYPES,
+  gamerPowerService,
   getGiveawayUrl,
   type GamerPowerGiveaway,
 } from './gamerpower.service'
 
-// ============================================
-// Configuration - Scheduler interval (in minutes)
-// ============================================
-
 const DEFAULT_CHECK_INTERVAL_MINUTES = 15
+const FAILED_DELIVERY_REOPEN_COOLDOWN_MS = 60 * 60 * 1000
+const MAX_NOTIFICATIONS_PER_GUILD_PER_CYCLE = 3
 
-// Helper function to safely extract string array from Json field
+type guild_free_game_summary = {
+  catalogCount: number
+  matchedCount: number
+  newCount: number
+  queuedCount: number
+  reopenedCount: number
+  pendingCount: number
+  deliveredCount: number
+  failedCount: number
+  legacyAnnouncedCount: number
+}
+
+type giveaway_candidate = {
+  giveaway: GamerPowerGiveaway
+  mode: 'new' | 'reopen'
+}
+
+function empty_summary(catalog_count: number): guild_free_game_summary {
+  return {
+    catalogCount: catalog_count,
+    matchedCount: 0,
+    newCount: 0,
+    queuedCount: 0,
+    reopenedCount: 0,
+    pendingCount: 0,
+    deliveredCount: 0,
+    failedCount: 0,
+    legacyAnnouncedCount: 0,
+  }
+}
+
 function extractStringArray(value: unknown): string[] {
   if (Array.isArray(value)) {
     return value.filter((item): item is string => typeof item === 'string')
@@ -29,67 +57,89 @@ function extractStringArray(value: unknown): string[] {
   return []
 }
 
-/**
- * Normalizes the platforms field from GamerPower API response.
- * Handles cases where platforms might be a string, array, or null/undefined.
- * @param platforms - The platforms field from API response
- * @returns Normalized array of platform strings
- */
 function normalizePlatforms(platforms: unknown): string[] {
-  // If it's already a valid array, return filtered string array
   if (Array.isArray(platforms)) {
-    return platforms.filter(
-      (p): p is string => typeof p === 'string'
-    )
+    return platforms.filter((p): p is string => typeof p === 'string')
   }
-  // If it's a string, try to parse as JSON or treat as comma-separated
+
   if (typeof platforms === 'string') {
     try {
       const parsed = JSON.parse(platforms)
       if (Array.isArray(parsed)) {
-        return parsed.filter(
-          (p): p is string => typeof p === 'string'
-        )
+        return parsed.filter((p): p is string => typeof p === 'string')
       }
     } catch {
-      // Treat as comma-separated list
-      return platforms.split(',').map((s) => s.trim()).filter(Boolean)
+      return platforms.split(',').map((value) => value.trim()).filter(Boolean)
     }
   }
-  // Return empty array for null, undefined, or other types
+
   return []
 }
 
+function canonicalPlatformId(platform: string): string {
+  const normalized = platform.trim().toLowerCase().replace(/\s+/g, ' ')
+  const aliases: Record<string, string> = {
+    pc: 'pc',
+    steam: 'steam',
+    'epic games': 'epic-games-store',
+    'epic games store': 'epic-games-store',
+    'epic-games-store': 'epic-games-store',
+    gog: 'gog',
+    'itch.io': 'itch.io',
+    itchio: 'itch.io',
+    xbox: 'xbox',
+    'xbox one': 'xbox',
+    'xbox-one': 'xbox',
+    'xbox series x/s': 'xbox-series-xs',
+    'xbox series x|s': 'xbox-series-xs',
+    'xbox-series-xs': 'xbox-series-xs',
+    ps4: 'ps4',
+    'playstation 4': 'ps4',
+    ps5: 'ps5',
+    'playstation 5': 'ps5',
+    switch: 'switch',
+    'nintendo switch': 'switch',
+    android: 'android',
+    ios: 'ios',
+    vr: 'vr',
+    ubisoft: 'ubisoft',
+    'ubisoft connect': 'ubisoft',
+    battlenet: 'battlenet',
+    'battle.net': 'battlenet',
+    origin: 'origin',
+    'ea origin': 'origin',
+    'drm-free': 'drm-free',
+    'drm free': 'drm-free',
+  }
 
-function matchesGuildGiveawayFilters(
+  return aliases[normalized] ?? normalized
+}
+
+function canonicalGiveawayType(type: unknown): string {
+  return String(type ?? '').trim().toLowerCase()
+}
+
+export function matchesGuildGiveawayFilters(
   giveaway: GamerPowerGiveaway,
-  config: { platforms: string[]; giveawayTypes: string[] }
+  config: { platforms: string[]; giveawayTypes: string[] },
 ): boolean {
-  const configured_platforms = new Set(config.platforms.map((platform) => platform.toLowerCase()))
-  const giveaway_platforms = normalizePlatforms(giveaway.platforms).map((platform) => platform.toLowerCase())
+  const configured_platforms = new Set(config.platforms.map(canonicalPlatformId))
+  const giveaway_platforms = normalizePlatforms(giveaway.platforms).map(canonicalPlatformId)
   const platform_matches =
     configured_platforms.size === 0 ||
     giveaway_platforms.some((platform) => configured_platforms.has(platform))
 
-  const configured_types = new Set(config.giveawayTypes.map((type) => type.toLowerCase()))
+  const configured_types = new Set(config.giveawayTypes.map(canonicalGiveawayType))
   const type_matches =
     configured_types.size === 0 ||
-    configured_types.has(String(giveaway.type ?? '').toLowerCase())
+    configured_types.has(canonicalGiveawayType(giveaway.type))
 
   return platform_matches && type_matches
 }
 
-// ============================================
-// Helper Functions - PT-BR localization
-// ============================================
-
-/**
- * Obtém o emoji da plataforma
- * @param platform - ID da plataforma
- * @returns Emoji da plataforma
- */
 function getPlatformEmoji(platform: string): string {
   const platformMap: Record<string, string> = {
+    pc: '🖥️',
     steam: '🎮',
     'epic-games-store': '🛒',
     gog: '🎯',
@@ -107,86 +157,58 @@ function getPlatformEmoji(platform: string): string {
     origin: '🚀',
     'drm-free': '📖',
   }
-  return platformMap[platform] || '🎮'
+  return platformMap[canonicalPlatformId(platform)] || '🎮'
 }
 
-/**
- * Obtém o nome da plataforma em PT-BR
- * @param platformId - ID da plataforma
- * @returns Nome da plataforma em PT-BR
- */
 function getPlatformName(platformId: string): string {
-  const platform = GAMERPOWER_PLATFORMS.find((p) => p.id === platformId)
+  const canonical_id = canonicalPlatformId(platformId)
+  if (canonical_id === 'pc') return 'PC'
+  const platform = GAMERPOWER_PLATFORMS.find((item) => item.id === canonical_id)
   return platform?.namePtBr || platformId
 }
 
-/**
- * Obtém o nome do tipo em PT-BR
- * @param typeId - ID do tipo
- * @returns Nome do tipo em PT-BR
- */
 function getTypeName(typeId: string): string {
-  const type = GAMERPOWER_TYPES.find((t) => t.id === typeId)
+  const canonical_type = canonicalGiveawayType(typeId)
+  const type = GAMERPOWER_TYPES.find((item) => item.id === canonical_type)
   return type?.namePtBr || typeId
 }
 
-/**
- * Obtém o emoji do tipo
- * @param typeId - ID do tipo
- * @returns Emoji do tipo
- */
 function getTypeEmoji(typeId: string): string {
   const emojiMap: Record<string, string> = {
     game: '🎮',
     loot: '🎁',
     beta: '🧪',
   }
-  return emojiMap[typeId] || '🎁'
+  return emojiMap[canonicalGiveawayType(typeId)] || '🎁'
 }
 
-/**
- * Obtém a cor do embed baseada no tipo
- * @param type - Tipo do giveaway
- * @returns Cor do embed
- */
 function getEmbedColorByType(type: string): number {
   const colorMap: Record<string, number> = {
     game: COLORS.INFO,
     loot: COLORS.SUCCESS,
     beta: COLORS.WARNING,
   }
-  return colorMap[type] || COLORS.INFO
+  return colorMap[canonicalGiveawayType(type)] || COLORS.INFO
 }
 
-/**
- * Formata a data para DD/MM/YYYY
- * @param dateString - Data em string
- * @returns Data formatada
- */
 function formatDate(dateString: string): string {
   if (!dateString || dateString === 'N/A' || dateString === 'Indefinido') return 'Indefinido'
   try {
     const date = new Date(dateString)
-    if (isNaN(date.getTime())) return dateString
+    if (Number.isNaN(date.getTime())) return dateString
     return date.toLocaleDateString('pt-BR')
   } catch {
     return dateString
   }
 }
 
-/**
- * Cria embed para notificação de giveaway
- * @param giveaway - Giveaway da GamerPower
- * @returns Embed formatado
- */
 function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
   const platforms = normalizePlatforms(giveaway.platforms)
-    .map((p) => `${getPlatformEmoji(p)} ${getPlatformName(p)}`)
+    .map((platform) => `${getPlatformEmoji(platform)} ${getPlatformName(platform)}`)
     .join(' | ')
 
   const typeEmoji = getTypeEmoji(giveaway.type)
   const typeName = getTypeName(giveaway.type)
-
   const url = getGiveawayUrl(giveaway)
   const image_url = normalize_http_url(giveaway.image)
 
@@ -196,8 +218,8 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
     .setURL(url)
     .setDescription(
       (giveaway.description.length > 250
-        ? giveaway.description.substring(0, 247) + '...'
-        : giveaway.description) + `\n\n🔗 **[Acessar a Página do Jogo](${url})**`
+        ? `${giveaway.description.substring(0, 247)}...`
+        : giveaway.description) + `\n\n🔗 **[Acessar a Página do Jogo](${url})**`,
     )
     .addFields(
       {
@@ -219,20 +241,17 @@ function createNotificationEmbed(giveaway: GamerPowerGiveaway): EmbedBuilder {
         name: '📅 Termina em',
         value: formatDate(giveaway.end_date),
         inline: true,
-      }
+      },
     )
     .setTimestamp()
 
-  if (image_url) {
-    embed.setImage(image_url)
-  }
-
+  if (image_url) embed.setImage(image_url)
   return embed
 }
 
-// ============================================
-// Scheduler Class
-// ============================================
+function delivery_key(guild_id: string, giveaway_id: string | number): string {
+  return `free-game:${guild_id}:${giveaway_id}`
+}
 
 export class FreeGameScheduler {
   private intervalCheck: NodeJS.Timeout | null = null
@@ -240,29 +259,16 @@ export class FreeGameScheduler {
 
   constructor(_client: Client) {}
 
-  /**
-   * Inicia o scheduler
-   * @param intervalMinutes - Intervalo de verificação em minutos (padrão: 15)
-   */
   start(intervalMinutes: number = DEFAULT_CHECK_INTERVAL_MINUTES) {
     const intervalMs = intervalMinutes * 60 * 1000
-
-    // Use simple interval for checking (simpler than BullMQ repeat for this use case)
     if (this.intervalCheck) return
-    this.intervalCheck = setInterval(() => void this.run_once(), intervalMs)
 
-    // Also add initial job to run immediately
-    setTimeout(
-      () => void this.run_once(),
-      5000 // Wait 5 seconds after startup before first check
-    )
+    this.intervalCheck = setInterval(() => void this.run_once(), intervalMs)
+    setTimeout(() => void this.run_once(), 5000)
 
     logger.info(`🎮 FreeGame scheduler iniciado (intervalo: ${intervalMinutes} minutos)`)
   }
 
-  /**
-   * Para o scheduler
-   */
   async stop() {
     if (this.intervalCheck) {
       clearInterval(this.intervalCheck)
@@ -283,12 +289,8 @@ export class FreeGameScheduler {
     }
   }
 
-  /**
-   * Processa notificações de jogos grátis para todas as guilds ativadas
-   */
   private async processGuildNotifications() {
     try {
-      // Buscar todas as guilds com notificações ativadas
       const guildConfigs = await prisma.freeGameNotification.findMany({
         where: {
           isEnabled: true,
@@ -297,22 +299,27 @@ export class FreeGameScheduler {
       })
 
       if (guildConfigs.length === 0) {
-        logger.debug('Nenhuma guild com notificações de jogos grátis ativadas')
+        logger.info('🎮 Nenhuma guild com notificações de jogos grátis ativadas')
         return
       }
 
       logger.info(`🎮 Verificando jogos grátis para ${guildConfigs.length} guild(s)`)
 
-      // O catálogo é global. Buscar uma vez por ciclo evita uma chamada externa por guild.
       const catalog = await gamerPowerService.getAllGiveaways({ sortBy: 'date' })
       if (catalog.length === 0) {
-        logger.debug('Nenhum giveaway ativo retornado pela GamerPower')
+        logger.warn({ guildCount: guildConfigs.length }, '🎮 GamerPower não retornou giveaways ativos')
         return
       }
 
-      // Para cada guild, filtrar o catálogo localmente e notificar.
+      logger.info(
+        { guildCount: guildConfigs.length, catalogCount: catalog.length },
+        '🎮 Catálogo de jogos grátis carregado',
+      )
+
+      const cycle = empty_summary(catalog.length)
+      let failedGuildCount = 0
+
       for (const config of guildConfigs) {
-        // Transform raw Prisma config to typed config
         const processedConfig = {
           guildId: config.guildId,
           channelId: config.channelId,
@@ -320,32 +327,52 @@ export class FreeGameScheduler {
           platforms: extractStringArray(config.platforms),
           giveawayTypes: extractStringArray(config.giveawayTypes),
         }
-        await this.processGuild(processedConfig, catalog).catch((err) => {
+
+        try {
+          const summary = await this.processGuild(processedConfig, catalog)
+          cycle.matchedCount += summary.matchedCount
+          cycle.newCount += summary.newCount
+          cycle.queuedCount += summary.queuedCount
+          cycle.reopenedCount += summary.reopenedCount
+          cycle.pendingCount += summary.pendingCount
+          cycle.deliveredCount += summary.deliveredCount
+          cycle.failedCount += summary.failedCount
+          cycle.legacyAnnouncedCount += summary.legacyAnnouncedCount
+        } catch (error) {
+          failedGuildCount += 1
           logger.error(
-            { err: safe_error_details(err), guildId: config.guildId },
-            'Erro ao processar notificações de jogos grátis para guild'
+            { err: safe_error_details(error), guildId: config.guildId },
+            'Erro ao processar notificações de jogos grátis para guild',
           )
-        })
+        }
       }
+
+      logger.info(
+        {
+          guildCount: guildConfigs.length,
+          failedGuildCount,
+          ...cycle,
+        },
+        '🎮 Ciclo de jogos grátis concluído',
+      )
     } catch (error) {
       logger.error({ err: safe_error_details(error) }, 'Erro ao buscar configurações de notificações')
     }
   }
 
-  /**
-   * Processa notificações para uma guild específica
-   * @param config - Configuração de notificação da guild
-   */
   private async processGuild(config: {
     guildId: string
     channelId: string | null
     roleIds: string[]
     platforms: string[]
     giveawayTypes: string[]
-  }, catalog?: GamerPowerGiveaway[]) {
+  }, catalog?: GamerPowerGiveaway[]): Promise<guild_free_game_summary> {
+    const catalog_count = catalog?.length ?? 0
+    const summary = empty_summary(catalog_count)
+
     if (!config.channelId) {
       logger.warn({ guildId: config.guildId }, 'Guild sem canal configurado para notificações')
-      return
+      return summary
     }
 
     const giveaways = catalog
@@ -356,64 +383,109 @@ export class FreeGameScheduler {
           sortBy: 'date',
         })
 
-    if (giveaways.length === 0) {
-      logger.debug({ guildId: config.guildId }, 'Nenhum giveaway encontrado para esta guild')
-      return
-    }
+    summary.catalogCount = catalog?.length ?? giveaways.length
+    summary.matchedCount = giveaways.length
 
-    // Consultar apenas IDs presentes no catálogo atual, não todo o histórico da guild.
-    const current_giveaway_ids = giveaways.map((giveaway) => String(giveaway.id))
-    const announcedGiveaways = await prisma.freeGameGiveaway.findMany({
-      where: {
-        guildId: config.guildId,
-        giveawayId: { in: current_giveaway_ids },
-      },
-      select: { giveawayId: true },
-    })
+    if (giveaways.length > 0) {
+      const current_giveaway_ids = giveaways.map((giveaway) => String(giveaway.id))
+      const current_delivery_keys = current_giveaway_ids.map((giveaway_id) =>
+        delivery_key(config.guildId, giveaway_id),
+      )
 
-    const announcedIds = new Set(announcedGiveaways.map((g) => String(g.giveawayId)))
+      const [announcedGiveaways, deliveries] = await Promise.all([
+        prisma.freeGameGiveaway.findMany({
+          where: {
+            guildId: config.guildId,
+            giveawayId: { in: current_giveaway_ids },
+          },
+          select: { giveawayId: true },
+        }),
+        prisma.discordDelivery.findMany({
+          where: {
+            guildId: config.guildId,
+            kind: 'free_game_announcement',
+            dedupeKey: { in: current_delivery_keys },
+          },
+          select: {
+            dedupeKey: true,
+            deliveredAt: true,
+            failedAt: true,
+          },
+        }),
+      ])
 
-    // Filtrar apenas giveaways novos (não anunciados)
-    const newGiveaways = giveaways.filter((g) => !announcedIds.has(String(g.id)))
+      const announcedIds = new Set(announcedGiveaways.map((row) => String(row.giveawayId)))
+      const deliveryByKey = new Map(deliveries.map((row) => [row.dedupeKey, row]))
+      const reopen_before = Date.now() - FAILED_DELIVERY_REOPEN_COOLDOWN_MS
+      const candidates: giveaway_candidate[] = []
 
-    if (newGiveaways.length === 0) {
-      logger.debug({ guildId: config.guildId }, 'Nenhum giveaway novo para esta guild')
-      return
-    }
+      for (const giveaway of giveaways) {
+        const giveaway_id = String(giveaway.id)
+        const key = delivery_key(config.guildId, giveaway_id)
+        const delivery = deliveryByKey.get(key)
 
-    // Obter cargo(s) para mencionar
-    const roleIds = Array.isArray(config.roleIds) ? config.roleIds : []
-    const roleMention = roleIds.length > 0
-      ? roleIds.map((id) => (id === config.guildId || id === 'everyone' || id === '@everyone') ? '@everyone' : `<@&${id}>`).join(' ')
-      : null
-    const mentionRoleIds = roleIds.filter((id) => id !== config.guildId && id !== 'everyone' && id !== '@everyone')
-    const allowEveryone = roleIds.some((id) => id === config.guildId || id === 'everyone' || id === '@everyone')
-    const allowedMentions = roleIds.length > 0
-      ? {
-          ...(mentionRoleIds.length > 0 ? { roles: mentionRoleIds } : {}),
-          parse: allowEveryone ? ['everyone' as const] : [],
+        if (delivery?.deliveredAt) {
+          summary.deliveredCount += 1
+          continue
         }
-      : undefined
 
-    const giveawaysToNotify = newGiveaways.slice(0, 3)
-    let queuedCount = 0
+        if (delivery?.failedAt) {
+          summary.failedCount += 1
+          if (delivery.failedAt.getTime() <= reopen_before) {
+            candidates.push({ giveaway, mode: 'reopen' })
+          }
+          continue
+        }
 
-    for (const giveaway of giveawaysToNotify) {
-      try {
-        const embed = createNotificationEmbed(giveaway)
-        const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
-          new ButtonBuilder().setLabel('Pegar Agora').setStyle(ButtonStyle.Link).setURL(getGiveawayUrl(giveaway)),
-        )
+        if (delivery) {
+          summary.pendingCount += 1
+          continue
+        }
 
-        const queued = await prisma.$transaction(async (tx) => {
-          const reserved = await tx.freeGameGiveaway.createMany({
-            data: [{ giveawayId: String(giveaway.id), guildId: config.guildId }],
-            skipDuplicates: true,
-          })
-          if (reserved.count === 0) return false
+        if (announcedIds.has(giveaway_id)) {
+          summary.legacyAnnouncedCount += 1
+          continue
+        }
 
-          await enqueue_discord_delivery(tx, {
-            dedupeKey: `free-game:${config.guildId}:${giveaway.id}`,
+        summary.newCount += 1
+        candidates.push({ giveaway, mode: 'new' })
+      }
+
+      const roleIds = Array.isArray(config.roleIds) ? config.roleIds : []
+      const roleMention = roleIds.length > 0
+        ? roleIds
+            .map((id) =>
+              id === config.guildId || id === 'everyone' || id === '@everyone'
+                ? '@everyone'
+                : `<@&${id}>`,
+            )
+            .join(' ')
+        : null
+      const mentionRoleIds = roleIds.filter(
+        (id) => id !== config.guildId && id !== 'everyone' && id !== '@everyone',
+      )
+      const allowEveryone = roleIds.some(
+        (id) => id === config.guildId || id === 'everyone' || id === '@everyone',
+      )
+      const allowedMentions = roleIds.length > 0
+        ? {
+            ...(mentionRoleIds.length > 0 ? { roles: mentionRoleIds } : {}),
+            parse: allowEveryone ? ['everyone' as const] : [],
+          }
+        : undefined
+
+      for (const candidate of candidates.slice(0, MAX_NOTIFICATIONS_PER_GUILD_PER_CYCLE)) {
+        const { giveaway, mode } = candidate
+        try {
+          const embed = createNotificationEmbed(giveaway)
+          const row = new ActionRowBuilder<ButtonBuilder>().addComponents(
+            new ButtonBuilder()
+              .setLabel('Pegar Agora')
+              .setStyle(ButtonStyle.Link)
+              .setURL(getGiveawayUrl(giveaway)),
+          )
+          const input = {
+            dedupeKey: delivery_key(config.guildId, giveaway.id),
             kind: 'free_game_announcement',
             guildId: config.guildId,
             channelId: config.channelId,
@@ -425,34 +497,55 @@ export class FreeGameScheduler {
                 allowedMentions,
               },
             },
-          })
-          return true
-        })
+          }
 
-        if (queued) {
-          queuedCount += 1
-          logger.info(
-            { guildId: config.guildId, giveawayId: giveaway.id, title: giveaway.title },
-            'Notificação de jogo grátis enfileirada',
+          const result = await prisma.$transaction(async (tx) => {
+            if (mode === 'reopen') {
+              return await reopen_discord_delivery(tx, input) ? 'reopened' : 'skipped'
+            }
+
+            const reserved = await tx.freeGameGiveaway.createMany({
+              data: [{ giveawayId: String(giveaway.id), guildId: config.guildId }],
+              skipDuplicates: true,
+            })
+            if (reserved.count === 0) return 'skipped'
+
+            await enqueue_discord_delivery(tx, input)
+            return 'queued'
+          })
+
+          if (result === 'queued') {
+            summary.queuedCount += 1
+            logger.info(
+              { guildId: config.guildId, giveawayId: giveaway.id, title: giveaway.title },
+              'Notificação de jogo grátis enfileirada',
+            )
+          } else if (result === 'reopened') {
+            summary.reopenedCount += 1
+            logger.info(
+              { guildId: config.guildId, giveawayId: giveaway.id, title: giveaway.title },
+              'Notificação de jogo grátis reaberta após falha anterior',
+            )
+          }
+        } catch (error) {
+          logger.error(
+            { err: safe_error_details(error), guildId: config.guildId, giveawayId: giveaway.id },
+            'Erro ao enfileirar notificação de jogo grátis',
           )
         }
-      } catch (error) {
-        logger.error(
-          { err: safe_error_details(error), guildId: config.guildId, giveawayId: giveaway.id },
-          'Erro ao enfileirar notificação de jogo grátis',
-        )
       }
     }
 
-    // Atualizar lastCheckedAt
     await prisma.freeGameNotification.update({
       where: { guildId: config.guildId },
       data: { lastCheckedAt: new Date() },
     })
 
     logger.info(
-      { guildId: config.guildId, attemptedCount: giveawaysToNotify.length, queuedCount },
-      'Verificação de jogos grátis concluída'
+      { guildId: config.guildId, ...summary },
+      'Verificação de jogos grátis concluída',
     )
+
+    return summary
   }
 }
