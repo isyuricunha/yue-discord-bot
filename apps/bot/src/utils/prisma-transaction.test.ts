@@ -3,7 +3,11 @@ import assert from 'node:assert/strict'
 
 import type { Prisma } from '@yuebot/database'
 
-import { is_serializable_conflict, with_serializable_retry } from './prisma-transaction'
+import {
+  is_serializable_conflict,
+  serializable_retry_delay_ms,
+  with_serializable_retry,
+} from './prisma-transaction'
 
 function make_transaction_host(run: () => Promise<unknown>) {
   return {
@@ -25,8 +29,16 @@ test('is_serializable_conflict recognizes Prisma and PostgreSQL conflict codes',
   assert.equal(is_serializable_conflict(new Error('failure')), false)
 })
 
+test('serializable_retry_delay_ms uses bounded exponential jitter', () => {
+  assert.equal(serializable_retry_delay_ms(1, 10, 250, () => 0), 5)
+  assert.equal(serializable_retry_delay_ms(2, 10, 250, () => 0), 10)
+  assert.equal(serializable_retry_delay_ms(20, 10, 250, () => 1), 250)
+  assert.equal(serializable_retry_delay_ms(1, 0, 250, () => 1), 0)
+})
+
 test('with_serializable_retry retries conflicts and returns the transaction result', async () => {
   let attempts = 0
+  const delays: number[] = []
   const transaction_host = make_transaction_host(async () => {
     attempts += 1
     if (attempts < 3) throw Object.assign(new Error('conflict'), { code: 'P2034' })
@@ -36,10 +48,16 @@ test('with_serializable_retry retries conflicts and returns the transaction resu
   const result = await with_serializable_retry(async () => 'committed', {
     max_attempts: 3,
     transaction_host,
+    retry_base_delay_ms: 10,
+    random: () => 0,
+    sleep: async (delay_ms) => {
+      delays.push(delay_ms)
+    },
   })
 
   assert.equal(result, 'committed')
   assert.equal(attempts, 3)
+  assert.deepEqual(delays, [5, 10])
 })
 
 test('with_serializable_retry stops at the configured conflict limit', async () => {
@@ -53,6 +71,7 @@ test('with_serializable_retry stops at the configured conflict limit', async () 
     with_serializable_retry(async () => 'unreachable', {
       max_attempts: 2,
       transaction_host,
+      retry_base_delay_ms: 0,
     }),
     /conflict/,
   )

@@ -1,6 +1,7 @@
 import { EmbedBuilder, type Client, type GuildMember, type VoiceState } from 'discord.js'
 import { prisma } from '@yuebot/database'
 import { logger } from '../utils/logger'
+import { KeyedSerialExecutor } from '../utils/keyed-serial'
 import { with_serializable_retry } from '../utils/prisma-transaction'
 import { compute_level_from_xp, xpService } from './xp.service'
 
@@ -29,6 +30,7 @@ class VoiceXpService {
   private client: Client | null = null
   private timer: NodeJS.Timeout | null = null
   private flush_running = false
+  private readonly session_operations = new KeyedSerialExecutor()
 
   async start(client: Client): Promise<void> {
     if (this.client) return
@@ -71,29 +73,35 @@ class VoiceXpService {
     await this.finish_session(member, oldState)
   }
 
+  private session_key(guild_id: string, user_id: string): string {
+    return `${guild_id}:${user_id}`
+  }
+
   private async begin_session(member: GuildMember, state: VoiceState): Promise<void> {
-    const config = await xpService.get_config(member.guild.id)
-    if (!config?.enabled || !config.voiceXpEnabled) {
-      await prisma.voiceXpSession.deleteMany({
-        where: { guildId: member.guild.id, userId: member.id },
+    await this.session_operations.run(this.session_key(member.guild.id, member.id), async () => {
+      const config = await xpService.get_config(member.guild.id)
+      if (!config?.enabled || !config.voiceXpEnabled) {
+        await prisma.voiceXpSession.deleteMany({
+          where: { guildId: member.guild.id, userId: member.id },
+        })
+        return
+      }
+
+      const now = new Date()
+      await prisma.voiceXpSession.upsert({
+        where: { guildId_userId: { guildId: member.guild.id, userId: member.id } },
+        update: { username: member.user.username },
+        create: {
+          guildId: member.guild.id,
+          userId: member.id,
+          username: member.user.username,
+          startedAt: now,
+          lastAwardedAt: now,
+        },
       })
-      return
-    }
 
-    const now = new Date()
-    await prisma.voiceXpSession.upsert({
-      where: { guildId_userId: { guildId: member.guild.id, userId: member.id } },
-      update: { username: member.user.username },
-      create: {
-        guildId: member.guild.id,
-        userId: member.id,
-        username: member.user.username,
-        startedAt: now,
-        lastAwardedAt: now,
-      },
+      await this.send_voice_xp_notification(state, config.voiceXpNotificationsEnabled)
     })
-
-    await this.send_voice_xp_notification(state, config.voiceXpNotificationsEnabled)
   }
 
   private async finish_session(member: GuildMember, state: VoiceState): Promise<void> {
@@ -111,68 +119,70 @@ class VoiceXpService {
     now: Date,
     remove_after: boolean,
   ): Promise<award_result> {
-    const config = await xpService.get_config(guild_id)
+    return await this.session_operations.run(this.session_key(guild_id, user_id), async () => {
+      const config = await xpService.get_config(guild_id)
 
-    return await with_serializable_retry(async (tx) => {
-      const session = await tx.voiceXpSession.findUnique({
-        where: { guildId_userId: { guildId: guild_id, userId: user_id } },
-      })
-      if (!session) return null
+      return await with_serializable_retry(async (tx) => {
+        const session = await tx.voiceXpSession.findUnique({
+          where: { guildId_userId: { guildId: guild_id, userId: user_id } },
+        })
+        if (!session) return null
 
-      if (!config?.enabled || !config.voiceXpEnabled) {
-        await tx.voiceXpSession.delete({ where: { id: session.id } })
-        return null
-      }
+        if (!config?.enabled || !config.voiceXpEnabled) {
+          await tx.voiceXpSession.delete({ where: { id: session.id } })
+          return null
+        }
 
-      const minutes = voice_full_minutes(session.lastAwardedAt, now)
-      if (minutes <= 0) {
-        if (remove_after) await tx.voiceXpSession.delete({ where: { id: session.id } })
-        return null
-      }
+        const minutes = voice_full_minutes(session.lastAwardedAt, now)
+        if (minutes <= 0) {
+          if (remove_after) await tx.voiceXpSession.delete({ where: { id: session.id } })
+          return null
+        }
 
-      const configured_per_minute = config.xpPerVoiceMinute ?? 1
-      const legacy_per_minute = Math.floor((config.voiceXpRate ?? 10) / 10)
-      const xp_per_minute = configured_per_minute > 0 ? configured_per_minute : legacy_per_minute
-      const earned_xp = Math.max(0, minutes * xp_per_minute)
-      const checkpoint = advance_voice_checkpoint(session.lastAwardedAt, minutes)
+        const configured_per_minute = config.xpPerVoiceMinute ?? 1
+        const legacy_per_minute = Math.floor((config.voiceXpRate ?? 10) / 10)
+        const xp_per_minute = configured_per_minute > 0 ? configured_per_minute : legacy_per_minute
+        const earned_xp = Math.max(0, minutes * xp_per_minute)
+        const checkpoint = advance_voice_checkpoint(session.lastAwardedAt, minutes)
 
-      if (earned_xp <= 0) {
+        if (earned_xp <= 0) {
+          if (remove_after) await tx.voiceXpSession.delete({ where: { id: session.id } })
+          else await tx.voiceXpSession.update({ where: { id: session.id }, data: { lastAwardedAt: checkpoint } })
+          return null
+        }
+
+        const existing = await tx.guildXpMember.findUnique({
+          where: { userId_guildId: { userId: user_id, guildId: guild_id } },
+        })
+        const current_xp = existing?.xp ?? 0
+        const current_level = existing?.level ?? compute_level_from_xp(current_xp)
+        const new_xp = current_xp + earned_xp
+        const new_level = compute_level_from_xp(new_xp)
+
+        const updated = await tx.guildXpMember.upsert({
+          where: { userId_guildId: { userId: user_id, guildId: guild_id } },
+          create: {
+            userId: user_id,
+            guildId: guild_id,
+            xp: new_xp,
+            level: new_level,
+            prestige: 0,
+            lastVoiceXpAt: now,
+          },
+          update: {
+            xp: new_xp,
+            level: new_level,
+            lastVoiceXpAt: now,
+          },
+          select: { xp: true, updatedAt: true },
+        })
+
         if (remove_after) await tx.voiceXpSession.delete({ where: { id: session.id } })
         else await tx.voiceXpSession.update({ where: { id: session.id }, data: { lastAwardedAt: checkpoint } })
-        return null
-      }
 
-      const existing = await tx.guildXpMember.findUnique({
-        where: { userId_guildId: { userId: user_id, guildId: guild_id } },
-      })
-      const current_xp = existing?.xp ?? 0
-      const current_level = existing?.level ?? compute_level_from_xp(current_xp)
-      const new_xp = current_xp + earned_xp
-      const new_level = compute_level_from_xp(new_xp)
-
-      const updated = await tx.guildXpMember.upsert({
-        where: { userId_guildId: { userId: user_id, guildId: guild_id } },
-        create: {
-          userId: user_id,
-          guildId: guild_id,
-          xp: new_xp,
-          level: new_level,
-          prestige: 0,
-          lastVoiceXpAt: now,
-        },
-        update: {
-          xp: new_xp,
-          level: new_level,
-          lastVoiceXpAt: now,
-        },
-        select: { xp: true, updatedAt: true },
-      })
-
-      if (remove_after) await tx.voiceXpSession.delete({ where: { id: session.id } })
-      else await tx.voiceXpSession.update({ where: { id: session.id }, data: { lastAwardedAt: checkpoint } })
-
-      return { current_level, new_level, member_xp: updated }
-    }, { max_attempts: 10 })
+        return { current_level, new_level, member_xp: updated }
+      }, { max_attempts: 10 })
+    })
   }
 
   private async reconcile_startup(client: Client): Promise<void> {
@@ -241,7 +251,13 @@ class VoiceXpService {
           const guild = this.client?.guilds.cache.get(session.guildId)
           const state = guild?.voiceStates.cache.get(session.userId)
           if (!guild || !is_active_voice_state(state)) {
-            await prisma.voiceXpSession.deleteMany({ where: { id: session.id } })
+            await this.session_operations.run(this.session_key(session.guildId, session.userId), async () => {
+              const current_guild = this.client?.guilds.cache.get(session.guildId)
+              const current_state = current_guild?.voiceStates.cache.get(session.userId)
+              if (!current_guild || !is_active_voice_state(current_state)) {
+                await prisma.voiceXpSession.deleteMany({ where: { id: session.id } })
+              }
+            })
             return
           }
 
