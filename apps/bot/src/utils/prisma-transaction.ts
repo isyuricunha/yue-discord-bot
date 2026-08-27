@@ -15,11 +15,26 @@ const default_sleep = async (delay_ms: number): Promise<void> => {
   await new Promise<void>((resolve) => setTimeout(resolve, delay_ms))
 }
 
-export function is_serializable_conflict(error: unknown): boolean {
-  const code = typeof (error as { code?: unknown })?.code === 'string'
-    ? (error as { code: string }).code
-    : ''
+function read_error_code(error: unknown, depth = 0): string {
+  if (!error || typeof error !== 'object' || depth > 4) return ''
 
+  const candidate = error as {
+    code?: unknown
+    originalCode?: unknown
+    cause?: unknown
+  }
+
+  if (typeof candidate.code === 'string') return candidate.code
+  if (typeof candidate.originalCode === 'string') return candidate.originalCode
+  if (candidate.cause && candidate.cause !== error) {
+    return read_error_code(candidate.cause, depth + 1)
+  }
+
+  return ''
+}
+
+export function is_serializable_conflict(error: unknown): boolean {
+  const code = read_error_code(error)
   return code === 'P2034' || code === '40001'
 }
 
