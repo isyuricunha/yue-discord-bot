@@ -297,38 +297,58 @@ jobs:
           create_manifest "$GHCR_IMAGE"
 
       - name: Verify published manifests
+        working-directory: ${{ runner.temp }}/digests
         run: |
           set -euo pipefail
+
+          mapfile -t expected_digests < <(find . -maxdepth 1 -type f -printf 'sha256:%f\n' | sort)
+          if [ "${#expected_digests[@]}" -ne 2 ]; then
+            echo "ERROR: expected 2 platform digests, found ${#expected_digests[@]}"
+            printf '%s\n' "${expected_digests[@]}"
+            exit 1
+          fi
+
+          expected_text="$(printf '%s\n' "${expected_digests[@]}")"
 
           platform_digests() {
             jq -r '
               .manifests[]
               | select(.platform.os == "linux")
               | select(.platform.architecture == "amd64" or .platform.architecture == "arm64")
-              | "\(.platform.architecture)=\(.digest)"
+              | .digest
             ' | sort
           }
 
           verify_manifest() {
             local image="$1"
-            local raw
-            raw="$(docker buildx imagetools inspect "${image}:latest" --raw)"
+            local attempt raw actual
 
-            jq -e '.manifests | length == 2' <<< "$raw" >/dev/null
-            jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "amd64")' <<< "$raw" >/dev/null
-            jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "arm64")' <<< "$raw" >/dev/null
+            for attempt in {1..12}; do
+              if raw="$(docker buildx imagetools inspect "${image}:latest" --raw 2>/dev/null)"; then
+                actual="$(platform_digests <<< "$raw")"
 
-            echo "Verified exactly linux/amd64 + linux/arm64: ${image}:latest"
+                if jq -e '.manifests | length == 2' <<< "$raw" >/dev/null \
+                  && jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "amd64")' <<< "$raw" >/dev/null \
+                  && jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "arm64")' <<< "$raw" >/dev/null \
+                  && diff -u <(printf '%s\n' "$expected_text") <(printf '%s\n' "$actual") >/dev/null; then
+                  echo "Verified expected linux/amd64 + linux/arm64 digests: ${image}:latest"
+                  return 0
+                fi
+              fi
+
+              echo "Manifest not converged yet for ${image}:latest (attempt ${attempt}/12); retrying in 5s..."
+              sleep 5
+            done
+
+            echo "ERROR: published manifest did not converge to the expected platform digests: ${image}:latest"
+            echo "Expected digests:"
+            printf '%s\n' "$expected_text"
+            echo "Observed digests:"
+            printf '%s\n' "${actual:-<unavailable>}"
+            return 1
           }
-
-          dockerhub_raw="$(docker buildx imagetools inspect "${DOCKERHUB_IMAGE}:latest" --raw)"
-          ghcr_raw="$(docker buildx imagetools inspect "${GHCR_IMAGE}:latest" --raw)"
 
           verify_manifest "$DOCKERHUB_IMAGE"
           verify_manifest "$GHCR_IMAGE"
 
-          diff \
-            <(platform_digests <<< "$dockerhub_raw") \
-            <(platform_digests <<< "$ghcr_raw")
-
-          echo "Verified matching platform digests across Docker Hub and GHCR"
+          echo "Verified expected platform digests across Docker Hub and GHCR"
