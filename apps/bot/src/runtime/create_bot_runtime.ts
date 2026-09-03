@@ -46,8 +46,9 @@ function create_discord_client(): Client {
     intents: [
       GatewayIntentBits.Guilds,
       GatewayIntentBits.GuildMessages,
-      GatewayIntentBits.MessageContent,
-      GatewayIntentBits.GuildMembers,
+      // Temporarily disabled while Discord reviews Yue's privileged intents.
+      // GatewayIntentBits.MessageContent,
+      // GatewayIntentBits.GuildMembers,
       GatewayIntentBits.GuildVoiceStates,
       GatewayIntentBits.GuildMessageReactions,
       GatewayIntentBits.GuildModeration,
