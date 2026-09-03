@@ -32,6 +32,7 @@ export const CONFIG = {
   discord: {
     token: process.env.DISCORD_TOKEN || process.env.DISCORD_BOT_TOKEN || '',
     clientId: process.env.DISCORD_CLIENT_ID || '',
+    disablePrivilegedIntents: parse_env_boolean(process.env.DISABLE_PRIVILEGED_INTENTS, false),
   },
   internalApi: {
     host: process.env.BOT_INTERNAL_BIND_HOST || process.env.BOT_INTERNAL_HOST || '127.0.0.1',

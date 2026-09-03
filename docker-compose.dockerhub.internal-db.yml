@@ -51,6 +51,7 @@ services:
       LOG_LEVEL: info
 
       ENABLE_BOT: "${ENABLE_BOT:-true}"
+      DISABLE_PRIVILEGED_INTENTS: "${DISABLE_PRIVILEGED_INTENTS:-false}"
 
       API_PORT: "3000"
       API_HOST: "0.0.0.0"
