@@ -1,4 +1,4 @@
-import { Collection, Client, GatewayIntentBits, Partials } from 'discord.js'
+import { Collection, Client, Partials } from 'discord.js'
 import type { Server } from 'node:http'
 import { prisma } from '@yuebot/database'
 
@@ -31,6 +31,7 @@ import { antiRaidService } from '../services/antiRaid.service'
 import { voiceXpService } from '../services/voiceXp.service'
 import { install_serialized_message_xp } from '../services/xpWriteSerialization.service'
 import { RuntimeLifecycle } from './lifecycle'
+import { build_discord_intents } from './discord_intents'
 import { prune_stale_guilds_from_database, sync_guilds_to_database } from './guild_sync'
 import { register_discord_events } from './register_discord_events'
 
@@ -43,16 +44,7 @@ declare module 'discord.js' {
 
 function create_discord_client(): Client {
   const client = new Client({
-    intents: [
-      GatewayIntentBits.Guilds,
-      GatewayIntentBits.GuildMessages,
-      // Temporarily disabled while Discord reviews Yue's privileged intents.
-      // GatewayIntentBits.MessageContent,
-      // GatewayIntentBits.GuildMembers,
-      GatewayIntentBits.GuildVoiceStates,
-      GatewayIntentBits.GuildMessageReactions,
-      GatewayIntentBits.GuildModeration,
-    ],
+    intents: build_discord_intents(CONFIG.discord.disablePrivilegedIntents),
     partials: [
       Partials.Message,
       Partials.Channel,
@@ -188,6 +180,13 @@ export function createBotRuntime(): BotRuntime {
         void start_ready_services().then(resolve, reject)
       })
     })
+
+    if (CONFIG.discord.disablePrivilegedIntents) {
+      logger.warn(
+        { disabledIntents: ['MessageContent', 'GuildMembers'] },
+        '⚠️ Discord privileged intents desativados via DISABLE_PRIVILEGED_INTENTS=true'
+      )
+    }
 
     logger.info('🔑 Tentando login no Discord...')
     await client.login(CONFIG.discord.token)
