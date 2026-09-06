@@ -15,7 +15,7 @@ RUN apt-get update && apt-get install -y \
     openssl \
     && rm -rf /var/lib/apt/lists/*
 
-RUN corepack enable && corepack prepare pnpm@10.32.1 --activate
+RUN corepack enable && corepack prepare pnpm@12.3.4 --activate
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ WORKDIR /app
 FROM pnpm-base AS deps-cache
 
 COPY pnpm-lock.yaml pnpm-workspace.yaml ./
-RUN pnpm fetch --frozen-lockfile
+RUN pnpm fetch
 
 # Install the full workspace once for compilation.
 FROM deps-cache AS build-deps
