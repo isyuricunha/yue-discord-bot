@@ -30,6 +30,7 @@ import { initDjModeService, djModeService } from '../services/dj_mode.service'
 import { antiRaidService } from '../services/antiRaid.service'
 import { voiceXpService } from '../services/voiceXp.service'
 import { install_serialized_message_xp } from '../services/xpWriteSerialization.service'
+import { get_discord_login_retry } from './discord_login_retry'
 import { RuntimeLifecycle } from './lifecycle'
 import { build_discord_intents } from './discord_intents'
 import { prune_stale_guilds_from_database, sync_guilds_to_database } from './guild_sync'
@@ -68,6 +69,10 @@ function close_server(server: Server | null): Promise<void> {
       else resolve()
     })
   })
+}
+
+function wait(milliseconds: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds))
 }
 
 export type BotRuntime = {
@@ -188,8 +193,20 @@ export function createBotRuntime(): BotRuntime {
       )
     }
 
-    logger.info('🔑 Tentando login no Discord...')
-    await client.login(CONFIG.discord.token)
+    for (let attempt = 0; ; attempt += 1) {
+      try {
+        logger.info({ attempt }, '🔑 Tentando login no Discord...')
+        await client.login(CONFIG.discord.token)
+        break
+      } catch (error) {
+        const retry = get_discord_login_retry(error, attempt)
+        logger.warn(
+          { error, ...retry },
+          'Discord login failed; keeping the bot process alive before retrying'
+        )
+        await wait(retry.delay_ms)
+      }
+    }
     await ready
   }
 
