@@ -23,11 +23,11 @@ export default defineConfig(({ mode }) => {
   }
 
   return {
-    envDir: path.resolve(__dirname, '../..'),
+    envDir: path.resolve(import.meta.dirname, '../..'),
     plugins: [tailwindcss(), react()],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, './src'),
+        '@': path.resolve(import.meta.dirname, './src'),
       },
     },
     server: {
@@ -47,7 +47,7 @@ export default defineConfig(({ mode }) => {
     test: {
       globals: true,
       environment: 'jsdom',
-      setupFiles: [path.resolve(__dirname, 'src/setup-tests.ts')],
+      setupFiles: [path.resolve(import.meta.dirname, 'src/setup-tests.ts')],
       server: {
         deps: {
           inline: ['@testing-library/react'],

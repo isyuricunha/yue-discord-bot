@@ -56,9 +56,49 @@ test('internal API authenticates before consuming an oversized body', async () =
   await with_server(async (base) => {
     const response = await fetch(`${base}/internal/profile`, {
       method: 'POST',
-      headers: { authorization: 'Bearer wrong', 'content-type': 'application/json' },
+      headers: { authorization: `Bearer wrong`, 'content-type': 'application/json' },
       body: JSON.stringify({ userId: 'user', bio: 'x'.repeat(200) }),
     })
     assert.equal(response.status, 401)
   })
+})
+
+test('internal stats return zeros before Discord is ready without calling Discord', async () => {
+  const secret = 's'.repeat(32)
+  let fetch_calls = 0
+  const cache = Object.assign(new Map(), {
+    map<T>(callback: (guild: unknown) => T) {
+      return Array.from(this.values(), callback)
+    },
+  })
+  const client = {
+    guilds: {
+      cache,
+      fetch: async () => {
+        fetch_calls += 1
+        throw new Error('Discord is not ready')
+      },
+    },
+    commands: new Map(),
+    contextMenuCommands: new Map(),
+  } as unknown as Client
+  const server = start_internal_api(client, {
+    host: '127.0.0.1',
+    port: 0,
+    secret,
+    maxBodyBytes: 64,
+  })
+  if (!server.listening) await once(server, 'listening')
+  const address = server.address() as AddressInfo
+
+  try {
+    const response = await fetch(`http://127.0.0.1:${address.port}/internal/stats`, {
+      headers: { authorization: `Bearer ${secret}` },
+    })
+    assert.equal(response.status, 200)
+    assert.deepEqual(await response.json(), { servers: 0, users: 0 })
+    assert.equal(fetch_calls, 0)
+  } finally {
+    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()))
+  }
 })

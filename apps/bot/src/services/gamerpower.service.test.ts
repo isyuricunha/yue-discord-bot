@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { GamerPowerService } from './gamerpower.service'
+import { GamerPowerService, getGiveawayUrl, type GamerPowerGiveaway } from './gamerpower.service'
 
 type http_get = <T>(
   url: string,
@@ -107,4 +107,16 @@ test('GamerPowerService.getAllGiveaways: serves a fresh cached response without 
   assert.deepEqual(first, cached)
   assert.deepEqual(second, cached)
   assert.equal(calls.length, 1)
+})
+
+test('getGiveawayUrl prioritizes the documented claim URL then canonical GamerPower URL', () => {
+  const giveaway = {
+    open_giveaway_url: 'https://www.gamerpower.com/open/claim',
+    gamerpower_url: 'https://www.gamerpower.com/claim',
+  } as GamerPowerGiveaway
+
+  assert.equal(getGiveawayUrl(giveaway), 'https://www.gamerpower.com/open/claim')
+
+  giveaway.open_giveaway_url = undefined
+  assert.equal(getGiveawayUrl(giveaway), 'https://www.gamerpower.com/claim')
 })

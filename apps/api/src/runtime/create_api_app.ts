@@ -267,7 +267,7 @@ export function createApiApp(): ApiAppResources {
     const readiness = await get_readiness();
 
     if (readiness.status !== 'ready') {
-      request.log.warn({ checks: readiness.checks }, 'Container readiness check failed');
+      request.log.debug({ checks: readiness.checks }, 'Container is not ready');
       return reply.code(503).send(readiness);
     }
 

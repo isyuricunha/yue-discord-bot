@@ -123,14 +123,6 @@ export function createBotRuntime(): BotRuntime {
     initPunishmentRoleService(client)
     antiRaidService.setClient(client)
 
-    internal_server = start_internal_api(client, {
-      host: CONFIG.internalApi.host,
-      port: CONFIG.internalApi.port,
-      secret: CONFIG.internalApi.secret,
-      maxBodyBytes: CONFIG.internalApi.maxBodyBytes,
-    })
-    lifecycle.register_started('internal bot API', () => close_server(internal_server))
-
     void djModeService?.restore_all_enabled().catch((error) => {
       logger.error({ error }, 'Falha ao restaurar DJ mode')
     })
@@ -176,6 +168,14 @@ export function createBotRuntime(): BotRuntime {
       secret: CONFIG.internalApi.secret,
     })
     lifecycle.register_started('bot readiness server', () => close_server(readiness_server))
+
+    internal_server = start_internal_api(client, {
+      host: CONFIG.internalApi.host,
+      port: CONFIG.internalApi.port,
+      secret: CONFIG.internalApi.secret,
+      maxBodyBytes: CONFIG.internalApi.maxBodyBytes,
+    })
+    lifecycle.register_started('internal bot API', () => close_server(internal_server))
 
     const music = initMusicService(client)
     initDjModeService(client, music.kazagumo)
