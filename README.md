@@ -88,6 +88,16 @@ docker compose -f docker-compose.dockerhub.internal-db.yml up -d
 
 Optional integrations such as Lavalink, LivePix, Mistral and OpenAI can be enabled through environment variables when needed.
 
+### Discord gateway recovery
+
+Yue keeps the bot process alive when Discord temporarily rejects a gateway login. If Discord reports that the session-start limit is exhausted, Yue waits until the reset timestamp provided by Discord plus one second, then retries automatically. No container restart is required.
+
+Other transient gateway login failures use exponential backoff capped at five minutes. To inspect the current gateway state in a Docker deployment:
+
+```bash
+docker logs --timestamps --tail 100 yuebot
+```
+
 ## Local development
 
 ### Requirements
