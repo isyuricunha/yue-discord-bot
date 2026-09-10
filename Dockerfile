@@ -111,7 +111,9 @@ COPY prompts ./prompts
 # Setup Nginx for the web frontend.
 RUN mkdir -p /var/www/html
 COPY nginx.conf /etc/nginx/sites-available/default
-RUN ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default \
+COPY nginx-security-headers.conf /etc/nginx/snippets/yue-security-headers.conf
+RUN mkdir -p /etc/nginx/snippets \
+    && ln -sf /etc/nginx/sites-available/default /etc/nginx/sites-enabled/default \
     && rm -f /etc/nginx/sites-enabled/default.dpkg-dist
 COPY --from=web-builder /app/apps/web/dist /usr/share/nginx/html
 
@@ -123,7 +125,7 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 COPY inject-env.sh /inject-env.sh
 RUN chmod +x /docker-entrypoint.sh /inject-env.sh
 
-EXPOSE 80 3000
+EXPOSE 8080 3000
 
 # Container readiness: API + database + bot internal API + Discord client.
 HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=40s \
