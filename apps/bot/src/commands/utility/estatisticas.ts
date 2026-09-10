@@ -51,7 +51,7 @@ interface UserStatsData {
   userCreatedAt: Date;
 }
 
-async function getUserStatsData(userId: string): Promise<UserStatsData> {
+async function getUserStatsData(userId: string, guildId: string | null): Promise<UserStatsData> {
   const [
     globalXpData,
     guildXpData,
@@ -69,18 +69,23 @@ async function getUserStatsData(userId: string): Promise<UserStatsData> {
         xp: true
       }
     }),
-    prisma.guildXpMember.findFirst({
-      where: { userId },
-      select: {
-        level: true,
-        xp: true,
-        guild: {
+    // Filtered by guildId so a user with XP in multiple guilds only sees the
+    // XP for the guild the command was run in, instead of an arbitrary row
+    // from findFirst (audit finding BOT-005).
+    guildId
+      ? prisma.guildXpMember.findFirst({
+          where: { userId, guildId },
           select: {
-            name: true
+            level: true,
+            xp: true,
+            guild: {
+              select: {
+                name: true
+              }
+            }
           }
-        }
-      }
-    }),
+        })
+      : Promise.resolve(null),
     prisma.wallet.findUnique({
       where: { userId },
       select: {
@@ -236,7 +241,7 @@ export const estatisticasCommand: Command = {
     const userId = interaction.user.id;
 
     try {
-      const statsData = await getUserStatsData(userId);
+      const statsData = await getUserStatsData(userId, interaction.guildId);
 
       if (subcommand === 'perfil') {
         const embed = new EmbedBuilder()
