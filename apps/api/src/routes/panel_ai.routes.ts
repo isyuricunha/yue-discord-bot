@@ -32,6 +32,7 @@ import {
 } from '../services/panel_ai_stream'
 import { custom_provider_is_configured } from '../services/custom_provider'
 import { build_panel_context, type panel_context_data } from '../services/panel_context'
+import { load_panel_ai_data_snapshot } from '../services/panel_ai_data_snapshot'
 import { ConversationStore } from '../services/conversation_store'
 import { create_runtime_conversation_store } from '../services/persistent_conversation_store'
 import { PanelConversationQueue, panel_conversation_queue } from '../services/panel_conversation_queue'
@@ -63,6 +64,11 @@ const MAX_FEEDBACK_COMMENT_LENGTH = 500
 type panel_ai_db = panel_module_db & panel_sensitive_context_db & {
   botSettings: Pick<typeof prisma.botSettings, 'findUnique'>
   panelAiFeedback: Pick<typeof prisma.panelAiFeedback, 'upsert'>
+  guildMember: Pick<typeof prisma.guildMember, 'count'>
+  ticket: Pick<typeof prisma.ticket, 'count'>
+  fanArt: Pick<typeof prisma.fanArt, 'count'>
+  modLog: Pick<typeof prisma.modLog, 'count'>
+  discordDelivery: Pick<typeof prisma.discordDelivery, 'count'>
 }
 
 type admin_check = (guildId: string, userId: string, log: FastifyBaseLogger) => Promise<{ isAdmin: boolean }>
@@ -247,7 +253,11 @@ async function load_turn_environment(
   const sensitiveEnabled = settings?.panelAiSensitiveContextEnabled === true
   const page = pageContext ? find_panel_ai_page(pageContext.pageKey) : null
 
-  const context = build_panel_context({
+  // Live aggregates for the assistant (improvement #1, v1): a compact,
+  // independently degrading snapshot appended to the page context.
+  const data_snapshot = await load_panel_ai_data_snapshot(deps.db, guildId).catch(() => null)
+
+  const base_context = build_panel_context({
     guild: {
       id: guild.id,
       name: guild.name,
@@ -267,6 +277,8 @@ async function load_turn_environment(
       availableScopes: sensitiveEnabled ? available_sensitive_scopes(pageContext) : [],
     },
   })
+
+  const context = data_snapshot ? `${base_context}\n\n${data_snapshot}` : base_context
 
   const canUseCustom =
     runtime.provider === 'custom' ||
