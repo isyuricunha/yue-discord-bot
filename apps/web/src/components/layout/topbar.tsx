@@ -6,7 +6,7 @@
  */
 import { useMemo, useRef } from 'react'
 import { useLocation, useNavigate, useParams, Link, matchPath } from 'react-router-dom'
-import { LogOut, ExternalLink, ChevronRight, Home, LayoutDashboard, Search, Sparkles, User } from 'lucide-react'
+import { LogOut, ExternalLink, ChevronRight, Home, LayoutDashboard, Menu, Search, Sparkles, User } from 'lucide-react'
 
 import { useAuthStore } from '../../store/auth'
 import { useCommandPaletteStore } from '../../store/command_palette'
@@ -19,6 +19,9 @@ type topbar_props = {
   ellaDrawerOpen: boolean
   onToggleEllaDrawer: () => void
   ellaTriggerRef: React.RefObject<HTMLButtonElement | null>
+  onOpenMobileNav: () => void
+  mobileNavOpen: boolean
+  mobileNavTriggerRef: React.RefObject<HTMLButtonElement | null>
 }
 
 type breadcrumb_item = {
@@ -89,7 +92,14 @@ function useBreadcrumbs(guildId: string | undefined, location: { pathname: strin
   }, [guildId, location.pathname])
 }
 
-export function Topbar({ ellaDrawerOpen, onToggleEllaDrawer, ellaTriggerRef }: topbar_props) {
+export function Topbar({
+  ellaDrawerOpen,
+  onToggleEllaDrawer,
+  ellaTriggerRef,
+  onOpenMobileNav,
+  mobileNavOpen,
+  mobileNavTriggerRef,
+}: topbar_props) {
   const location = useLocation()
   const navigate = useNavigate()
   const { guildId } = useParams()
@@ -125,8 +135,22 @@ export function Topbar({ ellaDrawerOpen, onToggleEllaDrawer, ellaTriggerRef }: t
   return (
     <header className="sticky top-0 z-20 border-b border-border/80 bg-window">
       <div className="flex h-12 items-center justify-between gap-4 px-4 sm:px-5">
-        {/* Left: Breadcrumbs */}
-        <div className="flex min-w-0 flex-1 items-center">
+        {/* Left: mobile nav trigger + Breadcrumbs */}
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <button
+            type="button"
+            ref={mobileNavTriggerRef}
+            onClick={onOpenMobileNav}
+            className={cn(
+              'inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border/80 bg-surface-raised text-muted-foreground lg:hidden',
+              'hover:bg-surface-hover hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35'
+            )}
+            aria-label="Abrir menu de navegação"
+            aria-controls="sidebar"
+            aria-expanded={mobileNavOpen}
+          >
+            <Menu className="h-4 w-4" />
+          </button>
           <nav aria-label="Breadcrumb navigation" className="flex flex-wrap items-center gap-1 font-mono text-[11px] text-muted-foreground">
             {breadcrumbs.map((crumb, idx) => {
               const isLast = idx === breadcrumbs.length - 1
@@ -163,7 +187,7 @@ export function Topbar({ ellaDrawerOpen, onToggleEllaDrawer, ellaTriggerRef }: t
                 variant={ellaDrawerOpen ? 'solid' : 'outline'}
                 size="sm"
                 onClick={onToggleEllaDrawer}
-                className="h-9 gap-1.5 px-2.5 sm:px-3"
+                className="h-11 lg:h-9 min-w-11 lg:min-w-0 gap-1.5 px-2.5 sm:px-3"
                 aria-label={ellaDrawerOpen ? 'Fechar Ella' : 'Abrir Ella'}
                 aria-controls="ella-drawer"
                 aria-expanded={ellaDrawerOpen}
@@ -178,7 +202,7 @@ export function Topbar({ ellaDrawerOpen, onToggleEllaDrawer, ellaTriggerRef }: t
               size="sm"
               onClick={open}
               onKeyDown={(e) => handleButtonKeyDown(e, open)}
-              className="h-9 gap-1.5 px-2.5 sm:px-3"
+              className="h-11 lg:h-9 min-w-11 lg:min-w-0 gap-1.5 px-2.5 sm:px-3"
               aria-label="Open command palette"
               aria-keyshortcuts="Ctrl+K"
             >
@@ -195,7 +219,7 @@ export function Topbar({ ellaDrawerOpen, onToggleEllaDrawer, ellaTriggerRef }: t
               size="sm"
               onClick={handleExtras}
               onKeyDown={(e) => handleButtonKeyDown(e, handleExtras)}
-              className="h-9 gap-1.5 px-2.5 sm:px-3"
+              className="h-11 lg:h-9 min-w-11 lg:min-w-0 gap-1.5 px-2.5 sm:px-3"
               aria-label="Open Extras panel in new tab"
             >
               <ExternalLink className="h-4 w-4" />
@@ -244,7 +268,7 @@ export function Topbar({ ellaDrawerOpen, onToggleEllaDrawer, ellaTriggerRef }: t
             size="sm"
             onClick={handleLogout}
             onKeyDown={(e) => handleButtonKeyDown(e, handleLogout)}
-            className="h-9 w-9 px-0 sm:w-auto sm:px-2.5"
+            className="h-11 w-11 lg:h-9 lg:w-9 px-0 sm:w-auto sm:px-2.5"
             aria-label="Logout"
           >
             <LogOut className="h-4 w-4" />
