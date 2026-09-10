@@ -12,7 +12,7 @@ export type announcement_complete_fn = (
   input: panel_ai_completion_input,
 ) => Promise<string>
 
-export type announcement_ai_dependencies = {
+type announcement_ai_dependencies = {
   complete: announcement_complete_fn
   fetchLatestRelease?: () => Promise<github_release | null>
 }
