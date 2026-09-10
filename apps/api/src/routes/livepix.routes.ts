@@ -148,6 +148,26 @@ export function createLivePixRoutes(
         reference,
       })
 
+      // LivePix does not sign webhook payloads (its API docs prescribe
+      // re-querying the API for details, which verifyAndFulfillSupportPayment
+      // does). Unknown references and unsupported resource types are therefore
+      // answered without persisting anything, so forged webhooks cannot fill
+      // the event table (audit finding API-001). Fulfillment still only runs
+      // for references that resolve to a real support payment and is
+      // re-verified against the LivePix API.
+      if (resourceType !== 'payment' || !reference) {
+        return reply.send({ success: true, ignored: true })
+      }
+
+      const payment = await dependencies.db.supportPayment.findUnique({
+        where: { livePixReference: reference },
+        select: { id: true, guildId: true },
+      })
+
+      if (!payment) {
+        return reply.send({ success: true, ignored: true })
+      }
+
       let event_id: string
       try {
         const created = await dependencies.db.livePixWebhookEvent.create({
@@ -158,6 +178,8 @@ export function createLivePixRoutes(
             resourceType,
             resourceId,
             reference,
+            guildId: payment.guildId,
+            supportPaymentId: payment.id,
           },
           select: { id: true },
         })
@@ -170,43 +192,6 @@ export function createLivePixRoutes(
         request.log.error({ err: safe_error_details(error) }, 'Failed to persist LivePix webhook event')
         return reply.code(503).send({ error: 'Temporary failure' })
       }
-
-      if (resourceType !== 'payment' || !reference) {
-        await dependencies.db.livePixWebhookEvent.update({
-          where: { id: event_id },
-          data: {
-            status: 'IGNORED',
-            processedAt: new Date(),
-            failureCode: resourceType !== 'payment' ? 'unsupported_resource_type' : 'missing_reference',
-          },
-        })
-        return reply.send({ success: true, ignored: true })
-      }
-
-      const payment = await dependencies.db.supportPayment.findUnique({
-        where: { livePixReference: reference },
-        select: { id: true, guildId: true },
-      })
-
-      if (!payment) {
-        await dependencies.db.livePixWebhookEvent.update({
-          where: { id: event_id },
-          data: {
-            status: 'IGNORED',
-            processedAt: new Date(),
-            failureCode: 'unknown_reference',
-          },
-        })
-        return reply.send({ success: true, ignored: true })
-      }
-
-      await dependencies.db.livePixWebhookEvent.update({
-        where: { id: event_id },
-        data: {
-          guildId: payment.guildId,
-          supportPaymentId: payment.id,
-        },
-      })
 
       try {
         const fulfillment = await dependencies.verifyAndFulfillSupportPayment(
