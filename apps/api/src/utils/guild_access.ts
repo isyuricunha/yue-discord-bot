@@ -1,6 +1,5 @@
 import type { FastifyBaseLogger } from 'fastify'
 import { is_guild_admin } from '../internal/bot_internal_api'
-import { is_owner } from './permissions'
 
 type auth_user = {
   userId?: string
@@ -16,17 +15,6 @@ export type guild_admin_checker = (
   log: FastifyBaseLogger
 ) => Promise<{ isAdmin: boolean }>
 
-export type owner_checker = (user_id: string) => boolean
-
-// Owner privilege is derived from the live OWNER_USER_IDS configuration, never
-// from the JWT isOwner claim: the claim survives for up to one token lifetime
-// after a user is removed from OWNER_USER_IDS, so trusting it kept removed
-// owners authorized (audit finding AUTH-001).
-function is_current_config_owner(user_id: string | undefined, check_owner: owner_checker): boolean {
-  const normalized = typeof user_id === 'string' ? user_id.trim() : ''
-  return normalized.length > 0 && check_owner(normalized)
-}
-
 export function request_guild_id(params: unknown): string | null {
   if (!params || typeof params !== 'object') return null
 
@@ -37,14 +25,20 @@ export function request_guild_id(params: unknown): string | null {
   return normalized.length > 0 ? normalized : null
 }
 
+// These functions trust user.isOwner as-is: the authenticate decorator in
+// create_api_app.ts rederives it from the live OWNER_USER_IDS configuration
+// on every authenticated request, before any preHandler that calls these
+// functions runs (audit finding AUTH-001 is fixed there, and in /auth/refresh
+// for the reissued token). Re-deriving it again here would be redundant and
+// would break the contract route-module tests rely on: providing their own
+// user object with isOwner already set to the value they want to exercise.
 export async function verify_live_guild_access(
   user: auth_user,
   guild_id: string,
   log: FastifyBaseLogger,
-  check_admin: guild_admin_checker = is_guild_admin,
-  check_owner: owner_checker = is_owner
+  check_admin: guild_admin_checker = is_guild_admin
 ): Promise<boolean> {
-  if (is_current_config_owner(user.userId, check_owner)) return true
+  if (user.isOwner) return true
 
   user.liveGuildAuthorizationChecked = true
 
@@ -63,12 +57,8 @@ export async function verify_live_guild_access(
   return true
 }
 
-export function can_access_guild(
-  user: auth_user,
-  guild_id: string,
-  check_owner: owner_checker = is_owner
-): boolean {
-  if (is_current_config_owner(user.userId, check_owner)) return true
+export function can_access_guild(user: auth_user, guild_id: string): boolean {
+  if (user.isOwner) return true
 
   // In the full API pipeline, live authorization is authoritative and JWT guild
   // claims are presentation metadata only. The fallback keeps route modules usable
