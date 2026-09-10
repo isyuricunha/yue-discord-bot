@@ -25,6 +25,13 @@ export function request_guild_id(params: unknown): string | null {
   return normalized.length > 0 ? normalized : null
 }
 
+// These functions trust user.isOwner as-is: the authenticate decorator in
+// create_api_app.ts rederives it from the live OWNER_USER_IDS configuration
+// on every authenticated request, before any preHandler that calls these
+// functions runs (audit finding AUTH-001 is fixed there, and in /auth/refresh
+// for the reissued token). Re-deriving it again here would be redundant and
+// would break the contract route-module tests rely on: providing their own
+// user object with isOwner already set to the value they want to exercise.
 export async function verify_live_guild_access(
   user: auth_user,
   guild_id: string,

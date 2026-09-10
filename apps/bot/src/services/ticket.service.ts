@@ -18,6 +18,7 @@ import { COLORS, EMOJIS } from '@yuebot/shared'
 import { logger } from '../utils/logger'
 import { safe_error_details } from "../utils/safe_error";
 import { safe_defer_ephemeral, safe_reply_ephemeral, safe_reply_or_edit_ephemeral } from "../utils/interaction";
+import { KeyedSerialExecutor } from '../utils/keyed-serial'
 
 type ticket_config = {
   enabled: boolean
@@ -79,6 +80,8 @@ function can_set_channel_name(channel: unknown): channel is { setName: (name: st
 }
 
 class TicketService {
+  private readonly open_locks = new KeyedSerialExecutor()
+
   async get_config(guild_id: string): Promise<ticket_config> {
     const row = await prisma.ticketConfig.findUnique({
       where: { guildId: guild_id },
@@ -177,7 +180,16 @@ class TicketService {
 
     await safe_defer_ephemeral(interaction)
 
-    const config = await this.get_config(interaction.guild.id)
+    // Concurrent button clicks could both pass the open-ticket check below and
+    // create two Discord channels and two rows. Serializing per guild+user makes
+    // the second click observe the first click's open ticket instead (audit
+    // finding BOT-006). Single-process by design: one bot program per container.
+    const lock_key = `open:${interaction.guild.id}:${interaction.user.id}`
+    await this.open_locks.run(lock_key, () => this.open_ticket(interaction, interaction.guild))
+  }
+
+  private async open_ticket(interaction: ButtonInteraction, guild: NonNullable<ButtonInteraction['guild']>): Promise<void> {
+    const config = await this.get_config(guild.id)
     if (!config.enabled) {
       await interaction.editReply({ content: `${EMOJIS.ERROR} Tickets estão desativados neste servidor.` })
       return
@@ -185,7 +197,7 @@ class TicketService {
 
     const existing = await prisma.ticket.findFirst({
       where: {
-        guildId: interaction.guild.id,
+        guildId: guild.id,
         userId: interaction.user.id,
         status: 'open',
       },
@@ -193,7 +205,7 @@ class TicketService {
     })
 
     if (existing?.channelId) {
-      const existing_channel = await interaction.guild.channels.fetch(existing.channelId).catch(() => null)
+      const existing_channel = await guild.channels.fetch(existing.channelId).catch(() => null)
       if (existing_channel) {
         await interaction.editReply({ content: `${EMOJIS.INFO} Você já tem um ticket aberto: <#${existing.channelId}>` })
         return
@@ -210,7 +222,7 @@ class TicketService {
       })
     }
 
-    const me = await interaction.guild.members.fetchMe().catch(() => null)
+    const me = await guild.members.fetchMe().catch(() => null)
     if (!me?.permissions.has(PermissionFlagsBits.ManageChannels)) {
       await interaction.editReply({ content: `${EMOJIS.ERROR} Eu não tenho permissão para criar canais.` })
       return
@@ -220,7 +232,7 @@ class TicketService {
 
     const permission_overwrites = [
       {
-        id: interaction.guild.roles.everyone.id,
+        id: guild.roles.everyone.id,
         deny: [PermissionFlagsBits.ViewChannel],
       },
       {
@@ -255,7 +267,7 @@ class TicketService {
       })),
     ]
 
-    const channel = await interaction.guild.channels.create({
+    const channel = await guild.channels.create({
       name: channel_name,
       type: ChannelType.GuildText,
       parent: config.categoryId ?? undefined,
@@ -265,7 +277,7 @@ class TicketService {
 
     const ticket = await prisma.ticket.create({
       data: {
-        guildId: interaction.guild.id,
+        guildId: guild.id,
         userId: interaction.user.id,
         channelId: channel.id,
       },
@@ -288,7 +300,7 @@ class TicketService {
 
     await interaction.editReply({ content: `${EMOJIS.SUCCESS} Ticket criado: <#${channel.id}>` })
 
-    await this.log_event(interaction.guild, config.logChannelId, {
+    await this.log_event(guild, config.logChannelId, {
       title: 'Ticket aberto',
       description: `Usuário: <@${interaction.user.id}>\nCanal: <#${channel.id}>`,
     })

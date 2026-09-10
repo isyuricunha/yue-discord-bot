@@ -8,6 +8,7 @@ import Redis from 'ioredis';
 import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { CONFIG } from '../config';
 import { request_guild_id, verify_live_guild_access } from '../utils/guild_access';
+import { is_owner } from '../utils/permissions';
 import { safe_error_details } from '../utils/safe_error';
 import { get_readiness } from '../services/readiness.service';
 import { registerApiRoutes } from './register_api_routes';
@@ -133,6 +134,12 @@ export function createApiApp(): ApiAppResources {
       await reply.code(401).send({ error: 'Unauthorized' });
       return;
     }
+
+    // Owner privilege is re-derived from the live OWNER_USER_IDS configuration on
+    // every request. The JWT isOwner claim can outlive a config removal for up to
+    // one token lifetime, so trusting the claim kept removed owners authorized
+    // (audit finding AUTH-001).
+    request.user.isOwner = is_owner(user_id);
 
     const check_user_rate_limit = authenticated_user_rate_limit ??= request.server.createRateLimit({
       max: CONFIG.rateLimit.max,

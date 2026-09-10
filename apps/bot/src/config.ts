@@ -42,7 +42,10 @@ export const CONFIG = {
   },
   readiness: {
     host: process.env.BOT_READINESS_HOST || process.env.BOT_INTERNAL_BIND_HOST || process.env.BOT_INTERNAL_HOST || '127.0.0.1',
-    port: parse_env_port(process.env.BOT_READINESS_PORT, internal_api_port + 1),
+    // Falls back to internal_api_port + 1, but that default must still be a
+    // valid TCP port: internal_api_port=65535 previously derived 65536 and
+    // crashed the readiness server at startup (audit finding BOT-001).
+    port: parse_env_port(process.env.BOT_READINESS_PORT, Math.min(internal_api_port + 1, 65_535)),
   },
   database: {
     url: process.env.DATABASE_URL || '',
