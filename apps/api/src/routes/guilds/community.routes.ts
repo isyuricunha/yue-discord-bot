@@ -19,6 +19,36 @@ import { safe_error_details } from '../../utils/safe_error'
 import { validation_error_details } from '../../utils/validation_error'
 import { requireGuildAdmin } from './authorization'
 
+type suggestion_score_row = {
+  id: string
+  upvotes: number
+  downvotes: number
+  createdAt: Date
+}
+
+// Extracted so the score-first ordering can be unit-tested without mocking
+// Prisma/Fastify: the net score (upvotes - downvotes) can only be computed
+// after fetching, so pre-sorting/truncating in SQL by raw upvotes can evict a
+// suggestion with a better net score (audit finding API-002).
+export function sort_suggestions_by_net_score<T extends suggestion_score_row>(
+  items: T[],
+  limit: number
+): T[] {
+  return items
+    .slice()
+    .sort((a, b) => {
+      const score_a = a.upvotes - a.downvotes
+      const score_b = b.upvotes - b.downvotes
+      if (score_a !== score_b) return score_b - score_a
+      if (a.upvotes !== b.upvotes) return b.upvotes - a.upvotes
+      if (a.createdAt.getTime() !== b.createdAt.getTime()) {
+        return b.createdAt.getTime() - a.createdAt.getTime()
+      }
+      return a.id.localeCompare(b.id)
+    })
+    .slice(0, limit)
+}
+
 export async function guildCommunityRoutes(fastify: FastifyInstance) {
   const admin = [fastify.authenticate, requireGuildAdmin]
 
@@ -55,23 +85,15 @@ export async function guildCommunityRoutes(fastify: FastifyInstance) {
           createdAt: true,
           updatedAt: true,
         },
-        take: limit,
+        // Bounded well above the max `limit` (100): net score can only be
+        // computed after fetching, so a raw `take: limit` here could evict a
+        // suggestion with a better net score before scoring runs (audit
+        // finding API-002). The cap still keeps the query bounded.
+        take: 1000,
         orderBy: [{ upvotes: 'desc' }, { downvotes: 'asc' }, { createdAt: 'desc' }],
       })
 
-      const sorted = items
-        .slice()
-        .sort((a, b) => {
-          const score_a = a.upvotes - a.downvotes
-          const score_b = b.upvotes - b.downvotes
-          if (score_a !== score_b) return score_b - score_a
-          if (a.upvotes !== b.upvotes) return b.upvotes - a.upvotes
-          if (a.createdAt.getTime() !== b.createdAt.getTime()) {
-            return b.createdAt.getTime() - a.createdAt.getTime()
-          }
-          return a.id.localeCompare(b.id)
-        })
-        .slice(0, limit)
+      const sorted = sort_suggestions_by_net_score(items, limit)
 
       return { success: true, timeframe, since, suggestions: sorted }
     } catch (error: unknown) {
