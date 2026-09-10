@@ -650,7 +650,7 @@ export default function OwnerPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    size="sm"
+                    size="sm" className="h-11 lg:h-9"
                     onClick={() => generateFromReleaseMutation.mutate()}
                     isLoading={generateFromReleaseMutation.isPending}
                   >
@@ -788,7 +788,7 @@ export default function OwnerPage() {
                       {g.name}
                     </div>
                     <div className="mt-1 truncate text-xs text-muted-foreground">{g.id}</div>
-                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-[11px] text-muted-foreground">
+                    <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                       {g.ownerId ? <span className="truncate" title={g.ownerId}>Owner: @...{g.ownerId.slice(-5)}</span> : null}
                       {format_added_at(g.addedAt) ? <span>Adicionado: {format_added_at(g.addedAt)}</span> : null}
                       {blocked_set.has(g.id) && <span className="font-semibold text-red-400">Bloqueado</span>}
@@ -799,7 +799,7 @@ export default function OwnerPage() {
                 <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
                   <Button
                     type="button"
-                    size="sm"
+                    size="sm" className="h-11 lg:h-9"
                     variant="outline"
                     onClick={(event) => {
                       event.preventDefault()
@@ -812,7 +812,7 @@ export default function OwnerPage() {
                   </Button>
                   <Button
                     type="button"
-                    size="sm"
+                    size="sm" className="h-11 lg:h-9"
                     variant="outline"
                     onClick={(event) => {
                       event.preventDefault()
@@ -825,7 +825,7 @@ export default function OwnerPage() {
                   </Button>
                   <Button
                     type="button"
-                    size="sm"
+                    size="sm" className="h-11 lg:h-9"
                     variant="outline"
                     onClick={(event) => {
                       event.preventDefault()
@@ -838,7 +838,7 @@ export default function OwnerPage() {
                   </Button>
                   <Button
                     type="button"
-                    size="sm"
+                    size="sm" className="h-11 lg:h-9"
                     variant="outline"
                     onClick={(event) => {
                       event.preventDefault()
@@ -851,7 +851,7 @@ export default function OwnerPage() {
                   </Button>
                   <Button
                     type="button"
-                    size="sm"
+                    size="sm" className="h-11 lg:h-9"
                     variant="outline"
                     onClick={(event) => {
                       event.preventDefault()
@@ -866,7 +866,7 @@ export default function OwnerPage() {
 
                   <Button
                     type="button"
-                    size="sm"
+                    size="sm" className="h-11 lg:h-9"
                     variant={blocked_set.has(g.id) ? 'outline' : 'outline'}
                     onClick={(event) => {
                       event.preventDefault()
@@ -882,7 +882,7 @@ export default function OwnerPage() {
 
                   <Button
                     type="button"
-                    size="sm"
+                    size="sm" className="h-11 lg:h-9"
                     variant="outline"
                     onClick={(event) => {
                       event.preventDefault()
@@ -896,7 +896,7 @@ export default function OwnerPage() {
                   </Button>
                   <Button
                     type="button"
-                    size="sm"
+                    size="sm" className="h-11 lg:h-9"
                     variant="ghost"
                     onClick={(event) => {
                       event.preventDefault()

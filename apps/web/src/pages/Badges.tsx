@@ -175,7 +175,7 @@ export default function BadgesPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="border-accent/20 lg:col-span-2">
+        <Card className="min-w-0 overflow-hidden border-accent/20 lg:col-span-2">
           <CardContent className="space-y-4 pt-6">
             <div className="text-sm font-medium">Catálogo</div>
 
@@ -212,7 +212,7 @@ export default function BadgesPage() {
                           key={b.id}
                           type="button"
                         className={[
-                          'flex items-start justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-colors',
+                          'flex w-full min-w-0 items-start justify-between gap-3 rounded-2xl border px-4 py-3 text-left transition-colors',
                           editing?.id === b.id
                             ? 'border-accent/60 bg-accent/10'
                             : 'border-border/80 bg-surface/40 hover:bg-surface/60',
