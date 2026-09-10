@@ -150,6 +150,11 @@
   --yu-duration-slow: 260ms;
   --yu-ease: cubic-bezier(0.2, 0, 0, 1);
 
+  --yu-stagger-step: 50ms;
+  --yu-card-lift: translateY(-2px);
+  --yu-card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.25);
+
+
   --syntax-fg: #e0e0e0;
   --syntax-comment: #7f755f;
   --syntax-keyword: #ffb74d;
@@ -762,5 +767,42 @@ kbd {
     animation-duration: 1ms !important;
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* Card hover elevation: interactive cards lift on hover */
+.card-hover {
+  transition: transform var(--yu-duration-base) var(--yu-ease), box-shadow var(--yu-duration-base) var(--yu-ease);
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--yu-card-shadow-hover);
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-hover:hover {
+    transform: none;
+  }
+}
+
+/* Stagger entrance for cards in a grid */
+@keyframes panel-stagger-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stagger-item {
+  opacity: 0;
+  animation: panel-stagger-in 260ms var(--yu-ease) forwards;
+}
+.stagger-item:nth-child(1) { animation-delay: 0ms; }
+.stagger-item:nth-child(2) { animation-delay: 50ms; }
+.stagger-item:nth-child(3) { animation-delay: 100ms; }
+.stagger-item:nth-child(4) { animation-delay: 150ms; }
+.stagger-item:nth-child(5) { animation-delay: 200ms; }
+.stagger-item:nth-child(6) { animation-delay: 250ms; }
+.stagger-item:nth-child(n+7) { animation-delay: 300ms; }
+@media (prefers-reduced-motion: reduce) {
+  .stagger-item {
+    opacity: 1;
+    animation: none;
   }
 }
