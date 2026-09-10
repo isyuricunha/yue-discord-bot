@@ -1178,6 +1178,7 @@ model BotSettings {
   customProviderModelCatalogError    String?
   panelAiConversationVersion         Int       @default(1)
   discordAiTextFallbackEnabled       Boolean   @default(false)
+  lastAnnouncedReleaseTag            String?
 
   @@map("bot_settings")
 }
