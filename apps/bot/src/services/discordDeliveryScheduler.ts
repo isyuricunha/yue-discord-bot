@@ -12,6 +12,7 @@ import { safe_error_details } from '../utils/safe_error'
 
 const INTERVAL_MS = 5_000
 const CLAIM_LEASE_MS = 2 * 60_000
+const RUN_WAIT_POLL_MS = 50
 const MAX_ATTEMPTS = 12
 const MAX_BACKOFF_MS = 5 * 60_000
 
@@ -77,10 +78,17 @@ export class DiscordDeliveryScheduler {
     logger.info('📨 Scheduler de entregas Discord iniciado')
   }
 
-  stop() {
-    if (!this.timer) return
-    clearInterval(this.timer)
-    this.timer = null
+  async stop() {
+    if (this.timer) {
+      clearInterval(this.timer)
+      this.timer = null
+    }
+
+    // Waits for any in-flight run_once() so shutdown does not race a live
+    // delivery attempt against Prisma disconnecting (audit finding BOT-007).
+    while (this.running) {
+      await new Promise((resolve) => setTimeout(resolve, RUN_WAIT_POLL_MS))
+    }
   }
 
   private async run_once() {

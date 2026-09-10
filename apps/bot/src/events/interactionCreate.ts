@@ -129,6 +129,19 @@ export async function handleInteractionCreate(interaction: Interaction) {
     const command = interaction.client.commands.get(interaction.commandName);
 
     if (!command) {
+      // An empty collection means command loading has not finished yet (it
+      // runs after clientReady), not that the command truly does not exist.
+      // Previously this case was logged and the interaction silently dropped
+      // (audit finding BOT-003); now the user gets a clear, retryable reply.
+      if (interaction.client.commands.size === 0) {
+        logger.warn(
+          { command: interaction.commandName },
+          'Interação recebida antes do carregamento dos comandos'
+        )
+        await safe_reply_ephemeral(interaction, { content: `${EMOJIS.ERROR} O bot ainda está inicializando. Tente novamente em alguns segundos.` })
+        return;
+      }
+
       logger.warn(`Comando não encontrado: ${interaction.commandName}`);
       return;
     }
