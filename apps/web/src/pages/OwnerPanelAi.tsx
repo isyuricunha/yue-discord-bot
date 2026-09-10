@@ -106,6 +106,22 @@ export default function OwnerPanelAiPage() {
   const customConfigured = data?.runtimes.customProviderConfigured ?? false
   const showCustomControls = provider === 'custom' || (provider === 'mistral' && (fallbackEnabled || discordTextFallbackEnabled))
 
+  type panel_ai_metrics_response = {
+  success: true
+  metrics: {
+    since: string
+    turns: { total: number; ok: number; failed: number; avgLatencyMs: number | null; maxLatencyMs: number | null }
+    fallback: { attempted: number; succeeded: number; failed: number }
+  }
+}
+
+const metricsQuery = useQuery({
+    queryKey: ['owner', 'panel-ai', 'metrics'],
+    queryFn: async () => (await axios.get(`${API_URL}/api/owner/panel-ai/metrics`)).data as panel_ai_metrics_response,
+    refetchInterval: 30_000,
+  })
+  const metrics = metricsQuery.data?.metrics
+
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
       <div>
@@ -114,6 +130,57 @@ export default function OwnerPanelAiPage() {
           Runtime global, exclusivo do Owner. Alterações reiniciam as conversas ativas.
         </p>
       </div>
+
+      <Card>
+        <CardContent className="space-y-4 p-6">
+          <div className="flex items-center justify-between">
+            <div className="font-semibold">Uso e saúde</div>
+            <Button variant="outline" size="sm" onClick={() => void metricsQuery.refetch()} disabled={metricsQuery.isFetching}>
+              Atualizar
+            </Button>
+          </div>
+
+          {!metrics ? (
+            <div className="text-sm text-muted-foreground">{metricsQuery.isFetching ? 'Carregando ...' : 'Sem dados de uso.'}</div>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <div className="text-2xl font-semibold tracking-tight">{metrics.turns.total}</div>
+                  <div className="text-muted-foreground text-xs">turnos processados</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold tracking-tight">{metrics.turns.failed}</div>
+                  <div className="text-muted-foreground text-xs">falharam</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-semibold tracking-tight">{metrics.fallback.attempted}</div>
+                  <div className="text-muted-foreground text-xs">tentativas de fallback</div>
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div>
+                  <div className="text-sm font-medium">{metrics.turns.avgLatencyMs !== null ? `${metrics.turns.avgLatencyMs} ms` : '—'}</div>
+                  <div className="text-muted-foreground text-xs">latência média</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium">{metrics.turns.maxLatencyMs !== null ? `${metrics.turns.maxLatencyMs} ms` : '—'}</div>
+                  <div className="text-muted-foreground text-xs">latência máxima</div>
+                </div>
+                <div>
+                  <div className="text-sm font-medium">{metrics.fallback.succeeded}/{metrics.fallback.attempted}</div>
+                  <div className="text-muted-foreground text-xs">fallbacks com sucesso</div>
+                </div>
+              </div>
+
+              <p className="text-muted-foreground text-xs">
+                Contadores desde {new Date(metrics.since).toLocaleString()} (reiniciam com o processo da API).
+              </p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
       <Card>
         <CardContent className="space-y-5 p-6">
           <div className="flex items-center justify-between">

@@ -54,6 +54,7 @@ import {
   type preload_result,
 } from '../services/panel_module_context'
 import { safe_error_details } from '../utils/safe_error'
+import { panel_ai_metrics } from '../services/panel_ai_metrics'
 
 const MAX_MESSAGE_LENGTH = 4_000
 const MAX_ROUTE_PARAM_LENGTH = 128
@@ -182,6 +183,11 @@ function runtime_dependencies(
     mistralApiKeyConfigured: deps.mistralApiKeyConfigured,
     customProviderConfigured: deps.customProviderIsConfigured(),
     logEvent: (event: panel_ai_runtime_event) => {
+      try {
+        panel_ai_metrics.recordRuntimeEvent(event)
+      } catch {
+        // Metrics must never break fallback or alter execution
+      }
       try {
         request.log.info(
           {
@@ -625,11 +631,14 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
       const pageContext = parse_page_context(request.body)
       const key = conversation_key(guildId, request.user.userId)
 
+      const started_at = Date.now()
       try {
         const result = await deps.queue.run(key, () => run_json_chat_turn(deps, request, guildId, message, pageContext))
+        panel_ai_metrics.recordTurn({ latencyMs: Date.now() - started_at, ok: Boolean(result) })
         if (!result) return reply.code(404).send({ error: 'Guild not found' })
         return reply.send({ success: true, ...result })
       } catch (error: unknown) {
+        panel_ai_metrics.recordTurn({ latencyMs: Date.now() - started_at, ok: false })
         request.log.warn({ err: safe_error_details(error), guildId }, 'Panel AI chat failed')
         return reply.code(502).send({ error: 'Panel assistant is unavailable' })
       }
