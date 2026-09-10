@@ -33,6 +33,7 @@ import {
 import { custom_provider_is_configured } from '../services/custom_provider'
 import { build_panel_context, type panel_context_data } from '../services/panel_context'
 import { ConversationStore } from '../services/conversation_store'
+import { create_runtime_conversation_store } from '../services/persistent_conversation_store'
 import { PanelConversationQueue, panel_conversation_queue } from '../services/panel_conversation_queue'
 import {
   PanelAiProtocolStreamFilter,
@@ -547,7 +548,7 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
   }
   const deps: panel_ai_route_deps = {
     db,
-    store: overrides.store ?? new ConversationStore(),
+    store: overrides.store ?? create_runtime_conversation_store(),
     queue: overrides.queue ?? panel_conversation_queue,
     sensitiveStore: overrides.sensitiveStore ?? panel_sensitive_context_store,
     // An injected database is a complete route-test fixture unless the caller
