@@ -1,5 +1,5 @@
 import * as React from 'react'
-import { Maximize2, Sparkles, Trash2, X } from 'lucide-react'
+import { Maximize2, Square, Sparkles, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { get_panel_ai_quick_prompts, get_panel_ai_explain_prompts } from '@yuebot/shared'
 
@@ -267,33 +267,63 @@ export function PanelAssistantDrawer({ open, onClose, triggerRef }: props) {
             className="py-8"
           />
         )}
-        {assistant.messages.map((message) => (
-          <PanelAssistantMessage
-            key={message.id}
-            role={message.status === 'thinking' ? 'thinking' : message.status === 'error' ? 'error' : message.role}
-            content={message.content}
-            isError={message.status === 'error'}
-            onRetry={message.status === 'error' ? () => assistant.retry(message.turnId) : undefined}
-            retryDisabled={assistant.operation !== 'idle'}
-            onFeedback={
-              message.role === 'assistant' && message.status === 'complete'
-                ? (rating) => void assistant.sendFeedback(message.turnId, rating)
-                : undefined
-            }
-            feedbackSent={assistant.ratedTurns.has(message.turnId)}
-            actions={message.actions}
-            sensitiveRequest={message.sensitiveRequest}
-            onAction={assistant.executeAction}
-            onSensitiveConfirm={(request) => assistant.confirmSensitive(message.turnId, request.id)}
-            onSensitiveDecline={(request) => assistant.declineSensitive(message.turnId, request.id)}
-            sensitiveDisabled={assistant.operation !== 'idle'}
-            className="py-2"
-          />
-        ))}
+        {assistant.messages.map((message, index) => {
+          const is_last = index === assistant.messages.length - 1
+          return (
+            <PanelAssistantMessage
+              key={message.id}
+              role={message.status === 'thinking' ? 'thinking' : message.status === 'error' ? 'error' : message.role}
+              content={message.content}
+              isError={message.status === 'error'}
+              onRetry={message.status === 'error' ? () => assistant.retry(message.turnId) : undefined}
+              retryDisabled={assistant.operation !== 'idle'}
+              createdAt={message.createdAt}
+              streaming={assistant.streamingTurnId === message.id}
+              onRegenerate={
+                is_last && message.role === 'assistant' && message.status === 'complete'
+                  ? assistant.regenerateLast
+                  : undefined
+              }
+              onFeedback={
+                message.role === 'assistant' && message.status === 'complete'
+                  ? (rating) => void assistant.sendFeedback(message.turnId, rating)
+                  : undefined
+              }
+              feedbackSent={assistant.ratedTurns.has(message.turnId)}
+              actions={message.actions}
+              sensitiveRequest={message.sensitiveRequest}
+              onAction={assistant.executeAction}
+              onSensitiveConfirm={(request) => assistant.confirmSensitive(message.turnId, request.id)}
+              onSensitiveDecline={(request) => assistant.declineSensitive(message.turnId, request.id)}
+              sensitiveDisabled={assistant.operation !== 'idle'}
+              className="py-2"
+            />
+          )
+        })}
         <div ref={endRef} />
       </div>
       <div className="shrink-0 border-t border-border/40 bg-canvas px-4 py-3">
-        <PanelAssistantComposer ref={composerRef} value={assistant.draft} onChange={assistant.setDraft} onSend={() => assistant.send()} disabled={assistant.operation !== 'idle' || !!assistant.historyError || !assistant.activeGuildId} loading={assistant.operation === 'sending' || assistant.operation === 'retrying' || assistant.operation === 'confirming-sensitive'} />
+        <div className="flex items-end gap-2">
+          <PanelAssistantComposer
+            ref={composerRef}
+            value={assistant.draft}
+            onChange={assistant.setDraft}
+            onSend={() => assistant.send()}
+            disabled={assistant.operation !== 'idle' || !!assistant.historyError || !assistant.activeGuildId}
+            loading={assistant.operation === 'sending' || assistant.operation === 'retrying' || assistant.operation === 'confirming-sensitive'}
+            className="min-w-0 flex-1"
+          />
+          {mutation && (
+            <Button
+              type="button"
+              onClick={() => assistant.stopGeneration()}
+              className="h-10 w-10 shrink-0 px-0"
+              aria-label="Parar geração"
+            >
+              <Square className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
         <div className="mt-1.5 px-1 text-[11px] text-muted-foreground/50">Enter para enviar · Shift+Enter para quebrar linha</div>
       </div>
     </>

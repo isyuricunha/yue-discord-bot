@@ -1,4 +1,4 @@
-import { Copy, ExternalLink, Highlighter, ListTree, Save, ShieldCheck, Sparkles, ThumbsDown, ThumbsUp, WandSparkles } from 'lucide-react'
+import { Copy, ExternalLink, Highlighter, ListTree, RotateCcw, Save, ShieldCheck, Sparkles, ThumbsDown, ThumbsUp, WandSparkles } from 'lucide-react'
 import * as React from 'react'
 import type { panel_ai_action, panel_ai_apply_proposal, panel_ai_sensitive_request } from '@yuebot/shared'
 
@@ -29,6 +29,9 @@ type PanelAssistantMessageProps = {
   sensitiveDisabled?: boolean
   onFeedback?: (rating: 'up' | 'down') => void
   feedbackSent?: boolean
+  createdAt?: string
+  streaming?: boolean
+  onRegenerate?: () => void
   className?: string
 }
 
@@ -88,6 +91,9 @@ export function PanelAssistantMessage({
   sensitiveDisabled = false,
   onFeedback,
   feedbackSent = false,
+  createdAt,
+  streaming = false,
+  onRegenerate,
   className,
 }: PanelAssistantMessageProps) {
   const isUser = role === 'user'
@@ -282,6 +288,9 @@ export function PanelAssistantMessage({
       </span>
       <div className="min-w-0 flex-1">
         <PanelAssistantMarkdown>{content}</PanelAssistantMarkdown>
+        {streaming && (
+          <span className="ml-0.5 inline-block h-4 w-[7px] animate-pulse bg-accent/70 align-text-bottom" aria-hidden="true" />
+        )}
 
         {actions.length > 0 && onAction && (
           <div className="mt-3 flex flex-wrap gap-2" aria-label="Ações sugeridas pela Ella">
@@ -426,6 +435,16 @@ export function PanelAssistantMessage({
         )}
 
         <div className="mt-1 flex items-center gap-2 opacity-100 transition-opacity duration-150 sm:opacity-60 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100">
+          {createdAt && (
+            <time
+              dateTime={createdAt}
+              title={new Date(createdAt).toLocaleString()}
+              className="text-muted-foreground/70 text-[11px] tabular-nums"
+            >
+              {new Date(createdAt).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+            </time>
+          )}
+
           <Button
             variant="ghost"
             size="sm"
@@ -436,6 +455,19 @@ export function PanelAssistantMessage({
             <Copy className="h-3 w-3" />
             Copiar
           </Button>
+
+          {onRegenerate && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onRegenerate}
+              className="h-6 gap-1 px-2 text-xs text-muted-foreground hover:text-foreground"
+              aria-label="Gerar novamente"
+            >
+              <RotateCcw className="h-3 w-3" />
+              Gerar novamente
+            </Button>
+          )}
 
           {onFeedback && !feedbackSent && (
             <>

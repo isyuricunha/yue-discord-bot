@@ -32,6 +32,8 @@ export type panel_assistant_message = {
   status: 'complete' | 'thinking' | 'error'
   actions?: panel_ai_action[]
   sensitiveRequest?: panel_ai_sensitive_request | null
+  createdAt?: string
+  streaming?: boolean
 }
 
 type history_entry = Pick<panel_assistant_message, 'role' | 'content'>
@@ -52,6 +54,9 @@ export type panel_assistant_context_value = {
   confirmSensitive: (turnId: string, requestId: string) => void
   declineSensitive: (turnId: string, requestId: string) => void
   clearConversation: () => Promise<boolean>
+  stopGeneration: () => void
+  regenerateLast: () => void
+  streamingTurnId: string | null
   sendFeedback: (turnId: string, rating: 'up' | 'down') => Promise<boolean>
   ratedTurns: ReadonlySet<string>
   scrollVersion: number
@@ -282,6 +287,7 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
         targetGuildId !== currentGuildRef.current
       ) return
       streamed = true
+      setStreamingTurnId(assistantMessageId)
       setMessages((current) => current.map((item) =>
         item.id === assistantMessageId
           ? { ...item, content: `${item.content}${delta}`, status: 'complete' }
@@ -326,6 +332,7 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
 
     setScrollVersion((version) => version + 1)
     setFocusVersion((version) => version + 1)
+    setStreamingTurnId(null)
     setOperation('idle')
     chatControllerRef.current = null
   }, [activeGuildId, assistant, setOperation])
@@ -337,10 +344,11 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
     setOperation('sending')
     const turnId = `${activeGuildId}-turn-${++messageIdRef.current}`
     const assistantMessageId = `${turnId}-assistant`
+    const now = new Date().toISOString()
     setMessages((current) => [
       ...current,
-      { id: `${turnId}-user`, turnId, role: 'user', content: message, status: 'complete' },
-      { id: assistantMessageId, turnId, role: 'assistant', content: '', status: 'thinking' },
+      { id: `${turnId}-user`, turnId, role: 'user', content: message, status: 'complete', createdAt: now },
+      { id: assistantMessageId, turnId, role: 'assistant', content: '', status: 'thinking', createdAt: now },
     ])
     setDraft('')
     setScrollVersion((version) => version + 1)
@@ -403,7 +411,7 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
     const assistantMessageId = `${continuationTurnId}-assistant`
     setMessages((current) => [
       ...current,
-      { id: assistantMessageId, turnId: continuationTurnId, role: 'assistant', content: '', status: 'thinking' },
+      { id: assistantMessageId, turnId: continuationTurnId, role: 'assistant', content: '', status: 'thinking', createdAt: new Date().toISOString() },
     ])
     setScrollVersion((version) => version + 1)
 
@@ -511,6 +519,37 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
 
   const visibleMessages = stateGuildId === activeGuildId ? messages : []
   const [ratedTurns, setRatedTurns] = React.useState<ReadonlySet<string>>(() => new Set())
+  const [streamingTurnId, setStreamingTurnId] = React.useState<string | null>(null)
+
+  const stopGeneration = React.useCallback(() => {
+    const controller = chatControllerRef.current
+    if (!controller) return
+
+    controller.abort()
+    chatControllerRef.current = null
+    setStreamingTurnId(null)
+    setOperation('idle')
+    setFocusVersion((version) => version + 1)
+  }, [])
+
+  const regenerateLast = React.useCallback(() => {
+    if (!activeGuildId || operationRef.current !== 'idle' || !messages.length) return
+
+    const last = messages[messages.length - 1]
+    if (last.role !== 'assistant' || last.status === 'thinking') return
+
+    const userMessage = messages.find((item) => item.turnId === last.turnId && item.role === 'user')
+    if (!userMessage) return
+
+    setOperation('retrying')
+    setMessages((current) => current.map((item) =>
+      item.id === last.id
+        ? { ...item, content: '', status: 'thinking', actions: [], sensitiveRequest: null }
+        : item
+    ))
+    setScrollVersion((version) => version + 1)
+    void finishTurn(last.id, userMessage.content, 'retrying', activePageContext)
+  }, [activeGuildId, finishTurn, messages, setOperation])
 
   const sendFeedback = React.useCallback(async (turnId: string, rating: 'up' | 'down'): Promise<boolean> => {
     const targetGuildId = activeGuildId
@@ -550,6 +589,9 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
     confirmSensitive,
     declineSensitive,
     clearConversation,
+    stopGeneration,
+    regenerateLast,
+    streamingTurnId,
     sendFeedback,
     ratedTurns,
     scrollVersion,
@@ -567,11 +609,14 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
     operation,
     reloadHistory,
     retry,
+    regenerateLast,
     sendFeedback,
     ratedTurns,
     scrollVersion,
     send,
     stateGuildId,
+    stopGeneration,
+    streamingTurnId,
     visibleMessages,
   ])
 
