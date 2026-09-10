@@ -203,6 +203,34 @@ export const PANEL_AI_PAGES = [
     section: 'Primeiros passos',
     purpose: 'View the guild summary card and a grouped list of all available configuration modules.',
   },
+  {
+    key: 'badges',
+    routePattern: '/badges',
+    title: 'Badges',
+    section: 'Admin',
+    purpose: 'Grant, revoke and audit user badges, and register new badge types for the ecosystem.',
+  },
+  {
+    key: 'coinflip',
+    routePattern: '/coinflip',
+    title: 'Cara ou Coroa',
+    section: 'Admin',
+    purpose: 'Create coinflip challenges, resolve matches and verify past results.',
+  },
+  {
+    key: 'economy',
+    routePattern: '/economy',
+    title: 'Economia',
+    section: 'Admin',
+    purpose: 'Adjust user wallets, run administrative transfers and inspect the transaction log.',
+  },
+  {
+    key: 'fanarts',
+    routePattern: '/fanarts',
+    title: 'Fan arts',
+    section: 'Admin',
+    purpose: 'Review community fan arts: approve, reject and leave review notes.',
+  },
 ] as const satisfies readonly panel_ai_page_shape[]
 
 export type panel_ai_page_definition = (typeof PANEL_AI_PAGES)[number]

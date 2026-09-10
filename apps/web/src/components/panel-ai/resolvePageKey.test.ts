@@ -86,9 +86,11 @@ describe('resolvePanelAiPageKey', () => {
     expect(resolvePanelAiPageKey('/guild/guild-1/not-a-real-page')).toBeNull()
   })
 
-  test('returns null for non-guild route', () => {
-    expect(resolvePanelAiPageKey('/economy')).toBeNull()
-    expect(resolvePanelAiPageKey('/badges')).toBeNull()
+  test('resolves the global admin pages added to the allowlist (improvement #3)', () => {
+    expect(resolvePanelAiPageKey('/economy')).toBe('economy')
+    expect(resolvePanelAiPageKey('/badges')).toBe('badges')
+    expect(resolvePanelAiPageKey('/coinflip')).toBe('coinflip')
+    expect(resolvePanelAiPageKey('/fanarts')).toBe('fanarts')
   })
 
   test('dynamic IDs never appear in the resolved result', () => {

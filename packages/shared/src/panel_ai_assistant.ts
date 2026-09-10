@@ -193,6 +193,33 @@ export const PANEL_AI_ACTION_TARGETS: Partial<Record<panel_ai_page_key, page_act
       list: { label: 'Membros' },
     },
   },
+  badges: {
+    sections: {
+      grant: { label: 'Conceder badge' },
+      revoke: { label: 'Revogar badge' },
+      holders: { label: 'Detentores de badge' },
+    },
+  },
+  coinflip: {
+    sections: {
+      create: { label: 'Criar desafio' },
+      resolve: { label: 'Resolver partida' },
+      verify: { label: 'Verificar resultado' },
+    },
+  },
+  economy: {
+    sections: {
+      transfer: { label: 'Transferência' },
+      'admin-adjust': { label: 'Ajuste administrativo' },
+      transactions: { label: 'Transações' },
+    },
+  },
+  fanarts: {
+    sections: {
+      review: { label: 'Fila de revisão' },
+      approved: { label: 'Aprovadas' },
+    },
+  },
 } as const
 
 type integer_prefill_field = {
