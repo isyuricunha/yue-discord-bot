@@ -12,11 +12,6 @@ export type announcement_complete_fn = (
   input: panel_ai_completion_input,
 ) => Promise<string>
 
-type announcement_ai_dependencies = {
-  complete: announcement_complete_fn
-  fetchLatestRelease?: () => Promise<github_release | null>
-}
-
 export async function fetch_latest_release(): Promise<github_release | null> {
   try {
     const response = await fetch(GITHUB_LATEST_RELEASE_URL, {
