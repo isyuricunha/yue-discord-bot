@@ -180,7 +180,21 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return { success: true, giveaways };
+    const creator_ids = [...new Set(giveaways.map((g) => g.creatorId).filter(Boolean))];
+    const creators = creator_ids.length
+      ? await prisma.guildMember.findMany({
+          where: { userId: { in: creator_ids } },
+          select: { userId: true, username: true },
+        })
+      : [];
+    const creator_names = new Map(creators.map((c) => [c.userId, c.username]));
+
+    const enriched = giveaways.map((g) => ({
+      ...g,
+      creatorName: creator_names.get(g.creatorId) ?? g.creatorId,
+    }));
+
+    return { success: true, giveaways: enriched };
   });
 
   // Obter detalhes de um sorteio
