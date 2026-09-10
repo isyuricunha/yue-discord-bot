@@ -189,7 +189,8 @@ export default async function authRoutes(fastify: FastifyInstance) {
     try {
       const user = request.user;
       
-      // Gerar novo token com mesmo payload
+      // Reemite o token revalidando isOwner contra OWNER_USER_IDS atual,
+      // em vez de copiar o claim antigo (achado AUTH-001).
       const newToken = fastify.jwt.sign(
         {
           userId: user.userId,
@@ -198,7 +199,7 @@ export default async function authRoutes(fastify: FastifyInstance) {
           avatar: user.avatar,
           guilds: user.guilds,
           guildsData: user.guildsData,
-          isOwner: user.isOwner,
+          isOwner: is_owner(user.userId),
         },
         { expiresIn: CONFIG.jwt.expiresIn }
       );

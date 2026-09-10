@@ -7,6 +7,7 @@ import {
   request_guild_id,
   verify_live_guild_access,
   type guild_admin_checker,
+  type owner_checker,
 } from './guild_access'
 
 const log = {} as FastifyBaseLogger
@@ -70,10 +71,31 @@ test('owner access bypasses the live Discord permission lookup', async () => {
     called = true
     return { isAdmin: false }
   }
+  const check_owner: owner_checker = () => true
 
-  assert.equal(await verify_live_guild_access(user, 'guild-1', log, check_admin), true)
-  assert.equal(can_access_guild(user, 'guild-1'), true)
+  assert.equal(await verify_live_guild_access(user, 'guild-1', log, check_admin, check_owner), true)
+  assert.equal(can_access_guild(user, 'guild-1', check_owner), true)
   assert.equal(called, false)
+})
+
+test('stale JWT isOwner claim does not grant owner access after removal from OWNER_USER_IDS', async () => {
+  const user = {
+    userId: 'former-owner',
+    isOwner: true,
+  }
+
+  let called = false
+  const check_admin: guild_admin_checker = async () => {
+    called = true
+    return { isAdmin: false }
+  }
+
+  // The test environment has no OWNER_USER_IDS configured, so the default
+  // server-side owner derivation returns false even though the JWT claim
+  // still says isOwner: true (regression coverage for audit finding AUTH-001).
+  assert.equal(await verify_live_guild_access(user, 'guild-1', log, check_admin), false)
+  assert.equal(called, true)
+  assert.equal(can_access_guild(user, 'guild-1'), false)
 })
 
 test('live guild authorization fails closed when the user id is missing', async () => {
