@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import axios from 'axios'
-import { Ban, Crown, ExternalLink, LogOut, RefreshCw, Search, Send, Settings, Shield, Users } from 'lucide-react'
+import { Ban, Crown, ExternalLink, LogOut, RefreshCw, Search, Send, Settings, Shield, Sparkles, Users } from 'lucide-react'
 
 import { getApiUrl } from '../env'
 import { Badge, Button, Card, CardContent, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
@@ -290,6 +290,43 @@ export default function OwnerPage() {
     },
   })
 
+  const humanizeAnnouncementMutation = useMutation({
+    mutationFn: async () => {
+      const response = await axios.post(`${API_URL}/api/owner/announcements/humanize`, {
+        content: announcement_content.trim(),
+      })
+      return response.data as { success: boolean; content: string }
+    },
+    onSuccess: (data) => {
+      set_announcement_content(data.content)
+      toast_success('Anúncio reescrito na voz da Yue. Revise antes de enviar.', 'Yue')
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao reescrever o anúncio', 'Yue')
+    },
+  })
+
+  const releaseCheckMutation = useMutation({
+    mutationFn: async () => {
+      const response = await axios.get(`${API_URL}/api/owner/announcements/release-check`)
+      return response.data as { latestTag: string; lastAnnouncedTag: string | null; hasNew: boolean }
+    },
+  })
+
+  const generateFromReleaseMutation = useMutation({
+    mutationFn: async () => {
+      const response = await axios.post(`${API_URL}/api/owner/announcements/generate-from-release`)
+      return response.data as { success: boolean; tag: string; draft: string }
+    },
+    onSuccess: (data) => {
+      set_announcement_content(data.draft)
+      toast_success(`Comunicado da ${data.tag} gerado. Revise antes de enviar.`, 'Yue')
+    },
+    onError: (error: any) => {
+      toast_error(error.response?.data?.error || error.message || 'Erro ao gerar o comunicado', 'Yue')
+    },
+  })
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     const base = data ?? []
@@ -560,6 +597,24 @@ export default function OwnerPage() {
               <Button
                 type="button"
                 variant="outline"
+                onClick={() => humanizeAnnouncementMutation.mutate()}
+                isLoading={humanizeAnnouncementMutation.isPending}
+                disabled={!announcement_content.trim()}
+              >
+                <Sparkles className="h-4 w-4" />
+                Deixar na voz da Yue
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => releaseCheckMutation.mutate()}
+                isLoading={releaseCheckMutation.isPending}
+              >
+                Checar nova versão
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => previewAnnouncementMutation.mutate()}
                 isLoading={previewAnnouncementMutation.isPending}
                 disabled={!announcement_content.trim()}
@@ -583,6 +638,30 @@ export default function OwnerPage() {
             onChange={(e) => set_announcement_content(e.target.value)}
             placeholder="Escreva o anúncio (máx 2000 caracteres)."
           />
+
+          {releaseCheckMutation.data && (
+            <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+              {releaseCheckMutation.data.hasNew ? (
+                <>
+                  <span>
+                    Nova versão detectada: <span className="font-medium text-foreground">{releaseCheckMutation.data.latestTag}</span>
+                    {releaseCheckMutation.data.lastAnnouncedTag ? ` (última comunicada: ${releaseCheckMutation.data.lastAnnouncedTag})` : ''}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => generateFromReleaseMutation.mutate()}
+                    isLoading={generateFromReleaseMutation.isPending}
+                  >
+                    Gerar comunicado da atualização
+                  </Button>
+                </>
+              ) : (
+                <span>Nenhuma versão nova desde {releaseCheckMutation.data.lastAnnouncedTag ?? 'o início'}.</span>
+              )}
+            </div>
+          )}
 
           <Input
             value={announcement_image_url}

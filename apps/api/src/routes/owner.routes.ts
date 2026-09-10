@@ -16,6 +16,18 @@ import {
 } from '../internal/bot_internal_api'
 import { is_owner } from '../utils/permissions'
 import { safe_error_details } from '../utils/safe_error'
+import { CONFIG } from '../config'
+import {
+  complete_panel_ai,
+  normalize_panel_ai_runtime,
+} from '../services/panel_ai'
+import { custom_provider_is_configured } from '../services/custom_provider'
+import { load_custom_provider_system_prompt } from '../services/prompt_loader'
+import {
+  draft_release_announcement,
+  fetch_latest_release,
+  humanize_announcement,
+} from '../services/announcement_ai'
 
 type announcement_preview_input = {
   content: string
@@ -812,6 +824,85 @@ export async function ownerRoutes(fastify: FastifyInstance) {
       request.log.error({ err: safe_error_details(error) }, 'Failed to sync guild')
       return reply.code(500).send({ error: 'Internal server error' })
     }
+  })
+
+  fastify.get('/owner/announcements/release-check', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    if (!is_owner(request.user.userId)) return reply.code(403).send({ error: 'Forbidden' })
+
+    const release = await fetch_latest_release()
+    if (!release) return reply.code(503).send({ error: 'Não foi possível consultar as releases agora.' })
+
+    const settings = await prisma.botSettings.findUnique({
+      where: { id: 'global' },
+      select: { lastAnnouncedReleaseTag: true },
+    })
+    const last = settings?.lastAnnouncedReleaseTag ?? null
+
+    return reply.send({
+      success: true,
+      latestTag: release.tag,
+      lastAnnouncedTag: last,
+      hasNew: release.tag !== last,
+      notes: release.notes,
+    })
+  })
+
+  fastify.post('/owner/announcements/generate-from-release', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    if (!is_owner(request.user.userId)) return reply.code(403).send({ error: 'Forbidden' })
+
+    const release = await fetch_latest_release()
+    if (!release) return reply.code(503).send({ error: 'Não foi possível consultar a release agora.' })
+
+    const settings = await prisma.botSettings.findUnique({ where: { id: 'global' } })
+    const runtime = normalize_panel_ai_runtime({
+      provider: settings?.panelAiProvider,
+      customModel: settings?.customProviderModel,
+      customReasoningMode: settings?.customProviderReasoningMode,
+      fallbackEnabled: settings?.panelAiFallbackEnabled,
+    })
+    const canUseCustom =
+      runtime.provider === 'custom' ||
+      (runtime.fallbackEnabled && custom_provider_is_configured() && Boolean(runtime.customModel))
+    const persona = canUseCustom ? load_custom_provider_system_prompt(CONFIG.panelAi.promptPath) : ''
+
+    const draft = await draft_release_announcement(release, runtime, async (input) =>
+      complete_panel_ai({ ...input, persona }),
+    )
+
+    await prisma.botSettings.upsert({
+      where: { id: 'global' },
+      update: { lastAnnouncedReleaseTag: release.tag },
+      create: { id: 'global', lastAnnouncedReleaseTag: release.tag },
+    })
+
+    return reply.send({ success: true, tag: release.tag, draft })
+  })
+
+  fastify.post('/owner/announcements/humanize', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+    if (!is_owner(request.user.userId)) return reply.code(403).send({ error: 'Forbidden' })
+
+    const body = request.body as { content?: unknown } | null
+    const content = typeof body?.content === 'string' ? body.content.trim() : ''
+    if (!content) return reply.code(400).send({ error: 'O conteúdo do anúncio é obrigatório.' })
+    if (content.length > 2000) return reply.code(400).send({ error: 'O conteúdo do anúncio excede 2000 caracteres.' })
+
+    const settings = await prisma.botSettings.findUnique({ where: { id: 'global' } })
+    const runtime = normalize_panel_ai_runtime({
+      provider: settings?.panelAiProvider,
+      customModel: settings?.customProviderModel,
+      customReasoningMode: settings?.customProviderReasoningMode,
+      fallbackEnabled: settings?.panelAiFallbackEnabled,
+    })
+    const canUseCustom =
+      runtime.provider === 'custom' ||
+      (runtime.fallbackEnabled && custom_provider_is_configured() && Boolean(runtime.customModel))
+    const persona = canUseCustom ? load_custom_provider_system_prompt(CONFIG.panelAi.promptPath) : ''
+
+    const rewritten = await humanize_announcement(content, runtime, async (input) =>
+      complete_panel_ai({ ...input, persona }),
+    )
+
+    return reply.send({ success: true, content: rewritten })
   })
 
   fastify.post('/owner/announcements/preview', {
