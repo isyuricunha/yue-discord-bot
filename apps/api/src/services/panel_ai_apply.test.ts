@@ -9,6 +9,7 @@ import {
 
 type state = {
   guildConfig: Record<string, unknown> | null
+  guildSupportConfig?: Record<string, unknown> | null
   writes: number
   audits: Array<Record<string, unknown>>
 }
@@ -37,6 +38,17 @@ function make_db(input: state) {
     guildAutoroleConfig: {
       findUnique: async () => null,
       upsert: async () => assert.fail('autorole should not be written'),
+    },
+    guildSupportConfig: {
+      findUnique: async () => input.guildSupportConfig,
+      upsert: async (args: any) => {
+        input.writes += 1
+        input.guildSupportConfig = {
+          ...(input.guildSupportConfig ?? {}),
+          ...(args.update ?? args.create ?? {}),
+        }
+        return input.guildSupportConfig
+      },
     },
     auditLog: {
       create: async (args: any) => {
@@ -370,4 +382,50 @@ test('unrelated transaction failures are not retried and keep the proposal retry
   assert.equal(retry.kind, 'applied')
   assert.equal(state.writes, 1)
   assert.equal(state.audits.length, 1)
+})
+
+test('support page applies reminder and enablement changes server-side (improvement #2)', async () => {
+  const state: state = {
+    guildConfig: null,
+    guildSupportConfig: { guildId: 'guild-1', enabled: true, title: 'Apoios', description: 'Escolha um plano.', reminderEnabled: true, reminderDaysBefore: 3 },
+    writes: 0,
+    audits: [],
+  }
+  const db = make_db(state)
+  const store = new PanelAiApplyProposalStore()
+
+  const prepared = await prepare_panel_ai_apply({
+    db,
+    store,
+    guildId: 'guild-1',
+    userId: 'user-1',
+    pageKey: 'support',
+    changes: [
+      { target: 'enabled', value: false },
+      { target: 'reminderDaysBefore', value: 7 },
+    ],
+  })
+  assert.equal(prepared.kind, 'proposal')
+  if (prepared.kind !== 'proposal') assert.fail('Expected proposal')
+
+  const confirmed = await confirm_panel_ai_apply({
+    db,
+    store,
+    guildId: 'guild-1',
+    userId: 'user-1',
+    proposalId: prepared.proposal.id,
+  })
+
+  assert.equal(confirmed.kind, 'applied')
+  if (confirmed.kind !== 'applied') assert.fail('Expected applied')
+  assert.deepEqual(
+    confirmed.result.changes.map(({ target, after }) => ({ target, after })),
+    [
+      { target: 'enabled', after: false },
+      { target: 'reminderDaysBefore', after: 7 },
+    ],
+  )
+  assert.equal(state.writes, 1)
+  assert.equal(state.guildSupportConfig?.enabled, false)
+  assert.equal(state.guildSupportConfig?.reminderDaysBefore, 7)
 })

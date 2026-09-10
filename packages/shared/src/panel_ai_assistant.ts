@@ -193,6 +193,33 @@ export const PANEL_AI_ACTION_TARGETS: Partial<Record<panel_ai_page_key, page_act
       list: { label: 'Membros' },
     },
   },
+  badges: {
+    sections: {
+      grant: { label: 'Conceder badge' },
+      revoke: { label: 'Revogar badge' },
+      holders: { label: 'Detentores de badge' },
+    },
+  },
+  coinflip: {
+    sections: {
+      create: { label: 'Criar desafio' },
+      resolve: { label: 'Resolver partida' },
+      verify: { label: 'Verificar resultado' },
+    },
+  },
+  economy: {
+    sections: {
+      transfer: { label: 'Transferência' },
+      'admin-adjust': { label: 'Ajuste administrativo' },
+      transactions: { label: 'Transações' },
+    },
+  },
+  fanarts: {
+    sections: {
+      review: { label: 'Fila de revisão' },
+      approved: { label: 'Aprovadas' },
+    },
+  },
 } as const
 
 type integer_prefill_field = {
@@ -236,6 +263,39 @@ export type panel_ai_prefill_field =
   | string_prefill_field
 
 export const PANEL_AI_PREFILL_FIELDS: Partial<Record<panel_ai_page_key, Record<string, panel_ai_prefill_field>>> = {
+  support: {
+    enabled: {
+      label: 'Apoios ativados',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Habilitar sistema de apoios',
+    },
+    title: {
+      label: 'Título da página de apoios',
+      control: 'message_editor',
+      valueType: 'string',
+      maxLength: 100,
+    },
+    description: {
+      label: 'Descrição da página de apoios',
+      control: 'message_editor',
+      valueType: 'string',
+      maxLength: 500,
+    },
+    reminderEnabled: {
+      label: 'Lembrete de renovação',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Habilitar lembrete de renovação',
+    },
+    reminderDaysBefore: {
+      label: 'Dias de antecedência do lembrete',
+      control: 'input',
+      valueType: 'integer',
+      min: 1,
+      max: 30,
+    },
+  },
   automod: {
     capsEnabled: {
       label: 'Anti-CAPS',
@@ -508,4 +568,25 @@ export function build_panel_ai_page_path(
     path = path.replace(`:${key}`, encodeURIComponent(value))
   }
   return path
+}
+
+// Field-level "explain" prompts for the drawer: for the active page, expose
+// its allowlisted prefill fields as ready-made questions so the user can ask
+// the assistant what a specific setting does without typing the name.
+export function get_panel_ai_explain_prompts(
+  pageKey: panel_ai_page_key | null | undefined,
+  max = 3,
+): Array<{ target: string; label: string; prompt: string }> {
+  if (!pageKey) return []
+
+  const fields = PANEL_AI_PREFILL_FIELDS[pageKey]
+  if (!fields) return []
+
+  return Object.entries(fields)
+    .slice(0, max)
+    .map(([target, field]) => ({
+      target,
+      label: field.label,
+      prompt: `Explique a configuração "${field.label}" desta página: o que ela faz, quando devo alterá-la e como escolher um bom valor.`,
+    }))
 }

@@ -17,7 +17,7 @@ const SERIALIZABLE_MAX_ATTEMPTS = 3
 
 export type panel_ai_apply_db = Pick<
   typeof prisma,
-  'guildConfig' | 'guildAntiRaidConfig' | 'guildXpConfig' | 'guildAutoroleConfig' | 'auditLog' | '$transaction'
+  'guildConfig' | 'guildAntiRaidConfig' | 'guildXpConfig' | 'guildAutoroleConfig' | 'guildSupportConfig' | 'auditLog' | '$transaction'
 >
 
 type pending_proposal = {
@@ -74,9 +74,16 @@ const DEFAULTS: Record<panel_ai_apply_page_key, Record<string, panel_ai_prefill_
     rewardMode: 'stack',
   },
   autorole: {
-    enabled: false,
+    enabled: true,
     delaySeconds: 0,
     onlyAfterFirstMessage: false,
+  },
+  support: {
+    enabled: false,
+    title: 'Apoios',
+    description: 'Escolha um plano para apoiar este servidor.',
+    reminderEnabled: true,
+    reminderDaysBefore: 3,
   },
 }
 
@@ -152,6 +159,17 @@ async function load_current_values(
     }
   }
 
+  if (pageKey === 'support') {
+    const row = await db.guildSupportConfig.findUnique({ where: { guildId } })
+    return {
+      enabled: row?.enabled ?? DEFAULTS.support.enabled,
+      title: row?.title ?? DEFAULTS.support.title,
+      description: row?.description ?? DEFAULTS.support.description,
+      reminderEnabled: row?.reminderEnabled ?? DEFAULTS.support.reminderEnabled,
+      reminderDaysBefore: row?.reminderDaysBefore ?? DEFAULTS.support.reminderDaysBefore,
+    }
+  }
+
   const row = await db.guildAutoroleConfig.findUnique({ where: { guildId } })
   return {
     enabled: row?.enabled ?? DEFAULTS.autorole.enabled,
@@ -214,6 +232,15 @@ async function persist_changes(
       where: { guildId },
       update: update as Prisma.GuildXpConfigUncheckedUpdateInput,
       create: { guildId, ...update } as Prisma.GuildXpConfigUncheckedCreateInput,
+    })
+    return
+  }
+
+  if (pageKey === 'support') {
+    await tx.guildSupportConfig.upsert({
+      where: { guildId },
+      update: update as Prisma.GuildSupportConfigUncheckedUpdateInput,
+      create: { guildId, ...update } as Prisma.GuildSupportConfigUncheckedCreateInput,
     })
     return
   }

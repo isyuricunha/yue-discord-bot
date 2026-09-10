@@ -12,6 +12,7 @@ import {
   normalize_custom_provider_reasoning_mode
 } from '@yuebot/shared'
 import { normalize_panel_ai_runtime, panel_ai_runtime, test_panel_ai_runtime } from '../services/panel_ai'
+import { panel_ai_metrics } from '../services/panel_ai_metrics'
 import { is_owner } from '../utils/permissions'
 import { safe_error_details } from '../utils/safe_error'
 
@@ -107,6 +108,11 @@ export function createPanelAiOwnerRoutes(overrides: Partial<panel_ai_owner_deps>
     const listCustomProviderModelsFn = overrides.listCustomProviderModels ?? list_custom_provider_models
     const testCustomProviderModelFn = overrides.testCustomProviderModel ?? test_custom_provider_model
     const testPanelAiRuntimeFn = overrides.testPanelAiRuntime ?? test_panel_ai_runtime
+
+    fastify.get('/owner/panel-ai/metrics', { preHandler: [fastify.authenticate] }, async (request, reply) => {
+      if (!isOwner(request.user.userId)) return reply.code(403).send({ error: 'Forbidden' })
+      return reply.send({ success: true, metrics: panel_ai_metrics.snapshot() })
+    })
 
     fastify.get('/owner/panel-ai', { preHandler: [fastify.authenticate] }, async (request, reply) => {
       if (!isOwner(request.user.userId)) return reply.code(403).send({ error: 'Forbidden' })

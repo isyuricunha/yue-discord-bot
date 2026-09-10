@@ -27,6 +27,9 @@ type mock_db = {
   guildAntiRaidConfig: {
     findUnique: (args: any) => Promise<any>
   }
+  panelAiFeedback: {
+    upsert: (args: any) => Promise<any>
+  }
 }
 
 type admin_check = (guildId: string, userId: string, log: FastifyBaseLogger) => Promise<{ isAdmin: boolean }>
@@ -56,6 +59,7 @@ function make_db(overrides: {
   botSettings?: Partial<mock_db['botSettings']>
   guild?: Partial<mock_db['guild']>
   guildAntiRaidConfig?: Partial<mock_db['guildAntiRaidConfig']>
+  panelAiFeedback?: Partial<mock_db['panelAiFeedback']>
 } = {}): mock_db {
   return {
     botSettings: {
@@ -69,6 +73,10 @@ function make_db(overrides: {
     guildAntiRaidConfig: {
       findUnique: fail_if_called('guildAntiRaidConfig.findUnique'),
       ...overrides.guildAntiRaidConfig,
+    },
+    panelAiFeedback: {
+      upsert: fail_if_called('panelAiFeedback.upsert'),
+      ...overrides.panelAiFeedback,
     },
   }
 }
@@ -1952,4 +1960,104 @@ test('POST chat route fallback integration: unique secret error strings do not l
 
   const history = store.get('guild-1:user-1', 1)
   assert.equal(JSON.stringify(history).includes(SECRET_STRING), false)
+})
+
+test('panel-ai feedback stores a rating for the turn', async (t) => {
+  const upsert_calls: Array<Record<string, unknown>> = []
+  const { app } = create_app({
+    db: make_db({
+      panelAiFeedback: {
+        upsert: async (args: any) => {
+          upsert_calls.push(args)
+          return { id: 'feedback-1' }
+        },
+      },
+    }),
+  })
+  t.after(async () => { await app.close() })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/feedback',
+    payload: { turnId: 'turn-1', rating: 'up' },
+  })
+
+  assert.equal(response.statusCode, 200)
+  assert.deepEqual(response.json(), { success: true })
+  assert.equal(upsert_calls.length, 1)
+  assert.deepEqual(upsert_calls[0]?.where, {
+    guildId_userId_turnId: { guildId: 'guild-1', userId: 'user-1', turnId: 'turn-1' },
+  })
+})
+
+test('panel-ai feedback keeps the comment and replaces the rating on re-rating', async (t) => {
+  const upsert_calls: Array<Record<string, unknown>> = []
+  const { app } = create_app({
+    db: make_db({
+      panelAiFeedback: {
+        upsert: async (args: any) => {
+          upsert_calls.push(args)
+          return { id: 'feedback-1' }
+        },
+      },
+    }),
+  })
+  t.after(async () => { await app.close() })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/feedback',
+    payload: { turnId: 'turn-1', rating: 'down', comment: 'Resposta genérica demais' },
+  })
+
+  assert.equal(response.statusCode, 200)
+  const create = upsert_calls[0]?.create as Record<string, unknown>
+  assert.equal(create.rating, 'down')
+  assert.equal(create.comment, 'Resposta genérica demais')
+})
+
+test('panel-ai feedback rejects invalid ratings', async (t) => {
+  const { app } = create_app({ db: make_db() })
+  t.after(async () => { await app.close() })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/feedback',
+    payload: { turnId: 'turn-1', rating: 'meh' },
+  })
+
+  assert.equal(response.statusCode, 400)
+})
+
+test('panel-ai feedback rejects a missing turnId', async (t) => {
+  const { app } = create_app({ db: make_db() })
+  t.after(async () => { await app.close() })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/feedback',
+    payload: { rating: 'up' },
+  })
+
+  assert.equal(response.statusCode, 400)
+})
+
+test('panel-ai feedback degrades to 503 when storage fails', async (t) => {
+  const { app } = create_app({
+    db: make_db({
+      panelAiFeedback: {
+        upsert: async () => { throw new Error('database unreachable') },
+      },
+    }),
+    onWarning: () => {},
+  })
+  t.after(async () => { await app.close() })
+
+  const response = await app.inject({
+    method: 'POST',
+    url: '/guilds/guild-1/panel-ai/feedback',
+    payload: { turnId: 'turn-1', rating: 'up' },
+  })
+
+  assert.equal(response.statusCode, 503)
 })

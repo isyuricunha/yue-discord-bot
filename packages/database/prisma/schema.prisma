@@ -1561,3 +1561,17 @@ model KeywordTrigger {
   @@index([guildId])
   @@map("keyword_triggers")
 }
+
+model PanelAiFeedback {
+  id        String   @id @default(cuid())
+  guildId   String
+  userId    String
+  turnId    String
+  rating    String
+  comment   String?
+  createdAt DateTime @default(now())
+
+  @@unique([guildId, userId, turnId])
+  @@index([guildId, createdAt])
+  @@map("panel_ai_feedback")
+}

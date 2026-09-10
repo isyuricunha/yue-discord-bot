@@ -11,11 +11,12 @@ type quick_prompt = {
 type PanelAssistantEmptyStateProps = {
   guildName?: string
   quickPrompts: quick_prompt[]
+  explainPrompts?: quick_prompt[]
   className?: string
   disabled?: boolean
 }
 
-export function PanelAssistantEmptyState({ guildName, quickPrompts, className, disabled = false }: PanelAssistantEmptyStateProps) {
+export function PanelAssistantEmptyState({ guildName, quickPrompts, explainPrompts = [], className, disabled = false }: PanelAssistantEmptyStateProps) {
   return (
     <div className={cn('flex flex-1 flex-col items-center justify-center px-4 py-8', className)}>
       <div className="mb-4 grid h-14 w-14 place-items-center rounded-full bg-accent/10 text-accent">
@@ -44,6 +45,28 @@ export function PanelAssistantEmptyState({ guildName, quickPrompts, className, d
               {prompt.label}
             </Button>
           ))}
+        </div>
+      )}
+
+      {explainPrompts.length > 0 && (
+        <div className="mt-4 w-full max-w-md">
+          <div className="mb-2 text-center text-[11px] font-mono uppercase tracking-wide text-muted-foreground">
+            Explique uma configuração
+          </div>
+          <div className="flex flex-wrap justify-center gap-2">
+            {explainPrompts.map((prompt, idx) => (
+              <Button
+                key={idx}
+                variant="ghost"
+                size="sm"
+                onClick={prompt.onClick}
+                disabled={disabled}
+                className="rounded-full border-dashed text-xs"
+              >
+                {prompt.label}
+              </Button>
+            ))}
+          </div>
         </div>
       )}
     </div>

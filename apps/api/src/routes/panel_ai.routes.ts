@@ -32,7 +32,9 @@ import {
 } from '../services/panel_ai_stream'
 import { custom_provider_is_configured } from '../services/custom_provider'
 import { build_panel_context, type panel_context_data } from '../services/panel_context'
+import { load_panel_ai_data_snapshot } from '../services/panel_ai_data_snapshot'
 import { ConversationStore } from '../services/conversation_store'
+import { create_runtime_conversation_store } from '../services/persistent_conversation_store'
 import { PanelConversationQueue, panel_conversation_queue } from '../services/panel_conversation_queue'
 import {
   PanelAiProtocolStreamFilter,
@@ -53,12 +55,20 @@ import {
   type preload_result,
 } from '../services/panel_module_context'
 import { safe_error_details } from '../utils/safe_error'
+import { panel_ai_metrics } from '../services/panel_ai_metrics'
 
 const MAX_MESSAGE_LENGTH = 4_000
 const MAX_ROUTE_PARAM_LENGTH = 128
+const MAX_FEEDBACK_COMMENT_LENGTH = 500
 
 type panel_ai_db = panel_module_db & panel_sensitive_context_db & {
   botSettings: Pick<typeof prisma.botSettings, 'findUnique'>
+  panelAiFeedback: Pick<typeof prisma.panelAiFeedback, 'upsert'>
+  guildMember: Pick<typeof prisma.guildMember, 'count'>
+  ticket: Pick<typeof prisma.ticket, 'count'>
+  fanArt: Pick<typeof prisma.fanArt, 'count'>
+  modLog: Pick<typeof prisma.modLog, 'count'>
+  discordDelivery: Pick<typeof prisma.discordDelivery, 'count'>
 }
 
 type admin_check = (guildId: string, userId: string, log: FastifyBaseLogger) => Promise<{ isAdmin: boolean }>
@@ -180,6 +190,11 @@ function runtime_dependencies(
     customProviderConfigured: deps.customProviderIsConfigured(),
     logEvent: (event: panel_ai_runtime_event) => {
       try {
+        panel_ai_metrics.recordRuntimeEvent(event)
+      } catch {
+        // Metrics must never break fallback or alter execution
+      }
+      try {
         request.log.info(
           {
             runtimeEvent: {
@@ -238,7 +253,11 @@ async function load_turn_environment(
   const sensitiveEnabled = settings?.panelAiSensitiveContextEnabled === true
   const page = pageContext ? find_panel_ai_page(pageContext.pageKey) : null
 
-  const context = build_panel_context({
+  // Live aggregates for the assistant (improvement #1, v1): a compact,
+  // independently degrading snapshot appended to the page context.
+  const data_snapshot = await load_panel_ai_data_snapshot(deps.db, guildId).catch(() => null)
+
+  const base_context = build_panel_context({
     guild: {
       id: guild.id,
       name: guild.name,
@@ -258,6 +277,8 @@ async function load_turn_environment(
       availableScopes: sensitiveEnabled ? available_sensitive_scopes(pageContext) : [],
     },
   })
+
+  const context = data_snapshot ? `${base_context}\n\n${data_snapshot}` : base_context
 
   const canUseCustom =
     runtime.provider === 'custom' ||
@@ -545,7 +566,7 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
   }
   const deps: panel_ai_route_deps = {
     db,
-    store: overrides.store ?? new ConversationStore(),
+    store: overrides.store ?? create_runtime_conversation_store(),
     queue: overrides.queue ?? panel_conversation_queue,
     sensitiveStore: overrides.sensitiveStore ?? panel_sensitive_context_store,
     // An injected database is a complete route-test fixture unless the caller
@@ -571,6 +592,50 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
   const admin = (fastify: FastifyInstance) => [fastify.authenticate, authorization.requireGuildAdmin]
 
   return async function panelAiRoutes(fastify: FastifyInstance) {
+    fastify.post('/guilds/:guildId/panel-ai/feedback', { preHandler: admin(fastify) }, async (request, reply) => {
+      const { guildId } = request.params as { guildId: string }
+      const body = (request.body ?? {}) as Record<string, unknown>
+      const turn_id = typeof body.turnId === 'string' ? body.turnId.trim() : ''
+      const rating = typeof body.rating === 'string' ? body.rating.trim() : ''
+      const comment = typeof body.comment === 'string' ? body.comment.trim().slice(0, MAX_FEEDBACK_COMMENT_LENGTH) : null
+
+      if (!turn_id || turn_id.length > MAX_ROUTE_PARAM_LENGTH) {
+        return reply.code(400).send({ error: 'Invalid turnId' })
+      }
+
+      if (rating !== 'up' && rating !== 'down') {
+        return reply.code(400).send({ error: 'Invalid rating' })
+      }
+
+      try {
+        await deps.db.panelAiFeedback.upsert({
+          where: {
+            guildId_userId_turnId: {
+              guildId,
+              userId: request.user.userId,
+              turnId: turn_id,
+            },
+          },
+          create: {
+            guildId,
+            userId: request.user.userId,
+            turnId: turn_id,
+            rating,
+            comment,
+          },
+          update: {
+            rating,
+            comment,
+          },
+        })
+
+        return reply.send({ success: true })
+      } catch (error: unknown) {
+        request.log.warn({ err: safe_error_details(error), guildId }, 'Failed to store panel AI feedback')
+        return reply.code(503).send({ error: 'Temporary failure' })
+      }
+    })
+
     fastify.post('/guilds/:guildId/panel-ai/chat', { preHandler: admin(fastify) }, async (request, reply) => {
       const { guildId } = request.params as { guildId: string }
       const message = parse_message(request.body)
@@ -578,11 +643,14 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
       const pageContext = parse_page_context(request.body)
       const key = conversation_key(guildId, request.user.userId)
 
+      const started_at = Date.now()
       try {
         const result = await deps.queue.run(key, () => run_json_chat_turn(deps, request, guildId, message, pageContext))
+        panel_ai_metrics.recordTurn({ latencyMs: Date.now() - started_at, ok: Boolean(result) })
         if (!result) return reply.code(404).send({ error: 'Guild not found' })
         return reply.send({ success: true, ...result })
       } catch (error: unknown) {
+        panel_ai_metrics.recordTurn({ latencyMs: Date.now() - started_at, ok: false })
         request.log.warn({ err: safe_error_details(error), guildId }, 'Panel AI chat failed')
         return reply.code(502).send({ error: 'Panel assistant is unavailable' })
       }
