@@ -41,6 +41,7 @@ import {
   TrendingUp,
   Gift,
   Radio,
+  X,
 } from 'lucide-react'
 
 import { cn } from '../../lib/cn'
@@ -63,7 +64,8 @@ function sort_by_label_ptbr(items: nav_item[]) {
 
 function nav_link_class({ isActive }: { isActive: boolean }) {
   return cn(
-    'group flex h-9 items-center gap-3 rounded-xl border px-2 text-sm transition-colors outline-none',
+    // 44px minimum touch target on mobile, compact 36px rail on desktop.
+    'group flex h-11 lg:h-9 items-center gap-3 rounded-xl border px-2 text-sm transition-colors outline-none',
     'hover:border-border/80 hover:bg-surface-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent/35',
     isActive ? 'border-accent/35 bg-accent/10 text-foreground shadow-innerBorder' : 'border-transparent text-muted-foreground'
   )
@@ -71,7 +73,7 @@ function nav_link_class({ isActive }: { isActive: boolean }) {
 
 function nav_link_class_static() {
   return cn(
-    'group flex h-9 items-center gap-3 rounded-xl border border-transparent px-2 text-sm transition-colors outline-none',
+    'group flex h-11 lg:h-9 items-center gap-3 rounded-xl border border-transparent px-2 text-sm transition-colors outline-none',
     'hover:border-border/80 hover:bg-surface-hover hover:text-foreground focus-visible:ring-2 focus-visible:ring-accent/35',
     'text-muted-foreground cursor-pointer'
   )
@@ -80,9 +82,11 @@ function nav_link_class_static() {
 type sidebar_props = {
   collapsed: boolean
   onToggle: () => void
+  mobileOpen?: boolean
+  onMobileClose?: () => void
 }
 
-export function Sidebar({ collapsed, onToggle }: sidebar_props) {
+export function Sidebar({ collapsed, onToggle, mobileOpen = false, onMobileClose }: sidebar_props) {
   const { guildId } = useParams()
   const { user } = useAuthStore()
 
@@ -184,15 +188,23 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
     ]
     : []
 
-  const width = collapsed ? 'w-[72px]' : 'w-[260px]'
+  // Desktop rail width. On mobile the drawer uses its own width, applied after
+  // this value so tailwind-merge keeps the mobile one at small viewports.
+  const width = collapsed ? 'lg:w-[72px]' : 'lg:w-[260px]'
 
   return (
     <aside
       id="sidebar"
       className={cn(
-        'relative h-screen shrink-0 overflow-hidden border-r border-border/80 bg-sidebar',
-        'transition-[width] duration-200 ease-out',
-        width
+        'h-screen shrink-0 overflow-hidden border-r border-border/80 bg-sidebar',
+        'transition-[width,transform] duration-200 ease-out motion-reduce:transition-none',
+        // Mobile: off-canvas drawer above the content. Below lg the 260px rail
+        // would otherwise take ~69% of a 375px viewport and clip the main
+        // column, which is why it slides instead of taking layout space.
+        'fixed inset-y-0 left-0 z-50 w-[min(85vw,17rem)]',
+        'lg:relative lg:z-auto lg:translate-x-0',
+        width,
+        mobileOpen ? 'translate-x-0 shadow-floating' : '-translate-x-full'
       )}
       role="navigation"
       aria-label="Barra lateral principal de navegação"
@@ -216,7 +228,9 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
             type="button"
             onClick={onToggle}
             className={cn(
-              'inline-flex h-8 w-8 items-center justify-center rounded-xl border border-border/80 bg-surface-raised text-muted-foreground shadow-innerBorder',
+              // Collapsing is a desktop affordance: on mobile the drawer is
+              // either open or closed, so the rail width control is hidden.
+              'hidden lg:inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border/80 bg-surface-raised text-muted-foreground shadow-innerBorder',
               'hover:bg-surface-hover hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35'
             )}
             aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
@@ -224,6 +238,18 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
             aria-controls="sidebar-content"
           >
             {collapsed ? <ChevronsRight className="h-4 w-4" /> : <ChevronsLeft className="h-4 w-4" />}
+          </button>
+
+          <button
+            type="button"
+            onClick={onMobileClose}
+            className={cn(
+              'inline-flex h-11 w-11 items-center justify-center rounded-xl border border-border/80 bg-surface-raised text-muted-foreground shadow-innerBorder lg:hidden',
+              'hover:bg-surface-hover hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35'
+            )}
+            aria-label="Fechar menu de navegação"
+          >
+            <X className="h-4 w-4" />
           </button>
         </div>
 
@@ -233,6 +259,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
               key={item.to}
               to={item.to}
               className={nav_link_class}
+              onClick={onMobileClose}
               end
               title={collapsed ? item.label : undefined}
             >
@@ -270,6 +297,7 @@ export function Sidebar({ collapsed, onToggle }: sidebar_props) {
                   key={item.to}
                   to={item.to}
                   className={nav_link_class}
+                  onClick={onMobileClose}
                   title={collapsed ? item.label : undefined}
                 >
                   <span className="grid h-7 w-7 place-items-center rounded-lg bg-surface/50 border border-border/70">

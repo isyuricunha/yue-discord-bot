@@ -1,5 +1,6 @@
 import * as React from 'react'
 import { render, screen } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, test, vi } from 'vitest'
 
@@ -13,11 +14,20 @@ vi.mock('../../store/auth', () => ({
 }))
 vi.mock('../../store/command_palette', () => ({ useCommandPaletteStore: () => ({ open: vi.fn() }) }))
 
-function renderTopbar(path: string, open = false) {
+function renderTopbar(path: string, open = false, overrides: Partial<React.ComponentProps<typeof Topbar>> = {}) {
   const triggerRef = React.createRef<HTMLButtonElement>()
+  const mobileNavTriggerRef = React.createRef<HTMLButtonElement>()
   return render(
     <MemoryRouter initialEntries={[path]}>
-      <Topbar ellaDrawerOpen={open} onToggleEllaDrawer={vi.fn()} ellaTriggerRef={triggerRef} />
+      <Topbar
+        ellaDrawerOpen={open}
+        onToggleEllaDrawer={vi.fn()}
+        ellaTriggerRef={triggerRef}
+        onOpenMobileNav={vi.fn()}
+        mobileNavOpen={false}
+        mobileNavTriggerRef={mobileNavTriggerRef}
+        {...overrides}
+      />
     </MemoryRouter>
   )
 }
@@ -43,5 +53,26 @@ describe('Topbar Ella trigger', () => {
   test('reflects the open state in its accessible name', () => {
     renderTopbar('/guild/123/music', true)
     expect(screen.getByRole('button', { name: 'Fechar Ella' })).toHaveAttribute('aria-expanded', 'true')
+  })
+})
+
+describe('Topbar mobile navigation trigger', () => {
+  test('exposes an accessible trigger wired to the sidebar drawer', () => {
+    renderTopbar('/')
+    const trigger = screen.getByRole('button', { name: 'Abrir menu de navegação' })
+    expect(trigger).toHaveAttribute('aria-controls', 'sidebar')
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  test('reflects the drawer open state', () => {
+    renderTopbar('/', false, { mobileNavOpen: true })
+    expect(screen.getByRole('button', { name: 'Abrir menu de navegação' })).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  test('calls the open handler when activated', async () => {
+    const onOpenMobileNav = vi.fn()
+    renderTopbar('/', false, { onOpenMobileNav })
+    await userEvent.click(screen.getByRole('button', { name: 'Abrir menu de navegação' }))
+    expect(onOpenMobileNav).toHaveBeenCalledTimes(1)
   })
 })

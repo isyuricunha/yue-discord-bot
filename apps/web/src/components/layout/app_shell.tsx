@@ -28,9 +28,11 @@ const PanelAssistantDrawer = lazy(() =>
 export function AppShell() {
   const location = useLocation()
   const [collapsed, setCollapsed] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const [ellaDrawerOpen, setEllaDrawerOpen] = useState(false)
   const commandPaletteOpen = useCommandPaletteStore((state) => state.isOpen)
   const ellaTriggerRef = useRef<HTMLButtonElement>(null)
+  const mobileNavTriggerRef = useRef<HTMLButtonElement>(null)
 
   useKeyboardShortcuts()
 
@@ -38,6 +40,30 @@ export function AppShell() {
     const saved = localStorage.getItem(STORAGE_KEY)
     if (saved === '1') setCollapsed(true)
   }, [])
+
+  // Closes the mobile drawer on Escape and returns focus to its trigger.
+  useEffect(() => {
+    if (!mobileNavOpen) return
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return
+      setMobileNavOpen(false)
+      mobileNavTriggerRef.current?.focus()
+    }
+
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [mobileNavOpen])
+
+  // Prevents the page behind the drawer from scrolling on touch devices.
+  useEffect(() => {
+    if (!mobileNavOpen) return
+    const previous = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = previous
+    }
+  }, [mobileNavOpen])
 
   const toggle = () => {
     setCollapsed((prev) => {
@@ -63,7 +89,21 @@ export function AppShell() {
         <Seo />
 
         <div className="relative flex h-full">
-          <Sidebar collapsed={collapsed} onToggle={toggle} />
+          {mobileNavOpen && (
+            <button
+              type="button"
+              aria-label="Fechar menu de navegação"
+              onClick={() => setMobileNavOpen(false)}
+              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+            />
+          )}
+
+          <Sidebar
+            collapsed={collapsed}
+            onToggle={toggle}
+            mobileOpen={mobileNavOpen}
+            onMobileClose={() => setMobileNavOpen(false)}
+          />
 
           <div className="min-w-0 flex flex-1 flex-col">
             <div className="scrollbar-yue min-h-0 flex-1 overflow-y-auto">
@@ -71,6 +111,9 @@ export function AppShell() {
                 ellaDrawerOpen={visibleEllaDrawer}
                 onToggleEllaDrawer={() => setEllaDrawerOpen((open) => !open)}
                 ellaTriggerRef={ellaTriggerRef}
+                onOpenMobileNav={() => setMobileNavOpen(true)}
+                mobileNavOpen={mobileNavOpen}
+                mobileNavTriggerRef={mobileNavTriggerRef}
               />
               <main id="main-content" className={cn('px-4 py-5 sm:px-5', 'animate-fadeIn')} key={content_key} tabIndex={-1}>
                 <Suspense fallback={<RouteLoading />}>

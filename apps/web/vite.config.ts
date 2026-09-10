@@ -33,6 +33,18 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       host: true,
+      // Optional dev-only proxy: with VITE_DEV_API_PROXY set (for example
+      // http://127.0.0.1:50286), /api calls stay same-origin, so local
+      // development works against a running API without relaxing its CORS
+      // allowlist or the dev CSP connect-src 'self'.
+      proxy: process.env.VITE_DEV_API_PROXY
+        ? {
+            '/api': {
+              target: process.env.VITE_DEV_API_PROXY,
+              changeOrigin: true,
+            },
+          }
+        : undefined,
     },
     build: {
       rollupOptions: {
