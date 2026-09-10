@@ -56,9 +56,11 @@ import { safe_error_details } from '../utils/safe_error'
 
 const MAX_MESSAGE_LENGTH = 4_000
 const MAX_ROUTE_PARAM_LENGTH = 128
+const MAX_FEEDBACK_COMMENT_LENGTH = 500
 
 type panel_ai_db = panel_module_db & panel_sensitive_context_db & {
   botSettings: Pick<typeof prisma.botSettings, 'findUnique'>
+  panelAiFeedback: Pick<typeof prisma.panelAiFeedback, 'upsert'>
 }
 
 type admin_check = (guildId: string, userId: string, log: FastifyBaseLogger) => Promise<{ isAdmin: boolean }>
@@ -571,6 +573,50 @@ export function createPanelAiRoutes(overrides: Partial<panel_ai_route_deps> = {}
   const admin = (fastify: FastifyInstance) => [fastify.authenticate, authorization.requireGuildAdmin]
 
   return async function panelAiRoutes(fastify: FastifyInstance) {
+    fastify.post('/guilds/:guildId/panel-ai/feedback', { preHandler: admin(fastify) }, async (request, reply) => {
+      const { guildId } = request.params as { guildId: string }
+      const body = (request.body ?? {}) as Record<string, unknown>
+      const turn_id = typeof body.turnId === 'string' ? body.turnId.trim() : ''
+      const rating = typeof body.rating === 'string' ? body.rating.trim() : ''
+      const comment = typeof body.comment === 'string' ? body.comment.trim().slice(0, MAX_FEEDBACK_COMMENT_LENGTH) : null
+
+      if (!turn_id || turn_id.length > MAX_ROUTE_PARAM_LENGTH) {
+        return reply.code(400).send({ error: 'Invalid turnId' })
+      }
+
+      if (rating !== 'up' && rating !== 'down') {
+        return reply.code(400).send({ error: 'Invalid rating' })
+      }
+
+      try {
+        await deps.db.panelAiFeedback.upsert({
+          where: {
+            guildId_userId_turnId: {
+              guildId,
+              userId: request.user.userId,
+              turnId: turn_id,
+            },
+          },
+          create: {
+            guildId,
+            userId: request.user.userId,
+            turnId: turn_id,
+            rating,
+            comment,
+          },
+          update: {
+            rating,
+            comment,
+          },
+        })
+
+        return reply.send({ success: true })
+      } catch (error: unknown) {
+        request.log.warn({ err: safe_error_details(error), guildId }, 'Failed to store panel AI feedback')
+        return reply.code(503).send({ error: 'Temporary failure' })
+      }
+    })
+
     fastify.post('/guilds/:guildId/panel-ai/chat', { preHandler: admin(fastify) }, async (request, reply) => {
       const { guildId } = request.params as { guildId: string }
       const message = parse_message(request.body)

@@ -52,6 +52,8 @@ export type panel_assistant_context_value = {
   confirmSensitive: (turnId: string, requestId: string) => void
   declineSensitive: (turnId: string, requestId: string) => void
   clearConversation: () => Promise<boolean>
+  sendFeedback: (turnId: string, rating: 'up' | 'down') => Promise<boolean>
+  ratedTurns: ReadonlySet<string>
   scrollVersion: number
   focusVersion: number
 }
@@ -508,6 +510,30 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
   }, [activeGuildId, loadHistory])
 
   const visibleMessages = stateGuildId === activeGuildId ? messages : []
+  const [ratedTurns, setRatedTurns] = React.useState<ReadonlySet<string>>(() => new Set())
+
+  const sendFeedback = React.useCallback(async (turnId: string, rating: 'up' | 'down'): Promise<boolean> => {
+    const targetGuildId = activeGuildId
+    if (!targetGuildId) return false
+
+    try {
+      const response = await fetch(`${API_URL}/api/guilds/${targetGuildId}/panel-ai/feedback`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ turnId, rating }),
+      })
+      if (!response.ok) throw new Error('feedback failed')
+
+      setRatedTurns((current) => new Set(current).add(turnId))
+      toast_success('Obrigado pelo feedback.', 'Ella')
+      return true
+    } catch {
+      toast_error('Não foi possível registrar o feedback agora.', 'Ella')
+      return false
+    }
+  }, [activeGuildId])
+
   const value = React.useMemo<panel_assistant_context_value>(() => ({
     activeGuildId,
     activePageKey,
@@ -524,6 +550,8 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
     confirmSensitive,
     declineSensitive,
     clearConversation,
+    sendFeedback,
+    ratedTurns,
     scrollVersion,
     focusVersion,
   }), [
@@ -539,6 +567,8 @@ export function PanelAssistantProvider({ children }: React.PropsWithChildren) {
     operation,
     reloadHistory,
     retry,
+    sendFeedback,
+    ratedTurns,
     scrollVersion,
     send,
     stateGuildId,

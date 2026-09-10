@@ -1,4 +1,4 @@
-import { Copy, ExternalLink, Highlighter, ListTree, Save, ShieldCheck, Sparkles, WandSparkles } from 'lucide-react'
+import { Copy, ExternalLink, Highlighter, ListTree, Save, ShieldCheck, Sparkles, ThumbsDown, ThumbsUp, WandSparkles } from 'lucide-react'
 import * as React from 'react'
 import type { panel_ai_action, panel_ai_apply_proposal, panel_ai_sensitive_request } from '@yuebot/shared'
 
@@ -27,6 +27,8 @@ type PanelAssistantMessageProps = {
   onSensitiveConfirm?: (request: panel_ai_sensitive_request) => void
   onSensitiveDecline?: (request: panel_ai_sensitive_request) => void
   sensitiveDisabled?: boolean
+  onFeedback?: (rating: 'up' | 'down') => void
+  feedbackSent?: boolean
   className?: string
 }
 
@@ -84,6 +86,8 @@ export function PanelAssistantMessage({
   onSensitiveConfirm,
   onSensitiveDecline,
   sensitiveDisabled = false,
+  onFeedback,
+  feedbackSent = false,
   className,
 }: PanelAssistantMessageProps) {
   const isUser = role === 'user'
@@ -432,6 +436,35 @@ export function PanelAssistantMessage({
             <Copy className="h-3 w-3" />
             Copiar
           </Button>
+
+          {onFeedback && !feedbackSent && (
+            <>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onFeedback('up')}
+                className="h-6 w-6 px-1 text-muted-foreground hover:text-foreground"
+                aria-label="Resposta útil"
+              >
+                <ThumbsUp className="h-3 w-3" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => onFeedback('down')}
+                className="h-6 w-6 px-1 text-muted-foreground hover:text-foreground"
+                aria-label="Resposta não útil"
+              >
+                <ThumbsDown className="h-3 w-3" />
+              </Button>
+            </>
+          )}
+
+          {onFeedback && feedbackSent && (
+            <span className="text-muted-foreground text-xs" role="status">
+              Obrigado pelo feedback.
+            </span>
+          )}
         </div>
       </div>
     </div>

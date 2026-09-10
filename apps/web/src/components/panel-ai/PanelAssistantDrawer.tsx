@@ -273,6 +273,12 @@ export function PanelAssistantDrawer({ open, onClose, triggerRef }: props) {
             isError={message.status === 'error'}
             onRetry={message.status === 'error' ? () => assistant.retry(message.turnId) : undefined}
             retryDisabled={assistant.operation !== 'idle'}
+            onFeedback={
+              message.role === 'assistant' && message.status === 'complete'
+                ? (rating) => void assistant.sendFeedback(message.turnId, rating)
+                : undefined
+            }
+            feedbackSent={assistant.ratedTurns.has(message.turnId)}
             actions={message.actions}
             sensitiveRequest={message.sensitiveRequest}
             onAction={assistant.executeAction}
