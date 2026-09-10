@@ -1,7 +1,7 @@
 import * as React from 'react'
 import { Maximize2, Sparkles, Trash2, X } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { get_panel_ai_quick_prompts } from '@yuebot/shared'
+import { get_panel_ai_quick_prompts, get_panel_ai_explain_prompts } from '@yuebot/shared'
 
 import { useMediaQuery } from '../../hooks/use_media_query'
 import { cn } from '../../lib/cn'
@@ -53,6 +53,7 @@ export function PanelAssistantDrawer({ open, onClose, triggerRef }: props) {
     assistant.operation === 'confirming-sensitive' ||
     assistant.operation === 'clearing'
   const quickPrompts = get_panel_ai_quick_prompts(assistant.activePageKey)
+  const explainPrompts = get_panel_ai_explain_prompts(assistant.activePageKey, 3)
 
   const scrollToLatest = React.useCallback(() => {
     endRef.current?.scrollIntoView({
@@ -262,6 +263,7 @@ export function PanelAssistantDrawer({ open, onClose, triggerRef }: props) {
           <PanelAssistantEmptyState
             disabled={assistant.operation !== 'idle'}
             quickPrompts={quickPrompts.map((label) => ({ label, onClick: () => assistant.send(label) }))}
+            explainPrompts={explainPrompts.map((item) => ({ label: `Explique: ${item.label}`, onClick: () => assistant.send(item.prompt) }))}
             className="py-8"
           />
         )}

@@ -509,3 +509,24 @@ export function build_panel_ai_page_path(
   }
   return path
 }
+
+// Field-level "explain" prompts for the drawer: for the active page, expose
+// its allowlisted prefill fields as ready-made questions so the user can ask
+// the assistant what a specific setting does without typing the name.
+export function get_panel_ai_explain_prompts(
+  pageKey: panel_ai_page_key | null | undefined,
+  max = 3,
+): Array<{ target: string; label: string; prompt: string }> {
+  if (!pageKey) return []
+
+  const fields = PANEL_AI_PREFILL_FIELDS[pageKey]
+  if (!fields) return []
+
+  return Object.entries(fields)
+    .slice(0, max)
+    .map(([target, field]) => ({
+      target,
+      label: field.label,
+      prompt: `Explique a configuração "${field.label}" desta página: o que ela faz, quando devo alterá-la e como escolher um bom valor.`,
+    }))
+}
