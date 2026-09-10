@@ -5,16 +5,16 @@
 // reset on process restart; persistence belongs to a later iteration if the
 // owner needs historical series.
 
-export type panel_ai_runtime_event_metrics_input = {
+type panel_ai_runtime_event_metrics_input = {
   type: 'fallback_attempted' | 'fallback_succeeded' | 'fallback_failed'
 }
 
-export type panel_ai_turn_metrics_input = {
+type panel_ai_turn_metrics_input = {
   latencyMs: number
   ok: boolean
 }
 
-export type panel_ai_metrics_snapshot = {
+type panel_ai_metrics_snapshot = {
   since: string
   turns: {
     total: number
@@ -32,7 +32,7 @@ export type panel_ai_metrics_snapshot = {
 
 const MAX_LATENCY_SAMPLES = 500
 
-export class PanelAiMetrics {
+class PanelAiMetrics {
   private readonly latencies: number[] = []
   private turnsTotal = 0
   private turnsOk = 0
