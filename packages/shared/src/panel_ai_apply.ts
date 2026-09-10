@@ -12,6 +12,7 @@ export const PANEL_AI_APPLY_PAGE_KEYS = [
   'antiraid',
   'xp',
   'autorole',
+  'support',
 ] as const satisfies readonly panel_ai_page_key[]
 
 export type panel_ai_apply_page_key = (typeof PANEL_AI_APPLY_PAGE_KEYS)[number]

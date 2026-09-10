@@ -263,6 +263,39 @@ export type panel_ai_prefill_field =
   | string_prefill_field
 
 export const PANEL_AI_PREFILL_FIELDS: Partial<Record<panel_ai_page_key, Record<string, panel_ai_prefill_field>>> = {
+  support: {
+    enabled: {
+      label: 'Apoios ativados',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Habilitar sistema de apoios',
+    },
+    title: {
+      label: 'Título da página de apoios',
+      control: 'message_editor',
+      valueType: 'string',
+      maxLength: 100,
+    },
+    description: {
+      label: 'Descrição da página de apoios',
+      control: 'message_editor',
+      valueType: 'string',
+      maxLength: 500,
+    },
+    reminderEnabled: {
+      label: 'Lembrete de renovação',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Habilitar lembrete de renovação',
+    },
+    reminderDaysBefore: {
+      label: 'Dias de antecedência do lembrete',
+      control: 'input',
+      valueType: 'integer',
+      min: 1,
+      max: 30,
+    },
+  },
   automod: {
     capsEnabled: {
       label: 'Anti-CAPS',
