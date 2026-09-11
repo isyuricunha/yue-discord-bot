@@ -8,7 +8,7 @@ import type { suggestion_timeframe } from '@yuebot/shared'
 import { suggestion_timeframe_label } from '@yuebot/shared'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch } from '../components/ui'
+import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch, UserDisplay } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -37,6 +37,8 @@ type api_suggestion = {
   downvotes: number
   decidedAt: string | null
   decidedByUserId: string | null
+  userName: string | null
+  decidedByUserName: string | null
   decisionNote: string | null
   createdAt: string
   updatedAt: string
@@ -317,7 +319,7 @@ export default function SuggestionsPage() {
                         </Badge>
                       </div>
                       <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>Autor: <span className="font-mono text-foreground/80">@...{s.userId.slice(-5)}</span></span>
+                        <span className="inline-flex min-w-0 items-center gap-1">Autor: <UserDisplay userId={s.userId} username={s.userName} /></span>
                         <span>•</span>
                         <span className="font-mono">👍 {s.upvotes} / 👎 {s.downvotes}</span>
                       </div>
@@ -328,7 +330,12 @@ export default function SuggestionsPage() {
                   {s.status !== 'pending' && (s.decidedAt || s.decidedByUserId || s.decisionNote) && (
                     <div className="mt-2 text-xs text-muted-foreground">
                       Decidido em: {s.decidedAt ? new Date(s.decidedAt).toLocaleString('pt-BR') : '—'}
-                      {s.decidedByUserId ? ` • Por: @...${s.decidedByUserId.slice(-5)}` : ''}
+                      {s.decidedByUserId ? (
+                        <>
+                          {' • Por: '}
+                          <UserDisplay userId={s.decidedByUserId} username={s.decidedByUserName} />
+                        </>
+                      ) : ''}
                       {s.decisionNote ? ` • Nota: ${s.decisionNote}` : ''}
                     </div>
                   )}
