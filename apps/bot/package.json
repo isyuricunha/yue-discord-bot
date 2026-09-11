@@ -5,6 +5,7 @@
   "main": "./dist/index.js",
   "scripts": {
     "dev": "pnpm --filter @yuebot/shared build && pnpm --filter @yuebot/livepix build && pnpm --filter @yuebot/database build && tsx watch src/runtime.ts",
+    "docs:sync": "tsx scripts/export-commands.ts",
     "build": "pnpm --filter @yuebot/livepix build && tsup",
     "start": "node dist/runtime.js",
     "deploy-commands": "tsx src/bin/deploy-commands.ts",

@@ -13,6 +13,10 @@ const ExtrasModerationPage = lazy(() => import('./pages/extras/ExtrasModeration'
 const ExtrasCommandsPage = lazy(() => import('./pages/extras/ExtrasCommands'))
 const ExtrasPlaceholdersPage = lazy(() => import('./pages/extras/ExtrasPlaceholders'))
 const ExtrasBanAppealPage = lazy(() => import('./pages/extras/ExtrasBanAppeal'))
+const DocsLayout = lazy(() => import('./pages/docs/DocsLayout'))
+const DocsHomePage = lazy(() => import('./pages/docs/DocsHomePage'))
+const DocsCommandsPage = lazy(() => import('./pages/docs/DocsCommandsPage'))
+const DocsGuidesPage = lazy(() => import('./pages/docs/DocsGuidesPage'))
 const TermsPage = lazy(() => import('./pages/Terms'))
 const PrivacyPage = lazy(() => import('./pages/Privacy'))
 const DashboardPage = lazy(() => import('./pages/Dashboard'))
@@ -93,6 +97,11 @@ function App() {
           />
 
           <Route element={<PublicShell />}>
+            <Route path="/docs" element={<DocsLayout />}>
+              <Route index element={<DocsHomePage />} />
+              <Route path="comandos" element={<DocsCommandsPage />} />
+              <Route path="guias" element={<DocsGuidesPage />} />
+            </Route>
             <Route path="/extras" element={<ExtrasPage />}>
               <Route index element={<ExtrasHomePage />} />
               <Route path="sobre" element={<ExtrasAboutPage />} />

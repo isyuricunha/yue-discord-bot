@@ -1,0 +1,4900 @@
+{
+  "generatedAt": "2026-09-11T04:52:22.181Z",
+  "commands": [
+    {
+      "options": [
+        {
+          "name": "usuario",
+          "description": "Usuário a ser banido",
+          "required": true,
+          "type": 6
+        },
+        {
+          "type": 3,
+          "name": "razao",
+          "description": "Razão do banimento",
+          "required": false
+        },
+        {
+          "max_value": 7,
+          "min_value": 0,
+          "type": 4,
+          "name": "deletar_mensagens",
+          "description": "Deletar mensagens dos últimos X dias (0-7)",
+          "required": false
+        }
+      ],
+      "name": "ban",
+      "name_localizations": {
+        "pt-BR": "banir"
+      },
+      "description": "Banir um usuário do servidor",
+      "description_localizations": {
+        "pt-BR": "Banir um usuário do servidor"
+      },
+      "default_member_permissions": "4",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "usuario",
+          "description": "Usuário a ser expulso",
+          "required": true,
+          "type": 6
+        },
+        {
+          "type": 3,
+          "name": "razao",
+          "description": "Razão da expulsão",
+          "required": false
+        }
+      ],
+      "name": "kick",
+      "name_localizations": {
+        "pt-BR": "expulsar"
+      },
+      "description": "Expulsar um usuário do servidor",
+      "description_localizations": {
+        "pt-BR": "Expulsar um usuário do servidor"
+      },
+      "default_member_permissions": "2",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "usuario",
+          "description": "Usuário a ser silenciado",
+          "required": true,
+          "type": 6
+        },
+        {
+          "type": 3,
+          "name": "duracao",
+          "description": "Duração do silenciamento (ex: 5m, 2h, 1d)",
+          "required": true
+        },
+        {
+          "type": 3,
+          "name": "razao",
+          "description": "Razão do silenciamento",
+          "required": false
+        }
+      ],
+      "name": "mute",
+      "name_localizations": {
+        "pt-BR": "silenciar"
+      },
+      "description": "Silenciar um usuário temporariamente",
+      "description_localizations": {
+        "pt-BR": "Silenciar um usuário temporariamente"
+      },
+      "default_member_permissions": "1099511627776",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "usuario",
+          "description": "Usuário a ser dessilenciado",
+          "required": true,
+          "type": 6
+        }
+      ],
+      "name": "unmute",
+      "name_localizations": {
+        "pt-BR": "dessilenciar"
+      },
+      "description": "Remover o silenciamento de um usuário",
+      "description_localizations": {
+        "pt-BR": "Remover o silenciamento de um usuário"
+      },
+      "default_member_permissions": "1099511627776",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "usuario",
+          "description": "Usuário a ser advertido",
+          "required": true,
+          "type": 6
+        },
+        {
+          "type": 3,
+          "name": "razao",
+          "description": "Razão da advertência",
+          "required": true
+        }
+      ],
+      "name": "warn",
+      "name_localizations": {
+        "pt-BR": "avisar"
+      },
+      "description": "Advertir um usuário",
+      "description_localizations": {
+        "pt-BR": "Advertir um usuário"
+      },
+      "default_member_permissions": "1099511627776",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "usuario",
+          "description": "Usuário para remover avisos",
+          "required": true,
+          "type": 6
+        },
+        {
+          "min_value": 1,
+          "type": 4,
+          "name": "quantidade",
+          "description": "Quantidade de avisos para remover (deixe vazio para remover todos)",
+          "required": false
+        }
+      ],
+      "name": "unwarn",
+      "name_localizations": {
+        "pt-BR": "remover-aviso"
+      },
+      "description": "Remover avisos de um usuário",
+      "description_localizations": {
+        "pt-BR": "Remover avisos de um usuário"
+      },
+      "default_member_permissions": "1099511627776",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "usuario",
+          "description": "Usuário para ver o histórico",
+          "required": true,
+          "type": 6
+        },
+        {
+          "type": 3,
+          "choices": [
+            {
+              "name": "Ban",
+              "value": "ban"
+            },
+            {
+              "name": "Kick",
+              "value": "kick"
+            },
+            {
+              "name": "Warn",
+              "value": "warn"
+            },
+            {
+              "name": "Mute",
+              "value": "mute"
+            },
+            {
+              "name": "Unmute",
+              "value": "unmute"
+            }
+          ],
+          "name": "tipo",
+          "description": "Filtrar por tipo de ação",
+          "required": false
+        },
+        {
+          "max_value": 25,
+          "min_value": 1,
+          "type": 4,
+          "name": "limite",
+          "description": "Número de registros a exibir (padrão: 10)",
+          "required": false
+        }
+      ],
+      "name": "modlog",
+      "description": "Ver histórico de punições de um usuário",
+      "default_member_permissions": "1099511627776",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "name": "usuario_id",
+          "description": "ID do usuário banido",
+          "required": true
+        }
+      ],
+      "name": "baninfo",
+      "description": "Ver informações sobre o banimento de um usuário",
+      "default_member_permissions": "4",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "ativar",
+          "name_localizations": {
+            "pt-BR": "ativar"
+          },
+          "description": "Ativar a proteção contra raide",
+          "options": [
+            {
+              "max_value": 50,
+              "min_value": 3,
+              "type": 4,
+              "name": "limite",
+              "name_localizations": {
+                "pt-BR": "limite"
+              },
+              "description": "Número de entradas para ativar o raide (padrão: 10)",
+              "required": false
+            },
+            {
+              "max_value": 300,
+              "min_value": 10,
+              "type": 4,
+              "name": "janela",
+              "name_localizations": {
+                "pt-BR": "janela"
+              },
+              "description": "Janela de tempo em segundos (padrão: 60)",
+              "required": false
+            },
+            {
+              "type": 3,
+              "choices": [
+                {
+                  "name": "Silenciar (mute)",
+                  "value": "mute"
+                },
+                {
+                  "name": "Expulsar (kick)",
+                  "value": "kick"
+                },
+                {
+                  "name": "Banir (ban)",
+                  "value": "ban"
+                }
+              ],
+              "name": "acao",
+              "name_localizations": {
+                "pt-BR": "acao"
+              },
+              "description": "Ação a tomar quando raide for detectado",
+              "required": false
+            },
+            {
+              "max_value": 60,
+              "min_value": 1,
+              "type": 4,
+              "name": "duracao",
+              "name_localizations": {
+                "pt-BR": "duracao"
+              },
+              "description": "Duração do mute em minutos (padrão: 10)",
+              "required": false
+            },
+            {
+              "channel_types": [
+                0
+              ],
+              "name": "canal",
+              "name_localizations": {
+                "pt-BR": "canal"
+              },
+              "description": "Canal para notificações de raide",
+              "required": false,
+              "type": 7
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "desativar",
+          "name_localizations": {
+            "pt-BR": "desativar"
+          },
+          "description": "Desativar a proteção contra raide",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "configurar",
+          "name_localizations": {
+            "pt-BR": "configurar"
+          },
+          "description": "Configurar as opções de proteção contra raide",
+          "options": [
+            {
+              "max_value": 50,
+              "min_value": 3,
+              "type": 4,
+              "name": "limite",
+              "name_localizations": {
+                "pt-BR": "limite"
+              },
+              "description": "Número de entradas para ativar o raide",
+              "required": false
+            },
+            {
+              "max_value": 300,
+              "min_value": 10,
+              "type": 4,
+              "name": "janela",
+              "name_localizations": {
+                "pt-BR": "janela"
+              },
+              "description": "Janela de tempo em segundos",
+              "required": false
+            },
+            {
+              "type": 3,
+              "choices": [
+                {
+                  "name": "Silenciar (mute)",
+                  "value": "mute"
+                },
+                {
+                  "name": "Expulsar (kick)",
+                  "value": "kick"
+                },
+                {
+                  "name": "Banir (ban)",
+                  "value": "ban"
+                }
+              ],
+              "name": "acao",
+              "name_localizations": {
+                "pt-BR": "acao"
+              },
+              "description": "Ação a tomar quando raide for detectado",
+              "required": false
+            },
+            {
+              "max_value": 60,
+              "min_value": 1,
+              "type": 4,
+              "name": "duracao",
+              "name_localizations": {
+                "pt-BR": "duracao"
+              },
+              "description": "Duração do mute em minutos",
+              "required": false
+            },
+            {
+              "max_value": 3600,
+              "min_value": 60,
+              "type": 4,
+              "name": "cooldown",
+              "name_localizations": {
+                "pt-BR": "cooldown"
+              },
+              "description": "Tempo de espera após raide em segundos (padrão: 300)",
+              "required": false
+            },
+            {
+              "channel_types": [
+                0
+              ],
+              "name": "canal",
+              "name_localizations": {
+                "pt-BR": "canal"
+              },
+              "description": "Canal para notificações de raide",
+              "required": false,
+              "type": 7
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "status",
+          "name_localizations": {
+            "pt-BR": "status"
+          },
+          "description": "Ver o status atual da proteção contra raide",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "bloquear",
+          "name_localizations": {
+            "pt-BR": "bloquear"
+          },
+          "description": "Bloquear o servidor (impedir membros de enviar mensagens)",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "desbloquear",
+          "name_localizations": {
+            "pt-BR": "desbloquear"
+          },
+          "description": "Desbloquear o servidor (permitir membros enviarem mensagens)",
+          "options": []
+        }
+      ],
+      "name": "antiraide",
+      "description": "Sistema de proteção contra raide",
+      "description_localizations": {
+        "pt-BR": "Sistema de proteção contra raide"
+      },
+      "default_member_permissions": "32",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "max_value": 1000,
+          "min_value": 1,
+          "type": 4,
+          "name": "quantidade",
+          "description": "Quantidade de mensagens para deletar (1-1000)",
+          "required": true
+        },
+        {
+          "name": "usuario",
+          "description": "Filtrar mensagens de um usuário específico",
+          "required": false,
+          "type": 6
+        },
+        {
+          "type": 3,
+          "choices": [
+            {
+              "name": "Bots",
+              "value": "bots"
+            },
+            {
+              "name": "Humanos",
+              "value": "humans"
+            },
+            {
+              "name": "Com Links",
+              "value": "links"
+            },
+            {
+              "name": "Com Anexos",
+              "value": "attachments"
+            }
+          ],
+          "name": "filtro",
+          "description": "Filtrar tipo de mensagens",
+          "required": false
+        }
+      ],
+      "name": "limpar",
+      "description": "Limpar mensagens do canal",
+      "default_member_permissions": "8192",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "channel_types": [
+            0
+          ],
+          "name": "canal",
+          "description": "Canal a ser trancado (padrão: canal atual)",
+          "required": false,
+          "type": 7
+        },
+        {
+          "type": 3,
+          "name": "razao",
+          "description": "Razão para trancar o canal",
+          "required": false
+        }
+      ],
+      "name": "lock",
+      "name_localizations": {
+        "pt-BR": "trancar"
+      },
+      "description": "Trancar um canal para impedir que membros enviem mensagens",
+      "description_localizations": {
+        "pt-BR": "Trancar um canal para impedir que membros enviem mensagens"
+      },
+      "default_member_permissions": "16",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "channel_types": [
+            0
+          ],
+          "name": "canal",
+          "description": "Canal a ser destrancado (padrão: canal atual)",
+          "required": false,
+          "type": 7
+        }
+      ],
+      "name": "unlock",
+      "name_localizations": {
+        "pt-BR": "destrancar"
+      },
+      "description": "Destrancar um canal previamente trancado",
+      "description_localizations": {
+        "pt-BR": "Destrancar um canal previamente trancado"
+      },
+      "default_member_permissions": "16",
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "painel",
+      "description": "Obter o link para o painel web de gerenciamento",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "name": "mensagem",
+          "description": "Texto ou JSON (content + embed)",
+          "required": true
+        },
+        {
+          "channel_types": [
+            0,
+            5
+          ],
+          "name": "canal",
+          "description": "Canal onde a mensagem será enviada",
+          "required": false,
+          "type": 7
+        }
+      ],
+      "name": "say",
+      "description": "Enviar uma mensagem em um canal como o bot (com marca d'água)",
+      "default_member_permissions": "8192",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "perfil",
+          "name_localizations": {
+            "pt-BR": "perfil"
+          },
+          "description": "Visão geral completa das suas estatísticas",
+          "description_localizations": {
+            "pt-BR": "Visão geral completa das suas estatísticas"
+          },
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "xp",
+          "name_localizations": {
+            "pt-BR": "xp"
+          },
+          "description": "Detalhes sobre seu progresso de XP",
+          "description_localizations": {
+            "pt-BR": "Detalhes sobre seu progresso de XP"
+          },
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "economia",
+          "name_localizations": {
+            "pt-BR": "economia"
+          },
+          "description": "Informações sobre sua economia no bot",
+          "description_localizations": {
+            "pt-BR": "Informações sobre sua economia no bot"
+          },
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "jogos",
+          "name_localizations": {
+            "pt-BR": "jogos"
+          },
+          "description": "Estatísticas dos seus jogos",
+          "description_localizations": {
+            "pt-BR": "Estatísticas dos seus jogos"
+          },
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "conquistas",
+          "name_localizations": {
+            "pt-BR": "conquistas"
+          },
+          "description": "Suas conquistas e badges",
+          "description_localizations": {
+            "pt-BR": "Suas conquistas e badges"
+          },
+          "options": []
+        }
+      ],
+      "name": "estatisticas",
+      "name_localizations": {
+        "pt-BR": "estatísticas"
+      },
+      "description": "Veja suas estatísticas pessoais no Yue Bot",
+      "description_localizations": {
+        "pt-BR": "Veja suas estatísticas pessoais no Yue Bot"
+      },
+      "default_member_permissions": "2048",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "name": "question",
+          "name_localizations": {
+            "pt-BR": "pergunta"
+          },
+          "description": "Your question",
+          "description_localizations": {
+            "pt-BR": "Sua pergunta"
+          },
+          "required": true,
+          "max_length": 1500
+        }
+      ],
+      "name": "ask",
+      "name_localizations": {
+        "pt-BR": "perguntar"
+      },
+      "description": "Ask the bot a question",
+      "description_localizations": {
+        "pt-BR": "Faça uma pergunta para o bot"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "setup",
+          "description": "Criar/atualizar painel de tickets",
+          "options": [
+            {
+              "channel_types": [
+                0
+              ],
+              "name": "canal",
+              "description": "Canal onde o painel será enviado",
+              "required": true,
+              "type": 7
+            },
+            {
+              "channel_types": [
+                4
+              ],
+              "name": "categoria",
+              "description": "Categoria onde os canais de ticket serão criados (opcional)",
+              "required": false,
+              "type": 7
+            },
+            {
+              "channel_types": [
+                0
+              ],
+              "name": "log",
+              "description": "Canal de logs de tickets (opcional)",
+              "required": false,
+              "type": 7
+            },
+            {
+              "name": "cargo_suporte",
+              "description": "Cargo de suporte com acesso aos tickets (opcional)",
+              "required": false,
+              "type": 8
+            },
+            {
+              "name": "ativar",
+              "description": "Ativar tickets neste servidor",
+              "required": false,
+              "type": 5
+            }
+          ]
+        }
+      ],
+      "name": "ticket",
+      "description": "Configurar sistema de tickets",
+      "default_member_permissions": "32",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 2,
+          "name": "channels",
+          "description": "Configurar canais do bot",
+          "options": [
+            {
+              "type": 1,
+              "name": "report",
+              "description": "Definir/limpar canal de denúncias",
+              "options": [
+                {
+                  "channel_types": [
+                    0,
+                    5
+                  ],
+                  "name": "canal",
+                  "description": "Canal de denúncias (omitido = limpar)",
+                  "required": false,
+                  "type": 7
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "modlog",
+              "description": "Definir/limpar canal de modlog",
+              "options": [
+                {
+                  "channel_types": [
+                    0,
+                    5
+                  ],
+                  "name": "canal",
+                  "description": "Canal de logs de moderação (omitido = limpar)",
+                  "required": false,
+                  "type": 7
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "welcome",
+              "description": "Definir/limpar canal de boas-vindas",
+              "options": [
+                {
+                  "channel_types": [
+                    0,
+                    5
+                  ],
+                  "name": "canal",
+                  "description": "Canal de boas-vindas (omitido = limpar)",
+                  "required": false,
+                  "type": 7
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "leave",
+              "description": "Definir/limpar canal de saída",
+              "options": [
+                {
+                  "channel_types": [
+                    0,
+                    5
+                  ],
+                  "name": "canal",
+                  "description": "Canal de saída (omitido = limpar)",
+                  "required": false,
+                  "type": 7
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "announcement",
+              "description": "Definir/limpar canal de anúncios",
+              "options": [
+                {
+                  "channel_types": [
+                    0,
+                    5
+                  ],
+                  "name": "canal",
+                  "description": "Canal de anúncios (omitido = limpar)",
+                  "required": false,
+                  "type": 7
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "giveaway",
+              "description": "Definir/limpar canal de sorteios",
+              "options": [
+                {
+                  "channel_types": [
+                    0,
+                    5
+                  ],
+                  "name": "canal",
+                  "description": "Canal de sorteios (omitido = limpar)",
+                  "required": false,
+                  "type": 7
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "templates",
+          "description": "Configurar templates de mensagens",
+          "options": [
+            {
+              "type": 1,
+              "name": "report",
+              "description": "Definir/limpar template de denúncia",
+              "options": [
+                {
+                  "type": 3,
+                  "name": "template",
+                  "description": "Template (omitido = limpar)",
+                  "required": false,
+                  "max_length": 4000
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "welcome",
+              "description": "Definir/limpar template de boas-vindas",
+              "options": [
+                {
+                  "type": 3,
+                  "name": "template",
+                  "description": "Template (omitido = limpar)",
+                  "required": false,
+                  "max_length": 4000
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "leave",
+              "description": "Definir/limpar template de saída",
+              "options": [
+                {
+                  "type": 3,
+                  "name": "template",
+                  "description": "Template (omitido = limpar)",
+                  "required": false,
+                  "max_length": 4000
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "modlog",
+              "description": "Definir/limpar template do modlog",
+              "options": [
+                {
+                  "type": 3,
+                  "name": "template",
+                  "description": "Template (omitido = limpar)",
+                  "required": false,
+                  "max_length": 4000
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "automod",
+          "description": "Configurar AutoMod",
+          "options": [
+            {
+              "type": 1,
+              "name": "mute-role-add",
+              "description": "Adicionar cargo de mute (sincroniza com timeout)",
+              "options": [
+                {
+                  "name": "cargo",
+                  "description": "Cargo",
+                  "required": true,
+                  "type": 8
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "mute-role-remove",
+              "description": "Remover cargo de mute",
+              "options": [
+                {
+                  "name": "cargo",
+                  "description": "Cargo",
+                  "required": true,
+                  "type": 8
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "mute-role-list",
+              "description": "Listar cargos de mute configurados",
+              "options": []
+            },
+            {
+              "type": 1,
+              "name": "mute-role-clear",
+              "description": "Limpar cargos de mute (desativar sincronização)",
+              "options": []
+            },
+            {
+              "type": 1,
+              "name": "word",
+              "description": "Ativar/desativar filtro de palavras",
+              "options": [
+                {
+                  "name": "ativar",
+                  "description": "Ativar filtro de palavras",
+                  "required": true,
+                  "type": 5
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "word-add",
+              "description": "Adicionar palavra proibida",
+              "options": [
+                {
+                  "type": 3,
+                  "name": "palavra",
+                  "description": "Palavra/regex",
+                  "required": true,
+                  "max_length": 200
+                },
+                {
+                  "type": 3,
+                  "choices": [
+                    {
+                      "name": "Deletar",
+                      "value": "delete"
+                    },
+                    {
+                      "name": "Warn",
+                      "value": "warn"
+                    },
+                    {
+                      "name": "Mute",
+                      "value": "mute"
+                    },
+                    {
+                      "name": "Kick",
+                      "value": "kick"
+                    },
+                    {
+                      "name": "Ban",
+                      "value": "ban"
+                    }
+                  ],
+                  "name": "acao",
+                  "description": "Ação a aplicar",
+                  "required": true
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "word-remove",
+              "description": "Remover palavra proibida",
+              "options": [
+                {
+                  "type": 3,
+                  "name": "palavra",
+                  "description": "Palavra/regex exata",
+                  "required": true,
+                  "max_length": 200
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "word-list",
+              "description": "Listar palavras proibidas",
+              "options": []
+            },
+            {
+              "type": 1,
+              "name": "caps",
+              "description": "Configurar filtro de CAPS",
+              "options": [
+                {
+                  "name": "ativar",
+                  "description": "Ativar filtro de caps",
+                  "required": true,
+                  "type": 5
+                },
+                {
+                  "max_value": 100,
+                  "min_value": 0,
+                  "type": 4,
+                  "name": "threshold",
+                  "description": "Percentual (0-100)",
+                  "required": false
+                },
+                {
+                  "max_value": 4000,
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "min_len",
+                  "description": "Tamanho mínimo",
+                  "required": false
+                },
+                {
+                  "type": 3,
+                  "choices": [
+                    {
+                      "name": "Warn",
+                      "value": "warn"
+                    },
+                    {
+                      "name": "Mute (5m)",
+                      "value": "mute"
+                    },
+                    {
+                      "name": "Kick",
+                      "value": "kick"
+                    }
+                  ],
+                  "name": "acao",
+                  "description": "Ação a aplicar",
+                  "required": false
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "link",
+              "description": "Configurar filtro de links",
+              "options": [
+                {
+                  "name": "ativar",
+                  "description": "Ativar filtro de links",
+                  "required": true,
+                  "type": 5
+                },
+                {
+                  "name": "block_all",
+                  "description": "Bloquear todos os links",
+                  "required": false,
+                  "type": 5
+                },
+                {
+                  "type": 3,
+                  "choices": [
+                    {
+                      "name": "Deletar",
+                      "value": "delete"
+                    },
+                    {
+                      "name": "Warn",
+                      "value": "warn"
+                    },
+                    {
+                      "name": "Mute",
+                      "value": "mute"
+                    },
+                    {
+                      "name": "Kick",
+                      "value": "kick"
+                    },
+                    {
+                      "name": "Ban",
+                      "value": "ban"
+                    }
+                  ],
+                  "name": "acao",
+                  "description": "Ação a aplicar",
+                  "required": false
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "domain-add",
+              "description": "Adicionar domínio banido",
+              "options": [
+                {
+                  "type": 3,
+                  "name": "dominio",
+                  "description": "Ex: example.com",
+                  "required": true,
+                  "max_length": 200
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "domain-remove",
+              "description": "Remover domínio banido",
+              "options": [
+                {
+                  "type": 3,
+                  "name": "dominio",
+                  "description": "Ex: example.com",
+                  "required": true,
+                  "max_length": 200
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "domain-list",
+              "description": "Listar domínios banidos",
+              "options": []
+            },
+            {
+              "type": 1,
+              "name": "warn-expiration",
+              "description": "Definir expiração de warns (dias)",
+              "options": [
+                {
+                  "max_value": 3650,
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "dias",
+                  "description": "Dias (>=1)",
+                  "required": true
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "warn-threshold-add",
+              "description": "Adicionar threshold de warns",
+              "options": [
+                {
+                  "max_value": 1000,
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "warns",
+                  "description": "Quantidade de warns",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "choices": [
+                    {
+                      "name": "Mute",
+                      "value": "mute"
+                    },
+                    {
+                      "name": "Kick",
+                      "value": "kick"
+                    },
+                    {
+                      "name": "Ban",
+                      "value": "ban"
+                    }
+                  ],
+                  "name": "acao",
+                  "description": "Ação ao atingir warns",
+                  "required": true
+                },
+                {
+                  "type": 3,
+                  "name": "duracao",
+                  "description": "Duração (somente mute), ex: 5m, 1h",
+                  "required": false,
+                  "max_length": 10
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "warn-threshold-remove",
+              "description": "Remover threshold de warns",
+              "options": [
+                {
+                  "max_value": 1000,
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "warns",
+                  "description": "Quantidade de warns",
+                  "required": true
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "warn-threshold-list",
+              "description": "Listar thresholds de warns",
+              "options": []
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "xp",
+          "description": "Configurar sistema de XP",
+          "options": [
+            {
+              "type": 1,
+              "name": "enabled",
+              "description": "Ativar/desativar XP",
+              "options": [
+                {
+                  "name": "ativar",
+                  "description": "Ativar XP",
+                  "required": true,
+                  "type": 5
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "params",
+              "description": "Ajustar parâmetros do XP",
+              "options": [
+                {
+                  "max_value": 4000,
+                  "min_value": 0,
+                  "type": 4,
+                  "name": "min_msg",
+                  "description": "Min message length",
+                  "required": false
+                },
+                {
+                  "max_value": 4000,
+                  "min_value": 0,
+                  "type": 4,
+                  "name": "min_unique",
+                  "description": "Min unique length",
+                  "required": false
+                },
+                {
+                  "max_value": 100,
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "typing_cps",
+                  "description": "Typing cps",
+                  "required": false
+                },
+                {
+                  "max_value": 1000,
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "div_min",
+                  "description": "XP divisor min",
+                  "required": false
+                },
+                {
+                  "max_value": 1000,
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "div_max",
+                  "description": "XP divisor max",
+                  "required": false
+                },
+                {
+                  "max_value": 10000,
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "cap",
+                  "description": "XP cap",
+                  "required": false
+                },
+                {
+                  "type": 3,
+                  "choices": [
+                    {
+                      "name": "Stack",
+                      "value": "stack"
+                    },
+                    {
+                      "name": "Highest",
+                      "value": "highest"
+                    }
+                  ],
+                  "name": "reward_mode",
+                  "description": "Modo de reward (stack|highest)",
+                  "required": false
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "ignore-channel-add",
+              "description": "Ignorar canal para XP",
+              "options": [
+                {
+                  "channel_types": [
+                    0,
+                    5
+                  ],
+                  "name": "canal",
+                  "description": "Canal",
+                  "required": true,
+                  "type": 7
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "ignore-channel-remove",
+              "description": "Remover canal ignorado",
+              "options": [
+                {
+                  "channel_types": [
+                    0,
+                    5
+                  ],
+                  "name": "canal",
+                  "description": "Canal",
+                  "required": true,
+                  "type": 7
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "ignore-channel-list",
+              "description": "Listar canais ignorados",
+              "options": []
+            },
+            {
+              "type": 1,
+              "name": "ignore-role-add",
+              "description": "Ignorar cargo para XP",
+              "options": [
+                {
+                  "name": "cargo",
+                  "description": "Cargo",
+                  "required": true,
+                  "type": 8
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "ignore-role-remove",
+              "description": "Remover cargo ignorado",
+              "options": [
+                {
+                  "name": "cargo",
+                  "description": "Cargo",
+                  "required": true,
+                  "type": 8
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "ignore-role-list",
+              "description": "Listar cargos ignorados",
+              "options": []
+            },
+            {
+              "type": 1,
+              "name": "levelup-channel",
+              "description": "Definir/limpar canal de level up",
+              "options": [
+                {
+                  "channel_types": [
+                    0,
+                    5
+                  ],
+                  "name": "canal",
+                  "description": "Canal (omitido = limpar)",
+                  "required": false,
+                  "type": 7
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "levelup-message",
+              "description": "Definir/limpar template de level up",
+              "options": [
+                {
+                  "type": 3,
+                  "name": "template",
+                  "description": "Template (omitido = limpar)",
+                  "required": false,
+                  "max_length": 4000
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "levelrole-add",
+              "description": "Adicionar cargo para nível",
+              "options": [
+                {
+                  "max_value": 9999,
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "nivel",
+                  "description": "Nível necessário",
+                  "required": true
+                },
+                {
+                  "name": "cargo",
+                  "description": "Cargo a ser dado",
+                  "required": true,
+                  "type": 8
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "levelrole-remove",
+              "description": "Remover cargo de nível",
+              "options": [
+                {
+                  "max_value": 9999,
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "nivel",
+                  "description": "Nível",
+                  "required": true
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "levelrole-list",
+              "description": "Listar cargos por nível",
+              "options": []
+            },
+            {
+              "type": 1,
+              "name": "levelrole-clear",
+              "description": "Limpar todos os cargos por nível",
+              "options": []
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "cooldown",
+          "description": "Configurar cooldowns de comandos",
+          "options": [
+            {
+              "type": 1,
+              "name": "set",
+              "description": "Definir cooldown para um comando",
+              "options": [
+                {
+                  "type": 3,
+                  "name": "comando",
+                  "description": "Nome do comando",
+                  "required": true
+                },
+                {
+                  "max_value": 86400,
+                  "min_value": 0,
+                  "type": 4,
+                  "name": "segundos",
+                  "description": "Tempo de cooldown em segundos (0 = desativar)",
+                  "required": true
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "remove",
+              "description": "Remover cooldown customizado de um comando",
+              "options": [
+                {
+                  "type": 3,
+                  "name": "comando",
+                  "description": "Nome do comando",
+                  "required": true
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "list",
+              "description": "Listar cooldowns configurados",
+              "options": []
+            },
+            {
+              "type": 1,
+              "name": "reset",
+              "description": "Resetar todos os cooldowns para o padrão",
+              "options": []
+            }
+          ]
+        }
+      ],
+      "name": "config",
+      "description": "Configurar o bot neste servidor",
+      "default_member_permissions": "32",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "usuario",
+          "description": "Usuário a denunciar",
+          "required": true,
+          "type": 6
+        },
+        {
+          "type": 3,
+          "name": "motivo",
+          "description": "Motivo da denúncia",
+          "required": true,
+          "max_length": 1500
+        }
+      ],
+      "name": "report",
+      "description": "Denunciar um usuário para a equipe do servidor",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "create",
+          "description": "Criar um novo painel",
+          "options": [
+            {
+              "type": 3,
+              "name": "name",
+              "description": "Nome do painel",
+              "required": true,
+              "max_length": 64
+            },
+            {
+              "name": "role",
+              "description": "Primeiro cargo do painel",
+              "required": true,
+              "type": 8
+            },
+            {
+              "type": 3,
+              "choices": [
+                {
+                  "name": "multiple",
+                  "value": "multiple"
+                },
+                {
+                  "name": "single",
+                  "value": "single"
+                }
+              ],
+              "name": "mode",
+              "description": "Modo de seleção",
+              "required": false
+            },
+            {
+              "name": "enabled",
+              "description": "Ativar o painel",
+              "required": false,
+              "type": 5
+            },
+            {
+              "type": 3,
+              "name": "label",
+              "description": "Label do item (opcional)",
+              "required": false,
+              "max_length": 80
+            },
+            {
+              "type": 3,
+              "name": "emoji",
+              "description": "Emoji do item (opcional)",
+              "required": false,
+              "max_length": 64
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "list",
+          "description": "Listar painéis",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "show",
+          "description": "Mostrar detalhes de um painel",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "panel_id",
+              "description": "ID do painel",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "publish",
+          "description": "Publicar/atualizar a mensagem do painel",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "panel_id",
+              "description": "ID do painel",
+              "required": true
+            },
+            {
+              "channel_types": [
+                0,
+                5
+              ],
+              "name": "channel",
+              "description": "Canal onde o painel será enviado",
+              "required": true,
+              "type": 7
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "delete",
+          "description": "Deletar um painel",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "panel_id",
+              "description": "ID do painel",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "add-item",
+          "description": "Adicionar item (cargo) ao painel",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "panel_id",
+              "description": "ID do painel",
+              "required": true
+            },
+            {
+              "name": "role",
+              "description": "Cargo a adicionar",
+              "required": true,
+              "type": 8
+            },
+            {
+              "type": 3,
+              "name": "label",
+              "description": "Label do item (opcional)",
+              "required": false,
+              "max_length": 80
+            },
+            {
+              "type": 3,
+              "name": "emoji",
+              "description": "Emoji do item (opcional)",
+              "required": false,
+              "max_length": 64
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "remove-item",
+          "description": "Remover item (cargo) do painel",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "panel_id",
+              "description": "ID do painel",
+              "required": true
+            },
+            {
+              "name": "role",
+              "description": "Cargo a remover",
+              "required": true,
+              "type": 8
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "set",
+          "description": "Atualizar propriedades do painel",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "panel_id",
+              "description": "ID do painel",
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "name",
+              "description": "Novo nome (opcional)",
+              "required": false,
+              "max_length": 64
+            },
+            {
+              "name": "enabled",
+              "description": "Ativar/desativar (opcional)",
+              "required": false,
+              "type": 5
+            },
+            {
+              "type": 3,
+              "choices": [
+                {
+                  "name": "multiple",
+                  "value": "multiple"
+                },
+                {
+                  "name": "single",
+                  "value": "single"
+                }
+              ],
+              "name": "mode",
+              "description": "Modo de seleção (opcional)",
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "sync",
+          "description": "Re-sincronizar a mensagem já publicada (re-render + reações)",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "panel_id",
+              "description": "ID do painel",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "name": "reactionroles",
+      "description": "Gerenciar painéis de reaction roles (botões/reações)",
+      "default_member_permissions": "32",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "criar",
+          "description": "Criar um evento agendado",
+          "options": [
+            {
+              "type": 3,
+              "name": "titulo",
+              "description": "Título do evento",
+              "required": true,
+              "max_length": 100
+            },
+            {
+              "type": 3,
+              "name": "data_hora",
+              "description": "Data e hora no timezone do servidor (ex: 2026-01-03 20:00 ou 03/01/2026 20:00)",
+              "required": true,
+              "max_length": 32
+            },
+            {
+              "channel_types": [
+                0,
+                5
+              ],
+              "name": "canal",
+              "description": "Canal onde os lembretes serão enviados",
+              "required": true,
+              "type": 7
+            },
+            {
+              "type": 3,
+              "name": "descricao",
+              "description": "Descrição (opcional)",
+              "required": false,
+              "max_length": 2000
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "listar",
+          "description": "Listar próximos eventos",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "cancelar",
+          "description": "Cancelar um evento",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "event_id",
+              "description": "ID do evento",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "name": "evento",
+      "description": "Agenda do servidor: eventos e lembretes",
+      "default_member_permissions": "32",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "adotar",
+          "description": "Adote um novo pet",
+          "options": [
+            {
+              "type": 3,
+              "choices": [
+                {
+                  "name": "Cachorro 🐶",
+                  "value": "Cachorro"
+                },
+                {
+                  "name": "Gato 🐱",
+                  "value": "Gato"
+                },
+                {
+                  "name": "Coelho 🐰",
+                  "value": "Coelho"
+                },
+                {
+                  "name": "Pinguim 🐧",
+                  "value": "Pinguim"
+                },
+                {
+                  "name": "Raposa 🦊",
+                  "value": "Raposa"
+                }
+              ],
+              "name": "especie",
+              "description": "Escolha a espécie do seu pet",
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "nome",
+              "description": "O nome do seu pet",
+              "required": true,
+              "max_length": 32
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "status",
+          "description": "Veja o status e atributos do seu pet",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "alimentar",
+          "description": "Dê comida para o seu pet",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "brincar",
+          "description": "Brinque para aumentar a felicidade",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "dormir",
+          "description": "Coloque seu pet para dormir",
+          "options": []
+        }
+      ],
+      "name": "pet",
+      "name_localizations": {
+        "pt-BR": "pet"
+      },
+      "description": "Cuide do seu bichinho virtual (Tamagotchi)",
+      "description_localizations": {
+        "pt-BR": "Cuide do seu bichinho virtual (Tamagotchi)"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "play",
+          "name_localizations": {
+            "pt-BR": "jogar"
+          },
+          "description": "Jogue uma Trivia de Anime/Mangá",
+          "description_localizations": {
+            "pt-BR": "Jogue uma Trivia de Anime/Mangá"
+          },
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "leaderboard",
+          "name_localizations": {
+            "pt-BR": "ranking"
+          },
+          "description": "Veja o ranking dos melhores jogadores de Trivia",
+          "description_localizations": {
+            "pt-BR": "Veja o ranking dos melhores jogadores de Trivia"
+          },
+          "options": [
+            {
+              "max_value": 25,
+              "min_value": 1,
+              "type": 4,
+              "name": "limite",
+              "name_localizations": {
+                "pt-BR": "limite"
+              },
+              "description": "Quantidade de usuários a mostrar (1-25)",
+              "description_localizations": {
+                "pt-BR": "Quantidade de usuários a mostrar (1-25)"
+              },
+              "required": false
+            }
+          ]
+        }
+      ],
+      "name": "trivia",
+      "name_localizations": {
+        "pt-BR": "trivia"
+      },
+      "description": "Jogue um Quiz Rápido de Anime/Mangá (AniList)",
+      "description_localizations": {
+        "pt-BR": "Jogue um Quiz Rápido de Anime/Mangá (AniList)"
+      },
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "diario",
+      "name_localizations": {
+        "pt-BR": "diario"
+      },
+      "description": "Receba sua recompensa diária de luazinhas",
+      "description_localizations": {
+        "pt-BR": "Receba sua recompensa diária de luazinhas"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "name": "pergunta",
+          "description": "A pergunta da enquete",
+          "required": true,
+          "max_length": 256
+        },
+        {
+          "type": 3,
+          "name": "opcoes",
+          "description": "Opções separadas por vírgula (mínimo 2, máximo 10)",
+          "required": true,
+          "max_length": 1000
+        },
+        {
+          "name": "multiplo",
+          "description": "Permitir múltiplas escolhas",
+          "required": false,
+          "type": 5
+        },
+        {
+          "type": 3,
+          "name": "duracao",
+          "description": "Duração (ex: 1h, 24h, 7d)",
+          "required": false
+        },
+        {
+          "channel_types": [
+            0,
+            5
+          ],
+          "name": "canal",
+          "description": "Canal onde a enquete será enviada",
+          "required": false,
+          "type": 7
+        }
+      ],
+      "name": "enquete",
+      "description": "Cria uma enquete",
+      "default_member_permissions": "8192",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "name": "motivo",
+          "name_localizations": {
+            "pt-BR": "motivo"
+          },
+          "description": "Reason for being AFK",
+          "description_localizations": {
+            "pt-BR": "Motivo pelo qual está AFK"
+          },
+          "required": false,
+          "max_length": 500
+        }
+      ],
+      "name": "afk",
+      "name_localizations": {
+        "pt-BR": "afk"
+      },
+      "description": "Set your status as AFK (away from keyboard)",
+      "description_localizations": {
+        "pt-BR": "Defina seu status como AFK (ausente do teclado)"
+      },
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "voltei",
+      "name_localizations": {
+        "pt-BR": "voltei"
+      },
+      "description": "Remove your AFK status",
+      "description_localizations": {
+        "pt-BR": "Remove seu status de AFK"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "configurar",
+          "name_localizations": {
+            "pt-BR": "configurar"
+          },
+          "description": "Set your birthday",
+          "description_localizations": {
+            "pt-BR": "Defina seu aniversário"
+          },
+          "options": [
+            {
+              "max_value": 31,
+              "min_value": 1,
+              "type": 4,
+              "name": "dia",
+              "name_localizations": {
+                "pt-BR": "dia"
+              },
+              "description": "Day (1-31)",
+              "description_localizations": {
+                "pt-BR": "Dia (1-31)"
+              },
+              "required": true
+            },
+            {
+              "max_value": 12,
+              "min_value": 1,
+              "type": 4,
+              "name": "mes",
+              "name_localizations": {
+                "pt-BR": "mes"
+              },
+              "description": "Month (1-12)",
+              "description_localizations": {
+                "pt-BR": "Mês (1-12)"
+              },
+              "required": true
+            },
+            {
+              "max_value": 2026,
+              "min_value": 1900,
+              "type": 4,
+              "name": "ano",
+              "name_localizations": {
+                "pt-BR": "ano"
+              },
+              "description": "Year (optional)",
+              "description_localizations": {
+                "pt-BR": "Ano (opcional)"
+              },
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "ver",
+          "name_localizations": {
+            "pt-BR": "ver"
+          },
+          "description": "View someone's birthday",
+          "description_localizations": {
+            "pt-BR": "Ver aniversário de alguém"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "User to view birthday",
+              "description_localizations": {
+                "pt-BR": "Usuário para ver o aniversário"
+              },
+              "required": false,
+              "type": 6
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "proximos",
+          "name_localizations": {
+            "pt-BR": "proximos"
+          },
+          "description": "Show upcoming birthdays in the server",
+          "description_localizations": {
+            "pt-BR": "Mostrar próximos aniversário do servidor"
+          },
+          "options": [
+            {
+              "max_value": 90,
+              "min_value": 1,
+              "type": 4,
+              "name": "dias",
+              "name_localizations": {
+                "pt-BR": "dias"
+              },
+              "description": "Number of days to look ahead (default: 30)",
+              "description_localizations": {
+                "pt-BR": "Quantidade de dias para buscar (padrão: 30)"
+              },
+              "required": false
+            }
+          ]
+        }
+      ],
+      "name": "aniversario",
+      "name_localizations": {
+        "pt-BR": "aniversario"
+      },
+      "description": "Birthday system",
+      "description_localizations": {
+        "pt-BR": "Sistema de aniversário"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "configurar",
+          "description": "Configurar notificações de jogos grátis",
+          "options": [
+            {
+              "channel_types": [
+                0,
+                5
+              ],
+              "name": "canal",
+              "description": "Canal para enviar notificações",
+              "required": true,
+              "type": 7
+            },
+            {
+              "name": "cargo",
+              "description": "Cargo para mencionar (vários)",
+              "required": false,
+              "type": 8
+            },
+            {
+              "type": 3,
+              "name": "plataformas",
+              "description": "Plataformas separadas por vírgula (ex: steam,epic-games-store)",
+              "required": false
+            },
+            {
+              "type": 3,
+              "name": "tipos",
+              "description": "Tipos separados por vírgula (ex: game,loot)",
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "status",
+          "description": "Ver configuração atual",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "listar",
+          "description": "Listar jogos grátis ativos",
+          "options": [
+            {
+              "type": 3,
+              "name": "plataformas",
+              "description": "Filtrar por plataformas (ex: steam,epic-games-store)",
+              "required": false
+            },
+            {
+              "type": 3,
+              "name": "tipos",
+              "description": "Filtrar por tipos (ex: game,loot)",
+              "required": false
+            },
+            {
+              "max_value": 10,
+              "min_value": 1,
+              "type": 4,
+              "name": "limite",
+              "description": "Número de resultados (padrão: 5, máximo: 10)",
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "reenviar",
+          "description": "Reenviar jogos grátis para o canal de notificações",
+          "options": [
+            {
+              "max_value": 10,
+              "min_value": 1,
+              "type": 4,
+              "name": "limite",
+              "description": "Número de jogos para enviar (padrão: 5, máximo: 10)",
+              "required": false
+            },
+            {
+              "type": 3,
+              "name": "plataformas",
+              "description": "Filtrar por plataformas (ex: steam,epic-games-store)",
+              "required": false
+            },
+            {
+              "type": 3,
+              "name": "tipos",
+              "description": "Filtrar por tipos (ex: game,loot)",
+              "required": false
+            }
+          ]
+        }
+      ],
+      "name": "jogosgratis",
+      "description": "Gerenciar notificações de jogos grátis",
+      "default_member_permissions": "32",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "adicionar",
+          "description": "Adicionar um gatilho de palavra-chave com mídia",
+          "options": [
+            {
+              "type": 3,
+              "name": "palavras",
+              "description": "Palavras ou frases que ativará o gatilho (uma por linha)",
+              "required": true,
+              "max_length": 500
+            },
+            {
+              "type": 3,
+              "name": "url",
+              "description": "URL de imagem, GIF, vídeo ou link (YouTube, Spotify...)",
+              "required": false
+            },
+            {
+              "type": 3,
+              "name": "texto",
+              "description": "Mensagem de texto que o bot enviará",
+              "required": false,
+              "max_length": 2000
+            },
+            {
+              "channel_types": [
+                0,
+                5
+              ],
+              "name": "canal",
+              "description": "Restringir a um canal específico (opcional — padrão: todos)",
+              "required": false,
+              "type": 7
+            },
+            {
+              "name": "responder",
+              "description": "Se o bot deve responder à mensagem (padrão: sim)",
+              "required": false,
+              "type": 5
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "editar",
+          "description": "Editar um gatilho existente",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "palavra",
+              "description": "Palavra-chave existente do gatilho que deseja editar",
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "novas-palavras",
+              "description": "Novas palavras para este gatilho (uma por linha)",
+              "required": false,
+              "max_length": 500
+            },
+            {
+              "type": 3,
+              "name": "url",
+              "description": "Nova URL de mídia",
+              "required": false
+            },
+            {
+              "type": 3,
+              "name": "texto",
+              "description": "Nova mensagem de texto",
+              "required": false,
+              "max_length": 2000
+            },
+            {
+              "channel_types": [
+                0,
+                5
+              ],
+              "name": "canal",
+              "description": "Novo canal restrito",
+              "required": false,
+              "type": 7
+            },
+            {
+              "name": "responder",
+              "description": "Se deve responder à mensagem",
+              "required": false,
+              "type": 5
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "remover",
+          "description": "Remover um gatilho de palavra-chave",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "palavra",
+              "description": "Palavra-chave do gatilho a remover",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "lista",
+          "description": "Listar todos os gatilhos deste servidor",
+          "options": [
+            {
+              "min_value": 1,
+              "type": 4,
+              "name": "pagina",
+              "description": "Número da página",
+              "required": false
+            }
+          ]
+        }
+      ],
+      "name": "gatilho",
+      "description": "Gerenciar gatilhos de auto-resposta com GIF/imagem",
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "ping",
+      "name_localizations": {
+        "pt-BR": "ping"
+      },
+      "description": "Check the bot's latency",
+      "description_localizations": {
+        "pt-BR": "Verifique a latência do bot"
+      },
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "apoiar",
+      "description": "Open the private support payment interface.",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "criar",
+          "description": "Criar um novo sorteio",
+          "options": [
+            {
+              "type": 3,
+              "name": "titulo",
+              "description": "Título do sorteio",
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "descricao",
+              "description": "Descrição do sorteio",
+              "required": true
+            },
+            {
+              "max_value": 20,
+              "min_value": 1,
+              "type": 4,
+              "name": "vencedores",
+              "description": "Número de vencedores",
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "duracao",
+              "description": "Duração (ex: 1h, 3d, 1w)",
+              "required": true
+            },
+            {
+              "name": "canal",
+              "description": "Canal onde o sorteio será criado",
+              "required": false,
+              "type": 7
+            },
+            {
+              "name": "cargo",
+              "description": "Cargo necessário para participar",
+              "required": false,
+              "type": 8
+            },
+            {
+              "min_value": 0,
+              "type": 4,
+              "name": "minxp",
+              "description": "XP mínimo necessário para participar",
+              "required": false
+            },
+            {
+              "min_value": 0,
+              "type": 4,
+              "name": "minlevel",
+              "description": "Nível mínimo necessário para participar",
+              "required": false
+            },
+            {
+              "min_value": 0,
+              "type": 4,
+              "name": "minluazinhas",
+              "description": "Luazinhas mínimo necessário para participar",
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "finalizar",
+          "description": "Finalizar um sorteio manualmente",
+          "options": [
+            {
+              "type": 3,
+              "name": "id",
+              "description": "ID do sorteio",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "reroll",
+          "description": "Sortear novos vencedores",
+          "options": [
+            {
+              "type": 3,
+              "name": "id",
+              "description": "ID do sorteio",
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "ativos",
+          "description": "Listar sorteios ativos e seus IDs",
+          "options": [
+            {
+              "max_value": 25,
+              "min_value": 1,
+              "type": 4,
+              "name": "limite",
+              "description": "Quantidade de sorteios para listar (padrão: 10)",
+              "required": false
+            }
+          ]
+        }
+      ],
+      "name": "sorteio",
+      "description": "Gerenciar sorteios",
+      "default_member_permissions": "32",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "name": "titulo",
+          "description": "Título do sorteio",
+          "required": true
+        },
+        {
+          "type": 3,
+          "name": "descricao",
+          "description": "Descrição do sorteio",
+          "required": true
+        },
+        {
+          "type": 3,
+          "name": "itens",
+          "description": "Lista de itens separados por vírgula",
+          "required": true
+        },
+        {
+          "max_value": 50,
+          "min_value": 1,
+          "type": 4,
+          "name": "vencedores",
+          "description": "Número de vencedores",
+          "required": true
+        },
+        {
+          "type": 3,
+          "name": "duracao",
+          "description": "Duração (ex: 1h, 3d, 1w)",
+          "required": true
+        },
+        {
+          "max_value": 25,
+          "min_value": 1,
+          "type": 4,
+          "name": "min-escolhas",
+          "description": "Mínimo de itens que cada pessoa deve escolher",
+          "required": false
+        },
+        {
+          "type": 4,
+          "name": "max-escolhas",
+          "description": "Número máximo de itens para escolher (padrão: 10)",
+          "required": false
+        },
+        {
+          "name": "canal",
+          "description": "Canal onde o sorteio será criado",
+          "required": false,
+          "type": 7
+        },
+        {
+          "name": "cargo-obrigatorio",
+          "description": "Cargo necessário para participar (opcional)",
+          "required": false,
+          "type": 8
+        }
+      ],
+      "name": "sorteio-lista",
+      "description": "Criar sorteio com lista de itens e preferências",
+      "default_member_permissions": "32",
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "sorteio-wizard",
+      "description": "Criar sorteio com assistente passo a passo",
+      "default_member_permissions": "32",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "global",
+          "name_localizations": {
+            "pt-BR": "global"
+          },
+          "description": "Mostrar XP global (somando todos os servidores)",
+          "description_localizations": {
+            "pt-BR": "Mostrar XP global (somando todos os servidores)"
+          },
+          "required": false,
+          "type": 5
+        },
+        {
+          "name": "usuario",
+          "name_localizations": {
+            "pt-BR": "usuario"
+          },
+          "description": "Usuário para consultar (padrão: você)",
+          "description_localizations": {
+            "pt-BR": "Usuário para consultar (padrão: você)"
+          },
+          "required": false,
+          "type": 6
+        }
+      ],
+      "name": "rank",
+      "name_localizations": {
+        "pt-BR": "rank"
+      },
+      "description": "Ver o rank de XP no servidor",
+      "description_localizations": {
+        "pt-BR": "Ver o rank de XP no servidor"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "global",
+          "name_localizations": {
+            "pt-BR": "global"
+          },
+          "description": "Mostrar leaderboard global (somando todos os servidores)",
+          "description_localizations": {
+            "pt-BR": "Mostrar leaderboard global (somando todos os servidores)"
+          },
+          "required": false,
+          "type": 5
+        },
+        {
+          "max_value": 25,
+          "min_value": 1,
+          "type": 4,
+          "name": "limite",
+          "name_localizations": {
+            "pt-BR": "limite"
+          },
+          "description": "Quantidade de usuários a mostrar (1-25)",
+          "description_localizations": {
+            "pt-BR": "Quantidade de usuários a mostrar (1-25)"
+          },
+          "required": false
+        }
+      ],
+      "name": "leaderboard",
+      "name_localizations": {
+        "pt-BR": "leaderboard"
+      },
+      "description": "Ver o top de XP do servidor",
+      "description_localizations": {
+        "pt-BR": "Ver o top de XP do servidor"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "usuario",
+          "name_localizations": {
+            "pt-BR": "usuario"
+          },
+          "description": "Usuário que receberá o XP",
+          "description_localizations": {
+            "pt-BR": "Usuário que receberá o XP"
+          },
+          "required": true,
+          "type": 6
+        },
+        {
+          "max_value": 1000000,
+          "min_value": 1,
+          "type": 4,
+          "name": "quantia",
+          "name_localizations": {
+            "pt-BR": "quantia"
+          },
+          "description": "Quantidade de XP para transferir",
+          "description_localizations": {
+            "pt-BR": "Quantidade de XP para transferir"
+          },
+          "required": true
+        }
+      ],
+      "name": "transferir",
+      "name_localizations": {
+        "pt-BR": "transferir"
+      },
+      "description": "Transferir XP para outro usuário no servidor",
+      "description_localizations": {
+        "pt-BR": "Transferir XP para outro usuário no servidor"
+      },
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "prestige",
+      "name_localizations": {
+        "pt-BR": "prestigio"
+      },
+      "description": "Troque seus níveis por pontos de prestígio no servidor",
+      "description_localizations": {
+        "pt-BR": "Troque seus níveis por pontos de prestígio no servidor"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "ativar",
+          "name_localizations": {
+            "en-US": "enable",
+            "pt-BR": "ativar"
+          },
+          "description": "Enable level up messages",
+          "description_localizations": {
+            "en-US": "Enable level up messages",
+            "pt-BR": "Ativar mensagens de level up"
+          },
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "desativar",
+          "name_localizations": {
+            "en-US": "disable",
+            "pt-BR": "desativar"
+          },
+          "description": "Disable level up messages",
+          "description_localizations": {
+            "en-US": "Disable level up messages",
+            "pt-BR": "Desativar mensagens de level up"
+          },
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "canal",
+          "name_localizations": {
+            "en-US": "channel",
+            "pt-BR": "canal"
+          },
+          "description": "Set the channel for level up messages",
+          "description_localizations": {
+            "en-US": "Set the channel for level up messages",
+            "pt-BR": "Definir o canal para mensagens de level up"
+          },
+          "options": [
+            {
+              "channel_types": [
+                0,
+                5
+              ],
+              "name": "canal",
+              "name_localizations": {
+                "en-US": "channel",
+                "pt-BR": "canal"
+              },
+              "description": "Channel for level up messages (leave empty to clear)",
+              "description_localizations": {
+                "en-US": "Channel for level up messages (leave empty to clear)",
+                "pt-BR": "Canal para mensagens de level up (deixe vazio para limpar)"
+              },
+              "required": false,
+              "type": 7
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "mensagem",
+          "name_localizations": {
+            "en-US": "message",
+            "pt-BR": "mensagem"
+          },
+          "description": "Set custom level up message template",
+          "description_localizations": {
+            "en-US": "Set custom level up message template",
+            "pt-BR": "Definir template de mensagem de level up"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "template",
+              "name_localizations": {
+                "en-US": "template",
+                "pt-BR": "template"
+              },
+              "description": "Message template (leave empty to reset to default)",
+              "description_localizations": {
+                "en-US": "Message template (leave empty to reset to default)",
+                "pt-BR": "Template de mensagem (deixe vazio para redefinir para padrão)"
+              },
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "teste",
+          "name_localizations": {
+            "en-US": "test",
+            "pt-BR": "teste"
+          },
+          "description": "Send a test level up message",
+          "description_localizations": {
+            "en-US": "Send a test level up message",
+            "pt-BR": "Enviar uma mensagem de teste de level up"
+          },
+          "options": []
+        }
+      ],
+      "name": "nivel",
+      "name_localizations": {
+        "en-US": "levelup",
+        "pt-BR": "nivel"
+      },
+      "description": "Configure level up messages",
+      "description_localizations": {
+        "en-US": "Configure level up messages",
+        "pt-BR": "Configure as mensagens de level up"
+      },
+      "default_member_permissions": "32",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "usuario",
+          "name_localizations": {
+            "pt-BR": "usuario"
+          },
+          "description": "Usuário para consultar (padrão: você)",
+          "description_localizations": {
+            "pt-BR": "Usuário para consultar (padrão: você)"
+          },
+          "required": false,
+          "type": 6
+        }
+      ],
+      "name": "profile",
+      "name_localizations": {
+        "pt-BR": "perfil"
+      },
+      "description": "Ver perfil de um usuário",
+      "description_localizations": {
+        "pt-BR": "Ver perfil de um usuário"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "list",
+          "name_localizations": {
+            "pt-BR": "listar"
+          },
+          "description": "Listar badges de um usuário",
+          "description_localizations": {
+            "pt-BR": "Listar badges de um usuário"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Usuário para consultar (padrão: você)",
+              "description_localizations": {
+                "pt-BR": "Usuário para consultar (padrão: você)"
+              },
+              "required": false,
+              "type": 6
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "grant",
+          "name_localizations": {
+            "pt-BR": "conceder"
+          },
+          "description": "Conceder badge para um usuário (admin)",
+          "description_localizations": {
+            "pt-BR": "Conceder badge para um usuário (admin)"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Usuário que receberá a badge",
+              "description_localizations": {
+                "pt-BR": "Usuário que receberá a badge"
+              },
+              "required": true,
+              "type": 6
+            },
+            {
+              "type": 3,
+              "name": "badge",
+              "description": "ID da badge",
+              "description_localizations": {
+                "pt-BR": "ID da badge"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "revoke",
+          "name_localizations": {
+            "pt-BR": "remover"
+          },
+          "description": "Remover badge de um usuário (admin)",
+          "description_localizations": {
+            "pt-BR": "Remover badge de um usuário (admin)"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Usuário que perderá a badge",
+              "description_localizations": {
+                "pt-BR": "Usuário que perderá a badge"
+              },
+              "required": true,
+              "type": 6
+            },
+            {
+              "type": 3,
+              "name": "badge",
+              "description": "ID da badge",
+              "description_localizations": {
+                "pt-BR": "ID da badge"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "holders",
+          "name_localizations": {
+            "pt-BR": "holders"
+          },
+          "description": "Listar quem possui uma badge (admin)",
+          "description_localizations": {
+            "pt-BR": "Listar quem possui uma badge (admin)"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "badge",
+              "description": "ID da badge",
+              "description_localizations": {
+                "pt-BR": "ID da badge"
+              },
+              "required": true
+            },
+            {
+              "max_value": 25,
+              "min_value": 1,
+              "type": 4,
+              "name": "limite",
+              "name_localizations": {
+                "pt-BR": "limite"
+              },
+              "description": "Quantidade (1-25)",
+              "description_localizations": {
+                "pt-BR": "Quantidade (1-25)"
+              },
+              "required": false
+            },
+            {
+              "min_value": 0,
+              "type": 4,
+              "name": "offset",
+              "name_localizations": {
+                "pt-BR": "offset"
+              },
+              "description": "Pular N resultados (paginação)",
+              "description_localizations": {
+                "pt-BR": "Pular N resultados (paginação)"
+              },
+              "required": false
+            }
+          ]
+        }
+      ],
+      "name": "badges",
+      "description": "Gerenciar e visualizar badges",
+      "description_localizations": {
+        "pt-BR": "Gerenciar e visualizar badges"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "submit",
+          "name_localizations": {
+            "pt-BR": "enviar"
+          },
+          "description": "Enviar uma fan art para aprovação",
+          "description_localizations": {
+            "pt-BR": "Enviar uma fan art para aprovação"
+          },
+          "options": [
+            {
+              "name": "imagem",
+              "name_localizations": {
+                "pt-BR": "imagem"
+              },
+              "description": "Imagem da fan art",
+              "description_localizations": {
+                "pt-BR": "Imagem da fan art"
+              },
+              "required": true,
+              "type": 11
+            },
+            {
+              "type": 3,
+              "name": "titulo",
+              "name_localizations": {
+                "pt-BR": "titulo"
+              },
+              "description": "Título (opcional)",
+              "description_localizations": {
+                "pt-BR": "Título (opcional)"
+              },
+              "required": false,
+              "max_length": 128
+            },
+            {
+              "type": 3,
+              "name": "descricao",
+              "name_localizations": {
+                "pt-BR": "descricao"
+              },
+              "description": "Descrição (opcional)",
+              "description_localizations": {
+                "pt-BR": "Descrição (opcional)"
+              },
+              "required": false,
+              "max_length": 2000
+            },
+            {
+              "type": 3,
+              "name": "tags",
+              "name_localizations": {
+                "pt-BR": "tags"
+              },
+              "description": "Tags separadas por vírgula (opcional)",
+              "description_localizations": {
+                "pt-BR": "Tags separadas por vírgula (opcional)"
+              },
+              "required": false,
+              "max_length": 400
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "review",
+          "name_localizations": {
+            "pt-BR": "revisar"
+          },
+          "description": "Aprovar/Rejeitar fan art (reviewers)",
+          "description_localizations": {
+            "pt-BR": "Aprovar/Rejeitar fan art (reviewers)"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "id",
+              "description": "ID da fan art",
+              "description_localizations": {
+                "pt-BR": "ID da fan art"
+              },
+              "required": true
+            },
+            {
+              "type": 3,
+              "choices": [
+                {
+                  "name": "approved",
+                  "value": "approved"
+                },
+                {
+                  "name": "rejected",
+                  "value": "rejected"
+                }
+              ],
+              "name": "status",
+              "description": "Novo status",
+              "description_localizations": {
+                "pt-BR": "Novo status"
+              },
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "nota",
+              "name_localizations": {
+                "pt-BR": "nota"
+              },
+              "description": "Nota/feedback (opcional)",
+              "description_localizations": {
+                "pt-BR": "Nota/feedback (opcional)"
+              },
+              "required": false,
+              "max_length": 2000
+            }
+          ]
+        }
+      ],
+      "name": "fanart",
+      "description": "Submeter e moderar fan arts",
+      "description_localizations": {
+        "pt-BR": "Submeter e moderar fan arts"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "url",
+          "name_localizations": {
+            "pt-BR": "url"
+          },
+          "description": "Verificar usando um link",
+          "description_localizations": {
+            "pt-BR": "Verificar usando um link"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "url",
+              "description": "URL da imagem gerada",
+              "description_localizations": {
+                "pt-BR": "URL da imagem gerada"
+              },
+              "required": true
+            },
+            {
+              "name": "json",
+              "name_localizations": {
+                "pt-BR": "json"
+              },
+              "description": "Enviar também uma cópia em JSON",
+              "description_localizations": {
+                "pt-BR": "Enviar também uma cópia em JSON"
+              },
+              "required": false,
+              "type": 5
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "arquivo",
+          "name_localizations": {
+            "pt-BR": "arquivo"
+          },
+          "description": "Verificar usando um arquivo enviado",
+          "description_localizations": {
+            "pt-BR": "Verificar usando um arquivo enviado"
+          },
+          "options": [
+            {
+              "name": "arquivo",
+              "name_localizations": {
+                "pt-BR": "arquivo"
+              },
+              "description": "Arquivo PNG gerado",
+              "description_localizations": {
+                "pt-BR": "Arquivo PNG gerado"
+              },
+              "required": true,
+              "type": 11
+            },
+            {
+              "name": "json",
+              "name_localizations": {
+                "pt-BR": "json"
+              },
+              "description": "Enviar também uma cópia em JSON",
+              "description_localizations": {
+                "pt-BR": "Enviar também uma cópia em JSON"
+              },
+              "required": false,
+              "type": 5
+            }
+          ]
+        }
+      ],
+      "name": "verificarmensagem",
+      "name_localizations": {
+        "pt-BR": "verificarmensagem"
+      },
+      "description": "Verificar se uma imagem de mensagem autenticada é válida",
+      "description_localizations": {
+        "pt-BR": "Verificar se uma imagem de mensagem autenticada é válida"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "search",
+          "name_localizations": {
+            "pt-BR": "buscar"
+          },
+          "description": "Search anime by title",
+          "description_localizations": {
+            "pt-BR": "Buscar anime por título"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "titulo",
+              "name_localizations": {
+                "pt-BR": "titulo"
+              },
+              "description": "Title",
+              "description_localizations": {
+                "pt-BR": "Título"
+              },
+              "required": true,
+              "max_length": 100
+            },
+            {
+              "type": 3,
+              "choices": [
+                {
+                  "name": "Anime",
+                  "value": "anime"
+                },
+                {
+                  "name": "Mangá",
+                  "value": "manga"
+                }
+              ],
+              "name": "tipo",
+              "name_localizations": {
+                "pt-BR": "tipo"
+              },
+              "description": "Type: anime or manga",
+              "description_localizations": {
+                "pt-BR": "Tipo: anime ou mangá"
+              },
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "trending",
+          "name_localizations": {
+            "pt-BR": "trending"
+          },
+          "description": "Trending anime right now",
+          "description_localizations": {
+            "pt-BR": "Animes em alta agora"
+          },
+          "options": [
+            {
+              "type": 3,
+              "choices": [
+                {
+                  "name": "Anime",
+                  "value": "anime"
+                },
+                {
+                  "name": "Mangá",
+                  "value": "manga"
+                }
+              ],
+              "name": "tipo",
+              "name_localizations": {
+                "pt-BR": "tipo"
+              },
+              "description": "Type: anime or manga",
+              "description_localizations": {
+                "pt-BR": "Tipo: anime ou mangá"
+              },
+              "required": false
+            },
+            {
+              "max_value": 10,
+              "min_value": 1,
+              "type": 4,
+              "name": "quantidade",
+              "name_localizations": {
+                "pt-BR": "quantidade"
+              },
+              "description": "How many results (1-10)",
+              "description_localizations": {
+                "pt-BR": "Quantos resultados (1-10)"
+              },
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "recommend",
+          "name_localizations": {
+            "pt-BR": "recomendar"
+          },
+          "description": "Recommend anime by genre",
+          "description_localizations": {
+            "pt-BR": "Recomendar anime por gênero"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "genero",
+              "name_localizations": {
+                "pt-BR": "genero"
+              },
+              "description": "Genre (e.g. Action, Romance)",
+              "description_localizations": {
+                "pt-BR": "Gênero (ex: Action, Romance)"
+              },
+              "required": true,
+              "max_length": 30
+            },
+            {
+              "type": 3,
+              "choices": [
+                {
+                  "name": "Anime",
+                  "value": "anime"
+                },
+                {
+                  "name": "Mangá",
+                  "value": "manga"
+                }
+              ],
+              "name": "tipo",
+              "name_localizations": {
+                "pt-BR": "tipo"
+              },
+              "description": "Type: anime or manga",
+              "description_localizations": {
+                "pt-BR": "Tipo: anime ou mangá"
+              },
+              "required": false
+            },
+            {
+              "max_value": 10,
+              "min_value": 1,
+              "type": 4,
+              "name": "quantidade",
+              "name_localizations": {
+                "pt-BR": "quantidade"
+              },
+              "description": "How many results (1-10)",
+              "description_localizations": {
+                "pt-BR": "Quantos resultados (1-10)"
+              },
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 2,
+          "name": "watchlist",
+          "name_localizations": {
+            "pt-BR": "watchlist"
+          },
+          "description": "Manage AniList watchlist and reminders",
+          "description_localizations": {
+            "pt-BR": "Gerenciar watchlist AniList e lembretes"
+          },
+          "options": [
+            {
+              "type": 1,
+              "name": "add",
+              "name_localizations": {
+                "pt-BR": "adicionar"
+              },
+              "description": "Add an anime/manga by title",
+              "description_localizations": {
+                "pt-BR": "Adicionar anime/mangá por título"
+              },
+              "options": [
+                {
+                  "type": 3,
+                  "name": "titulo",
+                  "name_localizations": {
+                    "pt-BR": "titulo"
+                  },
+                  "description": "Title",
+                  "description_localizations": {
+                    "pt-BR": "Título"
+                  },
+                  "required": true,
+                  "max_length": 100
+                },
+                {
+                  "type": 3,
+                  "choices": [
+                    {
+                      "name": "Anime",
+                      "value": "anime"
+                    },
+                    {
+                      "name": "Mangá",
+                      "value": "manga"
+                    }
+                  ],
+                  "name": "tipo",
+                  "name_localizations": {
+                    "pt-BR": "tipo"
+                  },
+                  "description": "Type: anime or manga",
+                  "description_localizations": {
+                    "pt-BR": "Tipo: anime ou mangá"
+                  },
+                  "required": false
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "remove",
+              "name_localizations": {
+                "pt-BR": "remover"
+              },
+              "description": "Remove an item by AniList ID",
+              "description_localizations": {
+                "pt-BR": "Remover item pelo ID do AniList"
+              },
+              "options": [
+                {
+                  "type": 3,
+                  "choices": [
+                    {
+                      "name": "Anime",
+                      "value": "anime"
+                    },
+                    {
+                      "name": "Mangá",
+                      "value": "manga"
+                    }
+                  ],
+                  "name": "tipo",
+                  "name_localizations": {
+                    "pt-BR": "tipo"
+                  },
+                  "description": "Type: anime or manga",
+                  "description_localizations": {
+                    "pt-BR": "Tipo: anime ou mangá"
+                  },
+                  "required": true
+                },
+                {
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "id",
+                  "name_localizations": {
+                    "pt-BR": "id"
+                  },
+                  "description": "AniList media ID",
+                  "description_localizations": {
+                    "pt-BR": "ID do AniList"
+                  },
+                  "required": true
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "list",
+              "name_localizations": {
+                "pt-BR": "listar"
+              },
+              "description": "List watchlist",
+              "description_localizations": {
+                "pt-BR": "Listar watchlist"
+              },
+              "options": [
+                {
+                  "name": "usuario",
+                  "name_localizations": {
+                    "pt-BR": "usuario"
+                  },
+                  "description": "User (default: you)",
+                  "description_localizations": {
+                    "pt-BR": "Usuário (padrão: você)"
+                  },
+                  "required": false,
+                  "type": 6
+                },
+                {
+                  "min_value": 1,
+                  "type": 4,
+                  "name": "pagina",
+                  "name_localizations": {
+                    "pt-BR": "pagina"
+                  },
+                  "description": "Page",
+                  "description_localizations": {
+                    "pt-BR": "Página"
+                  },
+                  "required": false
+                },
+                {
+                  "type": 3,
+                  "choices": [
+                    {
+                      "name": "Todos",
+                      "value": "all"
+                    },
+                    {
+                      "name": "Anime",
+                      "value": "anime"
+                    },
+                    {
+                      "name": "Mangá",
+                      "value": "manga"
+                    }
+                  ],
+                  "name": "tipo",
+                  "name_localizations": {
+                    "pt-BR": "tipo"
+                  },
+                  "description": "Filter",
+                  "description_localizations": {
+                    "pt-BR": "Filtro"
+                  },
+                  "required": false
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "dm",
+              "name_localizations": {
+                "pt-BR": "dm"
+              },
+              "description": "Enable/disable reminders via DM",
+              "description_localizations": {
+                "pt-BR": "Ativar/desativar lembretes via DM"
+              },
+              "options": [
+                {
+                  "name": "ativar",
+                  "name_localizations": {
+                    "pt-BR": "ativar"
+                  },
+                  "description": "Enable DM reminders",
+                  "description_localizations": {
+                    "pt-BR": "Ativar lembretes por DM"
+                  },
+                  "required": true,
+                  "type": 5
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "channel-set",
+              "name_localizations": {
+                "pt-BR": "canal-definir"
+              },
+              "description": "Set the channel for reminders in this server",
+              "description_localizations": {
+                "pt-BR": "Definir canal de lembretes neste servidor"
+              },
+              "options": [
+                {
+                  "channel_types": [
+                    0,
+                    5
+                  ],
+                  "name": "canal",
+                  "name_localizations": {
+                    "pt-BR": "canal"
+                  },
+                  "description": "Channel",
+                  "description_localizations": {
+                    "pt-BR": "Canal"
+                  },
+                  "required": true,
+                  "type": 7
+                }
+              ]
+            },
+            {
+              "type": 1,
+              "name": "channel-clear",
+              "name_localizations": {
+                "pt-BR": "canal-limpar"
+              },
+              "description": "Clear the channel for reminders in this server",
+              "description_localizations": {
+                "pt-BR": "Limpar canal de lembretes neste servidor"
+              },
+              "options": []
+            }
+          ]
+        }
+      ],
+      "name": "anime",
+      "name_localizations": {
+        "pt-BR": "anime"
+      },
+      "description": "Search and get recommendations (AniList)",
+      "description_localizations": {
+        "pt-BR": "Buscar e receber recomendações (AniList)"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "name": "nome",
+          "name_localizations": {
+            "pt-BR": "nome"
+          },
+          "description": "Pokémon name or ID",
+          "description_localizations": {
+            "pt-BR": "Nome ou ID do Pokémon"
+          },
+          "required": true
+        }
+      ],
+      "name": "pokedex",
+      "name_localizations": {
+        "pt-BR": "pokedex"
+      },
+      "description": "Search for Pokémon statistics using PokeAPI",
+      "description_localizations": {
+        "pt-BR": "Busque estatísticas de Pokémon usando a PokeAPI"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "saldo",
+          "name_localizations": {
+            "pt-BR": "saldo"
+          },
+          "description": "Ver seu saldo de luazinhas",
+          "description_localizations": {
+            "pt-BR": "Ver seu saldo de luazinhas"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Usuário (opcional)",
+              "description_localizations": {
+                "pt-BR": "Usuário (opcional)"
+              },
+              "required": false,
+              "type": 6
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "transferir",
+          "name_localizations": {
+            "pt-BR": "transferir"
+          },
+          "description": "Transferir luazinhas para alguém",
+          "description_localizations": {
+            "pt-BR": "Transferir luazinhas para alguém"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Destino",
+              "description_localizations": {
+                "pt-BR": "Destino"
+              },
+              "required": true,
+              "type": 6
+            },
+            {
+              "type": 3,
+              "name": "quantia",
+              "name_localizations": {
+                "pt-BR": "quantia"
+              },
+              "description": "Quantidade de luazinhas",
+              "description_localizations": {
+                "pt-BR": "Quantidade de luazinhas"
+              },
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "motivo",
+              "name_localizations": {
+                "pt-BR": "motivo"
+              },
+              "description": "Motivo (opcional)",
+              "description_localizations": {
+                "pt-BR": "Motivo (opcional)"
+              },
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "admin_add",
+          "name_localizations": {
+            "pt-BR": "admin_add"
+          },
+          "description": "Adicionar luazinhas (admin)",
+          "description_localizations": {
+            "pt-BR": "Adicionar luazinhas (admin)"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Usuário",
+              "description_localizations": {
+                "pt-BR": "Usuário"
+              },
+              "required": true,
+              "type": 6
+            },
+            {
+              "type": 3,
+              "name": "quantia",
+              "name_localizations": {
+                "pt-BR": "quantia"
+              },
+              "description": "Quantidade de luazinhas",
+              "description_localizations": {
+                "pt-BR": "Quantidade de luazinhas"
+              },
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "motivo",
+              "name_localizations": {
+                "pt-BR": "motivo"
+              },
+              "description": "Motivo (opcional)",
+              "description_localizations": {
+                "pt-BR": "Motivo (opcional)"
+              },
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "admin_remove",
+          "name_localizations": {
+            "pt-BR": "admin_remove"
+          },
+          "description": "Remover luazinhas (admin)",
+          "description_localizations": {
+            "pt-BR": "Remover luazinhas (admin)"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Usuário",
+              "description_localizations": {
+                "pt-BR": "Usuário"
+              },
+              "required": true,
+              "type": 6
+            },
+            {
+              "type": 3,
+              "name": "quantia",
+              "name_localizations": {
+                "pt-BR": "quantia"
+              },
+              "description": "Quantidade de luazinhas",
+              "description_localizations": {
+                "pt-BR": "Quantidade de luazinhas"
+              },
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "motivo",
+              "name_localizations": {
+                "pt-BR": "motivo"
+              },
+              "description": "Motivo (opcional)",
+              "description_localizations": {
+                "pt-BR": "Motivo (opcional)"
+              },
+              "required": false
+            }
+          ]
+        }
+      ],
+      "name": "luazinhas",
+      "name_localizations": {
+        "pt-BR": "luazinhas"
+      },
+      "description": "Economia do Yue: saldo e transferências",
+      "description_localizations": {
+        "pt-BR": "Economia do Yue: saldo e transferências"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "listar",
+          "description": "Listar itens disponíveis",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "comprar",
+          "description": "Comprar um item",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "item_id",
+              "description": "ID do item na loja",
+              "required": true
+            },
+            {
+              "max_value": 50,
+              "min_value": 1,
+              "type": 4,
+              "name": "quantidade",
+              "description": "Quantidade (padrão 1)",
+              "required": false
+            },
+            {
+              "type": 3,
+              "name": "motivo",
+              "description": "Motivo (opcional, aparece no ledger)",
+              "required": false,
+              "max_length": 200
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "admin_criar",
+          "description": "Criar/ativar item na loja (admin)",
+          "options": [
+            {
+              "type": 3,
+              "name": "nome",
+              "description": "Nome do item",
+              "required": true,
+              "max_length": 64
+            },
+            {
+              "type": 3,
+              "choices": [
+                {
+                  "name": "xp_boost",
+                  "value": "xp_boost"
+                },
+                {
+                  "name": "waifu_reroll_ticket",
+                  "value": "waifu_reroll_ticket"
+                },
+                {
+                  "name": "temp_role",
+                  "value": "temp_role"
+                },
+                {
+                  "name": "nick_color",
+                  "value": "nick_color"
+                }
+              ],
+              "name": "tipo",
+              "description": "Tipo do item",
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "preco",
+              "description": "Preço em luazinhas (inteiro)",
+              "required": true
+            },
+            {
+              "type": 3,
+              "name": "descricao",
+              "description": "Descrição (opcional)",
+              "required": false,
+              "max_length": 2000
+            },
+            {
+              "name": "global",
+              "description": "Se true, o item fica disponível em todos os servidores",
+              "required": false,
+              "type": 5
+            },
+            {
+              "name": "stackable",
+              "description": "Se true, agrega no inventário (quantidade)",
+              "required": false,
+              "type": 5
+            },
+            {
+              "max_value": 10,
+              "min_value": 1,
+              "type": 10,
+              "name": "multiplier",
+              "description": "Somente xp_boost: multiplicador (ex: 2)",
+              "required": false
+            },
+            {
+              "max_value": 43200,
+              "min_value": 1,
+              "type": 4,
+              "name": "duracao_minutos",
+              "description": "Somente xp_boost/temp_role/nick_color: duração em minutos",
+              "required": false
+            },
+            {
+              "name": "cargo",
+              "description": "Somente temp_role: cargo a aplicar",
+              "required": false,
+              "type": 8
+            },
+            {
+              "type": 3,
+              "name": "cor",
+              "description": "Somente nick_color: cor HEX (ex: #ff00aa)",
+              "required": false,
+              "max_length": 16
+            },
+            {
+              "channel_types": [
+                0,
+                5
+              ],
+              "name": "canal",
+              "description": "Canal para preview (somente validação)",
+              "required": false,
+              "type": 7
+            }
+          ]
+        }
+      ],
+      "name": "loja",
+      "description": "Loja: comprar itens com luazinhas",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "listar",
+          "description": "Listar itens do seu inventário",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "global",
+          "description": "Ver inventário de todos os servidores",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "usar",
+          "description": "Usar um item do inventário",
+          "options": [
+            {
+              "autocomplete": true,
+              "type": 3,
+              "name": "item_id",
+              "description": "ID do item no inventário",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "name": "inventario",
+      "description": "Inventário: ver e usar itens",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "ver",
+          "name_localizations": {
+            "pt-BR": "ver"
+          },
+          "description": "Ver saldo do banco e juros",
+          "description_localizations": {
+            "pt-BR": "Ver saldo do banco e juros"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Usuário (opcional)",
+              "description_localizations": {
+                "pt-BR": "Usuário (opcional)"
+              },
+              "required": false,
+              "type": 6
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "depositar",
+          "name_localizations": {
+            "pt-BR": "depositar"
+          },
+          "description": "Depositar luazinhas no banco",
+          "description_localizations": {
+            "pt-BR": "Depositar luazinhas no banco"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "quantia",
+              "name_localizations": {
+                "pt-BR": "quantia"
+              },
+              "description": "Quantidade de luazinhas (use \"tudo\" para depositar tudo)",
+              "description_localizations": {
+                "pt-BR": "Quantidade de luazinhas (use \"tudo\" para depositar tudo)"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "sacar",
+          "name_localizations": {
+            "pt-BR": "sacar"
+          },
+          "description": "Sacar luazinhas do banco",
+          "description_localizations": {
+            "pt-BR": "Sacar luazinhas do banco"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "quantia",
+              "name_localizations": {
+                "pt-BR": "quantia"
+              },
+              "description": "Quantidade de luazinhas (use \"tudo\" para sacar tudo)",
+              "description_localizations": {
+                "pt-BR": "Quantidade de luazinhas (use \"tudo\" para sacar tudo)"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "info",
+          "name_localizations": {
+            "pt-BR": "info"
+          },
+          "description": "Informações sobre o sistema de juros",
+          "description_localizations": {
+            "pt-BR": "Informações sobre o sistema de juros"
+          },
+          "options": []
+        }
+      ],
+      "name": "banco",
+      "name_localizations": {
+        "pt-BR": "banco"
+      },
+      "description": "Banco do Yue: deposite, saque e ganhe juros",
+      "description_localizations": {
+        "pt-BR": "Banco do Yue: deposite, saque e ganhe juros"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "flip",
+          "name_localizations": {
+            "pt-BR": "flip"
+          },
+          "description": "Girar uma moeda (sem aposta)",
+          "description_localizations": {
+            "pt-BR": "Girar uma moeda (sem aposta)"
+          },
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "bet",
+          "name_localizations": {
+            "pt-BR": "bet"
+          },
+          "description": "Desafiar alguém para uma aposta",
+          "description_localizations": {
+            "pt-BR": "Desafiar alguém para uma aposta"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Oponente",
+              "description_localizations": {
+                "pt-BR": "Oponente"
+              },
+              "required": true,
+              "type": 6
+            },
+            {
+              "type": 3,
+              "name": "quantia",
+              "name_localizations": {
+                "pt-BR": "quantia"
+              },
+              "description": "Quantidade de luazinhas para apostar (cada jogador)",
+              "description_localizations": {
+                "pt-BR": "Quantidade de luazinhas para apostar (cada jogador)"
+              },
+              "required": true
+            },
+            {
+              "type": 3,
+              "choices": [
+                {
+                  "name": "Cara",
+                  "value": "heads"
+                },
+                {
+                  "name": "Coroa",
+                  "value": "tails"
+                }
+              ],
+              "name": "lado",
+              "name_localizations": {
+                "pt-BR": "lado"
+              },
+              "description": "Seu lado escolhido: cara ou coroa",
+              "description_localizations": {
+                "pt-BR": "Seu lado escolhido: cara ou coroa"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "stats",
+          "name_localizations": {
+            "pt-BR": "stats"
+          },
+          "description": "Ver estatísticas de coinflip",
+          "description_localizations": {
+            "pt-BR": "Ver estatísticas de coinflip"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Usuário (opcional)",
+              "description_localizations": {
+                "pt-BR": "Usuário (opcional)"
+              },
+              "required": false,
+              "type": 6
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "info",
+          "name_localizations": {
+            "pt-BR": "info"
+          },
+          "description": "Entenda como a aleatoriedade funciona e por que não existe “macete”",
+          "description_localizations": {
+            "pt-BR": "Entenda como a aleatoriedade funciona e por que não existe “macete”"
+          },
+          "options": []
+        }
+      ],
+      "name": "coinflip",
+      "name_localizations": {
+        "pt-BR": "coinflip"
+      },
+      "description": "Jogar cara ou coroa (com ou sem aposta)",
+      "description_localizations": {
+        "pt-BR": "Jogar cara ou coroa (com ou sem aposta)"
+      },
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "waifu",
+      "description": "Rolar uma waifu aleatória. Use os botões para rerrolar ou reivindicar.",
+      "description_localizations": {
+        "pt-BR": "Rolar uma waifu aleatória. Use os botões para rerrolar ou reivindicar."
+      },
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "husbando",
+      "description": "Rolar um husbando aleatório. Clique no ❤️ para casar.",
+      "description_localizations": {
+        "pt-BR": "Rolar um husbando aleatório. Clique no ❤️ para casar."
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "choices": [
+            {
+              "name": "Qualquer",
+              "value": "any"
+            },
+            {
+              "name": "Feminino",
+              "value": "female"
+            },
+            {
+              "name": "Masculino",
+              "value": "male"
+            }
+          ],
+          "name": "genero",
+          "name_localizations": {
+            "pt-BR": "genero"
+          },
+          "description": "Filtrar gênero (não escolhe personagem, só filtra)",
+          "description_localizations": {
+            "pt-BR": "Filtrar gênero (não escolhe personagem, só filtra)"
+          },
+          "required": false
+        }
+      ],
+      "name": "casar",
+      "description": "Rolar um personagem aleatório. Clique no ❤️ para casar.",
+      "description_localizations": {
+        "pt-BR": "Rolar um personagem aleatório. Clique no ❤️ para casar."
+      },
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "reroll",
+      "description": "Rerolar seu último roll neste canal (com cooldown)",
+      "description_localizations": {
+        "pt-BR": "Rerolar seu último roll neste canal (com cooldown)"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "min_value": 1,
+          "type": 4,
+          "name": "pagina",
+          "name_localizations": {
+            "pt-BR": "pagina"
+          },
+          "description": "Página (padrão: 1)",
+          "description_localizations": {
+            "pt-BR": "Página (padrão: 1)"
+          },
+          "required": false
+        }
+      ],
+      "name": "meuharem",
+      "description": "Ver seu harem (lista de personagens casados)",
+      "description_localizations": {
+        "pt-BR": "Ver seu harem (lista de personagens casados)"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "name": "nome",
+          "name_localizations": {
+            "pt-BR": "nome"
+          },
+          "description": "Nome do personagem",
+          "description_localizations": {
+            "pt-BR": "Nome do personagem"
+          },
+          "required": true
+        }
+      ],
+      "name": "divorciar",
+      "description": "Divorciar de um personagem do seu harem",
+      "description_localizations": {
+        "pt-BR": "Divorciar de um personagem do seu harem"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "name": "nome",
+          "name_localizations": {
+            "pt-BR": "nome"
+          },
+          "description": "Nome do personagem",
+          "description_localizations": {
+            "pt-BR": "Nome do personagem"
+          },
+          "required": true
+        }
+      ],
+      "name": "infocasamento",
+      "description": "Buscar informações de um personagem e ver quem é o dono no servidor",
+      "description_localizations": {
+        "pt-BR": "Buscar informações de um personagem e ver quem é o dono no servidor"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "adicionar",
+          "name_localizations": {
+            "pt-BR": "adicionar"
+          },
+          "description": "Adicionar um personagem na sua wishlist",
+          "description_localizations": {
+            "pt-BR": "Adicionar um personagem na sua wishlist"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "nome",
+              "name_localizations": {
+                "pt-BR": "nome"
+              },
+              "description": "Nome do personagem",
+              "description_localizations": {
+                "pt-BR": "Nome do personagem"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "remover",
+          "name_localizations": {
+            "pt-BR": "remover"
+          },
+          "description": "Remover um personagem da sua wishlist",
+          "description_localizations": {
+            "pt-BR": "Remover um personagem da sua wishlist"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "nome",
+              "name_localizations": {
+                "pt-BR": "nome"
+              },
+              "description": "Nome do personagem",
+              "description_localizations": {
+                "pt-BR": "Nome do personagem"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "listar",
+          "name_localizations": {
+            "pt-BR": "listar"
+          },
+          "description": "Ver wishlist de alguém",
+          "description_localizations": {
+            "pt-BR": "Ver wishlist de alguém"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Usuário (padrão: você)",
+              "description_localizations": {
+                "pt-BR": "Usuário (padrão: você)"
+              },
+              "required": false,
+              "type": 6
+            },
+            {
+              "min_value": 1,
+              "type": 4,
+              "name": "pagina",
+              "name_localizations": {
+                "pt-BR": "pagina"
+              },
+              "description": "Página (padrão: 1)",
+              "description_localizations": {
+                "pt-BR": "Página (padrão: 1)"
+              },
+              "required": false
+            }
+          ]
+        }
+      ],
+      "name": "desejos",
+      "description": "Gerenciar wishlist de personagens (estilo Mudae)",
+      "description_localizations": {
+        "pt-BR": "Gerenciar wishlist de personagens (estilo Mudae)"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "meu",
+          "name_localizations": {
+            "pt-BR": "meu"
+          },
+          "description": "Ver seus pontos e seu total de casamentos no servidor",
+          "description_localizations": {
+            "pt-BR": "Ver seus pontos e seu total de casamentos no servidor"
+          },
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "rank",
+          "name_localizations": {
+            "pt-BR": "rank"
+          },
+          "description": "Ver ranking de pontos do servidor",
+          "description_localizations": {
+            "pt-BR": "Ver ranking de pontos do servidor"
+          },
+          "options": [
+            {
+              "min_value": 1,
+              "type": 4,
+              "name": "pagina",
+              "name_localizations": {
+                "pt-BR": "pagina"
+              },
+              "description": "Página (padrão: 1)",
+              "description_localizations": {
+                "pt-BR": "Página (padrão: 1)"
+              },
+              "required": false
+            }
+          ]
+        }
+      ],
+      "name": "waifupontos",
+      "description": "Ver pontos do sistema de waifus (popularidade AniList)",
+      "description_localizations": {
+        "pt-BR": "Ver pontos do sistema de waifus (popularidade AniList)"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "adicionar",
+          "name_localizations": {
+            "pt-BR": "adicionar"
+          },
+          "description": "Adicionar um personagem na sua wishlist",
+          "description_localizations": {
+            "pt-BR": "Adicionar um personagem na sua wishlist"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "nome",
+              "name_localizations": {
+                "pt-BR": "nome"
+              },
+              "description": "Nome do personagem",
+              "description_localizations": {
+                "pt-BR": "Nome do personagem"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "remover",
+          "name_localizations": {
+            "pt-BR": "remover"
+          },
+          "description": "Remover um personagem da sua wishlist",
+          "description_localizations": {
+            "pt-BR": "Remover um personagem da sua wishlist"
+          },
+          "options": [
+            {
+              "type": 3,
+              "name": "nome",
+              "name_localizations": {
+                "pt-BR": "nome"
+              },
+              "description": "Nome do personagem",
+              "description_localizations": {
+                "pt-BR": "Nome do personagem"
+              },
+              "required": true
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "listar",
+          "name_localizations": {
+            "pt-BR": "listar"
+          },
+          "description": "Ver wishlist de alguém",
+          "description_localizations": {
+            "pt-BR": "Ver wishlist de alguém"
+          },
+          "options": [
+            {
+              "name": "usuario",
+              "name_localizations": {
+                "pt-BR": "usuario"
+              },
+              "description": "Usuário (padrão: você)",
+              "description_localizations": {
+                "pt-BR": "Usuário (padrão: você)"
+              },
+              "required": false,
+              "type": 6
+            },
+            {
+              "min_value": 1,
+              "type": 4,
+              "name": "pagina",
+              "name_localizations": {
+                "pt-BR": "pagina"
+              },
+              "description": "Página (padrão: 1)",
+              "description_localizations": {
+                "pt-BR": "Página (padrão: 1)"
+              },
+              "required": false
+            }
+          ]
+        }
+      ],
+      "name": "wishlist",
+      "description": "Alias de /desejos",
+      "description_localizations": {
+        "pt-BR": "Alias de /desejos"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "min_value": 1,
+          "type": 4,
+          "name": "pagina",
+          "name_localizations": {
+            "pt-BR": "pagina"
+          },
+          "description": "Página (padrão: 1)",
+          "description_localizations": {
+            "pt-BR": "Página (padrão: 1)"
+          },
+          "required": false
+        }
+      ],
+      "name": "harem",
+      "description": "Alias de /meuharem",
+      "description_localizations": {
+        "pt-BR": "Alias de /meuharem"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "choices": [
+            {
+              "name": "Qualquer",
+              "value": "any"
+            },
+            {
+              "name": "Feminino",
+              "value": "female"
+            },
+            {
+              "name": "Masculino",
+              "value": "male"
+            }
+          ],
+          "name": "genero",
+          "name_localizations": {
+            "pt-BR": "genero"
+          },
+          "description": "Filtrar gênero (não escolhe personagem, só filtra)",
+          "description_localizations": {
+            "pt-BR": "Filtrar gênero (não escolhe personagem, só filtra)"
+          },
+          "required": false
+        }
+      ],
+      "name": "marry",
+      "description": "Alias de /casar",
+      "description_localizations": {
+        "pt-BR": "Alias de /casar"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "name": "nome",
+          "name_localizations": {
+            "pt-BR": "nome"
+          },
+          "description": "Nome do personagem",
+          "description_localizations": {
+            "pt-BR": "Nome do personagem"
+          },
+          "required": true
+        }
+      ],
+      "name": "divorce",
+      "description": "Alias de /divorciar",
+      "description_localizations": {
+        "pt-BR": "Alias de /divorciar"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "name": "global",
+          "name_localizations": {
+            "pt-BR": "global"
+          },
+          "description": "Mostrar ranking global (somando todos os servidores)",
+          "description_localizations": {
+            "pt-BR": "Mostrar ranking global (somando todos os servidores)"
+          },
+          "required": false,
+          "type": 5
+        },
+        {
+          "max_value": 25,
+          "min_value": 1,
+          "type": 4,
+          "name": "limite",
+          "name_localizations": {
+            "pt-BR": "limite"
+          },
+          "description": "Quantidade de usuários a mostrar (1-25)",
+          "description_localizations": {
+            "pt-BR": "Quantidade de usuários a mostrar (1-25)"
+          },
+          "required": false
+        }
+      ],
+      "name": "ranking",
+      "name_localizations": {
+        "pt-BR": "ranking"
+      },
+      "description": "Ver o ranking de waifus do servidor",
+      "description_localizations": {
+        "pt-BR": "Ver o ranking de waifus do servidor"
+      },
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 3,
+          "name": "query",
+          "description": "Nome da música ou link (URL)",
+          "required": true
+        }
+      ],
+      "name": "play",
+      "description": "Toca uma música a partir do YouTube, Spotify ou SoundCloud",
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "skip",
+      "description": "Pular a música que está tocando no momento",
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "stop",
+      "description": "Para a música, limpa a fila e sai do canal de voz",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "max_value": 150,
+          "min_value": 1,
+          "type": 4,
+          "name": "porcentagem",
+          "description": "Novo volume (1 a 150)",
+          "required": true
+        }
+      ],
+      "name": "volume",
+      "description": "Altera o volume da música que está tocando",
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "queue",
+      "description": "Mostra a atual fila de músicas e o que está tocando agora",
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "playlist",
+      "description": "Mostra a playlist/fila de músicas e o que está tocando agora",
+      "type": 1
+    },
+    {
+      "options": [],
+      "name": "nowplaying",
+      "description": "Mostra a música que está tocando agora e o status do player",
+      "type": 1
+    },
+    {
+      "options": [
+        {
+          "type": 1,
+          "name": "start",
+          "description": "Inicia o modo DJ no seu canal de voz",
+          "options": [
+            {
+              "type": 3,
+              "name": "url",
+              "description": "URL da playlist (opcional; se vazio usa a default/configurada)",
+              "required": false
+            }
+          ]
+        },
+        {
+          "type": 1,
+          "name": "stop",
+          "description": "Para o modo DJ e encerra o player",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "status",
+          "description": "Mostra o status do modo DJ",
+          "options": []
+        },
+        {
+          "type": 1,
+          "name": "set-default",
+          "description": "Define a playlist default do servidor para o modo DJ",
+          "options": [
+            {
+              "type": 3,
+              "name": "url",
+              "description": "URL da playlist",
+              "required": true
+            }
+          ]
+        }
+      ],
+      "name": "dj",
+      "description": "Modo DJ 24h: mantém uma playlist tocando infinitamente",
+      "type": 1
+    }
+  ],
+  "contextMenu": [
+    {
+      "name": "Salvar mensagem (Enviar aqui)",
+      "type": 3
+    },
+    {
+      "name": "Salvar mensagem (Enviar na DM)",
+      "type": 3
+    },
+    {
+      "name": "Reportar mensagem",
+      "type": 3
+    }
+  ]
+}
