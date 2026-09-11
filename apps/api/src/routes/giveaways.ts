@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database';
+import { resolve_user_names } from '../utils/resolve_user_names';
 import { createGiveawaySchema, generate_public_id, normalize_giveaway_items_list } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
 import { is_guild_admin } from '../internal/bot_internal_api'
@@ -180,18 +181,15 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       orderBy: { createdAt: 'desc' },
     });
 
-    const creator_ids = [...new Set(giveaways.map((g) => g.creatorId).filter(Boolean))];
-    const creators = creator_ids.length
-      ? await prisma.guildMember.findMany({
-          where: { userId: { in: creator_ids } },
-          select: { userId: true, username: true },
-        })
-      : [];
-    const creator_names = new Map(creators.map((c) => [c.userId, c.username]));
+    const resolved_creators = await resolve_user_names(
+      prisma,
+      guildId,
+      giveaways.map((g) => g.creatorId),
+    );
 
     const enriched = giveaways.map((g) => ({
       ...g,
-      creatorName: creator_names.get(g.creatorId) ?? g.creatorId,
+      creatorName: resolved_creators.get(g.creatorId)?.username ?? g.creatorId,
     }));
 
     return { success: true, giveaways: enriched };

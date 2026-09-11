@@ -1,48 +1,48 @@
 import * as React from 'react'
+import { Copy, Check } from 'lucide-react'
 import { cn } from '../../lib/cn'
 
 type user_display_props = {
   userId: string
   username?: string | null
   className?: string
-  compact?: boolean
 }
 
-export function UserDisplay({ userId, username, className, compact = false }: user_display_props) {
-  const [copied, setCopied] = React.useState(false)
+/**
+ * Shows a Discord user as "username" with a click-to-copy button for the
+ * raw user ID. When the username is unknown (user left the server), the
+ * raw ID becomes the primary text with a "(saiu)" indicator.
+ */
+export function UserDisplay({ userId, username, className }: user_display_props) {
+  const [copied, set_copied] = React.useState(false)
+  const resolved = Boolean(username)
   const display_name = username || userId
-  const is_resolved = Boolean(username)
 
   const copy_id = React.useCallback(async () => {
     try {
       await navigator.clipboard.writeText(userId)
-      setCopied(true)
-      window.setTimeout(() => setCopied(false), 1500)
+      set_copied(true)
+      window.setTimeout(() => set_copied(false), 1500)
     } catch {
-      // clipboard may be unavailable; fail silently
+      // clipboard unavailable; nothing to do
     }
   }, [userId])
 
   return (
-    <span className={cn('inline-flex min-w-0 items-center gap-1.5', className)}>
-      <span className="min-w-0 truncate">{display_name}</span>
-      {!is_resolved && <span className="text-muted-foreground/50 shrink-0 text-[10px]">(saiu)</span>}
+    <span className={cn('inline-flex min-w-0 items-center gap-1', className)}>
+      <span className={cn('min-w-0 truncate font-medium', !resolved && 'font-mono text-xs')}>
+        {display_name}
+      </span>
+      {!resolved && <span className="shrink-0 text-[10px] text-muted-foreground/70">(saiu)</span>}
       <button
         type="button"
         onClick={() => void copy_id()}
-        className="text-muted-foreground/50 hover:text-foreground shrink-0 transition-colors"
+        className="text-muted-foreground/40 hover:text-foreground inline-flex shrink-0 transition-colors"
         aria-label={`Copiar ID de ${display_name}`}
-        tabIndex={-1}
+        title={`Copiar ID: ${userId}`}
       >
-        {copied ? (
-          <span className="text-[10px]">copiado!</span>
-        ) : (
-          <span className="font-mono text-[10px] opacity-0 transition-opacity group-hover:opacity-60">
-            {userId.slice(0, 8)}
-          </span>
-        )}
+        {copied ? <Check className="size-3" /> : <Copy className="size-3" />}
       </button>
-      {!compact && null}
     </span>
   )
 }
