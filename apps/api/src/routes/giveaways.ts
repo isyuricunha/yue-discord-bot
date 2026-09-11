@@ -1,5 +1,6 @@
 import { FastifyInstance } from 'fastify'
 import { prisma, Prisma } from '@yuebot/database';
+import { resolve_user_names } from '../utils/resolve_user_names';
 import { createGiveawaySchema, generate_public_id, normalize_giveaway_items_list } from '@yuebot/shared';
 import { safe_error_details } from '../utils/safe_error'
 import { is_guild_admin } from '../internal/bot_internal_api'
@@ -180,7 +181,18 @@ export default async function giveawayRoutes(fastify: FastifyInstance) {
       orderBy: { createdAt: 'desc' },
     });
 
-    return { success: true, giveaways };
+    const resolved_creators = await resolve_user_names(
+      prisma,
+      guildId,
+      giveaways.map((g) => g.creatorId),
+    );
+
+    const enriched = giveaways.map((g) => ({
+      ...g,
+      creatorName: resolved_creators.get(g.creatorId)?.username ?? g.creatorId,
+    }));
+
+    return { success: true, giveaways: enriched };
   });
 
   // Obter detalhes de um sorteio

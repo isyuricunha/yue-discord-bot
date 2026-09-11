@@ -11,6 +11,7 @@ import { validate_extended_template_variants } from '../lib/message_template'
 import { toast_error, toast_success } from '../store/toast'
 import { MessageVariantEditor } from '../components/message_variant_editor'
 import { PlaceholderChips } from '../components/template_placeholders'
+import { UserDisplay } from '../components/ui'
 
 import template_placeholders from '@yuebot/shared/template_placeholders'
 
@@ -500,9 +501,6 @@ export default function ModLogsPage() {
               const Icon = actionIcons[normalized_action as keyof typeof actionIcons] || Shield
               const color = actionColors[normalized_action as keyof typeof actionColors] || 'text-muted-foreground'
 
-              const moderatorLabel = log.moderatorName || log.moderatorId || 'AutoMod'
-              const targetLabel = log.targetName || log.targetId || log.userId || '—'
-
               const meta = log.metadata as any
               const messageMeta = meta?.message
               const actionMeta = meta?.action
@@ -524,12 +522,12 @@ export default function ModLogsPage() {
                           <span className="text-sm text-muted-foreground">{new Date(log.createdAt).toLocaleString('pt-BR')}</span>
                         </div>
 
-                        <div className="mt-2 text-sm">
+                        <div className="mt-2 flex flex-wrap items-center gap-x-1 gap-y-1 text-sm">
                           <span className="text-muted-foreground">Moderador:</span>{' '}
-                          <span className="font-medium">{moderatorLabel}</span>
+                          <UserDisplay userId={log.moderatorId} username={log.moderatorName} />
                           <span className="text-muted-foreground">{' → '}</span>
                           <span className="text-muted-foreground">Alvo:</span>{' '}
-                          <span className="font-medium">{targetLabel}</span>
+                          <UserDisplay userId={log.targetId || log.userId} username={log.targetName} />
                         </div>
 
                         {log.reason && (
