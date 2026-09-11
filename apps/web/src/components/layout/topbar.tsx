@@ -122,6 +122,10 @@ export function Topbar({
     window.open('/extras', '_blank', 'noopener,noreferrer')
   }
 
+  const handleDocs = () => {
+    window.open('/docs', '_blank', 'noopener,noreferrer')
+  }
+
   const handleButtonKeyDown = (
     e: React.KeyboardEvent<HTMLButtonElement>,
     action: () => void
@@ -211,6 +215,17 @@ export function Topbar({
               <kbd className="hidden rounded bg-surface-raised px-1 py-0.5 text-[10px] font-mono lg:inline">
                 {typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('win') ? 'Ctrl+K' : '⌘K'}
               </kbd>
+            </Button>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDocs}
+              onKeyDown={(e) => handleButtonKeyDown(e, handleDocs)}
+              className="h-11 lg:h-9 min-w-11 lg:min-w-0 gap-1.5 px-2.5 sm:px-3"
+              aria-label="Open documentation in new tab"
+            >
+              <span className="hidden lg:inline text-sm">Docs</span>
             </Button>
 
             <Button
