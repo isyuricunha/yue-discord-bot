@@ -1,3 +1,4 @@
+import { NavLink } from 'react-router-dom'
 import { Card, CardContent, CardHeader } from '../../components/ui'
 import { getDiscordClientId } from '../../env'
 import { BackLink, faq_item } from './components'
@@ -36,7 +37,7 @@ export default function ExtrasAboutPage() {
         <CardContent className="space-y-3">
           <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-3 text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">Nota:</span> o nome <span className="font-semibold text-foreground">Yue</span> é uma
-            homenagem pessoal - ele carrega o carinho de alguém muito importante para o projeto.
+            homenagem pessoal: ele carrega o carinho de alguém muito importante para o projeto.
           </div>
 
           <div className="text-sm text-muted-foreground">
@@ -101,6 +102,18 @@ export default function ExtrasAboutPage() {
                 <div>
                   Você pode ver a lista na página “Placeholders” aqui em Extras. Os placeholders são padronizados e
                   utilizados nos módulos do painel.
+                </div>
+              </>
+            ),
+          })}
+
+          {faq_item({
+            question: 'Onde fico por dentro de tudo (comandos, guias, sistemas)?',
+            children: (
+              <>
+                <div>
+                  Na <NavLink to="/docs" className="underline underline-offset-2 hover:text-accent">documentação completa</NavLink> (/docs):
+                  comandos gerados direto do bot, com exemplos, e guias de cada sistema.
                 </div>
               </>
             ),

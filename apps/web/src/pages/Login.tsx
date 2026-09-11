@@ -64,6 +64,12 @@ export default function LoginPage() {
 
             <nav className="flex items-center gap-2">
               <NavLink
+                to="/docs"
+                className="inline-flex items-center rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
+              >
+                Docs
+              </NavLink>
+              <NavLink
                 to="/extras"
                 className="inline-flex items-center rounded-xl px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-surface-hover hover:text-foreground"
               >
@@ -211,7 +217,7 @@ export default function LoginPage() {
                 </NavLink>
                 <span className="opacity-30" aria-hidden="true">•</span>
                 <NavLink
-                  to="/extras/comandos"
+                  to="/docs/comandos"
                   className="hover:text-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2"
                 >
                   Comandos

@@ -76,6 +76,30 @@ function resolve_payload(pathname: string, guild_id?: string): seo_payload {
       }
     }
 
+    if (normalized === '/docs' || normalized === '/docs/index.html') {
+      return {
+        title: 'Documentação - Yue Bot',
+        description: 'Documentação da Yue: guias, sistemas e como usar o bot e o painel.',
+        indexable: true,
+      }
+    }
+
+    if (normalized === '/docs/comandos') {
+      return {
+        title: 'Comandos - Yue Bot',
+        description: 'Referência completa dos comandos da Yue, com exemplos de uso.',
+        indexable: true,
+      }
+    }
+
+    if (normalized === '/docs/guias') {
+      return {
+        title: 'Guias - Yue Bot',
+        description: 'Guias de XP, economia, música, sorteios, tickets e moderação da Yue.',
+        indexable: true,
+      }
+    }
+
     if (normalized === '/extras/comandos') {
       return {
         title: 'Comandos - Yue Bot',

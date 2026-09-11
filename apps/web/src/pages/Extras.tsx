@@ -30,9 +30,9 @@ const items: nav_item[] = [
     icon: '🛡️',
   },
   {
-    to: '/extras/comandos',
+    to: '/docs/comandos',
     label: 'Comandos',
-    description: 'Lista completa de comandos e exemplos.',
+    description: 'Documentação completa, gerada direto do bot.',
     icon: '⚡',
   },
   {

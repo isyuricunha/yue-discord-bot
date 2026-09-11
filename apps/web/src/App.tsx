@@ -10,7 +10,6 @@ const ExtrasPage = lazy(() => import('./pages/Extras'))
 const ExtrasHomePage = lazy(() => import('./pages/extras/ExtrasHome'))
 const ExtrasAboutPage = lazy(() => import('./pages/extras/ExtrasAbout'))
 const ExtrasModerationPage = lazy(() => import('./pages/extras/ExtrasModeration'))
-const ExtrasCommandsPage = lazy(() => import('./pages/extras/ExtrasCommands'))
 const ExtrasPlaceholdersPage = lazy(() => import('./pages/extras/ExtrasPlaceholders'))
 const ExtrasBanAppealPage = lazy(() => import('./pages/extras/ExtrasBanAppeal'))
 const DocsLayout = lazy(() => import('./pages/docs/DocsLayout'))
@@ -106,7 +105,7 @@ function App() {
               <Route index element={<ExtrasHomePage />} />
               <Route path="sobre" element={<ExtrasAboutPage />} />
               <Route path="moderacao" element={<ExtrasModerationPage />} />
-              <Route path="comandos" element={<ExtrasCommandsPage />} />
+              <Route path="comandos" element={<Navigate to="/docs/comandos" replace />} />
               <Route path="placeholders" element={<ExtrasPlaceholdersPage />} />
               <Route path="apelo-de-ban" element={<ExtrasBanAppealPage />} />
             </Route>
