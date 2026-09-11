@@ -34,6 +34,9 @@ export function PublicShell() {
           </div>
 
           <nav className="flex items-center gap-2">
+            <NavLink to="/docs" className={nav_link_class}>
+              Docs
+            </NavLink>
             <NavLink to="/extras" className={nav_link_class} end>
               Extras
             </NavLink>
