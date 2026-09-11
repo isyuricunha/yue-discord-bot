@@ -54,7 +54,7 @@ export async function humanize_announcement(
         content: [
           'Reescreva o anúncio abaixo como se VOCÊ fosse a Yue anunciando para os membros do servidor.',
           'Regras: linguagem humana e natural, curta, sem jargão técnico, sem inventar informações, mantenha todos os fatos e links do original, responda no mesmo idioma do original.',
-          'Não use travessão. Prefira frases curtas e diretas.',
+          'Nunca use travessão (—, – ou --). Onde aparecer um, reescreva o trecho com vírgula, ponto, parênteses ou "e". Prefira frases curtas e diretas.',
           '',
           'Anúncio:',
           content,
@@ -86,8 +86,10 @@ export async function draft_release_announcement(
         role: 'user',
         content: [
           'Escreva o anúncio desta atualização para os membros do servidor, como se você fosse a Yue contando o que mudou.',
-          'Regras: linguagem simples e humana, sem termos técnicos, foco no que mudou na experiência de quem usa, no máximo 150 palavras, sem travessão, sem inventar nada que não esteja nas notas.',
-          'Se as notas forem só correções internas, diga de forma leve que foi uma atualização de manutenção.',
+          'Regras: linguagem simples e humana, sem termos técnicos, foco no que mudou na experiência de quem usa, no máximo 150 palavras, sem inventar nada que não esteja nas notas.',
+          'As notas descrevem o que mudou de verdade: liste cada mudança perceptível (no painel, nos comandos, nas páginas) em linguagem simples.',
+          'Só trate a versão como atualização de manutenção quando as notas não citarem nenhuma mudança perceptível; nesse caso, nunca diga que não há mudanças.',
+          'Nunca use travessão (—, – ou --). Onde um cairia, reescreva o trecho com vírgula, ponto, parênteses ou "e".',
         ].join('\n'),
       },
     ],
