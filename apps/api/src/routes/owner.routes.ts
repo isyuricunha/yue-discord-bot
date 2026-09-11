@@ -26,6 +26,7 @@ import { load_custom_provider_system_prompt } from '../services/prompt_loader'
 import {
   draft_release_announcement,
   fetch_latest_release,
+  fetch_release_pr_summaries,
   humanize_announcement,
 } from '../services/announcement_ai'
 
@@ -35,6 +36,7 @@ type announcement_preview_input = {
   query?: string
   addedFrom?: string
   addedTo?: string
+  releaseTag?: string
 }
 
 type parse_preview_input_result =
@@ -236,6 +238,10 @@ function parse_preview_input(body: unknown): parse_preview_input_result {
   const query = typeof body.query === 'string' ? body.query.trim() : undefined
   const addedFrom = typeof body.addedFrom === 'string' ? body.addedFrom.trim() : undefined
   const addedTo = typeof body.addedTo === 'string' ? body.addedTo.trim() : undefined
+  const releaseTag = typeof body.releaseTag === 'string' ? body.releaseTag.trim() : undefined
+  if (releaseTag && releaseTag.length > 40) {
+    return { ok: false, error: 'Tag da release inválida.' }
+  }
 
   if (addedFrom && !/^\d{4}-\d{2}-\d{2}$/.test(addedFrom)) {
     return { ok: false, error: 'Data inicial inválida. Use o formato YYYY-MM-DD.' }
@@ -252,6 +258,7 @@ function parse_preview_input(body: unknown): parse_preview_input_result {
       ...(query ? { query } : {}),
       ...(addedFrom ? { addedFrom } : {}),
       ...(addedTo ? { addedTo } : {}),
+      ...(releaseTag ? { releaseTag } : {}),
     },
   }
 }
@@ -865,15 +872,10 @@ export async function ownerRoutes(fastify: FastifyInstance) {
       (runtime.fallbackEnabled && custom_provider_is_configured() && Boolean(runtime.customModel))
     const persona = canUseCustom ? load_custom_provider_system_prompt(CONFIG.panelAi.promptPath) : ''
 
-    const draft = await draft_release_announcement(release, runtime, async (input) =>
+    const pr_summaries = await fetch_release_pr_summaries(release.notes)
+    const draft = await draft_release_announcement(release, pr_summaries, runtime, async (input) =>
       complete_panel_ai({ ...input, persona }),
     )
-
-    await prisma.botSettings.upsert({
-      where: { id: 'global' },
-      update: { lastAnnouncedReleaseTag: release.tag },
-      create: { id: 'global', lastAnnouncedReleaseTag: release.tag },
-    })
 
     return reply.send({ success: true, tag: release.tag, draft })
   })
@@ -1004,6 +1006,7 @@ export async function ownerRoutes(fastify: FastifyInstance) {
           query: input.query ?? null,
           addedFrom: input.addedFrom ?? null,
           addedTo: input.addedTo ?? null,
+          releaseTag: input.releaseTag ?? null,
         },
         preview,
       },
@@ -1050,7 +1053,15 @@ export async function ownerRoutes(fastify: FastifyInstance) {
       return reply.code(403).send({ error: 'Forbidden' })
     }
 
-    const request_payload = existing.request as { content?: unknown; imageUrl?: unknown }
+    const request_payload = existing.request as {
+      content?: unknown
+      imageUrl?: unknown
+      releaseTag?: unknown
+    }
+    const release_tag =
+      typeof request_payload?.releaseTag === 'string' && request_payload.releaseTag.trim()
+        ? request_payload.releaseTag.trim()
+        : null
     const content = typeof request_payload?.content === 'string' ? request_payload.content : ''
     if (!content.trim() || content.length > 2000) {
       return reply.code(400).send({ error: 'Invalid preview content' })
@@ -1175,6 +1186,14 @@ export async function ownerRoutes(fastify: FastifyInstance) {
         result: result_payload,
       },
     })
+
+    if (release_tag && sent_count > 0) {
+      await prisma.botSettings.upsert({
+        where: { id: 'global' },
+        update: { lastAnnouncedReleaseTag: release_tag },
+        create: { id: 'global', lastAnnouncedReleaseTag: release_tag },
+      })
+    }
 
     return reply.send({ success: true, result: result_payload })
   })

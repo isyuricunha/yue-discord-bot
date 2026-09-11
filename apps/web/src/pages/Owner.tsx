@@ -81,6 +81,7 @@ export default function OwnerPage() {
   const has_initialized_presence = useRef(false)
 
   const [announcement_content, set_announcement_content] = useState('')
+  const [announcement_release_tag, set_announcement_release_tag] = useState<string | null>(null)
   const [announcement_image_url, set_announcement_image_url] = useState('')
   const [announcement_preview_id, set_announcement_preview_id] = useState<string | null>(null)
   const [announcement_preview, set_announcement_preview] = useState<any>(null)
@@ -253,6 +254,7 @@ export default function OwnerPage() {
         query: query || undefined,
         addedFrom: added_from || undefined,
         addedTo: added_to || undefined,
+        releaseTag: announcement_release_tag ?? undefined,
       }
       const response = await axios.post(`${API_URL}/api/owner/announcements/preview`, payload)
       return response.data as { success: boolean; previewId: string; preview: any }
@@ -320,6 +322,7 @@ export default function OwnerPage() {
     },
     onSuccess: (data) => {
       set_announcement_content(data.draft)
+      set_announcement_release_tag(data.tag)
       toast_success(`Comunicado da ${data.tag} gerado. Revise antes de enviar.`, 'Yue')
     },
     onError: (error: any) => {
