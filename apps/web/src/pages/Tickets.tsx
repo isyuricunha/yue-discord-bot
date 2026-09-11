@@ -5,7 +5,7 @@ import axios from 'axios'
 import { LifeBuoy, Save, Trash2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch } from '../components/ui'
+import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Select, Skeleton, Switch, UserDisplay } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -41,6 +41,8 @@ type api_ticket = {
   createdAt: string
   closedAt: string | null
   closedByUserId: string | null
+  userName: string | null
+  closedByUserName: string | null
   closeReason: string | null
 }
 
@@ -440,7 +442,7 @@ export default function TicketsPage() {
                         </Badge>
                       </div>
                       <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
-                        <span>Usuário: <span className="font-mono text-foreground/80">@...{t.userId.slice(-5)}</span></span>
+                        <span className="inline-flex min-w-0 items-center gap-1">Usuário: <UserDisplay userId={t.userId} username={t.userName} /></span>
                         <span>•</span>
                         <span>Canal: <span className="font-mono text-foreground/80">{channels_data?.channels?.find(c => c.id === t.channelId)?.name ? `#${channels_data.channels.find(c => c.id === t.channelId)!.name}` : `...${t.channelId.slice(-5)}`}</span></span>
                       </div>

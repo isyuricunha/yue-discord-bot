@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, User, FileText, Save, Shield, Ban, Timer, Gavel, Undo2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton, Textarea } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton, Textarea, UserDisplay } from '../components/ui'
 import { validate_timeout_duration } from '../lib/duration'
 import { get_modlog_action_label } from '../lib/modlog'
 import { toast_error, toast_success } from '../store/toast'
@@ -25,6 +25,7 @@ interface MemberDetails {
     id: string
     action: string
     moderatorId: string
+  moderatorName: string | null
     reason: string | null
     createdAt: string
     duration: string | null
@@ -380,7 +381,7 @@ export default function MemberDetailsPage() {
 
                       <div className="mt-3 space-y-1 text-sm">
                         <div className="text-muted-foreground">
-                          Moderador: <span className="text-foreground">{log.moderatorId}</span>
+                          Moderador: <UserDisplay userId={log.moderatorId} username={log.moderatorName} />
                         </div>
                         {log.reason && <div className="text-muted-foreground">Razão: <span className="text-foreground line-clamp-3" title={log.reason}>{log.reason}</span></div>}
                         {log.duration && <div className="text-muted-foreground">Duração: <span className="text-foreground">{log.duration}</span></div>}

@@ -18,6 +18,7 @@ import { public_error_message } from '../../utils/public_error'
 import { safe_error_details } from '../../utils/safe_error'
 import { validation_error_details } from '../../utils/validation_error'
 import { requireGuildAdmin } from './authorization'
+import { resolve_user_names } from '../../utils/resolve_user_names'
 
 type suggestion_score_row = {
   id: string
@@ -199,8 +200,16 @@ export async function guildCommunityRoutes(fastify: FastifyInstance) {
         },
       })
 
+      const suggestion_user_ids = items.flatMap((sugg) => [sugg.userId, sugg.decidedByUserId].filter((id): id is string => typeof id === 'string'))
+      const suggestion_names = await resolve_user_names(prisma, guildId, suggestion_user_ids)
+      const suggestions_enriched = items.map((sugg) => ({
+        ...sugg,
+        userName: suggestion_names.get(sugg.userId)?.username ?? null,
+        decidedByUserName: sugg.decidedByUserId ? (suggestion_names.get(sugg.decidedByUserId)?.username ?? null) : null,
+      }))
+
       const nextCursor = items.length === limit ? items[items.length - 1]?.id : null
-      return { success: true, suggestions: items, nextCursor }
+      return { success: true, suggestions: suggestions_enriched, nextCursor }
     } catch (error: unknown) {
       request.log.error({ err: safe_error_details(error) }, 'Failed to list suggestions')
       return reply.code(500).send({ error: 'Internal server error' })
@@ -316,8 +325,16 @@ export async function guildCommunityRoutes(fastify: FastifyInstance) {
       },
     })
 
+    const ticket_user_ids = items.flatMap((t) => [t.userId, t.closedByUserId].filter((id): id is string => typeof id === 'string'))
+    const ticket_names = await resolve_user_names(prisma, guildId, ticket_user_ids)
+    const tickets_enriched = items.map((t) => ({
+      ...t,
+      userName: ticket_names.get(t.userId)?.username ?? null,
+      closedByUserName: t.closedByUserId ? (ticket_names.get(t.closedByUserId)?.username ?? null) : null,
+    }))
+
     const nextCursor = items.length === limit ? items[items.length - 1]?.id : null
-    return { success: true, tickets: items, nextCursor }
+    return { success: true, tickets: tickets_enriched, nextCursor }
   })
 
   fastify.post('/:guildId/tickets/panel', {

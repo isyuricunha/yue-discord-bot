@@ -4,7 +4,7 @@ import axios from 'axios'
 import { Award, RefreshCw, Save, Trash2, UserPlus, UserMinus } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge as UiBadge, Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton } from '../components/ui'
+import { Badge as UiBadge, Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton, UserDisplay } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -465,8 +465,7 @@ export default function BadgesPage() {
                           className="flex items-center justify-between gap-3 rounded-2xl border border-border/80 bg-surface/40 px-4 py-3"
                         >
                           <div className="min-w-0">
-                            <div className="truncate text-sm font-semibold">{h.user.username ?? h.user.id}</div>
-                            <div className="truncate text-xs text-muted-foreground">{h.userId}</div>
+                            <UserDisplay userId={h.userId} username={h.user.username} />
                           </div>
                           <Button
                             variant="ghost"

@@ -8,6 +8,7 @@ import { safe_error_details } from '../utils/safe_error'
 import { parse_query_integer } from '../utils/pagination'
 import { validation_error_details } from '../utils/validation_error'
 import { requireGuildAdmin } from './guilds/authorization'
+import { resolve_user_names } from '../utils/resolve_user_names'
 
 function member_warning_filter(value: unknown): Prisma.IntFilter | number | undefined {
   if (value === 'clean') return 0
@@ -95,7 +96,17 @@ export async function membersRoutes(fastify: FastifyInstance) {
       })
 
       if (!member) return reply.code(404).send({ error: 'Member not found' })
-      return reply.send({ success: true, member })
+
+      const moderator_ids = member.modLogs
+        .map((log) => log.moderatorId)
+        .filter((id): id is string => typeof id === 'string')
+      const moderator_names = await resolve_user_names(prisma, guildId, moderator_ids)
+      const mod_logs_enriched = member.modLogs.map((log) => ({
+        ...log,
+        moderatorName: moderator_names.get(log.moderatorId ?? '')?.username ?? null,
+      }))
+
+      return reply.send({ success: true, member: { ...member, modLogs: mod_logs_enriched } })
     } catch (error: unknown) {
       fastify.log.error({ err: safe_error_details(error) }, 'Failed to get member details')
       return reply.code(500).send({ error: 'Internal server error' })
