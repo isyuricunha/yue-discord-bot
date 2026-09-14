@@ -17,6 +17,12 @@
 #
 # Required project CI/CD variables (masked): DOCKERHUB_USERNAME, DOCKERHUB_TOKEN,
 # GHCR_USERNAME, GHCR_TOKEN. GLCR uses the native CI_REGISTRY_* job credentials.
+#
+# Note: GitLab.com Free requires the pushing account to complete identity
+# verification before CI jobs can run on hosted runners (anti-abuse measure).
+# Until then, pipelines are created but fail immediately with zero jobs and a
+# misleading "yaml invalid" badge; the real message is "Identity verification
+# is required in order to run CI jobs".
 
 stages:
   - checks
