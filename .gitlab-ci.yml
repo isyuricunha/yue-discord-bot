@@ -182,11 +182,13 @@ release:
     - touch .gitlab-release.env
     # Plugin set pinned to match the previous semantic-release action:
     # semantic_version 25.0.3 + conventional-changelog-conventionalcommits 9.3.1.
-    # @semantic-release/gitlab publishes the release (and its tag) on GitLab.
+    # @semantic-release/gitlab publishes the release (and its tag) on GitLab;
+    # @semantic-release/exec writes the dotenv consumed by the docker jobs.
     - >
       npx -y
       -p semantic-release@25.0.3
       -p "@semantic-release/gitlab@13.3.3"
+      -p "@semantic-release/exec@7.1.0"
       -p "@semantic-release/commit-analyzer@13.0.1"
       -p "@semantic-release/release-notes-generator@14.1.1"
       -p conventional-changelog-conventionalcommits@9.3.1
