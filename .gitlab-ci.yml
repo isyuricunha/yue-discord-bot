@@ -22,7 +22,8 @@
 # verification before CI jobs can run on hosted runners (anti-abuse measure).
 # Until then, pipelines are created but fail immediately with zero jobs and a
 # misleading "yaml invalid" badge; the real message is "Identity verification
-# is required in order to run CI jobs".
+# is required in order to run CI jobs". Completing identity verification for
+# the pushing account resolves this without any configuration change.
 
 stages:
   - checks
