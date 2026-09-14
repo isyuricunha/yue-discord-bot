@@ -323,8 +323,9 @@ docker-publish:
     - !reference [.docs-only-skip, script]
     - cd digests
     - |
-      expected_digests="$(find . -maxdepth 1 -type f -printf 'sha256:%f\n' | sort)"
-      expected_count="$(printf '%s\n' "$expected_digests" | grep -c sha256 || true)"
+      # BusyBox find (docker:28/alpine) has no -printf; use ls + sed instead.
+      expected_digests="$(ls -A1 | sort | sed 's/^/sha256:/')"
+      expected_count="$(printf '%s\n' "$expected_digests" | grep -c . || true)"
       if [ "$expected_count" -ne 2 ]; then
         echo "ERROR: expected 2 platform digests, found $expected_count"
         printf '%s\n' "$expected_digests"
@@ -337,7 +338,7 @@ docker-publish:
         if [ "${RELEASE_PUBLISHED:-}" = "true" ] && [ -n "${RELEASE_TAG:-}" ]; then
           set -- "$@" "-t" "${image}:${RELEASE_TAG}"
         fi
-        for digest in $(find . -maxdepth 1 -type f -printf '%f\n' | sort); do
+        for digest in $(ls -A1 | sort); do
           set -- "$@" "${image}@sha256:${digest}"
         done
         docker buildx imagetools create "$@"
