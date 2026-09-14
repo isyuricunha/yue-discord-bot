@@ -228,7 +228,10 @@ release:
   before_script:
     - apk add --no-cache jq >/dev/null
     - docker version
-    - docker buildx create --use --name "yue-$ARCH"
+    # With TLS env data loaded (DOCKER_CERT_PATH), buildx create requires an
+    # explicit Docker context (GitLab dind + buildx documented pattern).
+    - docker context create "yue-ctx-$ARCH"
+    - docker buildx create --use --name "yue-$ARCH" "yue-ctx-$ARCH"
     - printf '%s' "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
     - printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
     - printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
