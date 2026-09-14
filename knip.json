@@ -4,6 +4,8 @@
     "semantic-release",
     "@semantic-release/commit-analyzer",
     "@semantic-release/github",
+    "@semantic-release/gitlab",
+    "@semantic-release/exec",
     "@semantic-release/release-notes-generator",
     "conventional-changelog-conventionalcommits"
   ],
