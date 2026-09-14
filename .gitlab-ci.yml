@@ -361,9 +361,9 @@ docker-publish:
         while [ "$attempt" -le 12 ]; do
           if raw="$(docker buildx imagetools inspect "${image}:latest" --raw 2>/dev/null)"; then
             actual="$(printf '%s' "$raw" | platform_digests)"
-            if jq -e '.manifests | length == 2' >/dev/null <<< "$raw" \
-              && jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "amd64")' >/dev/null <<< "$raw" \
-              && jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "arm64")' >/dev/null <<< "$raw" \
+            if printf '%s' "$raw" | jq -e '.manifests | length == 2' >/dev/null \
+              && printf '%s' "$raw" | jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "amd64")' >/dev/null \
+              && printf '%s' "$raw" | jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "arm64")' >/dev/null \
               && [ "$(printf '%s\n' "$expected_digests")" = "$(printf '%s\n' "$actual")" ]; then
               echo "Verified expected linux/amd64 + linux/arm64 digests: ${image}:latest"
               return 0
