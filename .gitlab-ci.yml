@@ -1,0 +1,367 @@
+# GitLab CI/CD for Yue Discord Bot.
+#
+# Migrated from .github/workflows/ci.yml (GitHub Actions). The GitHub workflow
+# is kept in the repository as a disabled fallback (manual dispatch only).
+#
+# Pipeline shape:
+#   checks         -> lint / type-check / tests / build / knip + migrations on PostgreSQL 16
+#   release        -> semantic-release on main (GitLab release + tag become the primary origin)
+#   docker-build   -> per-architecture images pushed by digest (linux/amd64 + linux/arm64, native runners)
+#   docker-publish -> multi-arch manifest assembly + verification for the three registries
+#
+# A single build per platform feeds all three registries (one buildx --output
+# with three image names, pushed by digest, manifests assembled afterwards):
+#   - GitLab Container Registry: $CI_REGISTRY_IMAGE
+#   - GHCR: ghcr.io/isyuricunha/yue-discord-bot
+#   - Docker Hub: $DOCKERHUB_USERNAME/yue-discord-bot
+#
+# Required project CI/CD variables (masked): DOCKERHUB_USERNAME, DOCKERHUB_TOKEN,
+# GHCR_USERNAME, GHCR_TOKEN. GLCR uses the native CI_REGISTRY_* job credentials.
+
+stages:
+  - checks
+  - release
+  - build
+  - publish
+
+workflow:
+  rules:
+    # Merge request pipelines always run (equivalent to the old pull_request trigger).
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    # Push pipelines on main; docs-only commits are filtered per job (equivalent
+    # to the old paths-ignore on the push trigger).
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+
+.rules:
+  # Every push to main (used by the release chain).
+  main-push: &main-push-rules
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+
+  # checks run on MRs always, and on main pushes. Docs-only pushes are skipped
+  # by the .docs-only-skip script gate below: rules:changes has no "exclude",
+  # so path filtering cannot be expressed natively without also skipping mixed
+  # docs+code commits (a silent-skip regression versus GitHub paths-ignore).
+  checks: &checks-rules
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+
+# Early-exit gate equivalent to the old GitHub Actions paths-ignore: a push to
+# main that touches ONLY the listed documentation/config paths exits 0 without
+# doing work, in every pipeline job. Mixed docs+code commits always run.
+.docs-only-skip:
+  script:
+    - |
+      if [ "$CI_PIPELINE_SOURCE" = "push" ] && [ "$CI_COMMIT_BRANCH" = "main" ]; then
+        skip_pipeline="true"
+        changed="$(git diff --name-only "$CI_COMMIT_BEFORE_SHA" "$CI_COMMIT_SHA" 2>/dev/null || true)"
+        if [ -z "$changed" ]; then
+          # No comparable diff (first push, shallow history): run the pipeline.
+          skip_pipeline="false"
+        fi
+        for changed_path in $changed; do
+          case "$changed_path" in
+            README.md | LICENSE | .env.example | .env.docker.example | .env.local.example | apps/web/.env.example | *.md | docker-compose*.yml) ;;
+            *) skip_pipeline="false" ;;
+          esac
+        done
+        if [ "$skip_pipeline" = "true" ]; then
+          echo "Push only touches documentation paths; skipping pipeline (paths-ignore equivalent)."
+          exit 0
+        fi
+      fi
+
+checks:
+  stage: checks
+  image: node:24
+  tags:
+    - saas-linux-small-amd64
+  rules: *checks-rules
+  services:
+    - name: postgres:16-alpine
+      alias: postgres
+      variables:
+        POSTGRES_USER: yuebot
+        POSTGRES_DB: yuebot_test
+        POSTGRES_HOST_AUTH_METHOD: trust
+  variables:
+    # Per-build network so the job reaches the service by its alias.
+    FF_NETWORK_PER_BUILD: "true"
+    DATABASE_URL: postgresql://yuebot@postgres:5432/yuebot_test
+    RUN_DATABASE_INTEGRATION: "1"
+    DSLIM_NO_HEALTHCHECK: "true"
+  cache:
+    key:
+      files:
+        - pnpm-lock.yaml
+    paths:
+      - .pnpm-store
+  script:
+    # Docs-only push gate (GitHub paths-ignore equivalent).
+    - !reference [.docs-only-skip, script]
+    - corepack enable && corepack prepare pnpm@12.3.4 --activate
+    # Security: fail on committed secrets.
+    - |
+      echo "Checking for committed .env files (non-example)..."
+      env_files="$(git ls-files | grep -E '(^|/)\.env($|\.)' | grep -v -E '\.example$' || true)"
+      if [ -n "$env_files" ]; then
+        echo "ERROR: committed .env files detected:"
+        echo "$env_files"
+        exit 1
+      fi
+    - |
+      echo "Checking for committed private key files..."
+      key_files="$(git ls-files | grep -E '(\.(pem|key|p12)$|(^|/)id_rsa($|\.)|(^|/)id_ed25519($|\.))' || true)"
+      if [ -n "$key_files" ]; then
+        echo "ERROR: committed private key files detected:"
+        echo "$key_files"
+        exit 1
+      fi
+    # The CI definition files contain the literal marker inside their own
+    # security steps, so they are excluded here (same reason the old workflow
+    # excluded itself).
+    - |
+      echo "Checking for private key markers in tracked files..."
+      markers="$(git grep -n "BEGIN PRIVATE KEY" -- . ':(exclude).github/workflows/ci.yml' ':(exclude).gitlab-ci.yml' || true)"
+      if [ -n "$markers" ]; then
+        echo "ERROR: private key marker detected in tracked file(s)."
+        echo "$markers"
+        exit 1
+      fi
+    - pnpm install --frozen-lockfile
+    # Replay the complete migration history against an empty PostgreSQL database.
+    # Compatibility migrations keep already-applied historical checksums
+    # untouched while making fresh installs reproducible.
+    - cd packages/database && pnpm exec prisma migrate deploy
+    - pnpm exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code
+    - cd ../..
+    - pnpm lint
+    - pnpm type-check
+    - pnpm test
+    - pnpm build
+    - pnpm knip
+
+release:
+  stage: release
+  image: node:24
+  tags:
+    - saas-linux-small-amd64
+  rules: *main-push-rules
+  # Serialize main release pipelines (equivalent to the old concurrency group
+  # "docker-release-main" with cancel-in-progress: false).
+  resource_group: docker-release-main
+  needs:
+    - job: checks
+      artifacts: false
+  # Full history so semantic-release can analyze commits since the last tag
+  # (equivalent to the old fetch-depth: 0).
+  #
+  # Auth: CI_JOB_TOKEN only (no PAT, no project access token on Free).
+  # semantic-release core pushes the v-tag over HTTPS using the job token
+  # embedded in CI_REPOSITORY_URL; the project setting
+  # ci_push_repository_for_job_token_allowed is enabled for this. Job-token
+  # pushes never trigger a new pipeline, which is intended: the release happens
+  # inside this pipeline and RELEASE_TAG reaches the docker jobs via dotenv.
+  # @semantic-release/gitlab then publishes the release through the Releases
+  # API with the same job token.
+  variables:
+    GIT_DEPTH: "0"
+  script:
+    # Docs-only push gate (GitHub paths-ignore equivalent).
+    - !reference [.docs-only-skip, script]
+    - touch .gitlab-release.env
+    # Plugin set pinned to match the previous semantic-release action:
+    # semantic_version 25.0.3 + conventional-changelog-conventionalcommits 9.3.1.
+    # @semantic-release/gitlab publishes the release (and its tag) on GitLab.
+    - >
+      npx -y
+      -p semantic-release@25.0.3
+      -p "@semantic-release/gitlab@13.3.3"
+      -p "@semantic-release/commit-analyzer@13.0.1"
+      -p "@semantic-release/release-notes-generator@14.1.1"
+      -p conventional-changelog-conventionalcommits@9.3.1
+      semantic-release
+  artifacts:
+    reports:
+      # Written by the exec plugin on publish; the dotenv report exposes
+      # RELEASE_PUBLISHED / RELEASE_TAG to the docker jobs that need it.
+      dotenv: .gitlab-release.env
+    expire_in: 1 day
+
+# Per-architecture image build. A single buildx build pushes the platform
+# image by digest to all three registries at once.
+.docker-build:
+  stage: build
+  image: docker:28
+  services:
+    - name: docker:28-dind
+      alias: docker
+      # GitLab.com hosted runners ship with the Docker bridge MTU lowered to
+      # 1360 (infra workaround for a PMTUD blackhole, applied fleet-wide to
+      # saas-linux-* amd64 and arm64 shards in June 2026). The dockerd inside
+      # dind defaults to MTU 1500 and silently hangs on large packets. Align
+      # the inner daemon below/equal to the outer bridge; 1360 is the value
+      # validated by GitLab infra (the older docs suggestion of 1400 exceeds
+      # the current bridge MTU and still fails).
+      command: ["--mtu=1360"]
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: "/certs/client"
+    BUILDKIT_PROGRESS: plain
+  needs:
+    - job: release
+      artifacts: true
+  before_script:
+    - apk add --no-cache jq >/dev/null
+    - docker version
+    - docker buildx create --use --name "yue-$ARCH"
+    - printf '%s' "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+    - printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+    - printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+  script:
+    # Docs-only push gate (GitHub paths-ignore equivalent).
+    - !reference [.docs-only-skip, script]
+    # Official multi-registry digest push (docker docs "multi-platform image"
+    # pattern, the same string docker/build-push-action generates for multiple
+    # names): one build per platform, pushed by digest to all three registries
+    # at once. The name list is a single quoted comma-separated value, so
+    # buildx parses it unambiguously. Per-platform provenance stays disabled so
+    # digest outputs remain plain platform manifests (the same rationale as the
+    # old workflow): the final image is composed explicitly from two plain
+    # platform manifests.
+    - >
+      docker buildx build
+      --platform "$PLATFORM"
+      --provenance=false
+      --label "org.opencontainers.image.title=Yue Discord Bot"
+      --label "org.opencontainers.image.description=A biggest bot."
+      --label "org.opencontainers.image.version=${RELEASE_TAG:-$CI_COMMIT_SHA}"
+      --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
+      --label "org.opencontainers.image.source=$CI_PROJECT_URL"
+      --cache-from "type=registry,ref=$CI_REGISTRY_IMAGE/buildcache:yue-$ARCH"
+      --cache-to "type=registry,ref=$CI_REGISTRY_IMAGE/buildcache:yue-$ARCH,mode=max"
+      --metadata-file metadata.json
+      --output "type=image,name=$CI_REGISTRY_IMAGE,ghcr.io/isyuricunha/yue-discord-bot,$DOCKERHUB_USERNAME/yue-discord-bot,push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true"
+      .
+    - DIGEST="$(jq -r '."containerimage.digest"' metadata.json)"
+    - |
+      if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
+        echo "ERROR: Docker build did not return a digest"
+        exit 1
+      fi
+    - mkdir -p digests
+    - touch "digests/${DIGEST#sha256:}"
+    - echo "Pushed $PLATFORM image by digest $DIGEST"
+  artifacts:
+    paths:
+      - digests/
+    # Short retention, equivalent to the old retention-days: 1.
+    expire_in: 1 day
+
+docker-build-amd64:
+  extends: .docker-build
+  tags:
+    - saas-linux-small-amd64
+  rules: *main-push-rules
+  resource_group: docker-release-main:build-amd64
+  variables:
+    ARCH: amd64
+    PLATFORM: linux/amd64
+
+docker-build-arm64:
+  extends: .docker-build
+  tags:
+    - saas-linux-small-arm64
+  rules: *main-push-rules
+  resource_group: docker-release-main:build-arm64
+  variables:
+    ARCH: arm64
+    PLATFORM: linux/arm64
+
+# Manifest assembly + verification. Needs no Docker daemon: buildx imagetools
+# talks to the registries directly, so no dind service is attached here.
+docker-publish:
+  stage: publish
+  image: docker:28
+  tags:
+    - saas-linux-small-amd64
+  rules: *main-push-rules
+  resource_group: docker-release-main
+  needs:
+    - job: release
+      artifacts: true
+    - job: docker-build-amd64
+      artifacts: true
+    - job: docker-build-arm64
+      artifacts: true
+  before_script:
+    - apk add --no-cache jq >/dev/null
+    - printf '%s' "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+    - printf '%s' "$GHCR_TOKEN" | docker login ghcr.io --username "$GHCR_USERNAME" --password-stdin
+    - printf '%s' "$DOCKERHUB_TOKEN" | docker login --username "$DOCKERHUB_USERNAME" --password-stdin
+  script:
+    # Docs-only push gate (GitHub paths-ignore equivalent).
+    - !reference [.docs-only-skip, script]
+    - cd digests
+    - |
+      expected_digests="$(find . -maxdepth 1 -type f -printf 'sha256:%f\n' | sort)"
+      expected_count="$(printf '%s\n' "$expected_digests" | grep -c sha256 || true)"
+      if [ "$expected_count" -ne 2 ]; then
+        echo "ERROR: expected 2 platform digests, found $expected_count"
+        printf '%s\n' "$expected_digests"
+        exit 1
+      fi
+    - |
+      create_manifest() {
+        image="$1"
+        set -- "-t" "${image}:latest"
+        if [ "${RELEASE_PUBLISHED:-}" = "true" ] && [ -n "${RELEASE_TAG:-}" ]; then
+          set -- "$@" "-t" "${image}:${RELEASE_TAG}"
+        fi
+        for digest in $(find . -maxdepth 1 -type f -printf '%f\n' | sort); do
+          set -- "$@" "${image}@sha256:${digest}"
+        done
+        docker buildx imagetools create "$@"
+      }
+      create_manifest "$CI_REGISTRY_IMAGE"
+      create_manifest "ghcr.io/isyuricunha/yue-discord-bot"
+      create_manifest "$DOCKERHUB_USERNAME/yue-discord-bot"
+    - |
+      platform_digests() {
+        jq -r '
+          .manifests[]
+          | select(.platform.os == "linux")
+          | select(.platform.architecture == "amd64" or .platform.architecture == "arm64")
+          | .digest
+        ' | sort
+      }
+      verify_manifest() {
+        image="$1"
+        attempt=1
+        while [ "$attempt" -le 12 ]; do
+          if raw="$(docker buildx imagetools inspect "${image}:latest" --raw 2>/dev/null)"; then
+            actual="$(printf '%s' "$raw" | platform_digests)"
+            if jq -e '.manifests | length == 2' >/dev/null <<< "$raw" \
+              && jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "amd64")' >/dev/null <<< "$raw" \
+              && jq -e '.manifests | any(.platform.os == "linux" and .platform.architecture == "arm64")' >/dev/null <<< "$raw" \
+              && [ "$(printf '%s\n' "$expected_digests")" = "$(printf '%s\n' "$actual")" ]; then
+              echo "Verified expected linux/amd64 + linux/arm64 digests: ${image}:latest"
+              return 0
+            fi
+          fi
+          echo "Manifest not converged yet for ${image}:latest (attempt ${attempt}/12); retrying in 5s..."
+          sleep 5
+          attempt=$((attempt + 1))
+        done
+        echo "ERROR: published manifest did not converge to the expected platform digests: ${image}:latest"
+        echo "Expected digests:"
+        printf '%s\n' "$expected_digests"
+        echo "Observed digests:"
+        printf '%s\n' "${actual:-<unavailable>}"
+        return 1
+      }
+      verify_manifest "$CI_REGISTRY_IMAGE"
+      verify_manifest "ghcr.io/isyuricunha/yue-discord-bot"
+      verify_manifest "$DOCKERHUB_USERNAME/yue-discord-bot"
+      echo "Verified expected platform digests across GLCR, GHCR and Docker Hub"

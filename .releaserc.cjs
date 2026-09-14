@@ -81,12 +81,42 @@ module.exports = {
         }
       }
     ],
-    [
-      "@semantic-release/github",
-      {
-        successComment: false,
-        failComment: false
-      }
-    ]
+    // GitLab is the primary release origin since the CI migration to
+    // .gitlab-ci.yml. In GitLab CI, semantic-release core pushes the v-tag to
+    // the remote using the CI_JOB_TOKEN embedded in CI_REPOSITORY_URL (the
+    // project setting "Allow Git push requests to the repository" is enabled
+    // for this), and @semantic-release/gitlab publishes the GitLab release
+    // with the same job token. CI_JOB_TOKEN is the only supported credential
+    // here: GitLab.com Free has no project access tokens and no PAT is used.
+    // @semantic-release/exec exports the release metadata as a dotenv file for
+    // the downstream docker jobs. The GitHub publisher is kept for runs
+    // outside GitLab CI (local dry-runs or a re-enabled GitHub workflow).
+    ...(process.env.GITLAB_CI
+      ? [
+          [
+            "@semantic-release/gitlab",
+            {
+              useJobToken: true,
+              successComment: false,
+              failComment: false
+            }
+          ],
+          [
+            "@semantic-release/exec",
+            {
+              publishCmd:
+                'printf "RELEASE_PUBLISHED=true\\nRELEASE_TAG=v%s\\n" "${nextRelease.version}" > .gitlab-release.env'
+            }
+          ]
+        ]
+      : [
+          [
+            "@semantic-release/github",
+            {
+              successComment: false,
+              failComment: false
+            }
+          ]
+        ])
   ]
 };
