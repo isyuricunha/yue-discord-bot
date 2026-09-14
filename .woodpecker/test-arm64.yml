@@ -1,0 +1,14 @@
+when:
+  - event: push
+    branch: main
+
+labels:
+  platform: linux/arm64
+
+steps:
+  - name: verify-arm64
+    image: alpine:3.22
+    commands:
+      - echo "Running on ARM64"
+      - uname -a
+      - uname -m

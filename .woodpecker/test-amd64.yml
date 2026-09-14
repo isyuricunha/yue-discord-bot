@@ -1,0 +1,14 @@
+when:
+  - event: push
+    branch: main
+
+labels:
+  platform: linux/amd64
+
+steps:
+  - name: verify-amd64
+    image: alpine:3.22
+    commands:
+      - echo "Running on AMD64"
+      - uname -a
+      - uname -m
