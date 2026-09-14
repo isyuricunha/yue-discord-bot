@@ -38,6 +38,10 @@ workflow:
     # Push pipelines on main; docs-only commits are filtered per job (equivalent
     # to the old paths-ignore on the push trigger).
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+    # Manual runs from the web UI (Build > Pipelines > Run pipeline). Added
+    # while the identity-verification restriction on the pushing account is
+    # being isolated; keep for manual re-runs afterwards.
+    - if: $CI_PIPELINE_SOURCE == "web"
 
 .rules:
   # Every push to main (used by the release chain).
