@@ -246,6 +246,8 @@ release:
     # digest outputs remain plain platform manifests (the same rationale as the
     # old workflow): the final image is composed explicitly from two plain
     # platform manifests.
+    # The name list must be CSV-quoted inside the output value; otherwise
+    # buildx treats each image as a stray field ("invalid value").
     - >
       docker buildx build
       --platform "$PLATFORM"
@@ -258,8 +260,6 @@ release:
       --cache-from "type=registry,ref=$CI_REGISTRY_IMAGE/buildcache:yue-$ARCH"
       --cache-to "type=registry,ref=$CI_REGISTRY_IMAGE/buildcache:yue-$ARCH,mode=max"
       --metadata-file metadata.json
-      # The name list must be CSV-quoted inside the output value; otherwise
-      # buildx treats each image as a stray field ("invalid value").
       --output "type=image,\"name=$CI_REGISTRY_IMAGE,ghcr.io/isyuricunha/yue-discord-bot,$DOCKERHUB_USERNAME/yue-discord-bot\",push-by-digest=true,name-canonical=true,push=true,oci-mediatypes=true"
       .
     - DIGEST="$(jq -r '."containerimage.digest"' metadata.json)"
