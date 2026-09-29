@@ -318,7 +318,7 @@ export default function ReactionRolesPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
             <Wand2 className="h-5 w-5" />
@@ -455,7 +455,7 @@ export default function ReactionRolesPage() {
 
       <Card>
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="text-sm font-semibold">Editor</div>
               <div className="mt-1 text-xs text-muted-foreground">Configurações do painel e itens.</div>
@@ -494,7 +494,7 @@ export default function ReactionRolesPage() {
               </div>
 
               <div>
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <div className="text-sm font-semibold">Itens</div>
                     <div className="mt-1 text-xs text-muted-foreground">Até 25 cargos.</div>

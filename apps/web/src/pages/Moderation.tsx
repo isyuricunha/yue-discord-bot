@@ -292,7 +292,7 @@ export default function ModerationPage() {
 
       <Card>
         <CardContent className="space-y-6 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <BrainCircuit className="h-5 w-5 text-accent" />
               <div>

@@ -202,7 +202,7 @@ export default function MembersPage() {
           </div>
 
           {totalPages > 1 && (
-            <div className="mt-8 flex items-center justify-between gap-4">
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-4">
               <p className="text-sm text-muted-foreground">
                 Página {page} de {totalPages} • {total} membros
               </p>

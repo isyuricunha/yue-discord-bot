@@ -46,6 +46,7 @@ function useBreadcrumbs(guildId: string | undefined, location: { pathname: strin
     const segments: Record<string, { label: string; parent?: string }> = {
       overview: { label: 'Visão geral' },
       automod: { label: 'AutoMod' },
+      antiraid: { label: 'Anti-Raid' },
       modlogs: { label: 'Logs' },
       moderation: { label: 'Moderação' },
       members: { label: 'Membros' },
@@ -222,7 +223,7 @@ export function Topbar({
               size="sm"
               onClick={handleDocs}
               onKeyDown={(e) => handleButtonKeyDown(e, handleDocs)}
-              className="h-11 lg:h-9 min-w-11 lg:min-w-0 gap-1.5 px-2.5 sm:px-3"
+              className="hidden sm:inline-flex h-11 lg:h-9 min-w-11 lg:min-w-0 gap-1.5 px-2.5 sm:px-3"
               aria-label="Open documentation in new tab"
             >
               <span className="hidden lg:inline text-sm">Docs</span>
@@ -234,7 +235,7 @@ export function Topbar({
               size="sm"
               onClick={handleExtras}
               onKeyDown={(e) => handleButtonKeyDown(e, handleExtras)}
-              className="h-11 lg:h-9 min-w-11 lg:min-w-0 gap-1.5 px-2.5 sm:px-3"
+              className="hidden sm:inline-flex h-11 lg:h-9 min-w-11 lg:min-w-0 gap-1.5 px-2.5 sm:px-3"
               aria-label="Open Extras panel in new tab"
             >
               <ExternalLink className="h-4 w-4" />

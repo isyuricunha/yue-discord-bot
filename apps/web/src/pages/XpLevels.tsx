@@ -461,7 +461,7 @@ export default function XpLevelsPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
             <Sparkles className="h-5 w-5" />
@@ -780,7 +780,7 @@ export default function XpLevelsPage() {
 
       <Card>
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4 border-b border-border/50 pb-4 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 pb-4 mb-4">
             <div>
               <div className="text-sm font-semibold">Ativar XP (Chat)</div>
               <div className="text-xs text-muted-foreground">Recompense usuários ativos com experiência ao conversar através de texto.</div>
@@ -794,7 +794,7 @@ export default function XpLevelsPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between gap-4 border-b border-border/50 pb-4 mb-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/50 pb-4 mb-4">
             <div>
               <div className="text-sm font-semibold text-accent">Ativar Voice XP (Voz)</div>
               <div className="text-xs text-muted-foreground">Recompense usuários baseados no tempo em que estiverem conectados em canais de voz não-mutados.</div>
@@ -808,7 +808,7 @@ export default function XpLevelsPage() {
             />
           </div>
 
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="text-sm font-semibold text-accent">Notificações de XP por Voz</div>
               <div className="text-xs text-muted-foreground">Enviar mensagens diretas (DM) para os usuários notificando sobre o ganho de XP em voz.</div>
@@ -983,7 +983,7 @@ export default function XpLevelsPage() {
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4">
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <div className="text-sm font-semibold">Empilhar recompensas anteriores</div>
                     <div className="mt-1 text-xs text-muted-foreground">Mantém todos os cargos de recompensa já recebidos.</div>
@@ -997,7 +997,7 @@ export default function XpLevelsPage() {
               </div>
 
               <div className="rounded-xl border border-border/70 bg-surface/40 px-4 py-4">
-                <div className="flex items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center justify-between gap-4">
                   <div>
                     <div className="text-sm font-semibold">Remover recompensas anteriores</div>
                     <div className="mt-1 text-xs text-muted-foreground">Mantém apenas o cargo da maior recompensa atingida.</div>
