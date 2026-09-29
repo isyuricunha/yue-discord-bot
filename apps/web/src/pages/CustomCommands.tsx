@@ -286,7 +286,7 @@ export default function CustomCommandsPage() {
                             size="sm"
                             onClick={() => deleteMutation.mutate(cmd.id)}
                             disabled={deleteMutation.isPending}
-                            className="text-red-500 hover:text-red-400 hover:bg-red-500/10"
+                            className="text-danger hover:text-danger hover:bg-danger/10"
                             aria-label="Deletar comando"
                           >
                              <Trash2 className="h-4 w-4" />

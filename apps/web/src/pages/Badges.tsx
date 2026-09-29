@@ -356,7 +356,7 @@ export default function BadgesPage() {
                   variant="ghost"
                   onClick={() => setEditing(null)}
                   disabled={!editing}
-                  className="h-10 px-3 text-red-500 hover:bg-red-500/10"
+                  className="h-10 px-3 text-danger hover:bg-danger/10"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

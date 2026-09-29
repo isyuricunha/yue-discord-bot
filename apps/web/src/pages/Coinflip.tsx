@@ -253,9 +253,9 @@ export default function CoinflipPage() {
             <div className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
               <Coins className="h-3.5 w-3.5" />
               <span>
-                Ganhas: <span className="text-emerald-400 font-medium">{is_stats_loading ? '-' : format_luazinhas(stats?.won ?? '0')} 🌙</span>
+                Ganhas: <span className="text-success font-medium">{is_stats_loading ? '-' : format_luazinhas(stats?.won ?? '0')} 🌙</span>
                 {' • '}
-                Perdidas: <span className="text-red-400 font-medium">{is_stats_loading ? '-' : format_luazinhas(stats?.lost ?? '0')} 🌙</span>
+                Perdidas: <span className="text-danger font-medium">{is_stats_loading ? '-' : format_luazinhas(stats?.lost ?? '0')} 🌙</span>
               </span>
             </div>
           </CardContent>
@@ -286,9 +286,9 @@ export default function CoinflipPage() {
                         <div className="flex items-center gap-2">
                           <span className={[
                             'inline-block rounded px-2 py-0.5 text-xs font-semibold uppercase',
-                            g.status === 'completed' ? 'bg-emerald-500/20 text-emerald-400' :
-                            g.status === 'declined' ? 'bg-red-500/20 text-red-400' :
-                            'bg-yellow-500/20 text-yellow-400',
+                            g.status === 'completed' ? 'bg-success/20 text-success' :
+                            g.status === 'declined' ? 'bg-danger/20 text-danger' :
+                            'bg-accent-hover/20 text-accent-hover',
                           ].join(' ')}>
                             {g.status === 'completed' ? 'Concluída' : g.status === 'declined' ? 'Recusada' : 'Pendente'}
                           </span>
@@ -304,7 +304,7 @@ export default function CoinflipPage() {
                           <span>{g.challengerSide === 'heads' ? '🪙 Cara' : '🪪 Coroa'}</span>
                         </div>
                         {g.winnerId && (
-                          <div className="mt-1 text-xs text-emerald-400 font-medium">
+                          <div className="mt-1 text-xs text-success font-medium">
                             Vencedor: @...{g.winnerId.slice(-5)} • Resultado: {g.resultSide === 'heads' ? '🪙 Cara' : '🪪 Coroa'}
                           </div>
                         )}

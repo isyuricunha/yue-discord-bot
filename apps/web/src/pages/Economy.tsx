@@ -209,7 +209,7 @@ export default function EconomyPage() {
                 isLoading={is_admin_loading}
                 disabled={!admin_user_id.trim() || !admin_amount.trim()}
                 onClick={() => void do_admin_adjust('remove')}
-                className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+                className="border-danger/60 text-danger hover:border-danger hover:bg-danger/10"
               >
                 Remover
               </Button>
@@ -250,7 +250,7 @@ export default function EconomyPage() {
                   </div>
                   <div className={[
                     'shrink-0 text-sm font-bold',
-                    tx.type === 'remove' ? 'text-red-400' : 'text-emerald-400',
+                    tx.type === 'remove' ? 'text-danger' : 'text-success',
                   ].join(' ')}>
                     {tx.type === 'remove' ? '-' : '+'}{format_luazinhas(tx.amount)} 🌙
                   </div>

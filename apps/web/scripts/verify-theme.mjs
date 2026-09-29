@@ -133,6 +133,21 @@ for (const file of sourceFiles) {
 }
 check('no legacy v1 colors in frontend source', legacyHits === 0, `${legacyHits} hit(s)`)
 
+// Tailwind color-alias classes from the v1 era are gone: the panel must use
+// the semantic token names (success/agent/info/danger/accent*) directly.
+const aliasRe = /\b(?:text|bg|border|ring|fill|stroke|from|to|via|shadow|divide|outline)-(?:green|emerald|purple|blue|cyan|red|yellow|amber|orange)-\d+\b|\bshadow-(?:cursor|yudark)(?:Sm|Md|Lg)\b|\banimate-(?:shimmer|textShimmer)\b/
+let aliasHits = 0
+for (const file of sourceFiles) {
+  if (file.endsWith('verify-theme.mjs')) continue
+  for (const line of readFileSync(file, 'utf8').split('\n')) {
+    if (aliasRe.test(line)) {
+      failures.push(`tailwind v1 alias class in ${file.replace(webRoot, 'apps/web')}: ${line.trim().slice(0, 100)}`)
+      aliasHits += 1
+    }
+  }
+}
+check('no v1-era tailwind alias classes in frontend source', aliasHits === 0, `${aliasHits} hit(s)`)
+
 // yudark-* survives only as the data-theme hook (data-theme="yudark") and its
 // selector in index.css; the selector CLASSES (.yudark-window, ...) are dead.
 const yudarkClassUsages = [...css.matchAll(/\.yudark-[a-z-]+/g)].length

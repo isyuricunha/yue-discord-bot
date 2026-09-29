@@ -87,7 +87,7 @@ export default function GiveawayDetailsPage() {
   const status_style = useMemo(() => {
     if (!giveaway) return ''
     if (giveaway.cancelled || giveaway.ended) return 'text-muted-foreground'
-    if (giveaway.suspended) return 'text-yellow-300'
+    if (giveaway.suspended) return 'text-accent-hover'
     return 'text-accent'
   }, [giveaway])
 
@@ -235,7 +235,7 @@ export default function GiveawayDetailsPage() {
                       {giveaway.cancelled ? 'Cancelado' : 'Finalizado'}
                     </span>
                   ) : giveaway.suspended ? (
-                    <span className="inline-flex items-center rounded-full border border-border/70 bg-surface/60 px-3 py-1 text-xs text-yellow-300">
+                    <span className="inline-flex items-center rounded-full border border-border/70 bg-surface/60 px-3 py-1 text-xs text-accent-hover">
                       Suspenso
                     </span>
                   ) : (

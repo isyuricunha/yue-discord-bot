@@ -794,7 +794,7 @@ export default function OwnerPage() {
                     <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
                       {g.ownerId ? <span className="truncate" title={g.ownerId}>Owner: @...{g.ownerId.slice(-5)}</span> : null}
                       {format_added_at(g.addedAt) ? <span>Adicionado: {format_added_at(g.addedAt)}</span> : null}
-                      {blocked_set.has(g.id) && <span className="font-semibold text-red-400">Bloqueado</span>}
+                      {blocked_set.has(g.id) && <span className="font-semibold text-danger">Bloqueado</span>}
                     </div>
                   </div>
                 </div>

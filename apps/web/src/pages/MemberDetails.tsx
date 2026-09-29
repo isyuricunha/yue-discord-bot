@@ -262,9 +262,9 @@ export default function MemberDetailsPage() {
                       value={timeout_duration}
                       onChange={(e) => setTimeoutDuration(e.target.value)}
                       placeholder="5m"
-                      className={timeout_validation.error ? 'border-red-500/60 focus-visible:ring-red-500/30 focus-visible:border-red-500/60' : undefined}
+                      className={timeout_validation.error ? 'border-danger/60 focus-visible:ring-danger/30 focus-visible:border-danger/60' : undefined}
                     />
-                    <div className={timeout_validation.error ? 'text-xs text-red-500' : 'text-xs text-muted-foreground'}>
+                    <div className={timeout_validation.error ? 'text-xs text-danger' : 'text-xs text-muted-foreground'}>
                       {timeout_validation.error ?? 'Formato: 30s, 5m, 2h, 1d (máx 28d).'}
                     </div>
                   </div>
@@ -318,7 +318,7 @@ export default function MemberDetailsPage() {
                       })
                     }
                     disabled={moderateMutation.isPending || confirm_text.trim().toUpperCase() !== 'KICK'}
-                    className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+                    className="border-danger/60 text-danger hover:border-danger hover:bg-danger/10"
                   >
                     <Gavel className="h-4 w-4" />
                     Kick
@@ -333,7 +333,7 @@ export default function MemberDetailsPage() {
                       })
                     }
                     disabled={moderateMutation.isPending || confirm_text.trim().toUpperCase() !== 'BAN'}
-                    className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+                    className="border-danger/60 text-danger hover:border-danger hover:bg-danger/10"
                   >
                     <Ban className="h-4 w-4" />
                     Ban

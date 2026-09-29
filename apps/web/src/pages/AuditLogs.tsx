@@ -195,7 +195,7 @@ export default function AuditLogsPage() {
         <CardContent className="p-4 sm:p-6 space-y-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 p-4 rounded-xl border border-accent/20 bg-card">
             <div>
-              <div className="font-semibold flex items-center gap-2">Canal de Auditoria {config_data?.config?.auditLogChannelId && <span className="text-[10px] uppercase font-bold text-green-500 bg-green-500/10 px-2 py-0.5 rounded">Ativo</span>}</div>
+              <div className="font-semibold flex items-center gap-2">Canal de Auditoria {config_data?.config?.auditLogChannelId && <span className="text-[10px] uppercase font-bold text-success bg-success/10 px-2 py-0.5 rounded">Ativo</span>}</div>
               <div className="text-sm text-muted-foreground mt-1">Selecione o canal onde o Bot enviará os logs da plataforma (edições, deleções, apelidos, cargos).</div>
             </div>
             <div className="w-full md:w-64 shrink-0">

@@ -252,7 +252,7 @@ const metricsQuery = useQuery({
                 />
               </div>
               {fallbackEnabled && !customConfigured && (
-                <p className="text-xs text-amber-500 font-medium">
+                <p className="text-xs text-accent-hover font-medium">
                   O Custom Provider não está configurado por ambiente. O fallback está desativado na prática até que as variáveis de ambiente sejam definidas.
                 </p>
               )}
@@ -275,7 +275,7 @@ const metricsQuery = useQuery({
               />
             </div>
             {discordTextFallbackEnabled && !customConfigured && (
-              <p className="text-xs text-amber-500 font-medium">
+              <p className="text-xs text-accent-hover font-medium">
                 O Custom Provider não está configurado por ambiente. O fallback está desativado na prática até que as variáveis de ambiente sejam definidas.
               </p>
             )}

@@ -212,7 +212,7 @@ export default function GiveawayEntryEditPage() {
               </div>
 
               {!is_count_valid && (
-                <div className="rounded-xl border border-border/70 bg-surface/60 p-3 text-xs text-yellow-300">
+                <div className="rounded-xl border border-border/70 bg-surface/60 p-3 text-xs text-accent-hover">
                   Quantidade inválida. Você precisa respeitar Min/Max do sorteio.
                 </div>
               )}

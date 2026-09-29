@@ -69,45 +69,6 @@ export default {
           DEFAULT: color('muted'),
           dim: color('dim'),
         },
-        green: {
-          400: color('success'),
-          500: color('success'),
-        },
-        emerald: {
-          400: color('success'),
-          500: color('success'),
-        },
-        purple: {
-          400: color('agent'),
-          500: color('agent'),
-        },
-        blue: {
-          400: color('info'),
-          500: color('info'),
-          600: color('info'),
-          700: color('info-hover'),
-        },
-        cyan: {
-          400: color('info'),
-          500: color('info'),
-        },
-        red: {
-          400: color('danger'),
-          500: color('danger'),
-        },
-        yellow: {
-          300: color('accent-hover'),
-          400: color('accent-hover'),
-          500: color('accent'),
-        },
-        amber: {
-          400: color('accent-hover'),
-          500: color('accent'),
-        },
-        orange: {
-          400: color('accent'),
-          500: color('accent'),
-        },
       },
       borderRadius: {
         xs: 'var(--yu-radius-xs)',
@@ -123,39 +84,14 @@ export default {
         modal: 'var(--yu-radius-modal)',
         popover: 'var(--yu-radius-popover)',
       },
-      boxShadow: {
-        cursorSm: 'var(--yu-shadow-sm)',
-        cursorMd: 'var(--yu-shadow-md)',
-        cursorLg: 'var(--yu-shadow-lg)',
-        yudarkSm: 'var(--yu-shadow-sm)',
-        yudarkMd: 'var(--yu-shadow-md)',
-        yudarkLg: 'var(--yu-shadow-lg)',
-        window: 'var(--yu-window-shadow)',
-        floating: 'var(--yu-floating-shadow)',
-        tooltip: 'var(--yu-tooltip-shadow)',
-        innerBorder: 'var(--yu-inner-border)',
-        focusGlow: 'var(--yu-focus-glow)',
-        yellowGlow: 'var(--yu-accent-glow-shadow)',
-        accentGlow: 'var(--yu-accent-glow-shadow)',
-      },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(8px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
         },
-        shimmer: {
-          '0%': { transform: 'translateX(-120%)' },
-          '100%': { transform: 'translateX(120%)' },
-        },
-        textShimmer: {
-          '0%': { backgroundPosition: '220% 0' },
-          '100%': { backgroundPosition: '-220% 0' },
-        },
       },
       animation: {
         fadeIn: 'fadeIn 220ms cubic-bezier(0.2, 0, 0, 1)',
-        shimmer: 'shimmer 1.8s ease-in-out infinite',
-        textShimmer: 'textShimmer 1.6s linear infinite',
       },
     },
   },

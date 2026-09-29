@@ -483,9 +483,9 @@ export default function AutoModPage() {
                           setConfig({ ...config, linkNoRoleTimeoutDuration: event.target.value })
                         }
                         placeholder="10m"
-                        className={link_no_role_timeout_validation.error ? 'border-red-500/60 focus-visible:ring-red-500/30 focus-visible:border-red-500/60' : undefined}
+                        className={link_no_role_timeout_validation.error ? 'border-danger/60 focus-visible:ring-danger/30 focus-visible:border-danger/60' : undefined}
                       />
-                      <div className={link_no_role_timeout_validation.error ? 'mt-2 text-xs text-red-500' : 'mt-2 text-xs text-muted-foreground'}>
+                      <div className={link_no_role_timeout_validation.error ? 'mt-2 text-xs text-danger' : 'mt-2 text-xs text-muted-foreground'}>
                         {link_no_role_timeout_validation.error ?? 'Use 30s, 5m, 2h, 1d ou 1w. Máximo: 28d.'}
                       </div>
                     </div>
@@ -557,9 +557,9 @@ export default function AutoModPage() {
                             setConfig({ ...config, linkTimeoutDuration: event.target.value })
                           }
                           placeholder="5m"
-                          className={link_timeout_validation.error ? 'border-red-500/60 focus-visible:ring-red-500/30 focus-visible:border-red-500/60' : undefined}
+                          className={link_timeout_validation.error ? 'border-danger/60 focus-visible:ring-danger/30 focus-visible:border-danger/60' : undefined}
                         />
-                        <div className={link_timeout_validation.error ? 'mt-2 text-xs text-red-500' : 'mt-2 text-xs text-muted-foreground'}>
+                        <div className={link_timeout_validation.error ? 'mt-2 text-xs text-danger' : 'mt-2 text-xs text-muted-foreground'}>
                           {link_timeout_validation.error ?? 'Use 30s, 5m, 2h, 1d ou 1w. Máximo: 28d.'}
                         </div>
                       </div>

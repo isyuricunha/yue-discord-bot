@@ -247,24 +247,24 @@ export default function AntiRaidPage() {
                     </div>
 
                     {config.raidActive && (
-                        <div className="rounded-xl border border-red-500/50 bg-red-500/10 px-4 py-3">
-                            <div className="flex items-center gap-2 text-red-500">
+                        <div className="rounded-xl border border-danger/50 bg-danger/10 px-4 py-3">
+                            <div className="flex items-center gap-2 text-danger">
                                 <AlertTriangle className="h-5 w-5" />
                                 <span className="font-medium">Raide ativo no momento!</span>
                             </div>
-                            <div className="mt-1 text-sm text-red-400">
+                            <div className="mt-1 text-sm text-danger">
                                 O sistema está aplicando proteção automaticamente.
                             </div>
                         </div>
                     )}
 
                     {config.locked && (
-                        <div className="rounded-xl border border-yellow-500/50 bg-yellow-500/10 px-4 py-3">
-                            <div className="flex items-center gap-2 text-yellow-500">
+                        <div className="rounded-xl border border-accent-hover/50 bg-accent-hover/10 px-4 py-3">
+                            <div className="flex items-center gap-2 text-accent-hover">
                                 <Ban className="h-5 w-5" />
                                 <span className="font-medium">Servidor bloqueado!</span>
                             </div>
-                            <div className="mt-1 text-sm text-yellow-400">
+                            <div className="mt-1 text-sm text-accent-hover">
                                 O servidor está com mensagens bloqueadas para membros.
                             </div>
                         </div>
@@ -472,7 +472,7 @@ export default function AntiRaidPage() {
                         <div className="grid grid-cols-2 gap-4 text-sm">
                             <div>
                                 <span className="text-muted-foreground">Status:</span>{' '}
-                                <span className={config.enabled ? 'text-green-500' : 'text-muted-foreground'}>
+                                <span className={config.enabled ? 'text-success' : 'text-muted-foreground'}>
                                     {config.enabled ? 'Ativado' : 'Desativado'}
                                 </span>
                             </div>

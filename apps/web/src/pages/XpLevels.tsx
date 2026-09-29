@@ -632,7 +632,7 @@ export default function XpLevelsPage() {
         <Card>
           <CardContent className="space-y-5 p-6">
             <div>
-              <div className="text-sm font-semibold text-red-500">Zerar XP (guild)</div>
+              <div className="text-sm font-semibold text-danger">Zerar XP (guild)</div>
               <div className="mt-1 text-xs text-muted-foreground">
                 Remove o XP/level de todos os usuários desta guild. Esta ação não pode ser desfeita.
               </div>
@@ -649,7 +649,7 @@ export default function XpLevelsPage() {
                 isLoading={reset_mutation.isPending}
                 disabled={reset_confirm !== 'ZERAR'}
                 onClick={() => reset_mutation.mutate()}
-                className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+                className="border-danger/60 text-danger hover:border-danger hover:bg-danger/10"
               >
                 <span>Zerar XP da guild</span>
               </Button>
@@ -658,7 +658,7 @@ export default function XpLevelsPage() {
             <div className="h-px w-full bg-border/60" />
 
             <div>
-              <div className="text-sm font-semibold text-red-500">Zerar XP (usuário na guild)</div>
+              <div className="text-sm font-semibold text-danger">Zerar XP (usuário na guild)</div>
               <div className="mt-1 text-xs text-muted-foreground">
                 Informe o ID do usuário para remover o XP apenas dele neste servidor.
               </div>
@@ -676,7 +676,7 @@ export default function XpLevelsPage() {
                 isLoading={reset_user_mutation.isPending}
                 disabled={!reset_user_id || reset_user_confirm !== 'ZERAR USUARIO'}
                 onClick={() => reset_user_mutation.mutate({ userId: reset_user_id })}
-                className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+                className="border-danger/60 text-danger hover:border-danger hover:bg-danger/10"
               >
                 <span>Zerar usuário</span>
               </Button>
@@ -685,7 +685,7 @@ export default function XpLevelsPage() {
             <div className="h-px w-full bg-border/60" />
 
             <div>
-              <div className="text-sm font-semibold text-red-500">Zerar XP global</div>
+              <div className="text-sm font-semibold text-danger">Zerar XP global</div>
               <div className="mt-1 text-xs text-muted-foreground">
                 Restrito (allowlist). Se você não estiver autorizado, o servidor retornará Forbidden.
               </div>
@@ -713,7 +713,7 @@ export default function XpLevelsPage() {
                       : { scope: 'global' }
                   )
                 }
-                className="border-red-500/60 text-red-500 hover:border-red-500 hover:bg-red-500/10"
+                className="border-danger/60 text-danger hover:border-danger hover:bg-danger/10"
               >
                 <span>Zerar global</span>
               </Button>

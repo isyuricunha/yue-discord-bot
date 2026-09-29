@@ -78,16 +78,16 @@ const actionIcons = {
 }
 
 const actionColors = {
-  BAN: 'text-red-400',
-  UNBAN: 'text-red-400',
-  KICK: 'text-orange-400',
-  MUTE: 'text-yellow-400',
-  UNMUTE: 'text-yellow-400',
-  TIMEOUT: 'text-yellow-400',
-  UNTIMEOUT: 'text-yellow-400',
-  WARN: 'text-blue-400',
-  WARN_EXPIRED: 'text-blue-400',
-  MUTE_REAPPLY: 'text-yellow-400',
+  BAN: 'text-danger',
+  UNBAN: 'text-danger',
+  KICK: 'text-accent',
+  MUTE: 'text-accent-hover',
+  UNMUTE: 'text-accent-hover',
+  TIMEOUT: 'text-accent-hover',
+  UNTIMEOUT: 'text-accent-hover',
+  WARN: 'text-info',
+  WARN_EXPIRED: 'text-info',
+  MUTE_REAPPLY: 'text-accent-hover',
   AUTOMOD: 'text-accent',
 }
 
@@ -372,7 +372,7 @@ export default function ModLogsPage() {
               )}
             </div>
 
-            {message_validation && <div className="mt-2 text-xs text-red-500">JSON inválido: {message_validation}</div>}
+            {message_validation && <div className="mt-2 text-xs text-danger">JSON inválido: {message_validation}</div>}
             <div className="mt-2 text-xs text-muted-foreground">Suporta placeholders e JSON com embed.</div>
 
             <div className="mt-4 rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">

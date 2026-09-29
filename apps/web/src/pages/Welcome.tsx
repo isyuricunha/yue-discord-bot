@@ -269,7 +269,7 @@ export default function WelcomePage() {
                     rows={5}
                   />
 
-                  {welcome_validation && <div className="text-xs text-red-500">Template inválido: {welcome_validation}</div>}
+                  {welcome_validation && <div className="text-xs text-danger">Template inválido: {welcome_validation}</div>}
 
                   <MessageVariantEditor
                     label="Mensagem de saída"
@@ -280,7 +280,7 @@ export default function WelcomePage() {
                     rows={5}
                   />
 
-                  {leave_validation && <div className="text-xs text-red-500">Template inválido: {leave_validation}</div>}
+                  {leave_validation && <div className="text-xs text-danger">Template inválido: {leave_validation}</div>}
 
                   <div className="rounded-2xl border border-border/70 bg-surface/40 p-4 text-sm text-muted-foreground">
                     <div className="text-sm font-semibold text-foreground">Exemplos</div>

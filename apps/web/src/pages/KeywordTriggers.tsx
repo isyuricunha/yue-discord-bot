@@ -265,9 +265,9 @@ export default function KeywordTriggersPage() {
               value={url}
               onChange={(e) => handle_url_change(e.target.value)}
               placeholder="https://media.tenor.com/..."
-              className={url_error ? 'border-red-500 focus:border-red-500' : ''}
+              className={url_error ? 'border-danger focus:border-danger' : ''}
             />
-            {url_error && <div className="mt-1 text-xs text-red-400">{url_error}</div>}
+            {url_error && <div className="mt-1 text-xs text-danger">{url_error}</div>}
             <div className="mt-1 text-[11px] text-muted-foreground">
               Domínios aceitos: tenor.com, giphy.com, imgur.com, cdn.discordapp.com,
               media.discordapp.net — ou qualquer URL com extensão .gif, .png, .jpg, .jpeg, .webp,
@@ -433,7 +433,7 @@ export default function KeywordTriggersPage() {
                         if (!window.confirm(`Remover o gatilho "${t.keyword}"?`)) return
                         delete_mutation.mutate(t.id)
                       }}
-                      className="shrink-0 text-muted-foreground hover:text-red-400"
+                      className="shrink-0 text-muted-foreground hover:text-danger"
                       aria-label={`Remover gatilho ${t.keyword}`}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -518,9 +518,9 @@ export default function KeywordTriggersPage() {
                     }
                   }}
                   placeholder="https://media.tenor.com/..."
-                  className={edit_url_error ? 'border-red-500 focus:border-red-500' : ''}
+                  className={edit_url_error ? 'border-danger focus:border-danger' : ''}
                 />
-                {edit_url_error && <div className="mt-1 text-xs text-red-400">{edit_url_error}</div>}
+                {edit_url_error && <div className="mt-1 text-xs text-danger">{edit_url_error}</div>}
               </div>
 
               <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface/20 p-3">
