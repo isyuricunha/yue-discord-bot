@@ -94,7 +94,7 @@ checks:
   stage: checks
   image: node:24
   tags:
-    - saas-linux-small-amd64
+    - amd64
   rules: *checks-rules
   services:
     - name: postgres:16-alpine
@@ -164,7 +164,7 @@ release:
   stage: release
   image: node:24
   tags:
-    - saas-linux-small-amd64
+    - amd64
   rules: *main-push-rules
   # Serialize main release pipelines (equivalent to the old concurrency group
   # "docker-release-main" with cancel-in-progress: false).
@@ -217,6 +217,9 @@ release:
   services:
     - name: docker:28-dind
       alias: docker
+      # Jobs run on self-hosted runners (amd64 on cloud-lab, arm64 on
+      # cloud-arm); the MTU below was tuned for GitLab.com hosted runners and
+      # stays because a lower inner MTU is harmless on the self-hosted hosts.
       # GitLab.com hosted runners ship with the Docker bridge MTU lowered to
       # 1360 (infra workaround for a PMTUD blackhole, applied fleet-wide to
       # saas-linux-* amd64 and arm64 shards in June 2026). The dockerd inside
@@ -300,7 +303,7 @@ release:
 docker-build-amd64:
   extends: .docker-build
   tags:
-    - saas-linux-small-amd64
+    - amd64
   rules: *main-push-rules
   resource_group: docker-release-main:build-amd64
   variables:
@@ -310,7 +313,7 @@ docker-build-amd64:
 docker-build-arm64:
   extends: .docker-build
   tags:
-    - saas-linux-small-arm64
+    - arm64
   rules: *main-push-rules
   resource_group: docker-release-main:build-arm64
   variables:
@@ -323,7 +326,7 @@ docker-publish:
   stage: publish
   image: docker:28
   tags:
-    - saas-linux-small-amd64
+    - amd64
   rules: *main-push-rules
   resource_group: docker-release-main
   needs:
@@ -421,7 +424,7 @@ docker-publish-dev:
   stage: publish
   image: docker:28
   tags:
-    - saas-linux-small-arm64
+    - arm64
   resource_group: docker-dev-publish
   rules:
     - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^dev\//'
