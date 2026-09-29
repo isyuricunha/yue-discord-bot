@@ -1,49 +1,66 @@
 @config "../tailwind.config.js";
 @import "tailwindcss";
 
+/* YuTheme v2 (AMOLED): Geist, locally hosted (SIL OFL). */
+@font-face {
+  font-family: "Geist";
+  src: url("/fonts/Geist-Regular.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Geist Mono";
+  src: url("/fonts/GeistMono-Regular.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root,
 [data-theme="yudark"],
 [data-theme="yu-dark"] {
   color-scheme: dark;
 
-  --yu-bg-base: #1a1813;
-  --yu-bg-canvas: #1a1813;
-  --yu-bg-page: #1a1813;
-  --yu-bg-surface-1: #191811;
-  --yu-bg-surface-2: #1b1913;
-  --yu-bg-surface-3: #1f1d17;
-  --yu-bg-surface-4: #201e17;
-  --yu-bg-surface-5: #24211b;
-  --yu-bg-window: #1b1913;
-  --yu-bg-titlebar: #17160f;
-  --yu-bg-sidebar: #18170f;
-  --yu-bg-panel: #1b1913;
-  --yu-bg-editor: #1a1912;
-  --yu-bg-terminal: #191811;
-  --yu-bg-composer: #1b1913;
-  --yu-bg-hover: #2a271f;
-  --yu-bg-active: #332f25;
+  --yu-bg-base: #000000;
+  --yu-bg-canvas: #000000;
+  --yu-bg-page: #000000;
+  --yu-bg-surface-1: #0b0b0a;
+  --yu-bg-surface-2: #0b0b0a;
+  --yu-bg-surface-3: #0f0f0e;
+  --yu-bg-surface-4: #121211;
+  --yu-bg-surface-5: #1a1a18;
+  --yu-bg-window: #0b0b0a;
+  --yu-bg-titlebar: #121211;
+  --yu-bg-sidebar: #000000;
+  --yu-bg-panel: #0b0b0a;
+  --yu-bg-editor: #10100f;
+  --yu-bg-terminal: #10100f;
+  --yu-bg-composer: #121211;
+  --yu-bg-hover: #141413;
+  --yu-bg-active: #1f1f1d;
   --yu-bg-selected: rgba(214, 168, 79, 0.10);
-  --yu-bg-input: #201e17;
-  --yu-bg-input-hover: #26231c;
-  --yu-bg-popover: #201e17;
-  --yu-bg-modal: #1e1c16;
-  --yu-bg-tooltip: #201e17;
-  --yu-bg-code: #201e17;
-  --yu-bg-code-block: #1a1912;
-  --yu-bg-toc: #1f1d17;
-  --yu-bg-chip: #24211b;
-  --yu-bg-showcase-backdrop: #1f1d17;
+  --yu-bg-input: #121211;
+  --yu-bg-input-hover: #1a1a18;
+  --yu-bg-popover: #151514;
+  --yu-bg-modal: #0f0f0e;
+  --yu-bg-tooltip: #151514;
+  --yu-bg-code: #1a1a18;
+  --yu-bg-code-block: #10100f;
+  --yu-bg-toc: #151514;
+  --yu-bg-chip: #1a1a18;
+  --yu-bg-showcase-backdrop: #0f0f0e;
   --yu-bg-showcase-overlay: rgba(0, 0, 0, 0.32);
 
   --yu-text-primary: #f4f1e8;
   --yu-text-strong: #fffdf7;
   --yu-text-normal: #f4f1e8;
-  --yu-text-secondary: #b8b2a4;
+  --yu-text-secondary: #b3ad9f;
   --yu-text-accent: #d6a84f;
-  --yu-text-muted: #827c70;
-  --yu-text-dim: #5f5a50;
-  --yu-text-disabled: #4f4a42;
+  --yu-text-muted: #8e887c;
+  --yu-text-dim: #666157;
+  --yu-text-disabled: #54504a;
   --yu-text-on-accent: #15130f;
 
   --yu-icon-primary: var(--yu-text-normal);
@@ -61,15 +78,15 @@
   --yu-accent-soft: rgba(214, 168, 79, 0.18);
   --yu-accent-softer: rgba(214, 168, 79, 0.08);
   --yu-accent-border: rgba(214, 168, 79, 0.30);
-  --yu-accent-glow: rgba(214, 168, 79, 0.16);
+  --yu-accent-glow: rgba(214, 168, 79, 0.08);
 
-  --yu-border-faint: rgba(214, 204, 176, 0.06);
-  --yu-border-subtle: rgba(214, 204, 176, 0.08);
-  --yu-border-default: rgba(214, 204, 176, 0.14);
-  --yu-border-strong: rgba(214, 204, 176, 0.22);
+  --yu-border-faint: rgba(232, 228, 216, 0.08);
+  --yu-border-subtle: rgba(232, 228, 216, 0.13);
+  --yu-border-default: rgba(232, 228, 216, 0.20);
+  --yu-border-strong: rgba(232, 228, 216, 0.32);
   --yu-border-accent: rgba(214, 168, 79, 0.30);
-  --yu-border-neutral: rgba(214, 204, 176, 0.08);
-  --yu-border-neutral-strong: rgba(214, 204, 176, 0.14);
+  --yu-border-neutral: rgba(232, 228, 216, 0.13);
+  --yu-border-neutral-strong: rgba(232, 228, 216, 0.20);
 
   --yu-success: #31d158;
   --yu-success-hover: #48db6b;
@@ -87,11 +104,11 @@
   --yu-info-soft: rgba(100, 210, 255, 0.18);
 
   --yu-code-inline-text: #d6a84f;
-  --yu-code-inline-bg: #201e17;
-  --yu-code-block-bg: #1a1912;
+  --yu-code-inline-bg: #1a1a18;
+  --yu-code-block-bg: #10100f;
   --yu-code-border: rgba(214, 168, 79, 0.12);
   --yu-blockquote-border: #a37e3a;
-  --yu-blockquote-text: #b8b2a4;
+  --yu-blockquote-text: #b3ad9f;
   --yu-blockquote-bg: rgba(214, 168, 79, 0.06);
   --yu-go-top-bg: rgba(214, 168, 79, 0.70);
   --yu-go-top-bg-hover: #e0b760;
@@ -99,32 +116,33 @@
   --yu-shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.35);
   --yu-shadow-md: 0 18px 48px rgba(0, 0, 0, 0.42);
   --yu-shadow-lg: 0 32px 80px rgba(0, 0, 0, 0.48);
-  --yu-window-shadow: var(--yu-shadow-lg);
+  --yu-highlight: inset 0 1px 0 rgba(255, 253, 247, 0.05);
+  --yu-window-shadow: none;
   --yu-floating-shadow: var(--yu-shadow-md);
   --yu-tooltip-shadow: var(--yu-shadow-sm);
   --yu-overlay: rgba(0, 0, 0, 0.32);
-  --yu-inner-border: inset 0 0 0 1px rgba(214, 204, 176, 0.06);
+  --yu-inner-border: inset 0 0 0 1px rgba(232, 228, 216, 0.08);
   --yu-focus-glow: 0 0 0 2px rgba(214, 168, 79, 0.22);
-  --yu-accent-glow-shadow: 0 0 24px rgba(214, 168, 79, 0.14);
-  --yu-success-glow-shadow: 0 0 20px rgba(49, 209, 88, 0.14);
+  --yu-accent-glow-shadow: 0 0 24px rgba(214, 168, 79, 0.08);
+  --yu-success-glow-shadow: 0 0 20px rgba(49, 209, 88, 0.08);
 
-  --yu-radius-xs: 6px;
+  --yu-radius-xs: 4px;
   --yu-radius-sm: 8px;
-  --yu-radius-md: 10px;
-  --yu-radius-lg: 14px;
-  --yu-radius-xl: 18px;
-  --yu-radius-2xl: 24px;
-  --yu-radius-window: 16px;
-  --yu-radius-input: 10px;
-  --yu-radius-button: 10px;
-  --yu-radius-card: 16px;
-  --yu-radius-panel: 16px;
-  --yu-radius-modal: 20px;
-  --yu-radius-popover: 16px;
+  --yu-radius-md: 8px;
+  --yu-radius-lg: 12px;
+  --yu-radius-xl: 16px;
+  --yu-radius-2xl: 20px;
+  --yu-radius-window: 14px;
+  --yu-radius-input: 8px;
+  --yu-radius-button: 8px;
+  --yu-radius-card: 12px;
+  --yu-radius-panel: 12px;
+  --yu-radius-modal: 14px;
+  --yu-radius-popover: 12px;
   --yu-radius-pill: 999px;
 
-  --yu-font-sans: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
-  --yu-font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --yu-font-sans: "Geist", Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+  --yu-font-mono: "Geist Mono", "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
   --yu-font-size-base: 16px;
   --yu-font-size-medium: 15px;
   --yu-font-size-small: 14px;
@@ -146,13 +164,13 @@
   --yu-space-16: 64px;
 
   --yu-duration-fast: 120ms;
-  --yu-duration-base: 180ms;
+  --yu-duration-base: 160ms;
   --yu-duration-slow: 260ms;
   --yu-ease: cubic-bezier(0.2, 0, 0, 1);
 
   --yu-stagger-step: 50ms;
-  --yu-card-lift: translateY(-2px);
-  --yu-card-shadow-hover: 0 8px 24px rgba(0, 0, 0, 0.25);
+  --yu-card-lift: translateY(-3px);
+  --yu-card-shadow-hover: inset 0 0 0 1px rgba(232, 228, 216, 0.20), var(--yu-highlight);
 
 
   --syntax-fg: #e0e0e0;
@@ -187,25 +205,25 @@
   --syntax-bracket-match: rgba(255, 167, 38, 0.24);
   --syntax-find-match: rgba(255, 167, 38, 0.30);
 
-  --yu-rgb-background: 26 24 19;
-  --yu-rgb-canvas: 26 24 19;
-  --yu-rgb-window: 27 25 19;
-  --yu-rgb-sidebar: 24 23 15;
-  --yu-rgb-surface: 25 24 17;
-  --yu-rgb-surface-raised: 31 29 23;
-  --yu-rgb-surface-hover: 42 39 31;
-  --yu-rgb-surface-active: 51 47 37;
-  --yu-rgb-card: 27 25 19;
-  --yu-rgb-panel: 27 25 19;
-  --yu-rgb-popover: 32 30 23;
-  --yu-rgb-input: 32 30 23;
-  --yu-rgb-tooltip: 32 30 23;
-  --yu-rgb-chip: 36 33 27;
+  --yu-rgb-background: 0 0 0;
+  --yu-rgb-canvas: 0 0 0;
+  --yu-rgb-window: 11 11 10;
+  --yu-rgb-sidebar: 0 0 0;
+  --yu-rgb-surface: 11 11 10;
+  --yu-rgb-surface-raised: 21 21 20;
+  --yu-rgb-surface-hover: 20 20 19;
+  --yu-rgb-surface-active: 31 31 29;
+  --yu-rgb-card: 11 11 10;
+  --yu-rgb-panel: 11 11 10;
+  --yu-rgb-popover: 21 21 20;
+  --yu-rgb-input: 21 21 20;
+  --yu-rgb-tooltip: 21 21 20;
+  --yu-rgb-chip: 26 26 24;
   --yu-rgb-foreground: 244 241 232;
   --yu-rgb-strong: 255 253 247;
-  --yu-rgb-muted: 130 124 112;
-  --yu-rgb-dim: 95 90 80;
-  --yu-rgb-border: 58 55 47;
+  --yu-rgb-muted: 142 136 124;
+  --yu-rgb-dim: 102 97 87;
+  --yu-rgb-border: 46 46 43;
   --yu-rgb-accent: 214 168 79;
   --yu-rgb-accent-hover: 224 183 96;
   --yu-rgb-accent-active: 194 149 63;
@@ -452,13 +470,13 @@ code {
   padding: 0.15em 0.35em;
   color: var(--yu-code-inline-text);
   background: var(--yu-code-inline-bg);
-  border: 1px solid var(--yu-code-border);
+  border: 0.5px solid var(--yu-code-border);
   border-radius: var(--yu-radius-sm);
 }
 
 pre {
   background: var(--yu-code-block-bg);
-  border: 1px solid var(--yu-code-border);
+  border: 0.5px solid var(--yu-code-border);
   border-radius: var(--yu-radius-card);
 }
 
@@ -470,7 +488,7 @@ blockquote {
 }
 
 kbd {
-  border: 1px solid var(--cursor-border-default);
+  border: 0.5px solid var(--cursor-border-default);
   background: var(--cursor-bg-surface-raised);
   color: var(--cursor-text-secondary);
 }
@@ -542,7 +560,7 @@ kbd {
 .cursor-window {
   overflow: hidden;
   background: var(--cursor-bg-window);
-  border: 1px solid var(--cursor-border-subtle);
+  border: 0.5px solid var(--cursor-border-subtle);
   border-radius: var(--cursor-radius-window);
   box-shadow: var(--cursor-window-shadow);
 }
@@ -556,7 +574,7 @@ kbd {
   justify-content: center;
   color: var(--cursor-text-secondary);
   background: var(--cursor-bg-titlebar);
-  border-bottom: 1px solid var(--cursor-border-faint);
+  border-bottom: 0.5px solid var(--cursor-border-faint);
   font-size: 12px;
 }
 
@@ -582,7 +600,7 @@ kbd {
 .cursor-panel,
 .cursor-card {
   background: var(--cursor-bg-surface);
-  border: 1px solid var(--cursor-border-subtle);
+  border: 0.5px solid var(--cursor-border-subtle);
   border-radius: var(--cursor-radius-card);
   box-shadow: var(--cursor-inner-border);
 }
@@ -606,7 +624,7 @@ kbd {
 .cursor-floating {
   overflow: hidden;
   background: var(--cursor-bg-popover);
-  border: 1px solid var(--cursor-border-default);
+  border: 0.5px solid var(--cursor-border-default);
   border-radius: var(--cursor-radius-popover);
   box-shadow: var(--cursor-floating-shadow), var(--cursor-inner-border);
 }
@@ -615,7 +633,7 @@ kbd {
 .cursor-code {
   color: var(--syntax-fg);
   background: var(--yu-code-block-bg);
-  border: 1px solid var(--yu-code-border);
+  border: 0.5px solid var(--yu-code-border);
   border-radius: var(--cursor-radius-card);
   font-family: var(--cursor-font-mono);
 }
@@ -636,34 +654,34 @@ kbd {
   pointer-events: none;
   background: linear-gradient(90deg, transparent 0%, rgba(232, 212, 160, 0.35) 45%, transparent 80%);
   transform: translateX(-120%);
-  animation: yudark-sheen 1.8s ease-in-out infinite;
+  animation: yu-sheen 1.8s ease-in-out infinite;
 }
 
-.yudark-text-shimmer,
+.yu-text-shimmer,
 .cursor-text-shimmer {
   color: transparent;
   background: linear-gradient(90deg, var(--cursor-text-muted) 0%, var(--cursor-text-primary) 45%, var(--cursor-text-muted) 90%);
   background-size: 220% 100%;
   background-clip: text;
   -webkit-background-clip: text;
-  animation: yudark-text-shimmer 1.6s linear infinite;
+  animation: yu-text-shimmer 1.6s linear infinite;
 }
 
-.yudark-skeleton,
+.yu-skeleton,
 .cursor-skeleton {
   background: linear-gradient(90deg, #0a0a0a 0%, #151515 50%, #0a0a0a 100%);
   background-size: 200% 100%;
   border-radius: var(--cursor-radius-md);
-  animation: yudark-skeleton 1.2s linear infinite;
+  animation: yu-skeleton 1.2s linear infinite;
 }
 
-@keyframes yudark-sheen {
+@keyframes yu-sheen {
   to {
     transform: translateX(120%);
   }
 }
 
-@keyframes yudark-text-shimmer {
+@keyframes yu-text-shimmer {
   from {
     background-position: 220% 0;
   }
@@ -672,7 +690,7 @@ kbd {
   }
 }
 
-@keyframes yudark-skeleton {
+@keyframes yu-skeleton {
   from {
     background-position: 200% 0;
   }
@@ -775,7 +793,7 @@ kbd {
   transition: transform var(--yu-duration-base) var(--yu-ease), box-shadow var(--yu-duration-base) var(--yu-ease);
 }
 .card-hover:hover {
-  transform: translateY(-2px);
+  transform: var(--yu-card-lift);
   box-shadow: var(--yu-card-shadow-hover);
 }
 @media (prefers-reduced-motion: reduce) {

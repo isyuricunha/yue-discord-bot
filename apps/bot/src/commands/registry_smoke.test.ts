@@ -3,10 +3,10 @@ import assert from 'node:assert/strict'
 
 import { Client, Collection } from 'discord.js'
 
-// Smoke do registro inteiro de comandos: roda o loadCommands real (todos os
-// builders, todas as subpastas) com um client falso, no mesmo padrão do
-// export-commands.ts: nada do Discord é tocado. Pega import quebrado, builder
-// inválido e execute faltando em qualquer comando novo antes do CI.
+// Whole command registry smoke: runs the real loadCommands (every builder,
+// every subfolder) with a fake client, same pattern as export-commands.ts:
+// nothing from Discord is touched. Catches a broken import, an invalid
+// builder or a missing execute in any new command before CI.
 
 function fake_client(): Client {
   const client = new Client({ intents: [] })
@@ -15,37 +15,37 @@ function fake_client(): Client {
   return client
 }
 
-test('loadCommands carrega todo slash command com builder válido e execute', async () => {
+test('loadCommands loads every slash command with a valid builder and execute', async () => {
   const { loadCommands } = await import('./index')
 
   const client = fake_client()
   await loadCommands(client)
 
-  assert.ok(client.commands.size > 0, 'nenhum comando carregado')
+  assert.ok(client.commands.size > 0, 'no command loaded')
 
   for (const [name, command] of client.commands) {
-    assert.equal(name, command.data.name, 'chave do registro difere do data.name')
+    assert.equal(name, command.data.name, 'registry key differs from data.name')
     assert.ok(name.length > 0)
-    assert.equal(typeof command.execute, 'function', `${name} sem execute`)
+    assert.equal(typeof command.execute, 'function', `${name} missing execute`)
 
-    // Builder inválido (campos obrigatórios faltando, descrição vazia, etc.)
-    // lança aqui, no mesmo caminho que o deploy real percorre.
+    // Invalid builder (missing required fields, empty description, etc.)
+    // throws here, on the same path the real deploy goes through.
     const json = command.data.toJSON()
     assert.equal(json.name, name)
   }
 })
 
-test('loadContextMenuCommands carrega context menus válidos', async () => {
+test('loadContextMenuCommands loads valid context menus', async () => {
   const { loadContextMenuCommands } = await import('./index')
 
   const client = fake_client()
   await loadContextMenuCommands(client)
 
-  assert.ok(client.contextMenuCommands.size > 0, 'nenhum context menu carregado')
+  assert.ok(client.contextMenuCommands.size > 0, 'no context menu loaded')
 
   for (const [name, command] of client.contextMenuCommands) {
-    assert.equal(name, command.data.name, 'chave do registro difere do data.name')
-    assert.equal(typeof command.execute, 'function', `${name} sem execute`)
+    assert.equal(name, command.data.name, 'registry key differs from data.name')
+    assert.equal(typeof command.execute, 'function', `${name} missing execute`)
     assert.equal(command.data.toJSON().name, name)
   }
 })

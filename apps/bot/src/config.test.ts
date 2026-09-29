@@ -3,9 +3,9 @@ import assert from 'node:assert/strict'
 
 import { assert_bot_runtime_env } from './config'
 
-// Smoke do gate de boot: o runtime se recusa a subir sem as envs obrigatórias.
-// Cada teste controla o process.env com restore em finally; o worker isolado
-// por arquivo do node --test impede o vazamento para outros arquivos.
+// Boot gate smoke: the runtime refuses to come up without the required envs.
+// Each test controls process.env with a restore in finally; the isolated
+// per-file worker of node --test keeps state from leaking into other files.
 
 const MINIMUM: Record<string, string> = {
   DISCORD_CLIENT_ID: '123456789012345678',
@@ -34,11 +34,11 @@ function run_with_env(overrides: Record<string, string | undefined>, fn: () => v
   }
 }
 
-test('assert_bot_runtime_env passa com o conjunto mínimo de envs', () => {
+test('assert_bot_runtime_env passes with the minimum env set', () => {
   run_with_env({}, () => assert.doesNotThrow(() => assert_bot_runtime_env()))
 })
 
-test('assert_bot_runtime_env falha sem cada env obrigatória', () => {
+test('assert_bot_runtime_env fails without each required env', () => {
   for (const missing of ['DISCORD_CLIENT_ID', 'DISCORD_TOKEN', 'DATABASE_URL', 'INTERNAL_API_SECRET']) {
     run_with_env({ [missing]: undefined }, () =>
       assert.throws(() => assert_bot_runtime_env(), new RegExp(`faltando: ${missing}`)),
@@ -46,13 +46,13 @@ test('assert_bot_runtime_env falha sem cada env obrigatória', () => {
   }
 })
 
-test('assert_bot_runtime_env exige INTERNAL_API_SECRET com 32+ caracteres', () => {
+test('assert_bot_runtime_env requires INTERNAL_API_SECRET with 32+ characters', () => {
   run_with_env({ INTERNAL_API_SECRET: 'curto' }, () =>
     assert.throws(() => assert_bot_runtime_env(), /32 caracteres/),
   )
 })
 
-test('LIVEPIX_ENABLED=true exige credenciais livepix e url de retorno', () => {
+test('LIVEPIX_ENABLED=true requires livepix credentials and return url', () => {
   run_with_env({ LIVEPIX_ENABLED: 'true' }, () =>
     assert.throws(() => assert_bot_runtime_env(), /LIVEPIX_CLIENT_ID/),
   )
