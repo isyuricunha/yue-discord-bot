@@ -315,7 +315,7 @@ export default function FreeGamesPage() {
                                                 <div className="flex items-center gap-2">
                                                     <div
                                                         className="h-3 w-3 rounded-full"
-                                                        style={{ backgroundColor: role.color ? `#${role.color.toString(16).padStart(6, '0')}` : '#808080' }}
+                                                        style={{ backgroundColor: role.color ? `#${role.color.toString(16).padStart(6, '0')}` : 'var(--yu-text-muted)' }}
                                                     />
                                                     <span className="text-sm font-medium">{role.name}</span>
                                                 </div>
