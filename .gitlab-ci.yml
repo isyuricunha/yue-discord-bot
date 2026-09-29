@@ -5,9 +5,14 @@
 #
 # Pipeline shape:
 #   checks         -> lint / type-check / tests / build / knip + migrations on PostgreSQL 16
+#                     (runs on merge requests, main pushes and dev/* branch pushes)
 #   release        -> semantic-release on main (GitLab release + tag become the primary origin)
-#   docker-build   -> per-architecture images pushed by digest (linux/amd64 + linux/arm64, native runners)
+#   docker-build   -> per-architecture images pushed by digest (linux/amd64 + linux/arm64)
 #   docker-publish -> multi-arch manifest assembly + verification for the three registries
+#                     (release-gated: a main push without a new release publishes NOTHING,
+#                     not even `latest`; every published image is born from a release tag)
+#   docker-publish-dev -> manual-only build of dev/* branches, tagged `dev` + `dev-<sha>`
+#                     in the GitLab registry (never touches GHCR/Docker Hub/production)
 #
 # A single build per platform feeds all three registries (one buildx --output
 # with three image names, pushed by digest, manifests assembled afterwards):
@@ -38,6 +43,9 @@ workflow:
     # Push pipelines on main; docs-only commits are filtered per job (equivalent
     # to the old paths-ignore on the push trigger).
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+    # Push pipelines on dev/* branches: checks only; the dev image is a manual
+    # job so accidental pushes publish nothing.
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^dev\//
     # Manual runs from the web UI (Build > Pipelines > Run pipeline). Added
     # while the identity-verification restriction on the pushing account is
     # being isolated; keep for manual re-runs afterwards.
@@ -48,13 +56,14 @@ workflow:
   main-push: &main-push-rules
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
 
-  # checks run on MRs always, and on main pushes. Docs-only pushes are skipped
-  # by the .docs-only-skip script gate below: rules:changes has no "exclude",
-  # so path filtering cannot be expressed natively without also skipping mixed
-  # docs+code commits (a silent-skip regression versus GitHub paths-ignore).
+  # checks run on MRs always, on main pushes and on dev/* branch pushes. Docs-only
+  # pushes on main are skipped by the .docs-only-skip script gate below: rules:changes
+  # has no "exclude", so path filtering cannot be expressed natively without also
+  # skipping mixed docs+code commits (a silent-skip regression versus GitHub paths-ignore).
   checks: &checks-rules
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
     - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH == "main"
+    - if: $CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^dev\//
 
 # Early-exit gate equivalent to the old GitHub Actions paths-ignore: a push to
 # main that touches ONLY the listed documentation/config paths exits 0 without
@@ -238,6 +247,17 @@ release:
   script:
     # Docs-only push gate (GitHub paths-ignore equivalent).
     - !reference [.docs-only-skip, script]
+    # Release-gated build: a main push without a new release (docs, chores,
+    # tests) publishes nothing, not even an untagged digest. The dotenv report
+    # of the release job carries RELEASE_PUBLISHED/RELEASE_TAG; an empty report
+    # means semantic-release published no release for this push.
+    - |
+      if [ "${RELEASE_PUBLISHED:-}" != "true" ] || [ -z "${RELEASE_TAG:-}" ]; then
+        echo "No release published for this push; skipping image build and publish."
+        mkdir -p digests
+        touch "digests/.no-release"
+        exit 0
+      fi
     # Official multi-registry digest push (docker docs "multi-platform image"
     # pattern, the same string docker/build-push-action generates for multiple
     # names): one build per platform, pushed by digest to all three registries
@@ -321,6 +341,14 @@ docker-publish:
   script:
     # Docs-only push gate (GitHub paths-ignore equivalent).
     - !reference [.docs-only-skip, script]
+    # Release-gated publish: without a new release, publish nothing (no
+    # `latest`, no version tag). Every published manifest is born from a
+    # release tag, so each deploy maps to a version.
+    - |
+      if [ "${RELEASE_PUBLISHED:-}" != "true" ] || [ -z "${RELEASE_TAG:-}" ]; then
+        echo "No release published for this push; skipping manifest publication."
+        exit 0
+      fi
     - cd digests
     - |
       # BusyBox find (docker:28/alpine) has no -printf; use ls + sed instead.
@@ -384,3 +412,58 @@ docker-publish:
       verify_manifest "ghcr.io/isyuricunha/yue-discord-bot"
       verify_manifest "$DOCKERHUB_USERNAME/yue-discord-bot"
       echo "Verified expected platform digests across GLCR, GHCR and Docker Hub"
+
+# Manual dev image for dev/* branches: single arm64 build (production runs on
+# cloud-arm), pushed ONLY to the GitLab registry with `dev` + `dev-<sha>` tags.
+# Never touches GHCR, Docker Hub or anything production consumes. Runs on
+# demand only: an accidental push on a dev branch publishes nothing.
+docker-publish-dev:
+  stage: publish
+  image: docker:28
+  tags:
+    - saas-linux-small-arm64
+  resource_group: docker-dev-publish
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "push" && $CI_COMMIT_BRANCH =~ /^dev\//'
+      when: manual
+    - if: '$CI_PIPELINE_SOURCE == "web" && $CI_COMMIT_BRANCH =~ /^dev\//'
+      when: manual
+  services:
+    - name: docker:28-dind
+      alias: docker
+      command: ["--mtu=1360"]
+  variables:
+    DOCKER_HOST: tcp://docker:2376
+    DOCKER_TLS_CERTDIR: "/certs"
+    DOCKER_TLS_VERIFY: "1"
+    DOCKER_CERT_PATH: "/certs/client"
+    BUILDKIT_PROGRESS: plain
+  before_script:
+    - apk add --no-cache jq >/dev/null
+    - docker version
+    - docker context create "yue-dev-ctx"
+    - docker buildx create --use --name "yue-dev" "yue-dev-ctx"
+    - printf '%s' "$CI_REGISTRY_PASSWORD" | docker login "$CI_REGISTRY" --username "$CI_REGISTRY_USER" --password-stdin
+  script:
+    - >
+      docker buildx build
+      --platform linux/arm64
+      --provenance=false
+      --label "org.opencontainers.image.title=Yue Discord Bot (dev)"
+      --label "org.opencontainers.image.description=A biggest bot."
+      --label "org.opencontainers.image.version=dev-$CI_COMMIT_SHORT_SHA"
+      --label "org.opencontainers.image.revision=$CI_COMMIT_SHA"
+      --label "org.opencontainers.image.source=$CI_PROJECT_URL"
+      --cache-from "type=registry,ref=$CI_REGISTRY_IMAGE/buildcache:yue-dev-arm64"
+      --cache-to "type=registry,ref=$CI_REGISTRY_IMAGE/buildcache:yue-dev-arm64,mode=max"
+      --metadata-file metadata.json
+      --output "type=image,name=$CI_REGISTRY_IMAGE:dev,push=true,oci-mediatypes=true"
+      .
+    - DIGEST="$(jq -r '."containerimage.digest"' metadata.json)"
+    - |
+      if [ -z "$DIGEST" ] || [ "$DIGEST" = "null" ]; then
+        echo "ERROR: Docker build did not return a digest"
+        exit 1
+      fi
+    - docker buildx imagetools create -t "$CI_REGISTRY_IMAGE:dev-$CI_COMMIT_SHORT_SHA" "$CI_REGISTRY_IMAGE@$DIGEST"
+    - echo "Published dev image $CI_REGISTRY_IMAGE:dev ($DIGEST) with version tag dev-$CI_COMMIT_SHORT_SHA"
