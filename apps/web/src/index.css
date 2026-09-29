@@ -167,6 +167,9 @@
   --yu-duration-base: 160ms;
   --yu-duration-slow: 260ms;
   --yu-ease: cubic-bezier(0.2, 0, 0, 1);
+  --yu-ease-shimmer: cubic-bezier(0.4, 0, 0.2, 1);
+  --yu-scrollbar: #2a2926;
+  --yu-scrollbar-hover: #3a3935;
 
   --yu-stagger-step: 50ms;
   --yu-card-lift: translateY(-3px);
@@ -381,7 +384,7 @@
 * {
   box-sizing: border-box;
   scrollbar-width: thin;
-  scrollbar-color: #4a4a4a #000000;
+  scrollbar-color: var(--yu-scrollbar) var(--yu-bg-canvas);
 }
 
 *::-webkit-scrollbar {
@@ -390,17 +393,17 @@
 }
 
 *::-webkit-scrollbar-track {
-  background: #000000;
+  background: var(--yu-bg-canvas);
 }
 
 *::-webkit-scrollbar-thumb {
-  background: #4a4a4a;
-  border: 2px solid #000000;
+  background: var(--yu-scrollbar);
+  border: 2px solid var(--yu-bg-canvas);
   border-radius: var(--cursor-radius-pill);
 }
 
 *::-webkit-scrollbar-thumb:hover {
-  background: #5a5a5a;
+  background: var(--yu-scrollbar-hover);
 }
 
 html,
@@ -533,30 +536,23 @@ kbd {
 
 .scrollbar-yue {
   scrollbar-width: thin;
-  scrollbar-color: #4a4a4a #000000;
+  scrollbar-color: var(--yu-scrollbar) var(--yu-bg-canvas);
 }
 
 .scrollbar-yue::-webkit-scrollbar-track {
-  background: #000000;
+  background: var(--yu-bg-canvas);
 }
 
 .scrollbar-yue::-webkit-scrollbar-thumb {
-  background: #4a4a4a;
-  border: 2px solid #000000;
+  background: var(--yu-scrollbar);
+  border: 2px solid var(--yu-bg-canvas);
   border-radius: var(--cursor-radius-pill);
 }
 
 .scrollbar-yue::-webkit-scrollbar-thumb:hover {
-  background: #5a5a5a;
+  background: var(--yu-scrollbar-hover);
 }
 
-.yudark-app {
-  background: var(--yu-bg-base);
-  color: var(--yu-text-primary);
-  font-family: var(--yu-font-sans);
-}
-
-.yudark-window,
 .cursor-window {
   overflow: hidden;
   background: var(--cursor-bg-window);
@@ -565,7 +561,6 @@ kbd {
   box-shadow: var(--cursor-window-shadow);
 }
 
-.yudark-titlebar,
 .cursor-titlebar {
   position: relative;
   display: flex;
@@ -578,7 +573,6 @@ kbd {
   font-size: 12px;
 }
 
-.yudark-traffic-lights,
 .cursor-traffic-lights {
   position: absolute;
   left: 12px;
@@ -586,7 +580,6 @@ kbd {
   gap: 8px;
 }
 
-.yudark-traffic-light,
 .cursor-traffic-light {
   width: 10px;
   height: 10px;
@@ -594,9 +587,6 @@ kbd {
   background: rgba(255, 255, 255, 0.20);
 }
 
-.yudark-surface,
-.yudark-panel,
-.yudark-card,
 .cursor-panel,
 .cursor-card {
   background: var(--cursor-bg-surface);
@@ -605,7 +595,6 @@ kbd {
   box-shadow: var(--cursor-inner-border);
 }
 
-.yudark-card,
 .cursor-card {
   transition:
     background-color var(--cursor-duration-fast) var(--cursor-ease),
@@ -614,13 +603,11 @@ kbd {
     transform var(--cursor-duration-fast) var(--cursor-ease);
 }
 
-.yudark-card:hover,
 .cursor-card:hover {
   background: var(--cursor-bg-surface-hover);
   border-color: var(--cursor-border-default);
 }
 
-.yudark-floating,
 .cursor-floating {
   overflow: hidden;
   background: var(--cursor-bg-popover);
@@ -629,7 +616,6 @@ kbd {
   box-shadow: var(--cursor-floating-shadow), var(--cursor-inner-border);
 }
 
-.yudark-code-block,
 .cursor-code {
   color: var(--syntax-fg);
   background: var(--yu-code-block-bg);
@@ -638,7 +624,6 @@ kbd {
   font-family: var(--cursor-font-mono);
 }
 
-.yudark-loading-text,
 .cursor-loading-text {
   position: relative;
   display: inline-block;
@@ -646,33 +631,38 @@ kbd {
   color: var(--cursor-text-muted);
 }
 
-.yudark-loading-text::after,
 .cursor-loading-text::after {
   position: absolute;
   inset: 0;
   content: "";
   pointer-events: none;
-  background: linear-gradient(90deg, transparent 0%, rgba(232, 212, 160, 0.35) 45%, transparent 80%);
+  background: linear-gradient(90deg, transparent 30%, rgba(255, 253, 247, 0.06) 45%, transparent 60%);
   transform: translateX(-120%);
-  animation: yu-sheen 1.8s ease-in-out infinite;
+  animation: yu-sheen 0.9s var(--yu-ease) infinite;
 }
 
 .yu-text-shimmer,
 .cursor-text-shimmer {
-  color: transparent;
-  background: linear-gradient(90deg, var(--cursor-text-muted) 0%, var(--cursor-text-primary) 45%, var(--cursor-text-muted) 90%);
-  background-size: 220% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  animation: yu-text-shimmer 1.6s linear infinite;
+  color: var(--yu-text-muted);
+}
+
+@supports ((-webkit-background-clip: text) or (background-clip: text)) {
+  .cursor-text-shimmer {
+    background-image: linear-gradient(100deg, var(--yu-text-muted) 0%, var(--yu-text-muted) 38%, var(--yu-text-strong) 50%, var(--yu-text-muted) 62%, var(--yu-text-muted) 100%);
+    background-size: 300% 100%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    animation: yu-shimmer 3.6s var(--yu-ease-shimmer) infinite;
+  }
 }
 
 .yu-skeleton,
 .cursor-skeleton {
-  background: linear-gradient(90deg, #0a0a0a 0%, #151515 50%, #0a0a0a 100%);
+  background: linear-gradient(90deg, var(--yu-bg-input) 0%, var(--yu-bg-active) 50%, var(--yu-bg-input) 100%);
   background-size: 200% 100%;
   border-radius: var(--cursor-radius-md);
-  animation: yu-skeleton 1.2s linear infinite;
+  animation: yu-skeleton 1.4s linear infinite;
 }
 
 @keyframes yu-sheen {
@@ -681,21 +671,21 @@ kbd {
   }
 }
 
-@keyframes yu-text-shimmer {
-  from {
-    background-position: 220% 0;
+@keyframes yu-shimmer {
+  0% {
+    background-position: 100% 0;
   }
-  to {
-    background-position: -220% 0;
+  65%, 100% {
+    background-position: 0% 0;
   }
 }
 
 @keyframes yu-skeleton {
   from {
-    background-position: 200% 0;
+    background-position: 100% 0;
   }
   to {
-    background-position: -200% 0;
+    background-position: -100% 0;
   }
 }
 
