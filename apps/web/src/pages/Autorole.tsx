@@ -125,7 +125,7 @@ export default function AutorolePage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
             <UserPlus className="h-5 w-5" />
@@ -156,7 +156,7 @@ export default function AutorolePage() {
 
       <Card>
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="text-sm font-semibold">Ativar autorole</div>
               <div className="text-xs text-muted-foreground">Dê cargos automaticamente para novos membros.</div>

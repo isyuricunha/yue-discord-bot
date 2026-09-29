@@ -102,7 +102,7 @@ export default function PanelAssistantPage() {
   return (
     <div className="flex h-full flex-col">
       <div className="shrink-0 border-b border-border/40 bg-canvas px-4 py-4 sm:px-5">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface-raised text-accent shadow-innerBorder">
               <Sparkles className="h-5 w-5" />

@@ -278,7 +278,7 @@ export default function AutoModPage() {
 
       <Card>
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <AlertTriangle className="h-5 w-5 text-accent" />
               <div>
@@ -349,7 +349,7 @@ export default function AutoModPage() {
 
       <Card>
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">🔠</span>
               <div>
@@ -433,7 +433,7 @@ export default function AutoModPage() {
           </div>
 
           <div className="space-y-4 border-t border-border/70 pt-5">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="flex items-center gap-3">
                 <UserRoundX className="h-5 w-5 text-accent" />
                 <div>
@@ -496,7 +496,7 @@ export default function AutoModPage() {
           </div>
 
           <div className="space-y-4 border-t border-border/70 pt-5">
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-4">
               <div>
                 <div className="text-sm font-semibold">Política de domínios</div>
                 <div className="text-xs text-muted-foreground">
@@ -514,7 +514,7 @@ export default function AutoModPage() {
 
             {Boolean(config.linkFilterEnabled) && (
               <div className="space-y-4">
-                <div className="flex items-center justify-between gap-4 border border-border/70 bg-surface/40 px-4 py-3">
+                <div className="flex flex-wrap items-center justify-between gap-4 border border-border/70 bg-surface/40 px-4 py-3">
                   <div className="text-sm">
                     <div className="font-medium">Bloquear todos os links</div>
                     <div className="text-xs text-muted-foreground">Domínios confiáveis continuam permitidos.</div>
@@ -673,7 +673,7 @@ export default function AutoModPage() {
           )}
 
           {link_protection_enabled && (
-            <div className="flex items-center justify-between gap-4 border-t border-border/70 pt-5">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/70 pt-5">
               <div className="flex items-center gap-3">
                 <Bell className="h-5 w-5 text-accent" />
                 <div>
@@ -697,7 +697,7 @@ export default function AutoModPage() {
       {/* ── OpenAI AI Moderation ── */}
       <Card>
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <BrainCircuit className="h-5 w-5 text-accent" />
               <div>

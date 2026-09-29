@@ -196,7 +196,7 @@ export default function StarboardPage() {
 
       <Card>
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="text-sm font-semibold">Ativar starboard</div>
               <div className="text-xs text-muted-foreground">Quando uma mensagem atingir o limite de reações, ela é repostada.</div>

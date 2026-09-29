@@ -410,7 +410,7 @@ export default function OwnerPage() {
 
       <Card className="border-accent/20">
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="text-base font-semibold">Diagnósticos</div>
               <div className="mt-1 text-sm text-muted-foreground">
@@ -453,7 +453,7 @@ export default function OwnerPage() {
                 .slice(0, 20)
                 .map((g) => (
                   <div key={g.guildId} className="rounded-2xl border border-border/80 bg-surface/30 px-4 py-3">
-                    <div className="flex items-center justify-between gap-4">
+                    <div className="flex flex-wrap items-center justify-between gap-4">
                       <div className="text-sm font-semibold">{g.guildName}</div>
                       <div className="text-xs text-muted-foreground">{g.issues.length} issue(s)</div>
                     </div>
@@ -476,7 +476,7 @@ export default function OwnerPage() {
 
       <Card className="border-accent/20">
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="text-base font-semibold">Rich Presence</div>
               <div className="mt-1 text-sm text-muted-foreground">
@@ -558,7 +558,7 @@ export default function OwnerPage() {
 
       <Card className="border-accent/20">
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="text-base font-semibold">Bio do bot (Discord)</div>
               <div className="mt-1 text-sm text-muted-foreground">
@@ -589,7 +589,7 @@ export default function OwnerPage() {
 
       <Card className="border-accent/20">
         <CardContent className="space-y-4 p-6">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <div className="text-base font-semibold">Anúncio global</div>
               <div className="mt-1 text-sm text-muted-foreground">
