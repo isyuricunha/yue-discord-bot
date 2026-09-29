@@ -9,7 +9,8 @@
     "type-check": "pnpm --filter @yuebot/shared build && tsc --noEmit",
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 0",
-    "test": "pnpm --filter @yuebot/shared build && vitest run"
+    "test": "pnpm --filter @yuebot/shared build && vitest run",
+    "test:theme": "node scripts/verify-theme.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.0",
