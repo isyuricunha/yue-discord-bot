@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "recipe": {
+    "name": "Node.js app",
+    "kind": "node",
+    "bootstrap": [
+      "pnpm install"
+    ],
+    "build": [
+      "pnpm build"
+    ],
+    "test": [
+      "pnpm test",
+      "pnpm lint",
+      "pnpm run test",
+      "pnpm run lint",
+      "pnpm run build"
+    ],
+    "start": "pnpm --filter web preview -- --port 8789 --strictPort",
+    "port": 8789,
+    "readinessPath": "/",
+    "evidence": [
+      "Detected package.json",
+      "Package manager: pnpm",
+      "Scripts: dev, dev:bot, dev:api, dev:web, bot:deploy-commands, bot:lint, bot:type-check, build, build:bot, build:api, build:web, db:generate, db:push, db:migrate, db:migrate:safe, db:studio, lint, test, type-check, knip, clean",
+      "start is pinned to the production static entry (vite preview of the built web dist), never pnpm dev",
+      "bootstrap/build/test/start fields execute with the operator environment: review edits like CI config"
+    ]
+  },
+  "updatedAt": "2026-09-29T17:46:54.947886+00:00"
+}

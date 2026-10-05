@@ -55,3 +55,4 @@ packages/database/.prisma-generate.lock
 
 # Panel AI private prompt (keep the .example.txt committed)
 prompts/panel_ai_system_prompt.txt
+apps/web/e2e-output/

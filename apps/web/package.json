@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint \"src/**/*.{ts,tsx}\" --max-warnings 0",
     "test": "pnpm --filter @yuebot/shared build && vitest run",
-    "test:theme": "node scripts/verify-theme.mjs"
+    "test:theme": "node scripts/verify-theme.mjs",
+    "test:visual": "pnpm build && node scripts/visual-qa.mjs"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.101.0",
@@ -42,6 +43,7 @@
     "@vitejs/plugin-react": "^6.1.1",
     "autoprefixer": "^10.5.5",
     "jsdom": "^25.0.1",
+    "playwright-core": "^1.63.0",
     "postcss": "^8.5.28",
     "tailwindcss": "^4.3.3",
     "typescript": "^6.0.3",
