@@ -47,7 +47,7 @@ export function build_queue_embed_and_components(input: {
   const currentTrack = player.queue.current;
   if (!currentTrack) {
     const embed = new EmbedBuilder()
-      .setColor('#ff6a00')
+      .setColor('#d6a84f')
       .setAuthor({
         name: 'Fila de Músicas da Yue',
         ...(authorAvatar ? { iconURL: authorAvatar } : null),
@@ -66,7 +66,7 @@ export function build_queue_embed_and_components(input: {
   );
 
   const embed = new EmbedBuilder()
-    .setColor('#ff6a00')
+    .setColor('#d6a84f')
     .setAuthor({
       name: 'Fila de Músicas da Yue',
       ...(authorAvatar ? { iconURL: authorAvatar } : null),

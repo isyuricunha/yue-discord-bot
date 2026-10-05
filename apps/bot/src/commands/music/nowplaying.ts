@@ -107,7 +107,7 @@ const nowplayingCommand: Command = {
     );
 
     const embed = new EmbedBuilder()
-      .setColor('#ff6a00')
+      .setColor('#d6a84f')
       .setTitle('Tocando agora')
       .setDescription(description);
 

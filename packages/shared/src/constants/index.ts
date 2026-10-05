@@ -60,17 +60,18 @@ export const DEFAULTS = {
   TIMEZONE: 'America/Sao_Paulo',
 } as const;
 
-// Colors for embeds
+// Colors for embeds (YuTheme v2 palette: accent #d6a84f, success #31d158,
+// danger #ff6961, info #64d2ff, muted text #8e887c)
 export const COLORS = {
-  SUCCESS: 0x00ff00,
-  ERROR: 0xff0000,
-  WARNING: 0xffaa00,
-  INFO: 0x0099ff,
-  BAN: 0xff0000,
-  KICK: 0xff6600,
-  WARN: 0xffaa00,
-  MUTE: 0x666666,
-  GIVEAWAY: 0x9b59b6,
+  SUCCESS: 0x31d158,
+  ERROR: 0xff6961,
+  WARNING: 0xd6a84f,
+  INFO: 0x64d2ff,
+  BAN: 0xff6961,
+  KICK: 0xff6961,
+  WARN: 0xd6a84f,
+  MUTE: 0x8e887c,
+  GIVEAWAY: 0xd6a84f,
 } as const;
 
 // Emojis
