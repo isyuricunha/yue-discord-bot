@@ -43,7 +43,7 @@ describe('PanelAssistantMessage', () => {
   test('renders thinking indicator', () => {
     const { container } = renderMessage(<PanelAssistantMessage role="thinking" content="" />)
     expect(screen.getByText(/Ella está pensando/i)).toBeTruthy()
-    expect(container.querySelectorAll('.motion-reduce\\:animate-none')).toHaveLength(3)
+    expect(container.querySelectorAll('.yu-dot-matrix > span')).toHaveLength(9)
   })
 
   test('renders error with retry button', () => {

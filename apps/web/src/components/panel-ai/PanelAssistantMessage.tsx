@@ -6,6 +6,7 @@ import { cn } from '../../lib/cn'
 import { queryClient } from '../../lib/query-client'
 import { toast_error, toast_success } from '../../store/toast'
 import { Button } from '../ui/button'
+import { DotMatrix } from '../ui/DotMatrix'
 import { PanelAssistantMarkdown } from './PanelAssistantMarkdown'
 import { apply_panel_ai_prefill_action } from './prefill'
 import { resolvePanelAiPageContext } from './resolvePageKey'
@@ -241,11 +242,7 @@ export function PanelAssistantMessage({
         </span>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <span>Ella está pensando</span>
-          <span className="inline-flex gap-0.5">
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40 motion-reduce:animate-none" style={{ animationDelay: '0ms' }} />
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40 motion-reduce:animate-none" style={{ animationDelay: '150ms' }} />
-            <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-muted-foreground/40 motion-reduce:animate-none" style={{ animationDelay: '300ms' }} />
-          </span>
+          <DotMatrix agent aria-label="Pensando" />
         </div>
       </div>
     )
