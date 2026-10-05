@@ -396,6 +396,15 @@ describe('OwnerPanelAiPage', () => {
       expect(screen.getByRole('button', { name: 'Testar modelo selecionado' })).toBeInTheDocument()
     })
 
+    // The test panel posts the settings-loaded selection; wait for the
+    // settings effect to land in the model select before clicking so the
+    // assertion never races the store update (flaky under CI load).
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Modelo' })).toHaveTextContent(
+        'opaque · test-model — opaque/test-model',
+      )
+    })
+
     fireEvent.click(screen.getByRole('button', { name: 'Testar modelo selecionado' }))
 
     await waitFor(() => {
