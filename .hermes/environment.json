@@ -16,7 +16,7 @@
       "pnpm run lint",
       "pnpm run build"
     ],
-    "start": "pnpm --filter web preview -- --port 8789 --strictPort",
+    "start": "pnpm --filter web exec vite preview --port 8789 --strictPort",
     "port": 8789,
     "readinessPath": "/",
     "evidence": [
