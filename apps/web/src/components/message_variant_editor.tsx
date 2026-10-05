@@ -220,7 +220,7 @@ export function MessageVariantEditor({
                       <pre className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">{v}</pre>
                     )}
 
-                    {error && <div className="mt-2 text-xs text-red-500">JSON inválido: {error}</div>}
+                    {error && <div className="mt-2 text-xs text-danger">JSON inválido: {error}</div>}
                   </div>
 
                   <div className="flex shrink-0 flex-col gap-2">
@@ -335,7 +335,7 @@ export function MessageVariantEditor({
               placeholder={placeholder}
             />
 
-            {raw_error && <div className="mt-2 text-xs text-red-500">Template inválido: {raw_error}</div>}
+            {raw_error && <div className="mt-2 text-xs text-danger">Template inválido: {raw_error}</div>}
 
             <div className="mt-3 flex flex-wrap gap-2">
               <Button
