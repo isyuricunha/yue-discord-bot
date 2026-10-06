@@ -46,3 +46,18 @@ export const ai_level_description: Record<ai_moderation_level, string> = {
   rigoroso: 'Mais restritivo. Penaliza com mais frequência.',
   maximo: 'Quase nada passa. Use apenas se você quiser tolerância mínima.',
 }
+
+export type ai_moderation_provider = 'openai' | 'mistral'
+
+export const ai_provider_label: Record<ai_moderation_provider, string> = {
+  openai: 'OpenAI',
+  mistral: 'Mistral',
+}
+
+export const ai_provider_description: Record<ai_moderation_provider, string> = {
+  openai: 'Modera texto e imagens (omni-moderation-latest), 13 categorias. Mensagens acima de 10 mil caracteres são truncadas.',
+  mistral: 'Modera apenas texto (mistral-moderation-latest), contexto longo e forte em vários idiomas. Imagens seguem na OpenAI. Categorias extras (saúde, finanças, direito, PII) não são usadas.',
+}
+
+export const ai_provider_scores_note =
+  'Os níveis se aplicam aos dois provedores, mas os scores não são comparáveis entre eles: trocar de provedor pode mudar o que dispara no mesmo nível.'

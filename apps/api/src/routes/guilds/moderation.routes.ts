@@ -52,11 +52,17 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
           aiModerationAction: true,
           aiModerationLevel: true,
           aiModerationThresholds: true,
+          aiModerationProvider: true,
+          aiModerationFallback: true,
         },
       })
 
     return reply.send({
       success: true,
+      aiProvidersAvailable: {
+        openai: Boolean(process.env.OPENAI_API_KEY?.trim()),
+        mistral: Boolean(process.env.MISTRAL_API_KEY?.trim()),
+      },
       config: config ?? {
         muteRoleId: null,
         muteRoleIds: [],
@@ -88,6 +94,8 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
         aiModerationAction: 'delete',
         aiModerationLevel: 'medio',
         aiModerationThresholds: {},
+        aiModerationProvider: 'openai',
+        aiModerationFallback: false,
       },
     })
   })
@@ -156,6 +164,8 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
         ...(input.aiModerationThresholds !== undefined
           ? { aiModerationThresholds: input.aiModerationThresholds }
           : {}),
+        ...(input.aiModerationProvider !== undefined ? { aiModerationProvider: input.aiModerationProvider } : {}),
+        ...(input.aiModerationFallback !== undefined ? { aiModerationFallback: input.aiModerationFallback } : {}),
       },
       create: {
         guildId,
@@ -189,6 +199,8 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
         aiModerationAction: input.aiModerationAction ?? 'delete',
         aiModerationLevel: input.aiModerationLevel ?? 'medio',
         aiModerationThresholds: input.aiModerationThresholds ?? {},
+        aiModerationProvider: input.aiModerationProvider ?? 'openai',
+        aiModerationFallback: input.aiModerationFallback ?? false,
       },
       select: {
         muteRoleId: true,

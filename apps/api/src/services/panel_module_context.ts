@@ -6,6 +6,7 @@ const ALLOWED_TIMEZONES = ['America/Sao_Paulo', 'America/New_York', 'Europe/Lond
 const ALLOWED_ACTIONS = ['delete', 'warn', 'mute', 'kick', 'ban'] as const
 const ALLOWED_ANTIRAID_ACTIONS = ['mute', 'kick', 'ban'] as const
 const ALLOWED_AI_LEVELS = ['permissivo', 'brando', 'medio', 'rigoroso', 'maximo'] as const
+const ALLOWED_AI_PROVIDERS = ['openai', 'mistral'] as const
 
 const MIN_CAPS_THRESHOLD = 0
 const MAX_CAPS_THRESHOLD = 100
@@ -125,6 +126,8 @@ type available_automod_context = available_context<'automod', {
   aiModerationEnabled: boolean | null
   aiModerationAction: (typeof ALLOWED_ACTIONS)[number] | null
   aiModerationLevel: (typeof ALLOWED_AI_LEVELS)[number] | null
+  aiModerationProvider: (typeof ALLOWED_AI_PROVIDERS)[number] | null
+  aiModerationFallback: boolean | null
 }>
 
 type available_antiraid_context = available_context<'antiraid', {
@@ -421,6 +424,8 @@ async function load_automod_context(db: panel_module_db, guildId: string): Promi
     aiModerationEnabled: true,
     aiModerationAction: true,
     aiModerationLevel: true,
+    aiModerationProvider: true,
+    aiModerationFallback: true,
   })
   if (!config) return unavailable('automod')
 
@@ -449,6 +454,8 @@ async function load_automod_context(db: panel_module_db, guildId: string): Promi
       aiModerationEnabled: get_boolean(config.aiModerationEnabled),
       aiModerationAction: get_allowed_value(config.aiModerationAction, ALLOWED_ACTIONS),
       aiModerationLevel: get_allowed_value(config.aiModerationLevel, ALLOWED_AI_LEVELS),
+      aiModerationProvider: get_allowed_value(config.aiModerationProvider, ALLOWED_AI_PROVIDERS),
+      aiModerationFallback: get_boolean(config.aiModerationFallback),
     },
   }
 }

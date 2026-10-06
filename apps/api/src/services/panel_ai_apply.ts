@@ -59,6 +59,8 @@ const DEFAULTS: Record<panel_ai_apply_page_key, Record<string, panel_ai_prefill_
     capsMinLength: 10,
     aiModerationEnabled: false,
     aiModerationLevel: 'medio',
+    aiModerationProvider: 'openai',
+    aiModerationFallback: false,
   },
   antiraid: {
     enabled: false,
@@ -134,6 +136,8 @@ async function load_current_values(
       capsMinLength: row?.capsMinLength ?? DEFAULTS.automod.capsMinLength,
       aiModerationEnabled: row?.aiModerationEnabled ?? DEFAULTS.automod.aiModerationEnabled,
       aiModerationLevel: row?.aiModerationLevel ?? DEFAULTS.automod.aiModerationLevel,
+      aiModerationProvider: row?.aiModerationProvider ?? DEFAULTS.automod.aiModerationProvider,
+      aiModerationFallback: row?.aiModerationFallback ?? DEFAULTS.automod.aiModerationFallback,
     }
   }
 

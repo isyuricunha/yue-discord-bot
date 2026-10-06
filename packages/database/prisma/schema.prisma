@@ -172,6 +172,8 @@ model GuildConfig {
   aiModerationAction          String   @default("delete")
   aiModerationLevel           String   @default("medio")
   aiModerationThresholds      Json     @default("{}")
+  aiModerationProvider        String   @default("openai")
+  aiModerationFallback        Boolean  @default(false)
   birthdayChannelId           String?
   birthdayRoleId              String?
   birthdayEnabled             Boolean  @default(true)

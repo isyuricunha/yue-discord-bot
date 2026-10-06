@@ -335,6 +335,21 @@ export const PANEL_AI_PREFILL_FIELDS: Partial<Record<panel_ai_page_key, Record<s
         { value: 'maximo', label: 'Máximo' },
       ],
     },
+    aiModerationProvider: {
+      label: 'Provedor de IA',
+      control: 'select',
+      valueType: 'enum',
+      options: [
+        { value: 'openai', label: 'OpenAI' },
+        { value: 'mistral', label: 'Mistral' },
+      ],
+    },
+    aiModerationFallback: {
+      label: 'Fallback automático',
+      control: 'switch',
+      valueType: 'boolean',
+      ariaLabel: 'Habilitar fallback automático de provedor de IA',
+    },
   },
   antiraid: {
     enabled: {

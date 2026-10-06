@@ -112,6 +112,8 @@ test('AutoMod preserves explicit false and zero while malformed fields become un
         aiModerationEnabled: false,
         aiModerationAction: 'delete',
         aiModerationLevel: 'invalid enum value',
+        aiModerationProvider: 'invalid enum value',
+        aiModerationFallback: false,
       },
     }),
   })
@@ -141,6 +143,8 @@ test('AutoMod preserves explicit false and zero while malformed fields become un
       aiModerationEnabled: false,
       aiModerationAction: 'delete',
       aiModerationLevel: null,
+      aiModerationProvider: null,
+      aiModerationFallback: false,
     },
   })
 })

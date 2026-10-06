@@ -9,8 +9,16 @@ import { getSendableChannel } from '../utils/discord';
 import { moderationLogService } from './moderationLog.service';
 import { WarnService } from './warnService';
 import { openAiModerationService } from './openaiModeration.service';
+import { mistralModerationService } from './mistralModeration.service';
 import { extract_ai_moderation_image_urls } from './automod.ai_images'
 import { build_ai_moderation_thresholds } from './automod.ai_thresholds'
+import { merge_moderation_results } from './automod.ai_merge'
+import {
+  resolve_ai_moderation_provider,
+  should_run_ai_moderation,
+  type ai_moderation_provider,
+} from './automod.ai_provider'
+import type { moderation_result } from './automod.ai_categories'
 import { can_apply_automod_action, required_channel_permissions_for_automod_action } from './automod.permissions'
 import { safe_error_details } from '../utils/safe_error'
 import { GuildResourceCache } from '../utils/guild_resource_cache'
@@ -141,16 +149,17 @@ class AutoModService {
       }
     }
 
-    // Verificar AI Moderation (OpenAI)
+    // Verificar AI Moderation
     if (config.aiModerationEnabled && !isAnyRuleWhitelisted) {
-      if (!process.env.OPENAI_API_KEY) {
+      const provider = resolve_ai_moderation_provider(config.aiModerationProvider)
+      if (!should_run_ai_moderation(provider, Boolean(config.aiModerationFallback))) {
         logger.debug(
           {
             guild_id: message.guild.id,
             channel_id: message.channel.id,
             message_id: message.id,
           },
-          '[automod.ai] enabled but OPENAI_API_KEY is missing, skipping moderation',
+          '[automod.ai] enabled but no provider API key is configured, skipping moderation',
         )
       } else {
         const aiCheck = await this.checkAiModeration(message, config);
@@ -248,9 +257,69 @@ class AutoModService {
     const level = (config.aiModerationLevel ?? 'medio') as ai_moderation_level
     const threshold = ai_threshold_for_level(level)
     const { thresholds, applied_overrides } = build_ai_moderation_thresholds(level, (config as any).aiModerationThresholds)
-    const result = await openAiModerationService.checkContent(text, image_urls, thresholds);
+    const provider = resolve_ai_moderation_provider(config.aiModerationProvider)
+    const fallback_enabled = Boolean(config.aiModerationFallback)
 
-    if (!result.flagged) {
+    // Mistral moderation is text-only: image URLs always go to OpenAI.
+    const primary = provider === 'mistral'
+      ? await mistralModerationService.checkText(text, thresholds)
+      : await openAiModerationService.checkContent(text, image_urls, thresholds)
+    const image_result = provider === 'mistral' && image_urls.length > 0
+      ? await openAiModerationService.checkContent('', image_urls, thresholds)
+      : null
+
+    // Images were successfully checked this cycle only if the OpenAI request
+    // that carried them succeeded.
+    const image_check_ok = provider === 'openai' ? primary.ok : Boolean(image_result?.ok)
+
+    const fallback_provider: ai_moderation_provider = provider === 'mistral' ? 'openai' : 'mistral'
+    // The fallback re-sends only what actually failed: text when the text check
+    // failed, images when their OpenAI check failed (re-sending moderated
+    // images would double the work). The Mistral fallback is text-only.
+    const fallback_text = !primary.ok ? text : ''
+    const fallback_images = fallback_provider === 'openai' && !image_check_ok ? image_urls : []
+    const fallback_has_work = fallback_text.trim().length > 0 || fallback_images.length > 0
+    const fallback_needed = !primary.ok || fallback_images.length > 0
+
+    let fallback_result: moderation_result | null = null
+    if (fallback_enabled && fallback_needed && fallback_has_work) {
+      fallback_result = fallback_provider === 'mistral'
+        ? await mistralModerationService.checkText(fallback_text, thresholds)
+        : await openAiModerationService.checkContent(fallback_text, fallback_images, thresholds)
+      logger.info(
+        {
+          guild_id: message.guild?.id ?? null,
+          message_id: message.id,
+          primary_provider: provider,
+          fallback_provider,
+          fallback_text: fallback_text.length > 0,
+          fallback_images: fallback_images.length,
+        },
+        '[automod.ai] primary provider did not run, applied fallback provider',
+      )
+    }
+
+    // Images that never got a successful check this cycle (first attempt and
+    // possible fallback retry included) fail open; say so instead of failing
+    // silently.
+    const images_moderated_ok = provider === 'openai'
+      ? primary.ok
+      : Boolean(image_result?.ok) || (fallback_images.length > 0 && fallback_result?.ok === true)
+    if (image_urls.length > 0 && !images_moderated_ok) {
+      logger.warn(
+        {
+          guild_id: message.guild?.id ?? null,
+          message_id: message.id,
+          provider,
+          image_count: image_urls.length,
+        },
+        '[automod.ai] images were not moderated this cycle',
+      )
+    }
+
+    const combined = merge_moderation_results([primary, image_result, fallback_result]);
+
+    if (!combined.flagged) {
       logger.debug(
         {
           guild_id: message.guild?.id ?? null,
@@ -262,7 +331,7 @@ class AutoModService {
       return { violated: false };
     }
 
-    const categoryList = result.triggeredCategories.map((c) => translate_openai_category(c)).join(', ');
+    const categoryList = combined.triggeredCategories.map((c) => translate_openai_category(c)).join(', ');
 
     return {
       violated: true,
@@ -271,10 +340,13 @@ class AutoModService {
       rule: 'ai',
       details: {
         aiModerationLevel: level,
+        provider,
+        imageProvider: image_result !== null ? 'openai' : null,
+        fallbackProvider: fallback_result !== null ? fallback_provider : null,
         threshold,
         thresholdOverrides: applied_overrides,
-        triggeredCategories: result.triggeredCategories,
-        scores: result.scores,
+        triggeredCategories: combined.triggeredCategories,
+        scores: combined.scores,
       } satisfies Prisma.InputJsonObject,
     };
   }
