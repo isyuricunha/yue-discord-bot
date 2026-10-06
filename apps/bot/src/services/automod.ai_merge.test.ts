@@ -40,6 +40,16 @@ test('merge_moderation_results: fallback result can flag after primary failure',
   assert.deepEqual(merged.triggeredCategories, ['self-harm'])
 })
 
+test('merge_moderation_results: unknown future categories are preserved, not dropped', () => {
+  const merged = merge_moderation_results([
+    { ok: true, flagged: true, triggeredCategories: ['brand-new-category' as never], scores: { 'brand-new-category': 0.9 } },
+  ])
+
+  assert.equal(merged.flagged, true)
+  assert.deepEqual(merged.triggeredCategories, ['brand-new-category'])
+  assert.equal(merged.scores['brand-new-category'], 0.9)
+})
+
 test('merge_moderation_results: empty input stays non-flagged', () => {
   const merged = merge_moderation_results([])
   assert.equal(merged.ok, false)

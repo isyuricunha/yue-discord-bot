@@ -13,6 +13,11 @@ import { mistralModerationService } from './mistralModeration.service';
 import { extract_ai_moderation_image_urls } from './automod.ai_images'
 import { build_ai_moderation_thresholds } from './automod.ai_thresholds'
 import { merge_moderation_results } from './automod.ai_merge'
+import {
+  resolve_ai_moderation_provider,
+  should_run_ai_moderation,
+  type ai_moderation_provider,
+} from './automod.ai_provider'
 import type { moderation_result } from './automod.ai_categories'
 import { can_apply_automod_action, required_channel_permissions_for_automod_action } from './automod.permissions'
 import { safe_error_details } from '../utils/safe_error'
@@ -30,8 +35,6 @@ interface AutoModResult {
 }
 
 type ai_moderation_level = 'permissivo' | 'brando' | 'medio' | 'rigoroso' | 'maximo'
-
-type ai_moderation_provider = 'openai' | 'mistral'
 
 function ai_threshold_for_level(level: ai_moderation_level): number {
   switch (level) {
@@ -146,16 +149,17 @@ class AutoModService {
       }
     }
 
-    // Verificar AI Moderation (OpenAI)
+    // Verificar AI Moderation
     if (config.aiModerationEnabled && !isAnyRuleWhitelisted) {
-      if (!process.env.OPENAI_API_KEY) {
+      const provider = resolve_ai_moderation_provider(config.aiModerationProvider)
+      if (!should_run_ai_moderation(provider, Boolean(config.aiModerationFallback))) {
         logger.debug(
           {
             guild_id: message.guild.id,
             channel_id: message.channel.id,
             message_id: message.id,
           },
-          '[automod.ai] enabled but OPENAI_API_KEY is missing, skipping moderation',
+          '[automod.ai] enabled but no provider API key is configured, skipping moderation',
         )
       } else {
         const aiCheck = await this.checkAiModeration(message, config);
@@ -253,7 +257,7 @@ class AutoModService {
     const level = (config.aiModerationLevel ?? 'medio') as ai_moderation_level
     const threshold = ai_threshold_for_level(level)
     const { thresholds, applied_overrides } = build_ai_moderation_thresholds(level, (config as any).aiModerationThresholds)
-    const provider: ai_moderation_provider = config.aiModerationProvider === 'mistral' ? 'mistral' : 'openai'
+    const provider = resolve_ai_moderation_provider(config.aiModerationProvider)
     const fallback_enabled = Boolean(config.aiModerationFallback)
 
     // Mistral moderation is text-only: image URLs always go to OpenAI.
@@ -264,22 +268,46 @@ class AutoModService {
       ? await openAiModerationService.checkContent('', image_urls, thresholds)
       : null
 
-    const providers_used: string[] = [provider]
+    const fallback_provider: ai_moderation_provider = provider === 'mistral' ? 'openai' : 'mistral'
+    // Re-send images through the OpenAI fallback only when their first check
+    // failed; when they were already moderated, sending them again would double
+    // the work. The Mistral fallback is text-only, so it needs non-empty text.
+    const fallback_images = fallback_provider === 'openai' && image_result !== null && !image_result.ok
+      ? image_urls
+      : []
+    const fallback_has_work = fallback_provider === 'openai'
+      ? text.trim().length > 0 || fallback_images.length > 0
+      : text.trim().length > 0
+
     let fallback_result: moderation_result | null = null
-    if (!primary.ok && fallback_enabled) {
-      const fallback_provider: ai_moderation_provider = provider === 'mistral' ? 'openai' : 'mistral'
+    if (!primary.ok && fallback_enabled && fallback_has_work) {
       fallback_result = fallback_provider === 'mistral'
         ? await mistralModerationService.checkText(text, thresholds)
-        : await openAiModerationService.checkContent(text, image_urls, thresholds)
-      providers_used.push(fallback_provider)
+        : await openAiModerationService.checkContent(text, fallback_images, thresholds)
       logger.info(
         {
           guild_id: message.guild?.id ?? null,
           message_id: message.id,
           primary_provider: provider,
           fallback_provider,
+          fallback_images: fallback_images.length,
         },
         '[automod.ai] primary provider did not run, applied fallback provider',
+      )
+    }
+
+    // Images that never got a successful check this cycle (and were not retried
+    // through the fallback) fail open; say so instead of failing silently.
+    const image_check_ok = provider === 'openai' ? primary.ok : Boolean(image_result?.ok)
+    if (image_urls.length > 0 && !image_check_ok && fallback_images.length === 0) {
+      logger.warn(
+        {
+          guild_id: message.guild?.id ?? null,
+          message_id: message.id,
+          provider,
+          image_count: image_urls.length,
+        },
+        '[automod.ai] images were not moderated this cycle',
       )
     }
 
@@ -307,8 +335,8 @@ class AutoModService {
       details: {
         aiModerationLevel: level,
         provider,
-        providersUsed: providers_used,
-        fallbackUsed: fallback_result !== null,
+        imageProvider: image_result !== null ? 'openai' : null,
+        fallbackProvider: fallback_result !== null ? fallback_provider : null,
         threshold,
         thresholdOverrides: applied_overrides,
         triggeredCategories: combined.triggeredCategories,

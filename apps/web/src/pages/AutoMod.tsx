@@ -759,6 +759,12 @@ export default function AutoModPage() {
                         </span>
                       </div>
                     )}
+                    {ai_provider === 'mistral' && !providers_available.openai && (
+                      <div className="mt-2 flex items-start gap-2 text-xs text-amber-600">
+                        <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                        <span>As imagens não serão moderadas: a chave OpenAI não está configurada.</span>
+                      </div>
+                    )}
                   </div>
                 </div>
 
