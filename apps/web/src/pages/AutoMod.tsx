@@ -30,8 +30,12 @@ import {
   describe_action,
   ai_level_label,
   ai_level_description,
+  ai_provider_label,
+  ai_provider_description,
+  ai_provider_scores_note,
   type automod_action,
   type ai_moderation_level,
+  type ai_moderation_provider,
 } from '../lib/automod'
 
 const ActionIcon = ({ action }: { action: string }) => {
@@ -71,6 +75,8 @@ interface GuildConfig {
   aiModerationEnabled: boolean
   aiModerationAction: string
   aiModerationLevel: ai_moderation_level
+  aiModerationProvider?: string
+  aiModerationFallback?: boolean
 }
 
 export default function AutoModPage() {
@@ -91,6 +97,8 @@ export default function AutoModPage() {
   const link_no_role_timeout_duration = String(config.linkNoRoleTimeoutDuration ?? '10m')
   const ai_action = String(config.aiModerationAction ?? 'delete')
   const ai_level = (config.aiModerationLevel ?? 'medio') as ai_moderation_level
+  const ai_provider = (config.aiModerationProvider === 'mistral' ? 'mistral' : 'openai') as ai_moderation_provider
+  const [providers_available, set_providers_available] = useState({ openai: true, mistral: true })
   const link_timeout_validation = validate_timeout_duration(link_timeout_duration)
   const link_no_role_timeout_validation = validate_timeout_duration(link_no_role_timeout_duration)
   const has_link_timeout_error =
@@ -108,6 +116,9 @@ export default function AutoModPage() {
     queryKey: ['automod-config', guildId],
     queryFn: async () => {
       const response = await axios.get(`${API_URL}/api/guilds/${guildId}/automod-config`)
+      set_providers_available(
+        response.data.aiProvidersAvailable ?? { openai: true, mistral: true }
+      )
       const initialConfig = response.data.config || {
         wordFilterEnabled: false,
         bannedWords: [],
@@ -128,6 +139,8 @@ export default function AutoModPage() {
         aiModerationEnabled: false,
         aiModerationAction: 'delete',
         aiModerationLevel: 'medio',
+        aiModerationProvider: 'openai',
+        aiModerationFallback: false,
       }
 
       if (!initial_config_ref.current) {
@@ -718,6 +731,62 @@ export default function AutoModPage() {
 
           {Boolean(config.aiModerationEnabled) && (
             <div className="space-y-5">
+              {/* Provider + fallback */}
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                <div>
+                  <div className="text-sm font-medium">Provedor de IA</div>
+                  <div className="mt-2">
+                    <Select
+                      value={ai_provider}
+                      onValueChange={(value) => setConfig({ ...config, aiModerationProvider: value })}
+                    >
+                      <option value="openai" disabled={!providers_available.openai}>
+                        {ai_provider_label.openai}
+                        {!providers_available.openai ? ' (sem chave configurada)' : ''}
+                      </option>
+                      <option value="mistral" disabled={!providers_available.mistral}>
+                        {ai_provider_label.mistral}
+                        {!providers_available.mistral ? ' (sem chave configurada)' : ''}
+                      </option>
+                    </Select>
+                    <div className="mt-2 text-xs text-muted-foreground">{ai_provider_description[ai_provider]}</div>
+                    {!providers_available[ai_provider] && (
+                      <div className="mt-2 flex items-start gap-2 text-xs text-amber-600">
+                        <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                        <span>
+                          A chave deste provedor não está configurada no bot. Enquanto isso, a moderação falha aberta
+                          (nenhuma punição é aplicada).
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-medium">Fallback automático</div>
+                  <div className="mt-2">
+                    <Switch
+                      checked={Boolean(config.aiModerationFallback)}
+                      onCheckedChange={(checked) => setConfig({ ...config, aiModerationFallback: checked })}
+                      label="Usar o outro provedor se o escolhido falhar"
+                      disabled={isLoading}
+                    />
+                  </div>
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    {ai_provider === 'openai'
+                      ? 'Se a OpenAI falhar (erro, limite ou ausência de chave), a Mistral modera o texto. Requer as duas chaves configuradas.'
+                      : 'Se a Mistral falhar, a OpenAI assume texto e imagens. Requer as duas chaves configuradas.'}
+                  </div>
+                  {Boolean(config.aiModerationFallback) && !providers_available[ai_provider === 'openai' ? 'mistral' : 'openai'] && (
+                    <div className="mt-2 flex items-start gap-2 text-xs text-amber-600">
+                      <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
+                      <span>O provedor de fallback não tem chave configurada; o fallback não terá efeito.</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div className="text-xs text-muted-foreground">{ai_provider_scores_note}</div>
+
               {/* Action */}
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
                 <div>

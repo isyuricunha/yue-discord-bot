@@ -1,25 +1,14 @@
 import axios from 'axios';
 import { safe_error_details } from '../utils/safe_error';
+import { summarize_moderation_error } from '../utils/moderation_error';
 import { logger } from '../utils/logger';
+import type { openai_category } from './automod.ai_categories';
 
 /**
  * All category keys returned by omni-moderation-latest.
  * Reference: https://platform.openai.com/docs/api-reference/moderations
  */
-type OpenAiModerationCategory =
-  | 'harassment'
-  | 'harassment/threatening'
-  | 'hate'
-  | 'hate/threatening'
-  | 'illicit'
-  | 'illicit/violent'
-  | 'self-harm'
-  | 'self-harm/intent'
-  | 'self-harm/instructions'
-  | 'sexual'
-  | 'sexual/minors'
-  | 'violence'
-  | 'violence/graphic';
+type OpenAiModerationCategory = openai_category;
 
 /** Default threshold per category when not configured by the guild. */
 const DEFAULT_THRESHOLD = 0.75;
@@ -37,6 +26,8 @@ type prepared_moderation_image = {
 }
 
 interface ModerationResult {
+  /** Whether the provider request actually ran (false: missing key or call failure). */
+  ok: boolean;
   flagged: boolean;
   /** The categories that exceeded the configured threshold. */
   triggeredCategories: OpenAiModerationCategory[];
@@ -54,13 +45,6 @@ interface OpenAiModerationApiResponse {
   id: string;
   model: string;
   results: OpenAiModerationApiResult[];
-}
-
-type openai_moderation_error_summary = {
-  kind: 'timeout' | 'bad_request' | 'rate_limited' | 'auth' | 'network' | 'unknown'
-  status?: number
-  code?: string
-  message: string
 }
 
 const supported_image_mime_types = new Set([
@@ -148,42 +132,6 @@ function normalize_openai_moderation_image_urls(urls: string[]): { ok: string[];
   }
 
   return { ok, dropped }
-}
-
-function summarize_openai_moderation_error(error: unknown): openai_moderation_error_summary {
-  const details = safe_error_details(error)
-  const code = typeof details.code === 'string' ? details.code : undefined
-  const status = typeof details.status === 'number'
-    ? details.status
-    : typeof details.statusCode === 'number'
-      ? details.statusCode
-      : undefined
-
-  if (code === 'ECONNABORTED') {
-    return { kind: 'timeout', code, status, message: details.message }
-  }
-
-  if (status === 400) {
-    return { kind: 'bad_request', code, status, message: details.message }
-  }
-
-  if (status === 401 || status === 403) {
-    return { kind: 'auth', code, status, message: details.message }
-  }
-
-  if (status === 429) {
-    return { kind: 'rate_limited', code, status, message: details.message }
-  }
-
-  if (typeof status === 'number') {
-    return { kind: 'unknown', code, status, message: details.message }
-  }
-
-  if (axios.isAxiosError(error)) {
-    return { kind: 'network', code, status, message: details.message }
-  }
-
-  return { kind: 'unknown', code, status, message: details.message }
 }
 
 async function fetch_image_as_data_url(url: string, max_bytes: number): Promise<prepared_moderation_image | null> {
@@ -322,7 +270,7 @@ class OpenAiModerationService {
   ): Promise<ModerationResult> {
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      return { flagged: false, triggeredCategories: [], scores: {} };
+      return { ok: false, flagged: false, triggeredCategories: [], scores: {} };
     }
 
     const normalized_text = text.trim().length > 0 ? text.substring(0, 10_000) : ''
@@ -359,7 +307,7 @@ class OpenAiModerationService {
 
     // Nothing to check
     if (input.length === 0) {
-      return { flagged: false, triggeredCategories: [], scores: {} };
+      return { ok: true, flagged: false, triggeredCategories: [], scores: {} };
     }
 
     const run_scoring = (result: OpenAiModerationApiResult): ModerationResult => {
@@ -374,6 +322,7 @@ class OpenAiModerationService {
       }
 
       return {
+        ok: true,
         flagged: triggeredCategories.length > 0,
         triggeredCategories,
         scores,
@@ -394,7 +343,7 @@ class OpenAiModerationService {
     }
 
     const log_failure = (error: unknown, meta: { attempt: string; input_items: number; has_images: boolean }) => {
-      const summary = summarize_openai_moderation_error(error)
+      const summary = summarize_moderation_error(error)
       logger.warn(
         {
           err: safe_error_details(error),
@@ -409,7 +358,7 @@ class OpenAiModerationService {
 
     try {
       const result = await this.request_moderation(apiKey, input)
-      if (!result) return { flagged: false, triggeredCategories: [], scores: {} };
+      if (!result) return { ok: true, flagged: false, triggeredCategories: [], scores: {} };
       logger.debug(
         {
           input_items: input.length,
@@ -421,18 +370,18 @@ class OpenAiModerationService {
       return run_scoring(result)
     
     } catch (error) {
-      const summary = summarize_openai_moderation_error(error)
+      const summary = summarize_moderation_error(error)
 
       if (summary.kind === 'bad_request' && prepared_images.length > 0) {
         const text_only_input: ModerationInputItem[] = normalized_text ? [{ type: 'text', text: normalized_text }] : []
         if (text_only_input.length > 0) {
           try {
             const result = await this.request_moderation(apiKey, text_only_input)
-            if (!result) return { flagged: false, triggeredCategories: [], scores: {} };
+            if (!result) return { ok: true, flagged: false, triggeredCategories: [], scores: {} };
             return run_scoring(result)
           } catch (fallback_error) {
             log_failure(fallback_error, { attempt: 'fallback_text_only', input_items: text_only_input.length, has_images: false })
-            return { flagged: false, triggeredCategories: [], scores: {} };
+            return { ok: false, flagged: false, triggeredCategories: [], scores: {} };
           }
         }
       }
@@ -441,16 +390,16 @@ class OpenAiModerationService {
         await new Promise((r) => setTimeout(r, 750))
         try {
           const result = await this.request_moderation(apiKey, input)
-          if (!result) return { flagged: false, triggeredCategories: [], scores: {} };
+          if (!result) return { ok: true, flagged: false, triggeredCategories: [], scores: {} };
           return run_scoring(result)
         } catch (retry_error) {
           log_failure(retry_error, { attempt: 'retry_timeout', input_items: input.length, has_images: prepared_images.length > 0 })
-          return { flagged: false, triggeredCategories: [], scores: {} };
+          return { ok: false, flagged: false, triggeredCategories: [], scores: {} };
         }
       }
 
       log_failure(error, { attempt: 'primary', input_items: input.length, has_images: prepared_images.length > 0 })
-      return { flagged: false, triggeredCategories: [], scores: {} };
+      return { ok: false, flagged: false, triggeredCategories: [], scores: {} };
     }
   }
 }

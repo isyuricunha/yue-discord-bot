@@ -117,6 +117,8 @@ function render_legacy_module_context(lines: string[], context: panel_module_con
     lines.push(`- ai_moderation.enabled: ${render_boolean(c.aiModerationEnabled)}`)
     lines.push(`- ai_moderation.action: ${c.aiModerationAction !== null ? escape_context_value(c.aiModerationAction) : '"unknown"'}`)
     lines.push(`- ai_moderation.level: ${c.aiModerationLevel !== null ? escape_context_value(c.aiModerationLevel) : '"unknown"'}`)
+    lines.push(`- ai_moderation.provider: ${c.aiModerationProvider !== null ? escape_context_value(c.aiModerationProvider) : '"unknown"'}`)
+    lines.push(`- ai_moderation.fallback: ${render_boolean(c.aiModerationFallback)}`)
     return true
   }
 

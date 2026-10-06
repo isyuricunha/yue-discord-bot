@@ -199,7 +199,9 @@ test('panel_context: renders canonical AutoMod configuration and unknown values'
         linkNotificationsEnabled: true,
         aiModerationEnabled: true,
         aiModerationAction: 'delete',
-        aiModerationLevel: 'medio'
+        aiModerationLevel: 'medio',
+        aiModerationProvider: 'openai',
+        aiModerationFallback: false
       }
     }
   }))
@@ -211,6 +213,8 @@ test('panel_context: renders canonical AutoMod configuration and unknown values'
   assert.ok(context.includes('- link_filter.enabled: true'))
   assert.ok(context.includes('- link_filter.timeout_duration: "unknown"'))
   assert.ok(context.includes('- link_filter.action: "unknown"'))
+  assert.ok(context.includes('- ai_moderation.provider: "openai"'))
+  assert.ok(context.includes('- ai_moderation.fallback: false'))
   assert.equal((context.match(/<\/PANEL_CONTEXT>/g) ?? []).length, 1, 'No extra closing tags allowed')
 })
 

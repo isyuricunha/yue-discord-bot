@@ -1,22 +1,6 @@
+import { openai_categories, type openai_category } from './automod.ai_categories'
+
 type ai_moderation_level = 'permissivo' | 'brando' | 'medio' | 'rigoroso' | 'maximo'
-
-const openai_categories = [
-  'harassment',
-  'harassment/threatening',
-  'hate',
-  'hate/threatening',
-  'illicit',
-  'illicit/violent',
-  'self-harm',
-  'self-harm/intent',
-  'self-harm/instructions',
-  'sexual',
-  'sexual/minors',
-  'violence',
-  'violence/graphic',
-] as const
-
-type openai_category = (typeof openai_categories)[number]
 
 type thresholds_map = Record<string, number>
 
