@@ -53,6 +53,18 @@ test('should_run_ai_moderation: mistral primary without its key still runs for o
   })
 })
 
+test('should_run_ai_moderation: whitespace-only keys count as missing, matching the API', () => {
+  with_env({ openai: '   ', mistral: '  ' }, () => {
+    assert.equal(should_run_ai_moderation('openai', false), false)
+    assert.equal(should_run_ai_moderation('mistral', false), false)
+    assert.equal(should_run_ai_moderation('openai', true), false)
+  })
+  with_env({ openai: '   ', mistral: 'k' }, () => {
+    assert.equal(should_run_ai_moderation('openai', true), true)
+    assert.equal(should_run_ai_moderation('openai', false), false)
+  })
+})
+
 test('should_run_ai_moderation: no keys at all skips the flow', () => {
   with_env({ openai: undefined, mistral: undefined }, () => {
     assert.equal(should_run_ai_moderation('openai', false), false)

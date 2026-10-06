@@ -268,38 +268,44 @@ class AutoModService {
       ? await openAiModerationService.checkContent('', image_urls, thresholds)
       : null
 
+    // Images were successfully checked this cycle only if the OpenAI request
+    // that carried them succeeded.
+    const image_check_ok = provider === 'openai' ? primary.ok : Boolean(image_result?.ok)
+
     const fallback_provider: ai_moderation_provider = provider === 'mistral' ? 'openai' : 'mistral'
-    // Re-send images through the OpenAI fallback only when their first check
-    // failed; when they were already moderated, sending them again would double
-    // the work. The Mistral fallback is text-only, so it needs non-empty text.
-    const fallback_images = fallback_provider === 'openai' && image_result !== null && !image_result.ok
-      ? image_urls
-      : []
-    const fallback_has_work = fallback_provider === 'openai'
-      ? text.trim().length > 0 || fallback_images.length > 0
-      : text.trim().length > 0
+    // The fallback re-sends only what actually failed: text when the text check
+    // failed, images when their OpenAI check failed (re-sending moderated
+    // images would double the work). The Mistral fallback is text-only.
+    const fallback_text = !primary.ok ? text : ''
+    const fallback_images = fallback_provider === 'openai' && !image_check_ok ? image_urls : []
+    const fallback_has_work = fallback_text.trim().length > 0 || fallback_images.length > 0
+    const fallback_needed = !primary.ok || fallback_images.length > 0
 
     let fallback_result: moderation_result | null = null
-    if (!primary.ok && fallback_enabled && fallback_has_work) {
+    if (fallback_enabled && fallback_needed && fallback_has_work) {
       fallback_result = fallback_provider === 'mistral'
-        ? await mistralModerationService.checkText(text, thresholds)
-        : await openAiModerationService.checkContent(text, fallback_images, thresholds)
+        ? await mistralModerationService.checkText(fallback_text, thresholds)
+        : await openAiModerationService.checkContent(fallback_text, fallback_images, thresholds)
       logger.info(
         {
           guild_id: message.guild?.id ?? null,
           message_id: message.id,
           primary_provider: provider,
           fallback_provider,
+          fallback_text: fallback_text.length > 0,
           fallback_images: fallback_images.length,
         },
         '[automod.ai] primary provider did not run, applied fallback provider',
       )
     }
 
-    // Images that never got a successful check this cycle (and were not retried
-    // through the fallback) fail open; say so instead of failing silently.
-    const image_check_ok = provider === 'openai' ? primary.ok : Boolean(image_result?.ok)
-    if (image_urls.length > 0 && !image_check_ok && fallback_images.length === 0) {
+    // Images that never got a successful check this cycle (first attempt and
+    // possible fallback retry included) fail open; say so instead of failing
+    // silently.
+    const images_moderated_ok = provider === 'openai'
+      ? primary.ok
+      : Boolean(image_result?.ok) || (fallback_images.length > 0 && fallback_result?.ok === true)
+    if (image_urls.length > 0 && !images_moderated_ok) {
       logger.warn(
         {
           guild_id: message.guild?.id ?? null,
