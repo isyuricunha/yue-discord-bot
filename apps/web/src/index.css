@@ -23,34 +23,34 @@
 [data-theme="yu-dark"] {
   color-scheme: dark;
 
-  --yu-bg-base: #000000;
-  --yu-bg-canvas: #000000;
-  --yu-bg-page: #000000;
-  --yu-bg-surface-1: #0b0b0a;
-  --yu-bg-surface-2: #0b0b0a;
-  --yu-bg-surface-3: #0f0f0e;
-  --yu-bg-surface-4: #121211;
-  --yu-bg-surface-5: #1a1a18;
-  --yu-bg-window: #0b0b0a;
-  --yu-bg-titlebar: #121211;
-  --yu-bg-sidebar: #000000;
-  --yu-bg-panel: #0b0b0a;
-  --yu-bg-editor: #10100f;
-  --yu-bg-terminal: #10100f;
-  --yu-bg-composer: #121211;
-  --yu-bg-hover: #141413;
-  --yu-bg-active: #1f1f1d;
+  --yu-bg-base: #1a1813;
+  --yu-bg-canvas: #1a1813;
+  --yu-bg-page: #1a1813;
+  --yu-bg-surface-1: #1c1913;
+  --yu-bg-surface-2: #1c1913;
+  --yu-bg-surface-3: #1f1c16;
+  --yu-bg-surface-4: #211e17;
+  --yu-bg-surface-5: #28251d;
+  --yu-bg-window: #1c1913;
+  --yu-bg-titlebar: #211e17;
+  --yu-bg-sidebar: #1a1813;
+  --yu-bg-panel: #1c1913;
+  --yu-bg-editor: #1d1b15;
+  --yu-bg-terminal: #1d1b15;
+  --yu-bg-composer: #211e17;
+  --yu-bg-hover: #232019;
+  --yu-bg-active: #2d2921;
   --yu-bg-selected: rgba(214, 168, 79, 0.10);
-  --yu-bg-input: #121211;
-  --yu-bg-input-hover: #1a1a18;
-  --yu-bg-popover: #151514;
-  --yu-bg-modal: #0f0f0e;
-  --yu-bg-tooltip: #151514;
-  --yu-bg-code: #1a1a18;
-  --yu-bg-code-block: #10100f;
-  --yu-bg-toc: #151514;
-  --yu-bg-chip: #1a1a18;
-  --yu-bg-showcase-backdrop: #0f0f0e;
+  --yu-bg-input: #211e17;
+  --yu-bg-input-hover: #28251d;
+  --yu-bg-popover: #23211a;
+  --yu-bg-modal: #1f1c16;
+  --yu-bg-tooltip: #23211a;
+  --yu-bg-code: #28251d;
+  --yu-bg-code-block: #1d1b15;
+  --yu-bg-toc: #23211a;
+  --yu-bg-chip: #28251d;
+  --yu-bg-showcase-backdrop: #1f1c16;
   --yu-bg-showcase-overlay: rgba(0, 0, 0, 0.32);
 
   --yu-text-primary: #f4f1e8;
@@ -80,10 +80,10 @@
   --yu-accent-border: rgba(214, 168, 79, 0.30);
   --yu-accent-glow: rgba(214, 168, 79, 0.08);
 
-  --yu-border-faint: rgba(232, 228, 216, 0.08);
-  --yu-border-subtle: rgba(232, 228, 216, 0.13);
-  --yu-border-default: rgba(232, 228, 216, 0.20);
-  --yu-border-strong: rgba(232, 228, 216, 0.32);
+  --yu-border-faint: rgba(214, 204, 176, 0.08);
+  --yu-border-subtle: rgba(214, 204, 176, 0.13);
+  --yu-border-default: rgba(214, 204, 176, 0.20);
+  --yu-border-strong: rgba(214, 204, 176, 0.32);
   --yu-border-accent: rgba(214, 168, 79, 0.30);
   --yu-border-neutral: rgba(232, 228, 216, 0.13);
   --yu-border-neutral-strong: rgba(232, 228, 216, 0.20);
@@ -104,8 +104,8 @@
   --yu-info-soft: rgba(100, 210, 255, 0.18);
 
   --yu-code-inline-text: #d6a84f;
-  --yu-code-inline-bg: #1a1a18;
-  --yu-code-block-bg: #10100f;
+  --yu-code-inline-bg: #28251d;
+  --yu-code-block-bg: #1d1b15;
   --yu-code-border: rgba(214, 168, 79, 0.12);
   --yu-blockquote-border: #a37e3a;
   --yu-blockquote-text: #b3ad9f;
@@ -168,8 +168,8 @@
   --yu-duration-slow: 260ms;
   --yu-ease: cubic-bezier(0.2, 0, 0, 1);
   --yu-ease-shimmer: cubic-bezier(0.4, 0, 0.2, 1);
-  --yu-scrollbar: #2a2926;
-  --yu-scrollbar-hover: #3a3935;
+  --yu-scrollbar: #2c2920;
+  --yu-scrollbar-hover: #3d392e;
 
   --yu-stagger-step: 50ms;
   --yu-card-lift: translateY(-3px);
