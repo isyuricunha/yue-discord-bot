@@ -1578,3 +1578,19 @@ model PanelAiFeedback {
   @@index([guildId, createdAt])
   @@map("panel_ai_feedback")
 }
+
+
+model SharedNobreMirror {
+  id           String   @id @default(cuid())
+  guildId      String
+  discordId    String
+  roleId       String
+  expiresAt    DateTime?
+  linked       Boolean  @default(true)
+  lastCheckedAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  @@unique([guildId,discordId])
+  @@index([guildId,linked,expiresAt])
+  @@map("shared_nobre_mirrors")
+}

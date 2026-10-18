@@ -169,3 +169,4 @@ pnpm db:migrate   # Run database migrations
 Yue Discord Bot is licensed under the **GNU Affero General Public License v3.0**.
 
 See [LICENSE](LICENSE) for the full license text.
+\n\n## Nobre compartilhado com Vai Brasil!\n\nApoios do bot continuam independentes para quem não vincular as contas. A integração opcional com o Vai Brasil! permite compartilhar a mesma validade Nobre, preservando pagamentos, cargos e benefícios anteriores. O processo seguro de implantação e as configurações de ativação estão em [docs/SHARED-NOBRE-VAI-BRASIL.md](docs/SHARED-NOBRE-VAI-BRASIL.md). A sincronização permanece desativada até a validação da integração.\n

@@ -1,0 +1,90 @@
+# Vai Brasil! e Yue | Nobre compartilhado
+
+## Objetivo e limites
+
+O membro pode contribuir exclusivamente pelo **site**, exclusivamente pelo **Discord**, ou por ambos. **Vincular as contas é opcional**. Sem vínculo, os dois sistemas continuam independentes e seus pagamentos não são associados por nome, e-mail, avatar ou aproximação. Com o vínculo confirmado pelo Discord OAuth2, um crédito verificado de qualquer plataforma passa a compartilhar um prazo de Nobre.
+
+Esta implantação é deliberadamente **aditiva**, sem apagar ou reescrever os pagamentos e benefícios originais da Yue. Os demais servidores atendidos pelo bot não participam, mesmo que usem o mesmo LivePix. A sincronização só opera no servidor e cargo explicitamente configurados.
+
+## Vínculo seguro
+
+Na área `/conta?section=security`, o usuário encontra **Discord conectado**. A interface consulta `GET /api/v1/discord/status`. Quando o OAuth estiver habilitado, `GET /api/v1/discord/start` exige sessão e e-mail verificado e inicia a autorização `identify` do Discord. O servidor cria um token de estado aleatório de 256 bits, armazena apenas SHA-256 por no máximo dez minutos e o protege com cookie HTTP-only, Secure e SameSite Lax. O callback troca o código por token via API oficial, consulta `GET /users/@me`, consome o estado uma única vez e grava o identificador imutável Discord em `ExternalIdentity`, com índices únicos para impedir identidades repetidas.
+
+`POST /api/v1/discord/unlink` exige sessão verificada e Origin correto. A desvinculação não apaga históricos de pagamento nem os créditos já incorporados ao prazo do site. O bot deixa de utilizar o prazo vindo do site na próxima reconciliação, mas mantém qualquer benefício nativo do Discord ainda vigente. O usuário pode pagar nas plataformas separadamente sem nunca conectar contas.
+
+A vinculação não tem escopos de mensagens, e-mail ou entrada automática em servidores. O bot somente aplica o cargo a quem já estiver no servidor escolhido.
+
+## Crédito e prazo autoritativo
+
+O Vai Brasil! mantém o vencimento compartilhado para contas vinculadas, enquanto a Yue preserva o registro financeiro e o benefício nativo Discord. **Não são duas autorizações financeiras**: cada compra é confirmada no seu provedor de origem. A Yue só envia eventos de pagamentos que ela mesma já marcou como `FULFILLED`. A API do site recebe esses eventos de um serviço autenticado, não de usuários ou webhooks públicos.
+
+Quando ocorre a primeira vinculação, a Yue captura o **tempo ainda restante** do seu benefício nativo e envia o marco `legacy` apenas uma vez. O site acrescenta esse saldo ao prazo atual, em transação. Depois, cada pagamento Discord posterior ao marco é enviado com `guildId`, ID imutável do pagamento, `discordId`, dias adquiridos e instante de conclusão. O site guarda um `SharedNobreCredit` único por origem/ID do pagamento. Reenvios são idempotentes, e pagamentos antigos incorporados ao marco inicial não são somados novamente.
+
+As transações de créditos externos bloqueiam a linha do usuário, assim como a confirmação do checkout do próprio site. Dois pagamentos distintos acrescentam dias na ordem, sem sobrescrever a validade um do outro. Os períodos pré-existentes nas duas plataformas são preservados por soma **dos tempos ainda restantes**, não por soma ingênua dos valores históricos desde o começo da conta.
+
+O endpoint de consulta `GET /api/v1/nobre-bridge/links` retorna apenas pares Discord vinculados e a data do prazo compartilhado. `POST /api/v1/nobre-bridge/credit` só aceita a credencial compartilhada, servidor autorizado, payload tipado, ID válido e chave única de crédito. Nunca confiar em parâmetros do navegador para conceder dias. O canal usa HTTPS, acesso protegido e sem cache.
+
+## Cargo Nobre na Yue
+
+O bot consulta os vínculos a cada cinco minutos e antes do processo nativo de expiração. Com link ativo e prazo compartilhado não vencido, adiciona o cargo ao membro existente do servidor indicado. A implementação mantém `SharedNobreMirror` em banco próprio, sem reescrever os históricos de pagamento nativos do bot. A remoção nativa respeita o prazo compartilhado para evitar tirar um cargo quando o membro renovou pelo site. Quando ambos os prazos expiram, o cargo pode ser removido; quando a vinculação é removida, apenas os benefícios de origem Discord permanecem no bot.
+
+Se o site estiver temporariamente indisponível, a Yue não converte a falha de comunicação em uma remoção em massa: mantém o espelho anterior e tenta novamente. O site também mantém funcionamento dos downloads independente de disponibilidade do bot.
+
+## Configuração e ativação
+
+**Nenhum código é ativado apenas por fazer o deploy.** As opções de segurança permanecem desligadas por padrão:
+
+No site, em ambiente privado:
+- `VB_DISCORD_LINK_ENABLED=0` inicialmente;
+- `VB_DISCORD_CLIENT_ID` e `VB_DISCORD_CLIENT_SECRET`: credenciais do aplicativo Discord que terá a URI de retorno autorizada;
+- `VB_SHARED_NOBRE_ENABLED=0` inicialmente;
+- `VB_SHARED_NOBRE_TOKEN`: segredo aleatório com pelo menos 40 caracteres, idêntico no bot;
+- `VB_SHARED_NOBRE_GUILD_ID`: servidor Discord beneficiado.
+
+No bot, em ambiente privado:
+- `VB_SHARED_NOBRE_ENABLED=0` inicialmente;
+- `VB_SHARED_NOBRE_ORIGIN=https://traducao.yuricunha.com`;
+- `VB_SHARED_NOBRE_TOKEN`: o mesmo segredo;
+- `VB_SHARED_NOBRE_GUILD_ID`: o mesmo servidor;
+- `VB_SHARED_NOBRE_ROLE_ID`: ID do cargo de apoiador gerenciável naquele servidor.
+
+Passos de ativação obrigatórios:
+1. Confirmar qual servidor da Yue integra o Vai Brasil!, e qual é o cargo Nobre associado aos planos desse servidor.
+2. Autorizar no aplicativo Discord a URI exata **`https://traducao.yuricunha.com/api/v1/discord/callback`**.
+3. Validar, com conta de teste, OAuth, rejeição de contas Discord já vinculadas, saída da sessão e desvinculação; habilitar o vínculo depois.
+4. Preparar uma conciliação inicial **somente leitura** do servidor selecionado. Conferir os prazos pré-existentes e o estado dos pagamentos sem importar em massa por engano.
+5. Configurar servidor/cargo e a credencial privada compartilhada, habilitar primeiro o serviço do site, depois o bot, com healthchecks de cada serviço.
+6. Testar com usuário de teste vinculado, duas compras simuladas, reenvio de evento, expiração e recuperação após perda de comunicação. Observar o resultado no site e no cargo da Yue sem efetuar cobrança real.
+7. Somente depois de verificadas essas condições, ativar a sincronização de membros. Não ativar automaticamente por push ou build.
+
+### Migrações
+
+Site: `20261018143000_shared_nobre_oauth_credits`, enum `DISCORD_LINK` e tabela `SharedNobreCredit`, sem remoção de dados existentes. Bot: `20261018145000_shared_nobre_mirror`, tabela de espelho de cargo, sem modificação nas tabelas financeiras existentes.
+
+### Controles
+
+Qualquer falha de autenticação do serviço bloqueia a API compartilhada. Nenhum cliente web consegue chamar o bridge com credencial de administrador. Não há acesso ao painel da Yue nem aos dados financeiros de outras comunidades. Logs de sincronização não guardam tokens nem payloads de checkout. Segredos não são versionados.
+
+Nenhum servidor ou roleId deve ser adivinhado, copiado de nomes parecidos ou escolhido automaticamente caso existam múltiplas comunidades. Mudanças no vínculo não transferem o direito de pagamento original para outra identidade sem revisão humana.
+
+## Referências oficiais
+
+- [Discord OAuth2, authorization code e proteção de estado](https://discord.com/developers/docs/topics/oauth2)
+- [Discord /users/@me com escopo identify](https://discord.com/developers/docs/resources/user)
+- [Discord: adicionar/remover cargo de membro existente](https://discord.com/developers/docs/resources/guild)
+- [Prisma: transações e isolamento serializável](https://www.prisma.io/docs/orm/prisma-client/queries/transactions)
+
+## Status de entrega
+
+Implementação e testes da vinculação, ponte de créditos e sincronização preparados com opções de ativação desligadas. O deploy do site pode ser independente do bot. Não se declara a sincronização **operacional** antes de registrar o callback Discord, configurar os IDs autorizados e validar os dois serviços juntos com uma conta de teste.
+
+## Evidências da implementação de pré-ativação
+
+- Migração aditiva \`20261018143000_shared_nobre_oauth_credits\` aplicada no banco do portal; migração \`20261018145000_shared_nobre_mirror\` aplicada no banco da Yue. Ambas tiveram status final consistente, sem remoção de dados.
+- A única comunidade da Yue com apoio configurado e provedor conectado é Vai Brasil!, e seus planos usam um único cargo. O alvo foi identificado por consulta autenticada apenas para configuração privada; seus IDs não são expostos nem versionados.
+- Os quatro planos no Discord foram normalizados para 30 dias/R$ 35, 60 dias/R$ 70, 90 dias/R$ 90 e 180 dias/R$ 180. O plano anterior de 365 dias foi arquivado somente para novas contribuições. Os snapshots de valores e durações dos pagamentos antigos não foram alterados, e a mudança deixou auditoria financeira.
+- As credenciais do aplicativo Discord existente e um token compartilhado aleatório estão preparados em configurações privadas (sem exposição nos repositórios). As opções \`VB_DISCORD_LINK_ENABLED\` e \`VB_SHARED_NOBRE_ENABLED\` permanecem desativadas para não permitir sincronização antes da autorização do callback e da troca segura de versão do bot.
+- Os testes automatizados do site incluem sessão e e-mail verificados, OAuth2 de uso único, state e cookie, tentativa de desvinculação de outra origem, credenciais desativadas, ingestão de créditos externos, repetição do mesmo pagamento, rejeição de crédito não vinculado e preservação dos saldos já registrados. A Yue também possui testes para preservação de cargo com prazo vinculado e comportamento inalterado quando a ponte está desativada.
+- TypeScript, suíte do portal, lint, testes e verificação de tipos da Yue passaram. O teste Chromium do site em 1440, 768, 390 e 320 px confirmou formulário de vínculo desativado, informação sobre vinculação opcional, desvinculação simulada e ausência de overflow horizontal ou exceções.
+- O website foi promovido com deploy blue/green e healthchecks sem downtime, com somente duas releases anteriores. O processo da Yue atual permanece disponível com os benefícios nativos existentes. A nova integração do bot está pronta para release em etapa isolada, sem sobrepor a sessão Discord ativa antes da ativação.
+- Não foram enviadas mensagens ao Discord, não foi atribuído nenhum cargo real e nenhuma compra ou evento financeiro de teste foi criada. A sincronização ao vivo depende do callback cadastrado no aplicativo Discord e de uma validação de ponta a ponta com conta de teste.

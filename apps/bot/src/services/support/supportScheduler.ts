@@ -2,6 +2,7 @@ import type { Client } from 'discord.js'
 import { logger } from '../../utils/logger'
 import { safe_error_details } from '../../utils/safe_error'
 import { supportService } from './support.service'
+import {syncSharedNobre} from './sharedNobreSync'
 
 export class SupportScheduler {
   private timer: NodeJS.Timeout | null = null
@@ -32,6 +33,8 @@ export class SupportScheduler {
     if (this.running) return
     this.running = true
     try {
+      try{await syncSharedNobre(this.client)}
+      catch(error){logger.warn({err:safe_error_details(error)},'Shared Nobre synchronization unavailable')}
       await supportService.run_expiration_batch(this.client)
       await supportService.run_reminder_batch(this.client)
     } finally {

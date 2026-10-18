@@ -34,6 +34,7 @@ import {
   prisma,
 } from '@yuebot/database'
 import type { LivePixConnection, SupportEntitlement, SupportPayment } from '@yuebot/database'
+import {hasSharedNobre} from './sharedNobreSync'
 import { COLORS, EMOJIS, generate_public_id } from '@yuebot/shared'
 import { CONFIG } from '../../config'
 import { logger } from '../../utils/logger'
@@ -393,6 +394,15 @@ class SupportService {
   async remove_entitlement_role(client: Client, entitlement_id: string): Promise<entitlement_sync_result> {
     const entitlement = await prisma.supportEntitlement.findUnique({ where: { id: entitlement_id } })
     if (!entitlement) return { success: true, status: 'not_found' }
+    // A linked website grant can keep this role active beyond the bot's own plan.
+    // Unlinked/expired mirrors never override the native Discord entitlement.
+    if(await hasSharedNobre(entitlement.guildId,entitlement.userId,entitlement.roleId)){
+      await prisma.supportEntitlement.update({
+        where:{id:entitlement.id},
+        data:{roleSyncStatus:SupportRoleSyncStatus.SYNCED,lastRoleSyncAt:new Date()}
+      })
+      return {success:true,status:'synced'}
+    }
 
     const guild = await client.guilds.fetch(entitlement.guildId).catch(() => null)
     if (!guild) {
