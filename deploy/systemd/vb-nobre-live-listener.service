@@ -1,0 +1,23 @@
+[Unit]
+Description=Vai Brasil Nobre transactional notifications to REST reconciliation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/ella-repos/yue-discord-bot
+EnvironmentFile=/home/ubuntu/docker/docker-compose/yuebot/.env
+Environment=VB_SHARED_NOBRE_LISTENER_ENABLED=1
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /home/ubuntu/ella-repos/yue-discord-bot/apps/bot/dist/nobreNotifyListener.js
+Restart=always
+RestartSec=10
+TimeoutStopSec=15
+UMask=0077
+NoNewPrivileges=true
+ProtectHome=read-only
+ProtectSystem=strict
+PrivateTmp=true
+
+[Install]
+WantedBy=default.target

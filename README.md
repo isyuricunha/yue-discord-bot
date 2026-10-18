@@ -174,3 +174,5 @@ See [LICENSE](LICENSE) for the full license text.
 \n## Benefícios compartilhados do Vai Brasil!
 
 O trabalhador REST independente de conciliação de benefícios e cargos está ativo, sem criar segundo Gateway Discord nem reiniciar a Yue original. A implementação e os cuidados para promoção futura do runtime principal constam em [SHARED-NOBRE-VAI-BRASIL.md](docs/SHARED-NOBRE-VAI-BRASIL.md).\n
+
+A integração Nobre agora recebe notificações transacionais sem uma segunda sessão Discord. Consulte [guia de Nobre compartilhado](docs/SHARED-NOBRE-VAI-BRASIL.md).

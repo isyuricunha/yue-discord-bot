@@ -258,6 +258,9 @@ importers:
       luxon:
         specifier: ^3.7.2
         version: 3.7.2
+      pg:
+        specifier: ^8.23.0
+        version: 8.23.0
       pino:
         specifier: ^10.3.1
         version: 10.3.1
@@ -283,6 +286,9 @@ importers:
       '@types/node':
         specifier: ^25.9.2
         version: 25.9.2
+      '@types/pg':
+        specifier: ^8.23.1
+        version: 8.23.1
       tsup:
         specifier: ^8.5.1
         version: 8.5.1(jiti@2.7.0)(postcss@8.5.28)(tsx@4.23.13)(typescript@6.0.3)(yaml@2.9.0)
