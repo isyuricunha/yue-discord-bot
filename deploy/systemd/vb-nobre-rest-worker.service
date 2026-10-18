@@ -1,0 +1,19 @@
+[Unit]
+Description=Vai Brasil Nobre entitlements and Discord roles reconciliation via REST
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ubuntu/ella-repos/yue-discord-bot
+EnvironmentFile=/home/ubuntu/docker/docker-compose/yuebot/.env
+Environment=VB_SHARED_NOBRE_WORKER_ENABLED=1
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /home/ubuntu/ella-repos/yue-discord-bot/apps/bot/dist/nobreWorker.js
+TimeoutStartSec=180
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+Nice=10

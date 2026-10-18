@@ -84,7 +84,7 @@ Nenhum servidor ou roleId deve ser adivinhado, copiado de nomes parecidos ou esc
 
 ## Status de entrega
 
-Implementação e testes da vinculação, ponte de créditos e sincronização preparados com opções de ativação desligadas. O deploy do site pode ser independente do bot. Não se declara a sincronização **operacional** antes de registrar o callback Discord, configurar os IDs autorizados e validar os dois serviços juntos com uma conta de teste.
+Vinculação OAuth e ponte de créditos ativas. A importação inicial foi aplicada e um reconciliador REST de execução curta está operacional e agendado a cada cinco minutos, sem criar um segundo gateway e sem reiniciar o bot principal. A chave de ativação do runtime principal continua desligada; a unidade independente é a responsável exclusiva pela sincronização até uma promoção controlada do runtime.
 
 ## Evidências da implementação de pré-ativação
 
@@ -96,3 +96,11 @@ Implementação e testes da vinculação, ponte de créditos e sincronização p
 - TypeScript, suíte do portal, lint, testes e verificação de tipos da Yue passaram. O teste Chromium do site em 1440, 768, 390 e 320 px confirmou formulário de vínculo desativado, informação sobre vinculação opcional, desvinculação simulada e ausência de overflow horizontal ou exceções.
 - O website foi promovido com deploy blue/green e healthchecks sem downtime, com somente duas releases anteriores. O processo da Yue atual permanece disponível com os benefícios nativos existentes. A nova integração do bot está pronta para release em etapa isolada, sem sobrepor a sessão Discord ativa antes da ativação.
 - Não foram enviadas mensagens ao Discord, não foi atribuído nenhum cargo real e nenhuma compra ou evento financeiro de teste foi criada. A sincronização ao vivo depende do callback cadastrado no aplicativo Discord e de uma validação de ponta a ponta com conta de teste.
+
+## Execução REST independente (18/10/2026)
+
+A sincronização foi ativada sem reiniciar a sessão principal da Yue. A entrada `apps/bot/src/nobreWorker.ts` usa exclusivamente `Client.rest.setToken`, nunca `Client.login`, para executar `syncSharedNobre`. Uma unidade isolada agenda uma execução curta a cada cinco minutos. O processo exige `VB_SHARED_NOBRE_WORKER_ENABLED=1` em ambiente privado e reutiliza as credenciais configuradas; a instância principal mantém `VB_SHARED_NOBRE_ENABLED=0`.
+
+No instante da ativação: 2 contas vinculadas, 2 marcos de importação inicial, 1 vínculo com direito Nobre válido, 2 espelhos e cargo presente para o beneficiário ativo. Permanecem preservados os 39 registros de pagamentos confirmados no Discord e os oito benefícios nativos vigentes. A execução de integração passou com sessão principal saudável e sem login adicional de Gateway.
+
+As operações do reconciliador são idempotentes. Eventuais falhas por usuário não interrompem os demais, mas tornam a execução parcial malsucedida para os registros operacionais. A aplicação embarcada do bot contém lógica para proteger o cargo na expiração nativa; enquanto ainda não for promovida ao cliente Gateway em uso, existe possibilidade de breve perda temporária do cargo quando um apoio Discord expira, até o próximo ciclo REST. **As unidades implantadas também estão versionadas em `deploy/systemd/` e devem ser mantidas em par. Antes de promover o runtime principal com sincronização ativada, desabilitar o timer REST**. Nunca iniciar duas conexões Gateway do mesmo bot. O worker não substitui nem modifica pagamentos, assinaturas ou moderação da Yue.

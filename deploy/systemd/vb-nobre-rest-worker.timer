@@ -1,0 +1,11 @@
+[Unit]
+Description=Reconcile linked Nobre benefits and Discord roles every five minutes
+
+[Timer]
+OnCalendar=*:0/5
+RandomizedDelaySec=8
+Persistent=true
+Unit=vb-nobre-rest-worker.service
+
+[Install]
+WantedBy=timers.target

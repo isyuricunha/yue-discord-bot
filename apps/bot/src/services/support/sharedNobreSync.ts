@@ -89,6 +89,7 @@ export async function syncSharedNobre(client:Client){
  if(!data||data.guildId!==cfg.guildId||!Array.isArray(data.links)||data.links.length>=5000)
   throw Error('shared_nobre_link_list_invalid');
  const seen=new Set<string>();
+ let deferred=0;
  for(const link of data.links){
   if(!link||typeof link.discordId!=='string'||!snowflake.test(link.discordId)||
    typeof link.linkedAt!=='string'||(link.expiresAt!==null&&typeof link.expiresAt!=='string'))
@@ -135,6 +136,7 @@ export async function syncSharedNobre(client:Client){
    update:{roleId:cfg.roleId,expiresAt:expires,linked:true,lastCheckedAt:new Date()}});
    await applyRole(client,cfg,link.discordId,Boolean(expires&&expires>new Date()));
   }catch(err){
+   deferred++;
    logger.warn({err:safe_error_details(err)},'Shared Nobre account synchronization deferred');
   }
  }
@@ -148,6 +150,10 @@ export async function syncSharedNobre(client:Client){
     guildId:cfg.guildId,discordId:mirror.discordId
    }},data:{linked:false,expiresAt:null,lastCheckedAt:new Date()}});
    await applyRole(client,cfg,mirror.discordId,false);
-  }catch(err){logger.warn({err:safe_error_details(err)},'Shared Nobre unlink deferred');}
+  }catch(err){
+   deferred++;
+   logger.warn({err:safe_error_details(err)},'Shared Nobre unlink deferred');
+  }
  }
+ if(deferred)throw Error('shared_nobre_partial_failures');
 }
