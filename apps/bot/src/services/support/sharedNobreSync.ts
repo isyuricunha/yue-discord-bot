@@ -35,20 +35,39 @@ async function bridge(cfg:Config,path:string,body?:unknown){
   return await response.json() as unknown;
  }finally{clearTimeout(timer);}
 }
+export function shouldRemoveSharedRole(roleManagedByBridge:boolean,hasNative:boolean){
+ return roleManagedByBridge&&!hasNative;
+}
 async function applyRole(client:Client,cfg:Config,discordId:string,shouldHave:boolean){
  const guild=await client.guilds.fetch(cfg.guildId).catch(()=>null);
  if(!guild)throw Error('shared_guild_unavailable');
  const member=await guild.members.fetch(discordId).catch(()=>null);
  if(!member)return; // Do not invite members who are not in the community.
+ const where={guildId_discordId:{guildId:cfg.guildId,discordId}};
+ const mirror=await prisma.sharedNobreMirror.findUnique({where,select:{
+  roleManagedByBridge:true
+ }});
+ if(!mirror)return;
  if(shouldHave){
-  if(!member.roles.cache.has(cfg.roleId))await member.roles.add(cfg.roleId,'Shared Nobre entitlement');
- }else if(member.roles.cache.has(cfg.roleId)){
-  const native=await prisma.supportEntitlement.findFirst({where:{
-   guildId:cfg.guildId,userId:discordId,roleId:cfg.roleId,
-   status:'ACTIVE',expiresAt:{gt:new Date()},revokedAt:null
-  },select:{id:true}});
-  if(!native)await member.roles.remove(cfg.roleId,'Shared Nobre entitlement ended');
+  if(!member.roles.cache.has(cfg.roleId)){
+   await member.roles.add(cfg.roleId,'Shared Nobre entitlement');
+   // Only a role actually added by this bridge may be removed by it later.
+   await prisma.sharedNobreMirror.update({where,data:{roleManagedByBridge:true}});
+  }
+  return;
  }
+ if(!mirror.roleManagedByBridge)return; // Preserve manual/staff and unrelated roles.
+ const native=await prisma.supportEntitlement.findFirst({where:{
+  guildId:cfg.guildId,userId:discordId,roleId:cfg.roleId,
+  status:'ACTIVE',expiresAt:{gt:new Date()},revokedAt:null
+ },select:{id:true}});
+ if(!shouldRemoveSharedRole(mirror.roleManagedByBridge,Boolean(native))){
+  await prisma.sharedNobreMirror.update({where,data:{roleManagedByBridge:false}});
+  return;
+ }
+ if(member.roles.cache.has(cfg.roleId))
+  await member.roles.remove(cfg.roleId,'Shared Nobre entitlement ended');
+ await prisma.sharedNobreMirror.update({where,data:{roleManagedByBridge:false}});
 }
 export function isSharedMirrorActive(mirror:{linked:boolean;expiresAt:Date|null}|null,
  now=new Date()){

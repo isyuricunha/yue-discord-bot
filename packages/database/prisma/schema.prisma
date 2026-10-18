@@ -1587,6 +1587,7 @@ model SharedNobreMirror {
   roleId       String
   expiresAt    DateTime?
   linked       Boolean  @default(true)
+  roleManagedByBridge Boolean @default(false)
   lastCheckedAt DateTime @default(now())
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt

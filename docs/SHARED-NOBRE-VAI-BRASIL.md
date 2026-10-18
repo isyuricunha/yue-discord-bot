@@ -74,6 +74,14 @@ Nenhum servidor ou roleId deve ser adivinhado, copiado de nomes parecidos ou esc
 - [Discord: adicionar/remover cargo de membro existente](https://discord.com/developers/docs/resources/guild)
 - [Prisma: transações e isolamento serializável](https://www.prisma.io/docs/orm/prisma-client/queries/transactions)
 
+## Verificação de vinculação real e segurança de cargos
+
+- Uma vinculação OAuth real foi confirmada em produção. A ponte privada retornou um único vínculo, com autenticação obrigatória; na conferência, o portal não possuía créditos importados nem benefícios Nobre ativos. Isso é esperado para uma conta administrativa sem contribuição registrada: acesso administrativo não equivale a pagamento Nobre.
+- O Discord confirmou que o cargo é gerenciável e está abaixo do cargo do bot. Nenhum membro ou cargo foi alterado nesse teste.
+- A inspeção da rotina de expiração identificou risco de remoção de cargos atribuídos manualmente. A migração **`20261018165000_shared_nobre_role_provenance`** adicionou à base da Yue o campo `roleManagedByBridge` (padrão falso). Somente cargos adicionados pela ponte ou assumidos por ela ao adiar uma remoção nativa podem ser removidos quando o benefício compartilhado terminar. Um cargo administrativo/manual sem histórico gerenciado permanece intocado.
+- Os testes específicos de proveniência, a suíte da Yue, TypeScript, lint e build passaram. Uma imagem isolada de pré-ativação foi construída com sucesso enquanto o bot atual permaneceu saudável. Não foi feito restart nem iniciado um segundo cliente Discord.
+- A vinculação no site e a ponte privada estão ativas. A sincronização automática da Yue segue desligada no container em execução. Liberá-la requer promoção controlada da imagem e validação de benefícios reais vinculados, sem risco de processamento duplicado do gateway.
+
 ## Status de entrega
 
 Implementação e testes da vinculação, ponte de créditos e sincronização preparados com opções de ativação desligadas. O deploy do site pode ser independente do bot. Não se declara a sincronização **operacional** antes de registrar o callback Discord, configurar os IDs autorizados e validar os dois serviços juntos com uma conta de teste.

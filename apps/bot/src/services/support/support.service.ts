@@ -397,9 +397,18 @@ class SupportService {
     // A linked website grant can keep this role active beyond the bot's own plan.
     // Unlinked/expired mirrors never override the native Discord entitlement.
     if(await hasSharedNobre(entitlement.guildId,entitlement.userId,entitlement.roleId)){
-      await prisma.supportEntitlement.update({
-        where:{id:entitlement.id},
-        data:{roleSyncStatus:SupportRoleSyncStatus.SYNCED,lastRoleSyncAt:new Date()}
+      // Native removal is deferred to the bridge. Record provenance so that
+      // only the deferred role is cleared after the shared period expires.
+      await prisma.$transaction(async tx=>{
+        await tx.sharedNobreMirror.updateMany({
+          where:{guildId:entitlement.guildId,discordId:entitlement.userId,
+            roleId:entitlement.roleId,linked:true,expiresAt:{gt:new Date()}},
+          data:{roleManagedByBridge:true}
+        })
+        await tx.supportEntitlement.update({
+          where:{id:entitlement.id},
+          data:{roleSyncStatus:SupportRoleSyncStatus.SYNCED,lastRoleSyncAt:new Date()}
+        })
       })
       return {success:true,status:'synced'}
     }
