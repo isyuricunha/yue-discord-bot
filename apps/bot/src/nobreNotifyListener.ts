@@ -30,6 +30,10 @@ let shuttingDown = false
 let drainTimer: ReturnType<typeof setTimeout> | undefined
 let nativeFollowUp: ReturnType<typeof setTimeout> | undefined
 let nativeSnapshotTimer: ReturnType<typeof setTimeout> | undefined
+let expiryTimer: ReturnType<typeof setTimeout> | undefined
+let expiryRefreshing = false
+let expiryRefreshAgain = false
+const maxDelay = 24 * 60 * 60 * 1000
 const clients = new Set<PgClient>()
 
 function wake(reason: 'site' | 'yue' | 'reconnect') {
@@ -66,7 +70,58 @@ function wake(reason: 'site' | 'yue' | 'reconnect') {
       })
     }, 750)
   }
+  void refreshExpiryTimer().catch(() => {
+    logger.warn('Nobre expiration schedule refresh deferred')
+  })
   logger.debug({ source: reason }, 'Nobre reconciliation wakeup')
+}
+
+// Queries only current, linked website access and native entitlement expiry.
+// On every commit notification, replace the deadline with the authoritative
+// nearest expiration. A daily cap avoids setTimeout overflow.
+async function refreshExpiryTimer() {
+  if (shuttingDown) return
+  if (expiryRefreshing) {expiryRefreshAgain = true; return}
+  expiryRefreshing = true
+  try {
+    const site = new PgClient({connectionString: siteDatabaseUrl(), connectionTimeoutMillis: 10000})
+    const native = new PgClient({connectionString: process.env.DATABASE_URL, connectionTimeoutMillis: 10000})
+    try {
+      await Promise.all([site.connect(), native.connect()])
+      const [website, discord] = await Promise.all([
+        site.query<{ next: Date | null }>(`SELECT MIN(e."expiresAt") AS next FROM "SupportEntitlement" e
+          JOIN "ExternalIdentity" i ON i."userId"=e."userId" AND i."provider"='discord'
+          WHERE e."status"='ACTIVE' AND e."revokedAt" IS NULL AND e."expiresAt">NOW()`),
+        native.query<{ next: Date | null }>(`SELECT MIN("expiresAt") AS next FROM "support_entitlements"
+          WHERE "guildId"=$1 AND "status"='ACTIVE' AND "revokedAt" IS NULL AND "expiresAt">NOW()`,
+          [guildId])
+      ])
+      const siteDate = website.rows[0]?.next
+      const nativeDate = discord.rows[0]?.next
+      const nearest = [siteDate,nativeDate].filter((x): x is Date=> x instanceof Date)
+        .sort((a,b)=>a.getTime()-b.getTime())[0]
+      if (expiryTimer) clearTimeout(expiryTimer)
+      expiryTimer=undefined
+      if (nearest) {
+        const delay = Math.min(maxDelay,Math.max(50,nearest.getTime()-Date.now()+300))
+        expiryTimer=setTimeout(()=>{
+          expiryTimer=undefined
+          wake('reconnect')
+          void exec('systemctl',['--user','start','vb-nobre-native-expiry.service'],
+            {timeout: 120000}).catch(()=>logger.warn('Native expiration job deferred'))
+        },delay)
+        expiryTimer.unref()
+      }
+    } finally {
+      await Promise.allSettled([site.end(),native.end()])
+    }
+  } finally {
+    expiryRefreshing=false
+    if (expiryRefreshAgain) {
+      expiryRefreshAgain=false
+      void refreshExpiryTimer().catch(()=>logger.warn('Nobre expiration reschedule failed'))
+    }
+  }
 }
 
 async function drain() {
@@ -147,6 +202,7 @@ async function main() {
     if (drainTimer) clearTimeout(drainTimer)
     if (nativeFollowUp) clearTimeout(nativeFollowUp)
     if (nativeSnapshotTimer) clearTimeout(nativeSnapshotTimer)
+    if (expiryTimer) clearTimeout(expiryTimer)
     for (const client of clients) void client.end().catch(() => {})
     setTimeout(() => process.exit(0), 500).unref()
   }

@@ -33,8 +33,12 @@ export class SupportScheduler {
     if (this.running) return
     this.running = true
     try {
-      try{await syncSharedNobre(this.client)}
-      catch(error){logger.warn({err:safe_error_details(error)},'Shared Nobre synchronization unavailable')}
+      // Avoid duplicate reconciliations when the dedicated REST listener owns
+      // shared sync. Native expiration still consults the bridge mirror.
+      if (process.env.VB_SHARED_NOBRE_EXTERNAL_WORKER !== '1') {
+        try{await syncSharedNobre(this.client)}
+        catch(error){logger.warn({err:safe_error_details(error)},'Shared Nobre synchronization unavailable')}
+      }
       await supportService.run_expiration_batch(this.client)
       await supportService.run_reminder_batch(this.client)
     } finally {

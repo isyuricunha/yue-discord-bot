@@ -1,0 +1,18 @@
+[Unit]
+Description=Vai Brasil native support entitlement expiration via outbox
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+WorkingDirectory=/home/ubuntu/ella-repos/yue-discord-bot
+EnvironmentFile=/home/ubuntu/docker/docker-compose/yuebot/.env
+Environment=VB_SHARED_NOBRE_WORKER_ENABLED=1
+Environment=NODE_ENV=production
+ExecStart=/usr/bin/node /home/ubuntu/ella-repos/yue-discord-bot/apps/bot/dist/nobreExpirationWorker.js
+TimeoutStartSec=120
+UMask=0077
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true

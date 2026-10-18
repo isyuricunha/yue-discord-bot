@@ -176,3 +176,5 @@ See [LICENSE](LICENSE) for the full license text.
 O trabalhador REST independente de conciliação de benefícios e cargos está ativo, sem criar segundo Gateway Discord nem reiniciar a Yue original. A implementação e os cuidados para promoção futura do runtime principal constam em [SHARED-NOBRE-VAI-BRASIL.md](docs/SHARED-NOBRE-VAI-BRASIL.md).\n
 
 A integração Nobre agora recebe notificações transacionais sem uma segunda sessão Discord. Consulte [guia de Nobre compartilhado](docs/SHARED-NOBRE-VAI-BRASIL.md).
+
+**Estado da produção (18/10/2026):** a Yue principal foi atualizada e preserva a proteção do Nobre compartilhado na expiração nativa. Eventos de baixa latência continuam no reconciliador REST separado, com agendamento do próximo vencimento e contingência de cinco minutos. Ver o histórico de testes e o limite da confirmação financeira em `docs/SHARED-NOBRE-VAI-BRASIL.md`.

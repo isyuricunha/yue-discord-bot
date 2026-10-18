@@ -112,3 +112,21 @@ As migrações aditivas de outubro de 2026 em ambos os bancos emitem avisos `LIS
 ### Validações pós-ativação
 
 Foram confirmadas notificações de ambos os bancos após commit, nenhuma notificação após rollback, atualização automática do cargo por REST, atualização da fotografia administrativa após evento (14 segundos no teste), e integridade de créditos no site. As falhas de subscrição/rede são tratadas com reconexão, inicialização com nova conciliação e timer de cinco minutos. A implementação conserva uma segunda verificação após alterações nativas para evitar corrida com a remoção de cargos do runtime anterior. O único cliente principal Discord permaneceu saudável, sem restart.
+
+## Situação operacional após a promoção da Yue (18/10/2026)
+
+A versão principal da Yue foi promovida com imagem local versionada, após build, testes e verificação da interface/API de uma instância candidata sem Gateway. Na troca da instância principal ocorreu apenas uma reconexão controlada do cliente Discord, sem iniciar duas sessões; os healthchecks finais ficaram saudáveis. O guard de expiração nativa utiliza o espelho compartilhado e permanece ativo na aplicação principal, enquanto o trabalho REST independente continua responsável pelos eventos para evitar reconciliação duplicada.
+
+Para a aplicação principal: `VB_SHARED_NOBRE_ENABLED=1` e `VB_SHARED_NOBRE_EXTERNAL_WORKER=1` no ambiente privado. A unidade `vb-nobre-live-listener.service` recebe sinais confirmados de ambos os bancos, e `vb-nobre-rest-worker.timer` segue como proteção de cinco minutos.
+
+### Expiração no vencimento
+
+A escuta de eventos calcula o menor vencimento futuro nos benefícios vinculados do portal e na comunidade autorizada da Yue e agenda o disparo para esse instante (com pequena folga). Quando a data chega, o reconciliador REST atualiza o espelho/cargo e a rotina `vb-nobre-native-expiry.service` processa expirações nativas pela caixa de saída transacional já existente. Uma mudança de prazo agenda novamente o próximo vencimento. Os agendamentos são reconstruídos ao reiniciar/reconectar; nenhum temporizador em memória é a única garantia de recuperação. A rotina de cinco minutos continua como contingência.
+
+Vencimento preciso aqui significa agendamento automático na data, sujeito a latência do banco, fila de saída, limites da API do Discord e indisponibilidade de rede. Não é garantia de remoção no mesmo milissegundo.
+
+### Evidências e limite da verificação financeira
+
+Na produção, 39 pagamentos históricos da Yue permanecem com estado `FULFILLED`; 8 Nobres nativos permanecem vigentes, 2 marcos `BOT_LEGACY` foram importados e o replay não criou créditos novos. O bot do Discord e seus cargos passaram no smoke test. A API do portal ainda não possui compras pagas próprias. O teste automatizado com confirmação simulada cobriu preço correto, prova de recebimento, negativa por divergência, acumulação e idempotência. Uma consulta independente de pagamento histórico ao provedor retornou HTTP 400; portanto **não declarar concluída** uma nova compra real ponta a ponta pelo portal sem operação financeira autorizada e resposta positiva do provedor.
+
+A imagem anterior e configurações privadas de corte estão preservadas para rollback. Não incluir esses dados nem credenciais em repositórios. A unidade do vencimento nativo foi versionada em `deploy/systemd/vb-nobre-native-expiry.service`.
