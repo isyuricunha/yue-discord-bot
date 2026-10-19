@@ -20,6 +20,7 @@ import { auditRoutes } from '../routes/audit.routes';
 import { triggersRoutes } from '../routes/triggers.routes';
 import { supportRoutes } from '../routes/support.routes';
 import { livePixRoutes } from '../routes/livepix.routes';
+import {vaiBrasilPartnerRoutes} from '../routes/vaibrasil_partner.routes';
 
 export function registerApiRoutes(app: FastifyInstance): void {
   app.register(authRoutes, { prefix: '/api/auth' });
@@ -52,4 +53,5 @@ export function registerApiRoutes(app: FastifyInstance): void {
   app.register(panelAiApplyRoutes, { prefix: '/api' });
 
   app.register(livePixRoutes, { prefix: '/api' });
+  app.register(vaiBrasilPartnerRoutes,{prefix:'/api/partner/vai-brasil'});
 }
