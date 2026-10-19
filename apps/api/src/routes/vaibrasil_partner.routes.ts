@@ -4,6 +4,9 @@ import {z} from 'zod'
 import {LivePixConnectionStatus,prisma,SupportPaymentStatus} from '@yuebot/database'
 import {verify_and_fulfill_support_payment} from '../internal/bot_internal_api'
 import {createSiteCheckout} from '../services/support/site_checkout'
+import {decrypt_livepix_secret} from '@yuebot/livepix'
+import {CONFIG} from '../config'
+import {pendingCheckoutUrl} from '../services/support/pending_checkout'
 
 const id=z.string().regex(/^[0-9]{16,22}$/)
 const input=z.object({discordId:id,planId:z.string().min(5).max(120)}).strict()
@@ -81,13 +84,15 @@ export function createPartnerRoutes(deps={
     guildId:cfg.guildId,userId:parsed.data.discordId
    },orderBy:{createdAt:'desc'},take:35,select:{
     publicId:true,planNameSnapshot:true,amountCentsSnapshot:true,durationDaysSnapshot:true,
-    status:true,createdAt:true,fulfilledAt:true
+    status:true,createdAt:true,fulfilledAt:true,checkoutUrlEncrypted:true
    }})
-   return {payments:payments.map(p=>({
-    publicId:p.publicId,name:p.planNameSnapshot,amountCents:p.amountCentsSnapshot,
-    durationDays:p.durationDaysSnapshot,status:p.status,createdAt:p.createdAt,
-    fulfilledAt:p.fulfilledAt,checkoutUrl:null
-   }))}
+   return {payments:payments.map(p=>{
+    const checkoutUrl=pendingCheckoutUrl(p,
+     encrypted=>decrypt_livepix_secret(encrypted,CONFIG.livePix.tokenEncryptionKey))
+    return {publicId:p.publicId,name:p.planNameSnapshot,amountCents:p.amountCentsSnapshot,
+     durationDays:p.durationDaysSnapshot,status:p.status,createdAt:p.createdAt,
+     fulfilledAt:p.fulfilledAt,checkoutUrl}
+   })}
   })
   app.post('/verify',async(req,reply)=>{
    const parsed=verify.safeParse(req.body)

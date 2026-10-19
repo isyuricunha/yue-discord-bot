@@ -2,10 +2,10 @@ import {randomBytes} from 'node:crypto'
 import {prisma,LivePixConnectionMode,LivePixConnectionStatus,SupportPaymentStatus} from '@yuebot/database'
 import {decrypt_livepix_secret,encrypt_livepix_secret,LivePixClient,LivePixClientCredentialsTokenCache,LIVEPIX_REQUIRED_SCOPES} from '@yuebot/livepix'
 import {CONFIG} from '../../config'
+import {pendingCheckoutUrl} from './pending_checkout'
 import {validate_support_role} from '../../internal/bot_internal_api'
 import type {FastifyBaseLogger} from 'fastify'
 
-const MAX_REUSE_MS=24*60*60*1000
 const provider=new LivePixClient()
 let cache:LivePixClientCredentialsTokenCache|null=null
 function tokenCache(){
@@ -39,11 +39,9 @@ export async function createSiteCheckout(input:{guildId:string;userId:string;pla
   status:{in:[SupportPaymentStatus.CREATING,SupportPaymentStatus.PENDING]}
  },orderBy:{createdAt:'desc'}})
  if(existing){
-  if(existing.checkoutUrlEncrypted&&existing.status===SupportPaymentStatus.PENDING&&
-     existing.createdAt.getTime()>Date.now()-MAX_REUSE_MS){
-   const checkoutUrl=decrypt_livepix_secret(existing.checkoutUrlEncrypted,CONFIG.livePix.tokenEncryptionKey)
-   return {publicId:existing.publicId,checkoutUrl,reused:true}
-  }
+  const checkoutUrl=pendingCheckoutUrl(existing,
+   encrypted=>decrypt_livepix_secret(encrypted,CONFIG.livePix.tokenEncryptionKey))
+  if(checkoutUrl)return {publicId:existing.publicId,checkoutUrl,reused:true}
   // Never generate a second provider payment while first creation may have succeeded.
   throw new PartnerCheckoutError('checkout_pending_reconciliation')
  }

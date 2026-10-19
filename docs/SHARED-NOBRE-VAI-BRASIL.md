@@ -142,3 +142,7 @@ A integração privada é servida por um processo API independente, sem cliente 
 O controle de checkout requer VB_SITE_CHECKOUT_ENABLED=1 em ambos os serviços. Iniciar com o valor desligado, conferir autenticação 401, catálogo de planos, identidade do usuário, logs sem segredos, histórico e testes de pagamento simulados; ativar apenas após todas as checagens. Uma interrupção da Yue bloqueia novos pagamentos no site. Não existe fallback que crie cobrança na base do portal.
 
 Referências: https://docs.livepix.gg/api e https://discord.com/developers/docs/topics/oauth2.
+
+## Reutilização de checkout PENDING e retomada no portal (19/10/2026)
+
+Para uma contribuição PENDING, o link criptografado de checkout é recuperável mesmo após 24 horas, desde que o URL seja HTTPS e pertença exatamente a checkout.livepix.gg. Essa reutilização não cria novo pagamento e preserva a chave pendingKey de unicidade. Os links antigos foram verificados com GET ao LivePix sem efetuar nenhuma transação. O endpoint parceiro de histórico devolve o checkout apenas ao Discord ID consultado pela API autenticada do portal, nunca para pagamentos concluídos/CREATING ou destinos diferentes. Continuam obrigatórios todos os guards existentes de identidade e status. Nunca eliminar arbitrariamente pagamentos pendentes para criar novos checkouts.
