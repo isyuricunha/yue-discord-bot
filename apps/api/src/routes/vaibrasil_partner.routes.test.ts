@@ -104,3 +104,38 @@ test('private history scopes query to the authenticated site identity',async()=>
   assert.equal(malformed.statusCode,400)
  }finally{await api.close();restore()}
 })
+
+test('lifetime is derived exclusively from the Discord membership API',async()=>{
+ configure()
+ const oldRole=process.env.VB_NOBRE_LIFETIME_ROLE_ID;
+ const oldBot=process.env.DISCORD_TOKEN;
+ const previousFetch=globalThis.fetch;
+ process.env.VB_NOBRE_LIFETIME_ROLE_ID='345678901234567890';
+ process.env.DISCORD_TOKEN='test-bot-only';
+ let memberChecks=0;
+ globalThis.fetch=(async(uri)=>{
+  memberChecks++;
+  assert.ok(String(uri).endsWith('/members/234567890123456789'));
+  return Response.json({roles:['345678901234567890']});
+ }) as typeof fetch;
+ const {api}=fake();
+ try{
+  const payload={discordId:'234567890123456789'};
+  const unauth=await api.inject({method:'POST',url:'/lifetime',payload});
+  assert.equal(unauth.statusCode,401);
+  const authorized=await api.inject({method:'POST',url:'/lifetime',
+   headers:{authorization:'Bearer '+token},payload});
+  assert.equal(authorized.statusCode,200);
+  assert.equal(authorized.json().lifetime,true);
+  assert.equal(memberChecks,1);
+  const bad=await api.inject({method:'POST',url:'/lifetime',
+   headers:{authorization:'Bearer '+token},payload:{discordId:'not-discord'}});
+  assert.equal(bad.statusCode,400);
+ }finally{
+  await api.close();globalThis.fetch=previousFetch;restore();
+  if(oldRole===undefined)delete process.env.VB_NOBRE_LIFETIME_ROLE_ID;
+  else process.env.VB_NOBRE_LIFETIME_ROLE_ID=oldRole;
+  if(oldBot===undefined)delete process.env.DISCORD_TOKEN;
+  else process.env.DISCORD_TOKEN=oldBot;
+ }
+});

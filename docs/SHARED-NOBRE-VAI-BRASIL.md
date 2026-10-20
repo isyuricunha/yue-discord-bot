@@ -146,3 +146,7 @@ Referências: https://docs.livepix.gg/api e https://discord.com/developers/docs/
 ## Reutilização de checkout PENDING e retomada no portal (19/10/2026)
 
 Para uma contribuição PENDING, o link criptografado de checkout é recuperável mesmo após 24 horas, desde que o URL seja HTTPS e pertença exatamente a checkout.livepix.gg. Essa reutilização não cria novo pagamento e preserva a chave pendingKey de unicidade. Os links antigos foram verificados com GET ao LivePix sem efetuar nenhuma transação. O endpoint parceiro de histórico devolve o checkout apenas ao Discord ID consultado pela API autenticada do portal, nunca para pagamentos concluídos/CREATING ou destinos diferentes. Continuam obrigatórios todos os guards existentes de identidade e status. Nunca eliminar arbitrariamente pagamentos pendentes para criar novos checkouts.
+
+## Cargo manual Nobres Vitalícios
+
+A API privada de parceiro expõe POST /api/partner/vai-brasil/lifetime, protegida pela mesma credencial Bearer e escopo da guild. Ela consulta a associação do usuário diretamente pela API oficial Discord usando o bot existente e compara o conjunto de cargos com VB_NOBRE_LIFETIME_ROLE_ID. O identificador foi confirmado pelo nome exato na guild, não informado pelo navegador. A ausência de membro responde lifetime=false; erros de rede e respostas inadequadas devolvem 503. Não altera cargos nem pagamentos LivePix. O portal armazena a projeção validada com TTL de cinco minutos.

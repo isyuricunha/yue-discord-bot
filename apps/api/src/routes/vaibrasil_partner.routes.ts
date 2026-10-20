@@ -43,6 +43,33 @@ export function createPartnerRoutes(deps={
    if(!partnerAuthorized(req.headers.authorization,cfg.token))
     return reply.code(401).send({error:'unauthorized'})
   })
+  // The Discord guild's manually assigned permanent role is authoritative.
+  // A missing guild member is a definitive revocation; API outages are not.
+  app.post('/lifetime',async(req,reply)=>{
+   const parsed=person.safeParse(req.body)
+   if(!parsed.success)return reply.code(400).send({error:'invalid_request'})
+   const cfg=config()
+   if(!cfg)return reply.code(503).send({error:'partner_disabled'})
+   const role=process.env.VB_NOBRE_LIFETIME_ROLE_ID
+   const botToken=process.env.DISCORD_TOKEN
+   if(!role||!id.safeParse(role).success||!botToken)
+    return reply.code(503).send({error:'discord_role_not_configured'})
+   try{
+    const response=await fetch('https://discord.com/api/v10/guilds/'+cfg.guildId+
+     '/members/'+parsed.data.discordId,{
+      headers:{Authorization:'Bot '+botToken,Accept:'application/json'},
+      signal:AbortSignal.timeout(10000),redirect:'error'
+     })
+    if(response.status===404)return {lifetime:false}
+    if(!response.ok)return reply.code(503).send({error:'discord_unavailable'})
+    const data=await response.json() as {roles?:unknown}
+    if(!Array.isArray(data.roles)||!data.roles.every(r=>typeof r==='string'))
+     return reply.code(503).send({error:'discord_response_invalid'})
+    return {lifetime:data.roles.includes(role)}
+   }catch{
+    return reply.code(503).send({error:'discord_unavailable'})
+   }
+  })
   app.get('/plans',async(_req,reply)=>{
    const cfg=config()
    if(!cfg)return reply.code(503).send({error:'partner_disabled'})
