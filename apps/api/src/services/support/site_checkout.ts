@@ -16,7 +16,7 @@ function tokenCache(){
  })
  return cache
 }
-export class PartnerCheckoutError extends Error{
+class PartnerCheckoutError extends Error{
  constructor(public readonly code:string){super(code);this.name='PartnerCheckoutError'}
 }
 export async function createSiteCheckout(input:{guildId:string;userId:string;planId:string},

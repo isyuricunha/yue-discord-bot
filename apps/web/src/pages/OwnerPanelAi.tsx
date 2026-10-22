@@ -52,16 +52,10 @@ export default function OwnerPanelAiPage() {
     setSensitive(settings.sensitiveContextEnabled)
   }, [settingsQuery.data])
 
+  // Capture current form values at click time, not a potentially stale mutation closure.
   const save = useMutation({
-    mutationFn: async () =>
-      axios.put(`${API_URL}/api/owner/panel-ai`, {
-        panelProvider: provider,
-        customModel: model || null,
-        customReasoningMode: reasoningMode,
-        fallbackEnabled: provider === 'custom' ? false : fallbackEnabled,
-        discordTextFallbackEnabled,
-        sensitiveContextEnabled: sensitive,
-      }),
+    mutationFn: async (settings: panel_ai_response['settings']) =>
+      axios.put(`${API_URL}/api/owner/panel-ai`, settings),
     onSuccess: () => {
       toast_success('Configuração do assistente atualizada.', 'Owner')
       queryClient.invalidateQueries({ queryKey: ['owner', 'panel-ai'] })
@@ -356,7 +350,14 @@ const metricsQuery = useQuery({
 
           <div className="flex flex-wrap gap-2 pt-2">
             <Button
-              onClick={() => save.mutate()}
+              onClick={() => save.mutate({
+                panelProvider: provider,
+                customModel: model || null,
+                customReasoningMode: reasoningMode,
+                fallbackEnabled: provider === 'custom' ? false : fallbackEnabled,
+                discordTextFallbackEnabled,
+                sensitiveContextEnabled: sensitive,
+              })}
               isLoading={save.isPending}
               disabled={(provider === 'custom' || fallbackEnabled || discordTextFallbackEnabled) && (!model || !customConfigured)}
             >

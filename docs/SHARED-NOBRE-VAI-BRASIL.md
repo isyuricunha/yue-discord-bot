@@ -150,3 +150,19 @@ Para uma contribuição PENDING, o link criptografado de checkout é recuperáve
 ## Cargo manual Nobres Vitalícios
 
 A API privada de parceiro expõe POST /api/partner/vai-brasil/lifetime, protegida pela mesma credencial Bearer e escopo da guild. Ela consulta a associação do usuário diretamente pela API oficial Discord usando o bot existente e compara o conjunto de cargos com VB_NOBRE_LIFETIME_ROLE_ID. O identificador foi confirmado pelo nome exato na guild, não informado pelo navegador. A ausência de membro responde lifetime=false; erros de rede e respostas inadequadas devolvem 503. Não altera cargos nem pagamentos LivePix. O portal armazena a projeção validada com TTL de cinco minutos.
+
+
+## Database migration parity in CI (2026-10-22)
+
+The shared_nobre_mirrors.updatedAt PostgreSQL column has a database-level
+CURRENT_TIMESTAMP default in the immutable migration
+20261018145000_shared_nobre_mirror. The Prisma model must describe the same
+database default with @default(now()), in addition to @updatedAt (which
+continues to update the field in Prisma Client writes).
+
+Never rewrite an already-applied migration to fix drift. The CI replays all
+migrations in an isolated PostgreSQL 16 database, then runs
+prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code.
+An exit status of 2 signals a genuine schema difference and should be fixed
+in the schema or a new forward migration, not hidden by disabling the check.
+This alignment does not require a production database migration or Yue bot restart.
