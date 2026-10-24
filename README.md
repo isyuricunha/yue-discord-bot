@@ -169,12 +169,9 @@ pnpm db:migrate   # Run database migrations
 Yue Discord Bot is licensed under the **GNU Affero General Public License v3.0**.
 
 See [LICENSE](LICENSE) for the full license text.
-\n\n## Nobre compartilhado com Vai Brasil!\n\nApoios do bot continuam independentes para quem não vincular as contas. A integração opcional com o Vai Brasil! permite compartilhar a mesma validade Nobre, preservando pagamentos, cargos e benefícios anteriores. O processo seguro de implantação e as configurações de ativação estão em [docs/SHARED-NOBRE-VAI-BRASIL.md](docs/SHARED-NOBRE-VAI-BRASIL.md). A sincronização permanece desativada até a validação da integração.\n
 
-\n## Benefícios compartilhados do Vai Brasil!
+## Shared Nobre with Vai Brasil!
 
-O trabalhador REST independente de conciliação de benefícios e cargos está ativo, sem criar segundo Gateway Discord nem reiniciar a Yue original. A implementação e os cuidados para promoção futura do runtime principal constam em [SHARED-NOBRE-VAI-BRASIL.md](docs/SHARED-NOBRE-VAI-BRASIL.md).\n
+Supporters who do not link accounts keep everything independent. The optional Vai Brasil! integration lets the bot and the translation portal share the same Nobre entitlement, preserving existing payments, roles and benefits.
 
-A integração Nobre agora recebe notificações transacionais sem uma segunda sessão Discord. Consulte [guia de Nobre compartilhado](docs/SHARED-NOBRE-VAI-BRASIL.md).
-
-**Estado da produção (18/10/2026):** a Yue principal foi atualizada e preserva a proteção do Nobre compartilhado na expiração nativa. Eventos de baixa latência continuam no reconciliador REST separado, com agendamento do próximo vencimento e contingência de cinco minutos. Ver o histórico de testes e o limite da confirmação financeira em `docs/SHARED-NOBRE-VAI-BRASIL.md`.
+Benefits and roles reconcile through an isolated REST worker, with no second Discord gateway and no restart of the main Yue runtime. Deployment steps and activation settings are documented in [docs/SHARED-NOBRE-VAI-BRASIL.md](docs/SHARED-NOBRE-VAI-BRASIL.md). Synchronization stays disabled until the integration is validated.
