@@ -294,7 +294,14 @@ jobs:
               sources+=("${image}@sha256:${digest}")
             done
 
-            docker buildx imagetools create "${tags[@]}" "${sources[@]}"
+            # The GitHub package page reads its description from the index
+            # annotations, not from platform image labels (which never reach
+            # the index assembled here). Keep in sync with the
+            # org.opencontainers.image.description label in docker-build.
+            # Safe: only workflow-internal values (tags/digests), no event data.
+            docker buildx imagetools create \
+              --annotation "index:org.opencontainers.image.description=A biggest bot." \
+              "${tags[@]}" "${sources[@]}"
           }
 
           create_manifest "$DOCKERHUB_IMAGE"
