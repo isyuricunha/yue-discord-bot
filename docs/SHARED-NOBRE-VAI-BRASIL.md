@@ -1,156 +1,155 @@
-# Vai Brasil! e Yue | Nobre compartilhado
+# Vai Brasil! and Yue | Shared Nobre
 
-## Objetivo e limites
+## Purpose and boundaries
 
-O membro pode contribuir exclusivamente pelo **site**, exclusivamente pelo **Discord**, ou por ambos. **Vincular as contas é opcional**. Sem vínculo, os dois sistemas continuam independentes e seus pagamentos não são associados por nome, e-mail, avatar ou aproximação. Com o vínculo confirmado pelo Discord OAuth2, um crédito verificado de qualquer plataforma passa a compartilhar um prazo de Nobre.
+A member may contribute exclusively through the **website**, exclusively through **Discord**, or through both. **Linking accounts is optional**. Without a link, the two systems remain independent and their payments are never associated by name, e-mail, avatar or similarity. With the link confirmed through Discord OAuth2, a verified credit from either platform starts sharing a single Nobre expiry.
 
-Esta implantação é deliberadamente **aditiva**, sem apagar ou reescrever os pagamentos e benefícios originais da Yue. Os demais servidores atendidos pelo bot não participam, mesmo que usem o mesmo LivePix. A sincronização só opera no servidor e cargo explicitamente configurados.
+This deployment is deliberately **additive**: it never deletes or rewrites Yue's original payments and benefits. Other servers served by the bot do not participate, even if they use the same LivePix account. Synchronization only operates on the explicitly configured server and role.
 
-## Vínculo seguro
+## Secure linking
 
-Na área `/conta?section=security`, o usuário encontra **Discord conectado**. A interface consulta `GET /api/v1/discord/status`. Quando o OAuth estiver habilitado, `GET /api/v1/discord/start` exige sessão e e-mail verificado e inicia a autorização `identify` do Discord. O servidor cria um token de estado aleatório de 256 bits, armazena apenas SHA-256 por no máximo dez minutos e o protege com cookie HTTP-only, Secure e SameSite Lax. O callback troca o código por token via API oficial, consulta `GET /users/@me`, consome o estado uma única vez e grava o identificador imutável Discord em `ExternalIdentity`, com índices únicos para impedir identidades repetidas.
+In the `/conta?section=security` area, the user finds **Discord connected**. The interface queries `GET /api/v1/discord/status`. When OAuth is enabled, `GET /api/v1/discord/start` requires a session and a verified e-mail and starts the Discord `identify` authorization. The server creates a random 256-bit state token, stores only its SHA-256 hash for at most ten minutes, and protects it with an HTTP-only, Secure, SameSite Lax cookie. The callback exchanges the code for a token through the official API, queries `GET /users/@me`, consumes the state exactly once, and stores the immutable Discord identifier in `ExternalIdentity`, with unique indexes to prevent duplicated identities.
 
-`POST /api/v1/discord/unlink` exige sessão verificada e Origin correto. A desvinculação não apaga históricos de pagamento nem os créditos já incorporados ao prazo do site. O bot deixa de utilizar o prazo vindo do site na próxima reconciliação, mas mantém qualquer benefício nativo do Discord ainda vigente. O usuário pode pagar nas plataformas separadamente sem nunca conectar contas.
+`POST /api/v1/discord/unlink` requires a verified session and the correct Origin header. Unlinking does not delete payment history nor credits already merged into the website expiry. The bot stops using the website-provided expiry at the next reconciliation, but keeps any Discord-native benefit still active. The user may pay on each platform separately without ever connecting accounts.
 
-A vinculação não tem escopos de mensagens, e-mail ou entrada automática em servidores. O bot somente aplica o cargo a quem já estiver no servidor escolhido.
+Linking carries no message, e-mail or automatic server-entry scopes. The bot only grants the role to members already present in the chosen server.
 
-## Crédito e prazo autoritativo
+## Authoritative credit and entitlement
 
-O Vai Brasil! mantém o vencimento compartilhado para contas vinculadas, enquanto a Yue preserva o registro financeiro e o benefício nativo Discord. **Não são duas autorizações financeiras**: cada compra é confirmada no seu provedor de origem. A Yue só envia eventos de pagamentos que ela mesma já marcou como `FULFILLED`. A API do site recebe esses eventos de um serviço autenticado, não de usuários ou webhooks públicos.
+Vai Brasil! keeps the shared expiry for linked accounts, while Yue preserves the financial record and the Discord-native benefit. **These are not two financial authorizations**: each purchase is confirmed at its own origin provider. Yue only emits events for payments it has itself marked as `FULFILLED`. The website API receives those events from an authenticated service, never from users or public webhooks.
 
-Quando ocorre a primeira vinculação, a Yue captura o **tempo ainda restante** do seu benefício nativo e envia o marco `legacy` apenas uma vez. O site acrescenta esse saldo ao prazo atual, em transação. Depois, cada pagamento Discord posterior ao marco é enviado com `guildId`, ID imutável do pagamento, `discordId`, dias adquiridos e instante de conclusão. O site guarda um `SharedNobreCredit` único por origem/ID do pagamento. Reenvios são idempotentes, e pagamentos antigos incorporados ao marco inicial não são somados novamente.
+On the first link, Yue captures the **time still remaining** of the native benefit and sends the `legacy` marker exactly once. The website adds that balance to the current expiry, in a transaction. Afterwards, every Discord payment is sent with the `guildId`, the immutable payment ID, the `discordId`, the purchased days and the completion instant. The website stores one `SharedNobreCredit` per origin/payment ID pair. Replays are idempotent, and old payments already merged into the initial marker are never summed again.
 
-As transações de créditos externos bloqueiam a linha do usuário, assim como a confirmação do checkout do próprio site. Dois pagamentos distintos acrescentam dias na ordem, sem sobrescrever a validade um do outro. Os períodos pré-existentes nas duas plataformas são preservados por soma **dos tempos ainda restantes**, não por soma ingênua dos valores históricos desde o começo da conta.
+External credit transactions lock the user row, just like the website's own checkout confirmation. Two distinct payments add days in order, without overwriting each other's validity. Pre-existing periods on both platforms are preserved by summing the **time still remaining**, not by naively summing historical totals since account creation.
 
-O endpoint de consulta `GET /api/v1/nobre-bridge/links` retorna apenas pares Discord vinculados e a data do prazo compartilhado. `POST /api/v1/nobre-bridge/credit` só aceita a credencial compartilhada, servidor autorizado, payload tipado, ID válido e chave única de crédito. Nunca confiar em parâmetros do navegador para conceder dias. O canal usa HTTPS, acesso protegido e sem cache.
+The query endpoint `GET /api/v1/nobre-bridge/links` returns only linked Discord pairs and the shared expiry date. `POST /api/v1/nobre-bridge/credit` only accepts the shared credential, an authorized server, a typed payload, a valid ID and a unique credit key. Never trust browser-provided parameters to grant days. The channel uses HTTPS, protected access and no caching.
 
-## Cargo Nobre na Yue
+## The Nobre role in Yue
 
-O bot consulta os vínculos a cada cinco minutos e antes do processo nativo de expiração. Com link ativo e prazo compartilhado não vencido, adiciona o cargo ao membro existente do servidor indicado. A implementação mantém `SharedNobreMirror` em banco próprio, sem reescrever os históricos de pagamento nativos do bot. A remoção nativa respeita o prazo compartilhado para evitar tirar um cargo quando o membro renovou pelo site. Quando ambos os prazos expiram, o cargo pode ser removido; quando a vinculação é removida, apenas os benefícios de origem Discord permanecem no bot.
+The bot queries the links every five minutes and before the native expiry process. With an active link and an unexpired shared expiry, it adds the role to the existing member of the configured server. The implementation keeps `SharedNobreMirror` in its own database table, without rewriting the bot's native payment history. The native removal respects the shared expiry, to avoid stripping the role when the member renewed through the website. When both expiries pass, the role may be removed; when the link is removed, only Discord-origin benefits remain in the bot.
 
-Se o site estiver temporariamente indisponível, a Yue não converte a falha de comunicação em uma remoção em massa: mantém o espelho anterior e tenta novamente. O site também mantém funcionamento dos downloads independente de disponibilidade do bot.
+If the website is temporarily unavailable, Yue does not turn the communication failure into a mass removal: it keeps the previous mirror and retries. The website likewise keeps downloads working regardless of bot availability.
 
-## Configuração e ativação
+## Configuration and activation
 
-**Nenhum código é ativado apenas por fazer o deploy.** As opções de segurança permanecem desligadas por padrão:
+**Nothing is activated by deploying alone.** The security switches stay off by default:
 
-No site, em ambiente privado:
-- `VB_DISCORD_LINK_ENABLED=0` inicialmente;
-- `VB_DISCORD_CLIENT_ID` e `VB_DISCORD_CLIENT_SECRET`: credenciais do aplicativo Discord que terá a URI de retorno autorizada;
-- `VB_SHARED_NOBRE_ENABLED=0` inicialmente;
-- `VB_SHARED_NOBRE_TOKEN`: segredo aleatório com pelo menos 40 caracteres, idêntico no bot;
-- `VB_SHARED_NOBRE_GUILD_ID`: servidor Discord beneficiado.
+On the website, in the private environment:
+- `VB_DISCORD_LINK_ENABLED=0` initially;
+- `VB_DISCORD_CLIENT_ID` and `VB_DISCORD_CLIENT_SECRET`: credentials of the Discord application whose redirect URI is authorized;
+- `VB_SHARED_NOBRE_ENABLED=0` initially;
+- `VB_SHARED_NOBRE_TOKEN`: a random secret of at least 40 characters, identical in the bot;
+- `VB_SHARED_NOBRE_GUILD_ID`: the benefiting Discord server.
 
-No bot, em ambiente privado:
-- `VB_SHARED_NOBRE_ENABLED=0` inicialmente;
+On the bot, in the private environment:
+- `VB_SHARED_NOBRE_ENABLED=0` initially;
 - `VB_SHARED_NOBRE_ORIGIN=https://traducao.yuricunha.com`;
-- `VB_SHARED_NOBRE_TOKEN`: o mesmo segredo;
-- `VB_SHARED_NOBRE_GUILD_ID`: o mesmo servidor;
-- `VB_SHARED_NOBRE_ROLE_ID`: ID do cargo de apoiador gerenciável naquele servidor.
+- `VB_SHARED_NOBRE_TOKEN`: the same secret;
+- `VB_SHARED_NOBRE_GUILD_ID`: the same server;
+- `VB_SHARED_NOBRE_ROLE_ID`: the ID of the manageable supporter role in that server.
 
-Passos de ativação obrigatórios:
-1. Confirmar qual servidor da Yue integra o Vai Brasil!, e qual é o cargo Nobre associado aos planos desse servidor.
-2. Autorizar no aplicativo Discord a URI exata **`https://traducao.yuricunha.com/api/v1/discord/callback`**.
-3. Validar, com conta de teste, OAuth, rejeição de contas Discord já vinculadas, saída da sessão e desvinculação; habilitar o vínculo depois.
-4. Preparar uma conciliação inicial **somente leitura** do servidor selecionado. Conferir os prazos pré-existentes e o estado dos pagamentos sem importar em massa por engano.
-5. Configurar servidor/cargo e a credencial privada compartilhada, habilitar primeiro o serviço do site, depois o bot, com healthchecks de cada serviço.
-6. Testar com usuário de teste vinculado, duas compras simuladas, reenvio de evento, expiração e recuperação após perda de comunicação. Observar o resultado no site e no cargo da Yue sem efetuar cobrança real.
-7. Somente depois de verificadas essas condições, ativar a sincronização de membros. Não ativar automaticamente por push ou build.
+Mandatory activation steps:
+1. Confirm which Yue server integrates with Vai Brasil!, and which Nobre role is associated with that server's plans.
+2. Authorize the exact URI **`https://traducao.yuricunha.com/api/v1/discord/callback`** in the Discord application.
+3. Validate, with a test account, OAuth, rejection of already-linked Discord accounts, session sign-out and unlinking; enable linking afterwards.
+4. Prepare a **read-only** initial reconciliation of the selected server. Review pre-existing expiries and payment states without accidentally bulk-importing.
+5. Configure server/role and the shared private credential; enable the website service first, then the bot, with health checks on each service.
+6. Test with a linked test user, two simulated purchases, an event replay, expiry and recovery after a communication loss. Observe the result on the website and on the Yue role without charging real money.
+7. Only after all of these conditions are verified, enable member synchronization. Never enable it automatically by push or build.
 
-### Migrações
+### Migrations
 
-Site: `20261018143000_shared_nobre_oauth_credits`, enum `DISCORD_LINK` e tabela `SharedNobreCredit`, sem remoção de dados existentes. Bot: `20261018145000_shared_nobre_mirror`, tabela de espelho de cargo, sem modificação nas tabelas financeiras existentes.
+Website: `20261018143000_shared_nobre_oauth_credits`, the `DISCORD_LINK` enum and the `SharedNobreCredit` table, with no removal of existing data. Bot: `20261018145000_shared_nobre_mirror`, a role mirror table, with no modification of existing financial tables.
 
-### Controles
+### Controls
 
-Qualquer falha de autenticação do serviço bloqueia a API compartilhada. Nenhum cliente web consegue chamar o bridge com credencial de administrador. Não há acesso ao painel da Yue nem aos dados financeiros de outras comunidades. Logs de sincronização não guardam tokens nem payloads de checkout. Segredos não são versionados.
+Any service authentication failure blocks the shared API. No web client can call the bridge with an administrator credential. There is no access to the Yue panel or to other communities' financial data. Synchronization logs never store tokens or checkout payloads. Secrets are never versioned.
 
-Nenhum servidor ou roleId deve ser adivinhado, copiado de nomes parecidos ou escolhido automaticamente caso existam múltiplas comunidades. Mudanças no vínculo não transferem o direito de pagamento original para outra identidade sem revisão humana.
+No server or roleId may be guessed, copied from similarly named entries or chosen automatically when multiple communities exist. Link changes never transfer the original payment right to another identity without human review.
 
-## Referências oficiais
+## Official references
 
-- [Discord OAuth2, authorization code e proteção de estado](https://discord.com/developers/docs/topics/oauth2)
-- [Discord /users/@me com escopo identify](https://discord.com/developers/docs/resources/user)
-- [Discord: adicionar/remover cargo de membro existente](https://discord.com/developers/docs/resources/guild)
-- [Prisma: transações e isolamento serializável](https://www.prisma.io/docs/orm/prisma-client/queries/transactions)
+- [Discord OAuth2, authorization code and state protection](https://discord.com/developers/docs/topics/oauth2)
+- [Discord /users/@me with the identify scope](https://discord.com/developers/docs/resources/user)
+- [Discord: adding/removing a role of an existing member](https://discord.com/developers/docs/resources/guild)
+- [Prisma: transactions and serializable isolation](https://www.prisma.io/docs/orm/prisma-client/queries/transactions)
 
-## Verificação de vinculação real e segurança de cargos
+## Real link verification and role safety
 
-- Uma vinculação OAuth real foi confirmada em produção. A ponte privada retornou um único vínculo, com autenticação obrigatória; na conferência, o portal não possuía créditos importados nem benefícios Nobre ativos. Isso é esperado para uma conta administrativa sem contribuição registrada: acesso administrativo não equivale a pagamento Nobre.
-- O Discord confirmou que o cargo é gerenciável e está abaixo do cargo do bot. Nenhum membro ou cargo foi alterado nesse teste.
-- A inspeção da rotina de expiração identificou risco de remoção de cargos atribuídos manualmente. A migração **`20261018165000_shared_nobre_role_provenance`** adicionou à base da Yue o campo `roleManagedByBridge` (padrão falso). Somente cargos adicionados pela ponte ou assumidos por ela ao adiar uma remoção nativa podem ser removidos quando o benefício compartilhado terminar. Um cargo administrativo/manual sem histórico gerenciado permanece intocado.
-- Os testes específicos de proveniência, a suíte da Yue, TypeScript, lint e build passaram. Uma imagem isolada de pré-ativação foi construída com sucesso enquanto o bot atual permaneceu saudável. Não foi feito restart nem iniciado um segundo cliente Discord.
-- A vinculação no site e a ponte privada estão ativas. A sincronização automática da Yue segue desligada no container em execução. Liberá-la requer promoção controlada da imagem e validação de benefícios reais vinculados, sem risco de processamento duplicado do gateway.
+- A real OAuth link was confirmed in production. The private bridge returned a single link with mandatory authentication; on inspection, the portal held no imported credits nor active Nobre benefits. This is expected for an administrative account with no recorded contribution: administrative access does not equal a Nobre payment.
+- Discord confirmed the role is manageable and sits below the bot's role. No member or role was changed during that test.
+- Inspecting the expiry routine identified a risk of removing manually assigned roles. Migration **`20261018165000_shared_nobre_role_provenance`** added the `roleManagedByBridge` column (default false) to the Yue database. Only roles granted by the bridge, or assumed by it when deferring a native removal, may be removed when the shared benefit ends. An administrative/manual role with no managed history stays untouched.
+- The provenance-specific tests, the Yue suite, TypeScript, lint and build all passed. An isolated pre-activation image was built successfully while the current bot stayed healthy. No restart was performed and no second Discord client was started.
+- Website linking and the private bridge are active. Yue automatic synchronization remains off in the running container. Enabling it requires a controlled image promotion and validation with real linked benefits, with no risk of duplicate gateway processing.
 
-## Status de entrega
+## Delivery status
 
-Vinculação OAuth e ponte de créditos ativas. A importação inicial foi aplicada e um reconciliador REST de execução curta está operacional e agendado a cada cinco minutos, sem criar um segundo gateway e sem reiniciar o bot principal. A chave de ativação do runtime principal continua desligada; a unidade independente é a responsável exclusiva pela sincronização até uma promoção controlada do runtime.
+OAuth linking and the credit bridge are active. The initial import was applied and a short-running REST reconciler is operational and scheduled every five minutes, without creating a second gateway and without restarting the main bot. The main runtime activation key stays off; the independent unit is the sole component performing synchronization until a controlled runtime promotion.
 
-## Evidências da implementação de pré-ativação
+## Pre-activation implementation evidence
 
-- Migração aditiva \`20261018143000_shared_nobre_oauth_credits\` aplicada no banco do portal; migração \`20261018145000_shared_nobre_mirror\` aplicada no banco da Yue. Ambas tiveram status final consistente, sem remoção de dados.
-- A única comunidade da Yue com apoio configurado e provedor conectado é Vai Brasil!, e seus planos usam um único cargo. O alvo foi identificado por consulta autenticada apenas para configuração privada; seus IDs não são expostos nem versionados.
-- Os quatro planos no Discord foram normalizados para 30 dias/R$ 35, 60 dias/R$ 70, 90 dias/R$ 90 e 180 dias/R$ 180. O plano anterior de 365 dias foi arquivado somente para novas contribuições. Os snapshots de valores e durações dos pagamentos antigos não foram alterados, e a mudança deixou auditoria financeira.
-- As credenciais do aplicativo Discord existente e um token compartilhado aleatório estão preparados em configurações privadas (sem exposição nos repositórios). As opções \`VB_DISCORD_LINK_ENABLED\` e \`VB_SHARED_NOBRE_ENABLED\` permanecem desativadas para não permitir sincronização antes da autorização do callback e da troca segura de versão do bot.
-- Os testes automatizados do site incluem sessão e e-mail verificados, OAuth2 de uso único, state e cookie, tentativa de desvinculação de outra origem, credenciais desativadas, ingestão de créditos externos, repetição do mesmo pagamento, rejeição de crédito não vinculado e preservação dos saldos já registrados. A Yue também possui testes para preservação de cargo com prazo vinculado e comportamento inalterado quando a ponte está desativada.
-- TypeScript, suíte do portal, lint, testes e verificação de tipos da Yue passaram. O teste Chromium do site em 1440, 768, 390 e 320 px confirmou formulário de vínculo desativado, informação sobre vinculação opcional, desvinculação simulada e ausência de overflow horizontal ou exceções.
-- O website foi promovido com deploy blue/green e healthchecks sem downtime, com somente duas releases anteriores. O processo da Yue atual permanece disponível com os benefícios nativos existentes. A nova integração do bot está pronta para release em etapa isolada, sem sobrepor a sessão Discord ativa antes da ativação.
-- Não foram enviadas mensagens ao Discord, não foi atribuído nenhum cargo real e nenhuma compra ou evento financeiro de teste foi criada. A sincronização ao vivo depende do callback cadastrado no aplicativo Discord e de uma validação de ponta a ponta com conta de teste.
+- The additive migration `20261018143000_shared_nobre_oauth_credits` was applied to the portal database; migration `20261018145000_shared_nobre_mirror` was applied to the Yue database. Both ended in a consistent state, with no data removal.
+- The only Yue community with support configured and a connected provider is Vai Brasil!, and its plans use a single role. The target was identified through an authenticated query for private configuration only; its IDs are neither exposed nor versioned.
+- The four Discord plans were normalized to 30 days/R$ 35, 60 days/R$ 70, 90 days/R$ 90 and 180 days/R$ 180. The previous 365-day plan was archived for new contributions only. Snapshots of amounts and durations of old payments were not changed, and the change preserved the financial audit trail.
+- The existing Discord application credentials and a shared random token are prepared in private configuration (never exposed in repositories). The `VB_DISCORD_LINK_ENABLED` and `VB_SHARED_NOBRE_ENABLED` switches stay off so synchronization cannot start before callback authorization and the safe bot version swap.
+- The website's automated tests cover verified session and e-mail, single-use OAuth2, state and cookie, an unlink attempt from another origin, disabled credentials, external credit ingestion, replay of the same payment, rejection of unlinked credits and preservation of recorded balances. Yue also has tests covering role preservation with a linked expiry and unchanged behavior when the bridge is disabled.
+- TypeScript, the portal suite, lint, tests and Yue type checks all passed. The website Chromium test at 1440, 768, 390 and 320 px confirmed the disabled link form, the optional-linking notice, a simulated unlink, and no horizontal overflow or exceptions.
+- The website was promoted with a blue/green deploy and health checks with no downtime, with only two previous releases. The current Yue process remains available with its existing native benefits. The new bot integration is ready for release as an isolated step, without overlapping the active Discord session before activation.
+- No messages were sent to Discord, no real role was assigned, and no test purchase or financial event was created. Live synchronization depends on the callback registered in the Discord application and on an end-to-end validation with a test account.
 
-## Execução REST independente (18/10/2026)
+## Independent REST execution (2026-10-18)
 
-A sincronização foi ativada sem reiniciar a sessão principal da Yue. A entrada `apps/bot/src/nobreWorker.ts` usa exclusivamente `Client.rest.setToken`, nunca `Client.login`, para executar `syncSharedNobre`. Uma unidade isolada agenda uma execução curta a cada cinco minutos. O processo exige `VB_SHARED_NOBRE_WORKER_ENABLED=1` em ambiente privado e reutiliza as credenciais configuradas; a instância principal mantém `VB_SHARED_NOBRE_ENABLED=0`.
+Synchronization was enabled without restarting Yue's main session. The entry point `apps/bot/src/nobreWorker.ts` uses exclusively `Client.rest.setToken`, never `Client.login`, to run `syncSharedNobre`. An isolated unit schedules a short run every five minutes. The process requires `VB_SHARED_NOBRE_WORKER_ENABLED=1` in the private environment and reuses the configured credentials; the main instance keeps `VB_SHARED_NOBRE_ENABLED=0`.
 
-No instante da ativação: 2 contas vinculadas, 2 marcos de importação inicial, 1 vínculo com direito Nobre válido, 2 espelhos e cargo presente para o beneficiário ativo. Permanecem preservados os 39 registros de pagamentos confirmados no Discord e os oito benefícios nativos vigentes. A execução de integração passou com sessão principal saudável e sem login adicional de Gateway.
+At activation time: 2 linked accounts, 2 initial import markers, 1 link with a valid Nobre entitlement, 2 mirrors and the role present for the active beneficiary. The 39 records of confirmed Discord payments and the eight active native benefits remain preserved. The integration run passed with the main session healthy and no additional Gateway login.
 
-As operações do reconciliador são idempotentes. Eventuais falhas por usuário não interrompem os demais, mas tornam a execução parcial malsucedida para os registros operacionais. A aplicação embarcada do bot contém lógica para proteger o cargo na expiração nativa; enquanto ainda não for promovida ao cliente Gateway em uso, existe possibilidade de breve perda temporária do cargo quando um apoio Discord expira, até o próximo ciclo REST. **As unidades implantadas também estão versionadas em `deploy/systemd/` e devem ser mantidas em par. Antes de promover o runtime principal com sincronização ativada, desabilitar o timer REST**. Nunca iniciar duas conexões Gateway do mesmo bot. O worker não substitui nem modifica pagamentos, assinaturas ou moderação da Yue.
+Reconciler operations are idempotent. Per-user failures do not interrupt the others, but mark the run as partially unsuccessful for operational records. The embedded bot application contains logic to protect the role on native expiry; while it is not yet promoted to the Gateway client in use, there is a possibility of a brief temporary role loss when a Discord support payment expires, until the next REST cycle. **The deployed units are also versioned in `deploy/systemd/` and must be kept in pairs. Before promoting the main runtime with synchronization enabled, disable the REST timer.** Never start two Gateway connections of the same bot. The worker neither replaces nor modifies Yue's payments, subscriptions or moderation.
 
-## Sincronização Nobre por eventos
+## Event-driven Nobre synchronization
 
-As migrações aditivas de outubro de 2026 em ambos os bancos emitem avisos `LISTEN/NOTIFY` somente após o commit. O serviço persistente da Yue recebe sinais dos dois bancos e invoca a reconciliação REST sem abrir Gateway adicional. Pagamentos, revogações e vínculos são processados em poucos segundos em condições normais. O timer de cinco minutos continua como recuperação, e a projeção administrativa é atualizada quando a Yue confirma uma mudança. Unidades versionadas em `deploy/systemd/vb-nobre-live-listener.service` e documentação completa no projeto do portal em `docs/NOBRE-LIVE-EVENTS.md`.
+The additive October 2026 migrations on both databases emit `LISTEN/NOTIFY` notices only after commit. Yue's persistent service receives signals from both databases and invokes the REST reconciliation without opening an extra Gateway. Payments, revocations and links are processed within seconds under normal conditions. The five-minute timer remains as recovery, and the administrative projection is updated when Yue confirms a change. Units are versioned in `deploy/systemd/vb-nobre-live-listener.service` and full documentation lives in the portal project at `docs/NOBRE-LIVE-EVENTS.md`.
 
-### Validações pós-ativação
+### Post-activation validations
 
-Foram confirmadas notificações de ambos os bancos após commit, nenhuma notificação após rollback, atualização automática do cargo por REST, atualização da fotografia administrativa após evento (14 segundos no teste), e integridade de créditos no site. As falhas de subscrição/rede são tratadas com reconexão, inicialização com nova conciliação e timer de cinco minutos. A implementação conserva uma segunda verificação após alterações nativas para evitar corrida com a remoção de cargos do runtime anterior. O único cliente principal Discord permaneceu saudável, sem restart.
+Notifications from both databases were confirmed after commit, no notification after rollback, automatic role update through REST, administrative snapshot update after an event (14 seconds in testing), and credit integrity on the website. Subscription/network failures are handled with reconnection, startup with a fresh reconciliation and the five-minute timer. The implementation keeps a second check after native changes to avoid racing the previous runtime's role removal. The single main Discord client stayed healthy, without restart.
 
-## Situação operacional após a promoção da Yue (18/10/2026)
+## Operational status after the Yue promotion (2026-10-18)
 
-A versão principal da Yue foi promovida com imagem local versionada, após build, testes e verificação da interface/API de uma instância candidata sem Gateway. Na troca da instância principal ocorreu apenas uma reconexão controlada do cliente Discord, sem iniciar duas sessões; os healthchecks finais ficaram saudáveis. O guard de expiração nativa utiliza o espelho compartilhado e permanece ativo na aplicação principal, enquanto o trabalho REST independente continua responsável pelos eventos para evitar reconciliação duplicada.
+Yue's main version was promoted with a versioned local image, after build, tests and UI/API verification of a candidate instance without a Gateway. Swapping the main instance caused only one controlled Discord client reconnection, with no double session; final health checks stayed healthy. The native expiry guard uses the shared mirror and remains active in the main application, while the independent REST work continues to be responsible for events, avoiding duplicated reconciliation.
 
-Para a aplicação principal: `VB_SHARED_NOBRE_ENABLED=1` e `VB_SHARED_NOBRE_EXTERNAL_WORKER=1` no ambiente privado. A unidade `vb-nobre-live-listener.service` recebe sinais confirmados de ambos os bancos, e `vb-nobre-rest-worker.timer` segue como proteção de cinco minutos.
+For the main application: `VB_SHARED_NOBRE_ENABLED=1` and `VB_SHARED_NOBRE_EXTERNAL_WORKER=1` in the private environment. The `vb-nobre-live-listener.service` unit receives committed signals from both databases, and `vb-nobre-rest-worker.timer` remains as the five-minute safety net.
 
-### Expiração no vencimento
+### Expiry scheduling
 
-A escuta de eventos calcula o menor vencimento futuro nos benefícios vinculados do portal e na comunidade autorizada da Yue e agenda o disparo para esse instante (com pequena folga). Quando a data chega, o reconciliador REST atualiza o espelho/cargo e a rotina `vb-nobre-native-expiry.service` processa expirações nativas pela caixa de saída transacional já existente. Uma mudança de prazo agenda novamente o próximo vencimento. Os agendamentos são reconstruídos ao reiniciar/reconectar; nenhum temporizador em memória é a única garantia de recuperação. A rotina de cinco minutos continua como contingência.
+The event listener computes the earliest future expiry across the linked portal benefits and the authorized Yue community and schedules the trigger for that instant (with a small slack). When the date arrives, the REST reconciler updates the mirror/role and the `vb-nobre-native-expiry.service` routine processes native expiries through the existing transactional outbox. An expiry change reschedules the next trigger. Schedules are rebuilt on restart/reconnect; no in-memory timer is the sole recovery guarantee. The five-minute routine remains as contingency.
 
-Vencimento preciso aqui significa agendamento automático na data, sujeito a latência do banco, fila de saída, limites da API do Discord e indisponibilidade de rede. Não é garantia de remoção no mesmo milissegundo.
+Precise expiry here means automatic scheduling on the date, subject to database latency, the outbox queue, Discord API rate limits and network availability. It is not a guarantee of removal within the same millisecond.
 
-### Evidências e limite da verificação financeira
+### Evidence and the financial verification limit
 
-Na produção, 39 pagamentos históricos da Yue permanecem com estado `FULFILLED`; 8 Nobres nativos permanecem vigentes, 2 marcos `BOT_LEGACY` foram importados e o replay não criou créditos novos. O bot do Discord e seus cargos passaram no smoke test. A API do portal ainda não possui compras pagas próprias. O teste automatizado com confirmação simulada cobriu preço correto, prova de recebimento, negativa por divergência, acumulação e idempotência. Uma consulta independente de pagamento histórico ao provedor retornou HTTP 400; portanto **não declarar concluída** uma nova compra real ponta a ponta pelo portal sem operação financeira autorizada e resposta positiva do provedor.
+In production, 39 historical Yue payments remain in the `FULFILLED` state; 8 native Nobre members remain active, 2 `BOT_LEGACY` markers were imported and the replay created no new credits. The Discord bot and its roles passed the smoke test. The portal API still has no purchases of its own. The automated test with simulated confirmation covered correct pricing, proof of receipt, rejection on mismatch, accumulation and idempotency. An independent historical payment query to the provider returned HTTP 400; therefore **do not declare** a new real end-to-end purchase through the portal complete without an authorized financial operation and a positive provider response.
 
-A imagem anterior e configurações privadas de corte estão preservadas para rollback. Não incluir esses dados nem credenciais em repositórios. A unidade do vencimento nativo foi versionada em `deploy/systemd/vb-nobre-native-expiry.service`.
+The previous image and private cutover configurations are preserved for rollback. Never include that data or credentials in repositories. The native expiry unit was versioned as `deploy/systemd/vb-nobre-native-expiry.service`.
 
-## Catálogo e checkout compartilhados (19/10/2026)
+## Shared catalog and checkout (2026-10-19)
 
-O painel da Yue é a fonte autoritativa dos planos e valores. O endpoint de parceiro disponibiliza exclusivamente os planos habilitados, não arquivados e ordenados. Ele não expõe cargo, dados privados do painel, credenciais ou pagamentos de outros usuários. O site usa a identidade Discord OAuth vinculada e credencial privada de serviço, jamais aceita um ID Discord fornecido pelo navegador ou um preço enviado pelo cliente. O endpoint exige autenticação Bearer verificada em tempo constante e escopo restrito ao servidor selecionado.
+The Yue panel is the authoritative source for plans and amounts. The partner endpoint exposes only enabled, non-archived, ordered plans. It does not expose the role, private panel data, credentials or other users' payments. The website uses the linked Discord OAuth identity and a private service credential, and never accepts a Discord ID from the browser or a client-provided price. The endpoint requires Bearer authentication verified in constant time and a scope restricted to the selected server.
 
-Checkout pelo site grava um único SupportPayment no banco financeiro da Yue, com snapshots imutáveis de plano e custo, conexão OWNER LivePix ativa e cargo validado pelo bot existente. Reutiliza checkouts pendentes conhecidos; transações incertas ficam em CREATING com pendingKey único, bloqueadas para revisão manual, sem reenvio automático ao provedor. O LivePix recebe retorno apenas informativo para a área de Nobre do portal. A confirmação ocorre pela verificação da API oficial e pelo webhook que a Yue já opera; a sincronização de benefícios com o site continua via bridge idempotente, sem segundo webhook e sem segundo saldo financeiro.
+Checkout through the website writes a single SupportPayment into Yue's financial database, with immutable plan and cost snapshots, an active OWNER LivePix connection and a role validated by the existing bot. It reuses known pending checkouts; uncertain transactions stay in CREATING with a unique pendingKey, blocked for manual review, without automatic resubmission to the provider. LivePix receives an informational-only return for the portal's Nobre area. Confirmation happens through the official API verification and the webhook Yue already operates; benefit synchronization with the website continues through the idempotent bridge, with no second webhook and no second financial ledger.
 
-A integração privada é servida por um processo API independente, sem cliente gateway Discord, compartilhando apenas a infraestrutura existente e o modelo financeiro. O processo escuta somente dentro do namespace de rede do bot, numa porta alta e fixa, exposto externamente apenas pelo caminho protegido no proxy da Yue. Não se deve iniciar um segundo gateway nem reiniciar o container principal para ativar a integração. O deploy da API de parceiro é reversível desabilitando sua rota e mantendo a Yue original íntegra.
+The private integration is served by an independent API process, with no Discord gateway client, sharing only existing infrastructure and the financial model. The process listens only inside the bot's network namespace, on a fixed high port, exposed externally only through the protected path on Yue's proxy. Do not start a second gateway or restart the main container to activate the integration. The partner API deploy is reversible by disabling its route while keeping the original Yue intact.
 
-O controle de checkout requer VB_SITE_CHECKOUT_ENABLED=1 em ambos os serviços. Iniciar com o valor desligado, conferir autenticação 401, catálogo de planos, identidade do usuário, logs sem segredos, histórico e testes de pagamento simulados; ativar apenas após todas as checagens. Uma interrupção da Yue bloqueia novos pagamentos no site. Não existe fallback que crie cobrança na base do portal.
+Checkout control requires VB_SITE_CHECKOUT_ENABLED=1 on both services. Start with the value off, verify 401 authentication, the plan catalog, user identity, logs without secrets, history and simulated payment tests; enable it only after every check passes. A Yue outage blocks new payments on the website. There is no fallback that creates a charge on the portal's database.
 
-Referências: https://docs.livepix.gg/api e https://discord.com/developers/docs/topics/oauth2.
+References: https://docs.livepix.gg/api and https://discord.com/developers/docs/topics/oauth2.
 
-## Reutilização de checkout PENDING e retomada no portal (19/10/2026)
+## PENDING checkout reuse and portal resumption (2026-10-19)
 
-Para uma contribuição PENDING, o link criptografado de checkout é recuperável mesmo após 24 horas, desde que o URL seja HTTPS e pertença exatamente a checkout.livepix.gg. Essa reutilização não cria novo pagamento e preserva a chave pendingKey de unicidade. Os links antigos foram verificados com GET ao LivePix sem efetuar nenhuma transação. O endpoint parceiro de histórico devolve o checkout apenas ao Discord ID consultado pela API autenticada do portal, nunca para pagamentos concluídos/CREATING ou destinos diferentes. Continuam obrigatórios todos os guards existentes de identidade e status. Nunca eliminar arbitrariamente pagamentos pendentes para criar novos checkouts.
+For a PENDING contribution, the encrypted checkout link is recoverable even after 24 hours, provided the URL is HTTPS and belongs exactly to checkout.livepix.gg. This reuse does not create a new payment and preserves the pendingKey uniqueness key. Old links were verified with GET against LivePix without performing any transaction. The partner history endpoint returns the checkout only to the Discord ID queried through the portal's authenticated API, never for completed/CREATING payments or different destinations. All existing identity and status guards remain mandatory. Never arbitrarily delete pending payments to create new checkouts.
 
-## Cargo manual Nobres Vitalícios
+## Manual Lifetime Nobre role
 
-A API privada de parceiro expõe POST /api/partner/vai-brasil/lifetime, protegida pela mesma credencial Bearer e escopo da guild. Ela consulta a associação do usuário diretamente pela API oficial Discord usando o bot existente e compara o conjunto de cargos com VB_NOBRE_LIFETIME_ROLE_ID. O identificador foi confirmado pelo nome exato na guild, não informado pelo navegador. A ausência de membro responde lifetime=false; erros de rede e respostas inadequadas devolvem 503. Não altera cargos nem pagamentos LivePix. O portal armazena a projeção validada com TTL de cinco minutos.
-
+The private partner API exposes POST /api/partner/vai-brasil/lifetime, protected by the same Bearer credential and guild scope. It queries the user's membership directly through the official Discord API using the existing bot and compares the role set with VB_NOBRE_LIFETIME_ROLE_ID. The identifier was confirmed by exact name in the guild, not taken from the browser. A missing member responds lifetime=false; network errors and malformed responses return 503. It never changes roles or LivePix payments. The portal stores the validated projection with a five-minute TTL.
 
 ## Database migration parity in CI (2026-10-22)
 
