@@ -313,15 +313,6 @@ class HoneyPotService {
         user_id,
         `[HoneyPot] Unbanned by ${interaction.user.tag}`,
       );
-      await prisma.modLog.create({
-        data: {
-          guildId: interaction.guild.id,
-          userId: user_id,
-          moderatorId: interaction.user.id,
-          action: 'honeypot_unban',
-          reason: '[HoneyPot] Manual unban from log entry',
-        },
-      });
     } catch (error) {
       logger.warn(
         { err: safe_error_details(error), guildId: interaction.guild.id, userId: user_id },
@@ -334,6 +325,24 @@ class HoneyPotService {
         })
         .catch(() => null);
       return;
+    }
+
+    try {
+      await prisma.modLog.create({
+        data: {
+          guildId: interaction.guild.id,
+          userId: user_id,
+          moderatorId: interaction.user.id,
+          action: 'honeypot_unban',
+          reason: '[HoneyPot] Manual unban from log entry',
+        },
+      });
+    } catch (error) {
+      // The unban already applied; only the audit row write failed.
+      logger.error(
+        { err: safe_error_details(error), guildId: interaction.guild.id, userId: user_id },
+        'HoneyPot: failed to persist unban mod log',
+      );
     }
 
     await this.disable_unban_buttons(interaction);
