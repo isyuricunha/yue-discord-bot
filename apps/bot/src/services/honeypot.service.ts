@@ -29,7 +29,7 @@ class HoneyPotService {
 
   // One punish attempt per (guild, user) at a time; a spam burst delivers
   // several messages in the same second and each one triggers this handler.
-  private readonly pendingPunish = new Map<string, Promise<void>>();
+  private readonly pendingPunish = new Map<string, Promise<unknown>>();
   private readonly recentlyPunished = new Map<string, number>();
 
   private sweep_recently(now: number): void {
@@ -78,32 +78,58 @@ class HoneyPotService {
     });
     if (!should_catch) return false;
 
-    // message.member is only populated with the GuildMembers intent enabled
-    // and resolves from cache alone; resolve the member server-side so the
-    // staff exemption never depends on the intent configuration.
-    const member = await message.guild.members.fetch(author.id).catch(() => null);
-    if (has_staff_permission(member?.permissions ?? null)) return false;
-
     const dedup_key = `${message.guild.id}:${author.id}`;
     this.sweep_recently(Date.now());
-    if (this.recentlyPunished.has(dedup_key)) return true;
+
+    // Follow-up messages from an already handled author still get deleted so
+    // the payload does not stay visible in the trap channel.
+    if (this.recentlyPunished.has(dedup_key)) {
+      await this.delete_trap_message(message);
+      return true;
+    }
 
     const pending = this.pendingPunish.get(dedup_key);
     if (pending) {
       await pending.catch(() => undefined);
+      await this.delete_trap_message(message);
       return true;
     }
 
-    const punish_promise = this.punish(message, config).finally(() => {
+    // Claim the punish slot before the server-side member lookup so a
+    // concurrent burst performs a single fetch and a single ban attempt.
+    const decision = this.resolve_and_punish(message).finally(() => {
       this.pendingPunish.delete(dedup_key);
     });
-    this.pendingPunish.set(dedup_key, punish_promise);
-    await punish_promise.catch(() => undefined);
+    this.pendingPunish.set(dedup_key, decision);
+
+    const outcome = await decision.catch(() => 'failed' as const);
     this.recentlyPunished.set(dedup_key, Date.now());
-    return true;
+    return outcome !== 'staff';
   }
 
-  private async punish(message: Message, config: PrismaGuildHoneyPotConfig): Promise<void> {
+  private async resolve_and_punish(message: Message): Promise<'staff' | 'punished' | 'failed'> {
+    const guild = message.guild as Guild;
+    const author = message.author;
+
+    // message.member is only populated with the GuildMembers intent enabled
+    // and resolves from cache alone; resolve the member server-side so the
+    // staff exemption never depends on the intent configuration.
+    const member = await guild.members.fetch(author.id).catch(() => null);
+    if (has_staff_permission(member?.permissions ?? null)) return 'staff';
+
+    return this.punish(message);
+  }
+
+  private async delete_trap_message(message: Message): Promise<void> {
+    await message.delete().catch((error) => {
+      logger.warn(
+        { err: safe_error_details(error), guildId: message.guild?.id },
+        'HoneyPot: failed to delete trap message',
+      );
+    });
+  }
+
+  private async punish(message: Message): Promise<'punished' | 'failed'> {
     const guild = message.guild as Guild;
     const author = message.author;
     const reason = '[HoneyPot] Message posted in the trap channel';
@@ -124,15 +150,6 @@ class HoneyPotService {
         { err: safe_error_details(error), guildId: guild.id, userId: author.id },
         'HoneyPot: failed to ban member',
       );
-      // The ban sweep already deletes recent messages server-wide; when the
-      // ban fails, remove at least the trap message itself so the payload
-      // does not stay up.
-      await message.delete().catch((delete_error) => {
-        logger.warn(
-          { err: safe_error_details(delete_error), guildId: guild.id },
-          'HoneyPot: failed to delete trap message after failed ban',
-        );
-      });
     }
 
     if (banned) {
@@ -168,11 +185,16 @@ class HoneyPotService {
         );
       }
       await this.send_log_entry(guild, author, message, true);
-    } else {
-      // No modLog row on failure: the audit table must not claim a ban that
-      // never happened.
-      await this.send_log_entry(guild, author, message, false);
+      return 'punished';
     }
+
+    // The ban sweep already deletes recent messages server-wide; when the
+    // ban fails, remove at least the trap message itself so the payload does
+    // not stay up, and skip the audit row: the table must not claim a ban
+    // that never happened.
+    await this.delete_trap_message(message);
+    await this.send_log_entry(guild, author, message, false);
+    return 'failed';
   }
 
   private async send_log_entry(

@@ -173,6 +173,8 @@ test('honeypot service', async (t) => {
     honeypotService.clear_cache('guild-hp-left');
     honeypotService.clear_cache('guild-hp-thread');
     honeypotService.clear_cache('guild-hp-emoji');
+    honeypotService.clear_cache('guild-hp-faildedup');
+    honeypotService.clear_cache('guild-hp-staff');
   });
 
   await t.test('bans a regular member posting in the trap channel and logs it', async () => {
@@ -224,16 +226,17 @@ test('honeypot service', async (t) => {
 
   await t.test('spares staff members resolved server-side even without message.member', async () => {
     const state = create_message({
-      guildId: 'guild-hp-1',
+      guildId: 'guild-hp-staff',
       channelId: 'trap-1',
       fetchedMember: { permissions: { has: (flag: bigint) => STAFF_FLAGS.includes(flag) } },
     });
-    const prisma_state = patch_honeypot_prisma('guild-hp-1', 'trap-1');
+    const prisma_state = patch_honeypot_prisma('guild-hp-staff', 'trap-1');
 
     try {
       const handled = await honeypotService.handle_message(state.message);
       assert.equal(handled, false);
       assert.equal(state.banCalls.length, 0);
+      assert.equal(state.deleteCalls.length, 0);
     } finally {
       prisma_state.restore();
     }
@@ -286,6 +289,38 @@ test('honeypot service', async (t) => {
       await honeypotService.handle_message(third.message);
       assert.equal(first.banCalls.length + second.banCalls.length + third.banCalls.length, 1);
       assert.equal(prisma_state.modLogCreates.length, 1);
+      // The follow-up message is still removed from the trap channel.
+      assert.equal(third.deleteCalls.length, 1);
+    } finally {
+      prisma_state.restore();
+    }
+  });
+
+  await t.test('after a failed ban, follow-up messages are deleted without duplicate failure embeds', async () => {
+    const shared_error = new Error('missing permissions');
+    const first = create_message({
+      guildId: 'guild-hp-faildedup',
+      channelId: 'trap-1',
+      banError: shared_error,
+    });
+    const second = create_message({
+      guildId: 'guild-hp-faildedup',
+      channelId: 'trap-1',
+      banError: shared_error,
+    });
+    (second.message as unknown as { guild: trap_guild }).guild = first.guild;
+    const prisma_state = patch_honeypot_prisma('guild-hp-faildedup', 'trap-1');
+
+    try {
+      assert.equal(await honeypotService.handle_message(first.message), true);
+      assert.equal(first.deleteCalls.length, 1);
+      assert.equal(first.logSends.length, 1);
+
+      assert.equal(await honeypotService.handle_message(second.message), true);
+      // The payload is still removed, but no new failure embed or audit row.
+      assert.equal(second.deleteCalls.length, 1);
+      assert.equal(first.logSends.length, 1);
+      assert.equal(prisma_state.modLogCreates.length, 0);
     } finally {
       prisma_state.restore();
     }
