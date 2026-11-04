@@ -43,6 +43,7 @@ export async function loadCommands(client: Client): Promise<void> {
   const { modlogCommand } = await import('./moderation/modlog');
   const { baninfoCommand } = await import('./moderation/baninfo');
   const { antiraidCommand } = await import('./moderation/antiraid');
+  const { honeypotCommand } = await import('./moderation/honeypot');
 
   // Import utility commands
   const { limparCommand } = await import('./utility/limpar');
@@ -140,6 +141,7 @@ export async function loadCommands(client: Client): Promise<void> {
   commands.set(modlogCommand.data.name, modlogCommand);
   commands.set(baninfoCommand.data.name, baninfoCommand);
   commands.set(antiraidCommand.data.name, antiraidCommand);
+  commands.set(honeypotCommand.data.name, honeypotCommand);
   commands.set(limparCommand.data.name, limparCommand);
   commands.set(lockCommand.data.name, lockCommand);
   commands.set(unlockCommand.data.name, unlockCommand);

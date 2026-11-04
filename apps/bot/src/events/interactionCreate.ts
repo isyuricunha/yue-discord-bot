@@ -388,6 +388,9 @@ export async function handleInteractionCreate(interaction: Interaction) {
     } else if (interaction.customId.startsWith('suggestion:')) {
       const { suggestionService } = await import('../services/suggestion.service');
       await suggestionService.handle_button(interaction);
+    } else if (interaction.customId.startsWith('honeypot_unban:')) {
+      const { honeypotService } = await import('../services/honeypot.service');
+      await honeypotService.handle_unban_button(interaction);
     } else if (interaction.customId === 'ticket:open') {
       const { ticketService } = await import('../services/ticket.service');
       await ticketService.handle_open(interaction);

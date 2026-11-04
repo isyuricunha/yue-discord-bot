@@ -5,6 +5,7 @@ import type { Message } from "discord.js";
 
 import { afkService } from "../services/afk.service";
 import { autoModService } from "../services/automod.service";
+import { honeypotService } from "../services/honeypot.service";
 import { autoroleService } from "../services/autorole.service";
 import { get_conversation_backend } from "../services/conversation_backend_factory";
 import { customCommandService } from "../services/customCommand.service";
@@ -36,6 +37,7 @@ function patch_method(
 
 function isolate_non_ai_services(): () => void {
 	const restore = [
+		patch_method(honeypotService, "handle_message", async () => false),
 		patch_method(autoModService, "checkMessage", async () => false),
 		patch_method(afkService, "getAfk", async () => null),
 		patch_method(afkService, "getAfks", async () => []),
