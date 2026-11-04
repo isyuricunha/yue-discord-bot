@@ -71,16 +71,27 @@ export const honeypotCommand: Command = {
           );
 
         const trapChannel = await interaction.guild.channels.fetch(channel.id).catch(() => null);
+        let warning_sent = false;
         if (trapChannel?.isTextBased()) {
-          await trapChannel.send({ embeds: [trapEmbed] }).catch((error) => {
-            logger.warn({ err: error, guildId: interaction.guild?.id }, 'HoneyPot: failed to post trap warning');
-          });
+          warning_sent = await trapChannel.send({ embeds: [trapEmbed] }).then(
+            () => true,
+            (error) => {
+              logger.warn({ err: error, guildId: interaction.guild?.id }, 'HoneyPot: failed to post trap warning');
+              return false;
+            },
+          );
         }
 
         const successEmbed = new EmbedBuilder()
           .setColor(COLORS.SUCCESS)
           .setTitle(`${EMOJIS.SUCCESS} Canal armadilha ativado`)
-          .setDescription(`Qualquer mensagem em <#${channel.id}> agora resulta em banimento automático.\nUm aviso foi postado no canal.`)
+          .setDescription(
+            `Qualquer mensagem em <#${channel.id}> agora resulta em banimento automático.\n${
+              warning_sent
+                ? 'Um aviso foi postado no canal.'
+                : 'Não consegui postar o aviso no canal; verifique minhas permissões nele.'
+            }`,
+          )
           .setTimestamp();
 
         await interaction.reply({ embeds: [successEmbed] });

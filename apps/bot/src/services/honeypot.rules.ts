@@ -1,12 +1,15 @@
 // Pure decision helpers for the HoneyPot trap channel. Keep this file free of
-// discord.js and prisma imports so every rule stays unit-testable.
+// prisma and discord.js structures (only the permission bitfield constants)
+// so every rule stays unit-testable.
+import { PermissionFlagsBits } from 'discord.js';
 
 export const HONEYPOT_DELETE_MESSAGE_SECONDS = 600;
 export const HONEYPOT_UNBAN_BUTTON_PREFIX = 'honeypot_unban:';
+export const HONEYPOT_RECENT_PUNISH_TTL_MS = 60_000;
 
 export interface honeypot_message_input {
   config_channel_id: string | null | undefined;
-  channel_id: string;
+  channel_id: string | null | undefined;
   author_id: string;
   client_user_id: string | null | undefined;
   is_webhook: boolean;
@@ -25,6 +28,30 @@ export function should_catch_honeypot_message(input: honeypot_message_input): bo
 
 // Members holding BanMembers, ModerateMembers or ManageGuild are trusted not
 // to fall into the trap by accident; compromised spam accounts never hold them.
+export function has_staff_permission(permissions: { has(flag: bigint): boolean } | null | undefined): boolean {
+  if (!permissions) return false;
+  return (
+    permissions.has(PermissionFlagsBits.BanMembers) ||
+    permissions.has(PermissionFlagsBits.ModerateMembers) ||
+    permissions.has(PermissionFlagsBits.ManageGuild)
+  );
+}
+
+// Unban is a higher-privilege action than the trap exemption: require
+// BanMembers specifically (least privilege for reverting automated bans).
+export function has_ban_permission(permissions: { has(flag: bigint): boolean } | null | undefined): boolean {
+  if (!permissions) return false;
+  return permissions.has(PermissionFlagsBits.BanMembers);
+}
+
+// Truncate by Unicode code points so the result never splits a surrogate
+// pair (a plain UTF-16 slice can produce a lone surrogate that the Discord
+// API rejects, silently dropping the whole log embed).
+export function truncate_code_points(text: string, max_code_points: number): string {
+  const chars = Array.from(text);
+  if (chars.length <= max_code_points) return text;
+  return chars.slice(0, max_code_points).join('');
+}
 
 export function honeypot_unban_target(custom_id: string): string | null {
   if (!custom_id.startsWith(HONEYPOT_UNBAN_BUTTON_PREFIX)) return null;

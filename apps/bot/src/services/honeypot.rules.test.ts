@@ -1,11 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { PermissionFlagsBits } from 'discord.js';
 
 import {
   HONEYPOT_DELETE_MESSAGE_SECONDS,
   HONEYPOT_UNBAN_BUTTON_PREFIX,
+  has_ban_permission,
+  has_staff_permission,
   honeypot_unban_target,
   should_catch_honeypot_message,
+  truncate_code_points,
 } from './honeypot.rules';
 
 test('honeypot rules', async (t) => {
@@ -80,5 +84,36 @@ test('honeypot rules', async (t) => {
     assert.equal(honeypot_unban_target(`${HONEYPOT_UNBAN_BUTTON_PREFIX}not-an-id`), null);
     assert.equal(honeypot_unban_target('other:100000000000000000'), null);
     assert.equal(honeypot_unban_target(HONEYPOT_UNBAN_BUTTON_PREFIX), null);
+  });
+
+  await t.test('staff exemption covers the three staff permissions, unban requires BanMembers', () => {
+    const all = {
+      has: (flag: bigint) =>
+        flag === PermissionFlagsBits.BanMembers ||
+        flag === PermissionFlagsBits.ModerateMembers ||
+        flag === PermissionFlagsBits.ManageGuild,
+    };
+    const mute_only = { has: (flag: bigint) => flag === PermissionFlagsBits.ModerateMembers };
+
+    assert.equal(has_staff_permission(all), true);
+    assert.equal(has_staff_permission(mute_only), true);
+    assert.equal(has_staff_permission(null), false);
+    assert.equal(has_ban_permission(all), true);
+    assert.equal(has_ban_permission(mute_only), false);
+    assert.equal(has_ban_permission(null), false);
+  });
+
+  await t.test('truncation never splits a surrogate pair', () => {
+    const emoji = '🎉'.repeat(300);
+    // Border and no-truncation cases stay intact.
+    assert.equal(truncate_code_points(emoji, 300), emoji);
+    assert.equal(truncate_code_points(emoji, 500), emoji);
+    // A UTF-16 slice at 299 would end mid-surrogate; code-point truncation must not.
+    const truncated = truncate_code_points(emoji, 299);
+    assert.equal(truncated, '🎉'.repeat(299));
+    assert.equal(Array.from(truncated).length, 299);
+    assert.equal(truncate_code_points('hello', 500), 'hello');
+    assert.equal(truncate_code_points('hello', 3), 'hel');
+    assert.equal(truncate_code_points('', 500), '');
   });
 });
