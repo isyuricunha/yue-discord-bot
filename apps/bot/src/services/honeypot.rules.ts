@@ -13,7 +13,6 @@ export interface honeypot_message_input {
   author_id: string;
   client_user_id: string | null | undefined;
   is_webhook: boolean;
-  has_staff_permission: boolean;
 }
 
 export function should_catch_honeypot_message(input: honeypot_message_input): boolean {
@@ -22,7 +21,6 @@ export function should_catch_honeypot_message(input: honeypot_message_input): bo
   if (input.is_webhook) return false;
   if (!input.author_id) return false;
   if (input.client_user_id && input.author_id === input.client_user_id) return false;
-  if (input.has_staff_permission) return false;
   return true;
 }
 

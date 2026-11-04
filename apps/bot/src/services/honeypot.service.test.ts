@@ -175,6 +175,8 @@ test('honeypot service', async (t) => {
     honeypotService.clear_cache('guild-hp-emoji');
     honeypotService.clear_cache('guild-hp-faildedup');
     honeypotService.clear_cache('guild-hp-staff');
+    honeypotService.clear_cache('guild-hp-staffburst');
+    honeypotService.clear_cache('guild-hp-transient');
   });
 
   await t.test('bans a regular member posting in the trap channel and logs it', async () => {
@@ -320,6 +322,60 @@ test('honeypot service', async (t) => {
       // The payload is still removed, but no new failure embed or audit row.
       assert.equal(second.deleteCalls.length, 1);
       assert.equal(first.logSends.length, 1);
+      assert.equal(prisma_state.modLogCreates.length, 0);
+    } finally {
+      prisma_state.restore();
+    }
+  });
+
+  await t.test('staff member burst: follow-up messages are neither deleted nor recorded', async () => {
+    const staff_member: fetched_member = {
+      permissions: { has: (flag: bigint) => STAFF_FLAGS.includes(flag) },
+    };
+    const first = create_message({ guildId: 'guild-hp-staffburst', channelId: 'trap-1', fetchedMember: staff_member });
+    const second = create_message({ guildId: 'guild-hp-staffburst', channelId: 'trap-1', fetchedMember: staff_member });
+    (second.message as unknown as { guild: trap_guild }).guild = first.guild;
+    const prisma_state = patch_honeypot_prisma('guild-hp-staffburst', 'trap-1');
+
+    try {
+      const results = await Promise.all([
+        honeypotService.handle_message(first.message),
+        honeypotService.handle_message(second.message),
+      ]);
+      assert.deepEqual(results, [false, false]);
+      assert.equal(first.banCalls.length + second.banCalls.length, 0);
+      // Staff messages are never deleted by the dedup paths.
+      assert.equal(first.deleteCalls.length + second.deleteCalls.length, 0);
+      assert.equal(prisma_state.modLogCreates.length, 0);
+
+      // A later staff message is still exempt (staff keys never enter the dedup map).
+      const third = create_message({ guildId: 'guild-hp-staffburst', channelId: 'trap-1', fetchedMember: staff_member });
+      (third.message as unknown as { guild: trap_guild }).guild = first.guild;
+      assert.equal(await honeypotService.handle_message(third.message), false);
+      assert.equal(third.deleteCalls.length, 0);
+    } finally {
+      prisma_state.restore();
+    }
+  });
+
+  await t.test('transient member lookup failure fails closed: no ban, payload removed, failure reported', async () => {
+    const state = create_message({ guildId: 'guild-hp-transient', channelId: 'trap-1' });
+    const banCalls: Array<{ userId: string; options: unknown }> = [];
+    const logSends: unknown[] = [];
+    const failing_guild = create_trap_guild({ guildId: 'guild-hp-transient', banCalls, logSends, fetchedMember: null });
+    (failing_guild.members as unknown as { fetch: () => Promise<never> }).fetch = async () => {
+      throw new Error('rate limited');
+    };
+    (state.message as unknown as { guild: trap_guild }).guild = failing_guild;
+    const prisma_state = patch_honeypot_prisma('guild-hp-transient', 'trap-1');
+
+    try {
+      assert.equal(await honeypotService.handle_message(state.message), true);
+      assert.equal(banCalls.length, 0);
+      assert.equal(state.deleteCalls.length, 1);
+      assert.equal(logSends.length, 1);
+      const payload = logSends[0] as { components?: unknown };
+      assert.equal(payload.components, undefined);
       assert.equal(prisma_state.modLogCreates.length, 0);
     } finally {
       prisma_state.restore();

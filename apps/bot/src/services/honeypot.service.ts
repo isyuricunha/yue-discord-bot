@@ -1,5 +1,5 @@
 import type { APIButtonComponent, ButtonInteraction, Guild, Message, TextChannel, User } from 'discord.js';
-import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, EmbedBuilder, MessageFlags } from 'discord.js';
+import { ActionRowBuilder, ButtonBuilder, ButtonStyle, ComponentType, DiscordAPIError, EmbedBuilder, MessageFlags } from 'discord.js';
 import { prisma } from '@yuebot/database';
 import type { GuildHoneyPotConfig as PrismaGuildHoneyPotConfig } from '@yuebot/database';
 import { COLORS, EMOJIS } from '@yuebot/shared';
@@ -52,6 +52,9 @@ class HoneyPotService {
     return config;
   }
 
+  // Third-party bot accounts are intentionally caught too: modern spam runs
+  // from real accounts and spam bot accounts alike. Only webhooks and this
+  // client itself are exempt.
   async handle_message(message: Message): Promise<boolean> {
     if (!message.guild) return false;
     if (message.webhookId) return false;
@@ -74,7 +77,6 @@ class HoneyPotService {
       author_id: author.id,
       client_user_id: message.client.user?.id ?? null,
       is_webhook: false,
-      has_staff_permission: false,
     });
     if (!should_catch) return false;
 
@@ -90,7 +92,13 @@ class HoneyPotService {
 
     const pending = this.pendingPunish.get(dedup_key);
     if (pending) {
-      await pending.catch(() => undefined);
+      let pending_outcome: 'staff' | 'punished' | 'failed';
+      try {
+        pending_outcome = (await pending) as 'staff' | 'punished' | 'failed';
+      } catch {
+        pending_outcome = 'failed';
+      }
+      if (pending_outcome === 'staff') return false;
       await this.delete_trap_message(message);
       return true;
     }
@@ -102,9 +110,23 @@ class HoneyPotService {
     });
     this.pendingPunish.set(dedup_key, decision);
 
-    const outcome = await decision.catch(() => 'failed' as const);
-    this.recentlyPunished.set(dedup_key, Date.now());
-    return outcome !== 'staff';
+    try {
+      const outcome = await decision;
+      if (outcome === 'staff') return false;
+      this.recentlyPunished.set(dedup_key, Date.now());
+      return true;
+    } catch (error) {
+      // Transient member-resolution failure (rate limit, network, 5xx): fail
+      // closed, do not ban, remove the payload and report the failure.
+      logger.error(
+        { err: safe_error_details(error), guildId: message.guild.id, userId: author.id },
+        'HoneyPot: member resolution failed',
+      );
+      await this.delete_trap_message(message);
+      await this.send_log_entry(message.guild, author, message, false);
+      this.recentlyPunished.set(dedup_key, Date.now());
+      return true;
+    }
   }
 
   private async resolve_and_punish(message: Message): Promise<'staff' | 'punished' | 'failed'> {
@@ -113,8 +135,13 @@ class HoneyPotService {
 
     // message.member is only populated with the GuildMembers intent enabled
     // and resolves from cache alone; resolve the member server-side so the
-    // staff exemption never depends on the intent configuration.
-    const member = await guild.members.fetch(author.id).catch(() => null);
+    // staff exemption never depends on the intent configuration. Only a real
+    // unknown member (account left the guild) maps to null; transient API
+    // failures propagate and fail closed instead of banning blind.
+    const member = await guild.members.fetch(author.id).catch((error) => {
+      if (error instanceof DiscordAPIError && error.code === 10007) return null;
+      throw error;
+    });
     if (has_staff_permission(member?.permissions ?? null)) return 'staff';
 
     return this.punish(message);
