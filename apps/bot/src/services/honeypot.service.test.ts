@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { PermissionFlagsBits } from 'discord.js';
+import { DiscordAPIError, PermissionFlagsBits } from 'discord.js';
 import type { ButtonInteraction, Message } from 'discord.js';
 
 import { prisma } from '@yuebot/database';
@@ -177,6 +177,7 @@ test('honeypot service', async (t) => {
     honeypotService.clear_cache('guild-hp-staff');
     honeypotService.clear_cache('guild-hp-staffburst');
     honeypotService.clear_cache('guild-hp-transient');
+    honeypotService.clear_cache('guild-hp-10007');
   });
 
   await t.test('bans a regular member posting in the trap channel and logs it', async () => {
@@ -353,6 +354,35 @@ test('honeypot service', async (t) => {
       (third.message as unknown as { guild: trap_guild }).guild = first.guild;
       assert.equal(await honeypotService.handle_message(third.message), false);
       assert.equal(third.deleteCalls.length, 0);
+    } finally {
+      prisma_state.restore();
+    }
+  });
+
+  await t.test('left-guild lookup (DiscordAPIError 10007) still bans', async () => {
+    const state = create_message({ guildId: 'guild-hp-10007', channelId: 'trap-1' });
+    const banCalls: Array<{ userId: string; options: unknown }> = [];
+    const logSends: unknown[] = [];
+    const unknown_guild = create_trap_guild({ guildId: 'guild-hp-10007', banCalls, logSends, fetchedMember: null });
+    (unknown_guild.members as unknown as { fetch: () => Promise<never> }).fetch = async () => {
+      throw new DiscordAPIError(
+        { code: 10007, message: 'Unknown Member' },
+        10007,
+        404,
+        'GET',
+        'https://discord.com/api/v10/guilds/g/members/u',
+        { body: undefined, files: [] },
+      );
+    };
+    (state.message as unknown as { guild: trap_guild }).guild = unknown_guild;
+    const prisma_state = patch_honeypot_prisma('guild-hp-10007', 'trap-1');
+
+    try {
+      assert.equal(await honeypotService.handle_message(state.message), true);
+      assert.equal(banCalls.length, 1);
+      assert.equal(prisma_state.modLogCreates.length, 1);
+      assert.equal(state.deleteCalls.length, 0);
+      assert.equal(logSends.length, 1);
     } finally {
       prisma_state.restore();
     }
