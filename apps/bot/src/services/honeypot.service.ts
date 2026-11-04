@@ -29,7 +29,7 @@ class HoneyPotService {
 
   // One punish attempt per (guild, user) at a time; a spam burst delivers
   // several messages in the same second and each one triggers this handler.
-  private readonly pendingPunish = new Map<string, Promise<unknown>>();
+  private readonly pendingPunish = new Map<string, Promise<'staff' | 'punished' | 'failed'>>();
   private readonly recentlyPunished = new Map<string, number>();
 
   private sweep_recently(now: number): void {
@@ -94,7 +94,7 @@ class HoneyPotService {
     if (pending) {
       let pending_outcome: 'staff' | 'punished' | 'failed';
       try {
-        pending_outcome = (await pending) as 'staff' | 'punished' | 'failed';
+        pending_outcome = await pending;
       } catch {
         pending_outcome = 'failed';
       }
@@ -118,12 +118,16 @@ class HoneyPotService {
     } catch (error) {
       // Transient member-resolution failure (rate limit, network, 5xx): fail
       // closed, do not ban, remove the payload and report the failure.
+      // Note: membership is unknowable here, so the dedup record below may
+      // silence a staff member's follow-up messages for the TTL window; that
+      // is the accepted tradeoff against spawning a failure report per
+      // message during an outage.
       logger.error(
         { err: safe_error_details(error), guildId: message.guild.id, userId: author.id },
         'HoneyPot: member resolution failed',
       );
       await this.delete_trap_message(message);
-      await this.send_log_entry(message.guild, author, message, false);
+      await this.send_log_entry(message.guild, author, message, false, 'lookup');
       this.recentlyPunished.set(dedup_key, Date.now());
       return true;
     }
@@ -229,6 +233,7 @@ class HoneyPotService {
     user: User,
     message: Message,
     banned: boolean,
+    failure_phase: 'ban' | 'lookup' = 'ban',
   ): Promise<void> {
     try {
       const guild_config = await prisma.guildConfig.findUnique({
@@ -241,12 +246,15 @@ class HoneyPotService {
       if (!channel || !channel.isTextBased()) return;
 
       if (!banned) {
+        const description =
+          failure_phase === 'lookup'
+            ? `A verificação automática de **${user.tag}** falhou (erro temporário). Nenhum banimento foi aplicado e a mensagem da armadilha foi apagada.`
+            : `**${user.tag}** postou no canal armadilha <#${message.channelId}>, mas o banimento **falhou**. Verifique as permissões do bot e a hierarquia de cargos. A mensagem da armadilha foi apagada.`;
+
         const embed = new EmbedBuilder()
           .setColor(COLORS.WARNING)
-          .setTitle(`${EMOJIS.WARNING} Armadilha: falha ao banir automaticamente`)
-          .setDescription(
-            `**${user.tag}** postou no canal armadilha <#${message.channelId}>, mas o banimento **falhou**. Verifique as permissões do bot e a hierarquia de cargos. A mensagem da armadilha foi apagada.`,
-          )
+          .setTitle(`${EMOJIS.WARNING} Armadilha: falha ao processar`)
+          .setDescription(description)
           .addFields([{ name: 'Usuário', value: `\`${user.id}\``, inline: true }])
           .setTimestamp();
         await channel.send({ embeds: [embed] });
