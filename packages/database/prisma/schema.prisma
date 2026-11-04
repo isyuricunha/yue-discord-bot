@@ -55,6 +55,7 @@ model Guild {
   commandCooldowns            GuildCommandCooldown[]
   freeGameNotifications       FreeGameNotification[]
   freeGameGiveaways           FreeGameGiveaway[]
+  honeyPotConfig              GuildHoneyPotConfig?
   keywordTriggers             KeywordTrigger[]
   livePixConnection           LivePixConnection?
   livePixWebhookEvents        LivePixWebhookEvent[]
@@ -122,6 +123,17 @@ model GuildAntiRaidConfig {
 
   @@index([raidActive, raidEndsAt], map: "guild_anti_raid_configs_raid_recovery_idx")
   @@map("guild_anti_raid_configs")
+}
+
+model GuildHoneyPotConfig {
+  id        String   @id @default(cuid())
+  guildId   String   @unique
+  channelId String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  guild     Guild    @relation(fields: [guildId], references: [id], onDelete: Cascade)
+
+  @@map("guild_honey_pot_configs")
 }
 
 model GuildConfig {

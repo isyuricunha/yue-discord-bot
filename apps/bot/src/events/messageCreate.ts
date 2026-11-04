@@ -9,6 +9,7 @@ import {
 	ThreadChannel,
 } from "discord.js";
 import { autoModService } from "../services/automod.service";
+import { honeypotService } from "../services/honeypot.service";
 import { autoroleService } from "../services/autorole.service";
 import { suggestionService } from "../services/suggestion.service";
 import { customCommandService } from "../services/customCommand.service";
@@ -110,8 +111,20 @@ function start_typing_indicator(channel: Message["channel"]): () => void {
 }
 
 export async function handleMessageCreate(message: Message) {
-	// Ignorar mensagens de bots e DMs
-	if (message.author.bot || !message.guild) return;
+	if (!message.guild) return;
+
+	try {
+		const handled_by_honeypot = await honeypotService.handle_message(message);
+		if (handled_by_honeypot) return;
+	} catch (error) {
+		logger.error(
+			{ err: safe_error_details(error) },
+			"HoneyPot failed on messageCreate"
+		);
+	}
+
+	// Ignore bot messages; DMs were already returned above
+	if (message.author.bot) return;
 
 	const userId = message.author.id;
 	const guildId = message.guild.id;
