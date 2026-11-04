@@ -127,6 +127,13 @@ export const honeypotCommand: Command = {
             ? `Ativo em <#${config.channelId}>. Quem postar nesse canal é banido automaticamente.`
             : 'Desativado. Use `/armadilha ativar` para escolher um canal.',
         )
+        .addFields([
+          {
+            name: 'Isenções',
+            value: 'Webhooks e o próprio bot Yue são ignorados. Bots de terceiros que postarem também são banidos.',
+            inline: false,
+          },
+        ])
         .setTimestamp();
 
       await interaction.reply({ embeds: [embed] });

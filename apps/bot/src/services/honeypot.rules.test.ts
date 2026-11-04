@@ -21,7 +21,6 @@ test('honeypot rules', async (t) => {
         author_id: 'user-1',
         client_user_id: 'client-1',
         is_webhook: false,
-        has_staff_permission: false,
       }),
       true,
     );
@@ -35,7 +34,6 @@ test('honeypot rules', async (t) => {
         author_id: 'user-1',
         client_user_id: 'client-1',
         is_webhook: false,
-        has_staff_permission: false,
       }),
       false,
     );
@@ -49,28 +47,22 @@ test('honeypot rules', async (t) => {
         author_id: 'user-1',
         client_user_id: 'client-1',
         is_webhook: false,
-        has_staff_permission: false,
       }),
       false,
     );
   });
 
-  await t.test('ignores webhooks, the bot itself and staff', () => {
+  await t.test('ignores webhooks and the bot itself', () => {
     const base = {
       config_channel_id: 'trap-1',
       channel_id: 'trap-1',
       author_id: 'user-1',
       client_user_id: 'client-1',
       is_webhook: false,
-      has_staff_permission: false,
     };
     assert.equal(should_catch_honeypot_message({ ...base, is_webhook: true }), false);
     assert.equal(
       should_catch_honeypot_message({ ...base, author_id: 'client-1' }),
-      false,
-    );
-    assert.equal(
-      should_catch_honeypot_message({ ...base, has_staff_permission: true }),
       false,
     );
   });
