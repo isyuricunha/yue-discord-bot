@@ -511,6 +511,12 @@ export const guildAntiRaidConfigSchema = z.object({
   notificationChannelId: z.string().nullable().optional(),
 });
 
+export const guildHoneyPotConfigSchema = z.object({
+  channelId: z.string().min(1).max(64).nullable().optional(),
+});
+
+export type GuildHoneyPotConfigInput = z.infer<typeof guildHoneyPotConfigSchema>;
+
 export const globalXpResetSchema = z.object({
   scope: z.enum(['global', 'user']).default('global'),
   userId: z.string().min(1).optional(),

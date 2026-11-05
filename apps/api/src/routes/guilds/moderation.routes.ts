@@ -4,6 +4,7 @@ import {
   autoModConfigSchema,
   guildAntiRaidConfigSchema,
   guildAutomodConfigSchema,
+  guildHoneyPotConfigSchema,
   guildModlogConfigSchema,
 } from '@yuebot/shared'
 import { sync_automod_native_rules } from '../../internal/bot_internal_api'
@@ -533,6 +534,46 @@ export async function guildModerationRoutes(fastify: FastifyInstance) {
         notificationChannelId: input.notificationChannelId ?? null,
         raidActive: false,
         locked: false,
+      },
+    })
+
+    return reply.send({ success: true, config: updated })
+  })
+
+  fastify.get('/:guildId/honeypot-config', {
+    preHandler: access,
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const config = await prisma.guildHoneyPotConfig.findUnique({ where: { guildId } })
+
+    return reply.send({
+      success: true,
+      config: {
+        channelId: config?.channelId ?? null,
+      },
+    })
+  })
+
+  fastify.put('/:guildId/honeypot-config', {
+    preHandler: admin,
+  }, async (request, reply) => {
+    const { guildId } = request.params as { guildId: string }
+    const parsed = guildHoneyPotConfigSchema.safeParse(request.body)
+
+    if (!parsed.success) {
+      const details = validation_error_details(fastify, parsed.error)
+      return reply.code(400).send(details ? { error: 'Invalid body', details } : { error: 'Invalid body' })
+    }
+
+    const input = parsed.data
+    const updated = await prisma.guildHoneyPotConfig.upsert({
+      where: { guildId },
+      update: {
+        ...(input.channelId !== undefined ? { channelId: input.channelId } : {}),
+      },
+      create: {
+        guildId,
+        channelId: input.channelId ?? null,
       },
     })
 

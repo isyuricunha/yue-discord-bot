@@ -47,6 +47,7 @@ function useBreadcrumbs(guildId: string | undefined, location: { pathname: strin
       overview: { label: 'Visão geral' },
       automod: { label: 'AutoMod' },
       antiraid: { label: 'Anti-Raid' },
+      honeypot: { label: 'Canal Armadilha' },
       modlogs: { label: 'Logs' },
       moderation: { label: 'Moderação' },
       members: { label: 'Membros' },
