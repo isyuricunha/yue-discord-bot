@@ -34,6 +34,7 @@ const SettingsPage = lazy(() => import('./pages/Settings'))
 const ModerationPage = lazy(() => import('./pages/Moderation'))
 const AutoModPage = lazy(() => import('./pages/AutoMod'))
 const AntiRaidPage = lazy(() => import('./pages/AntiRaid'))
+const HoneyPotPage = lazy(() => import('./pages/HoneyPot'))
 const WelcomePage = lazy(() => import('./pages/Welcome'))
 const XpLevelsPage = lazy(() => import('./pages/XpLevels'))
 const AutorolePage = lazy(() => import('./pages/Autorole'))
@@ -128,6 +129,7 @@ function App() {
             <Route path="/guild/:guildId/overview" element={<OverviewPage />} />
             <Route path="/guild/:guildId/automod" element={<AutoModPage />} />
             <Route path="/guild/:guildId/antiraid" element={<AntiRaidPage />} />
+            <Route path="/guild/:guildId/honeypot" element={<HoneyPotPage />} />
             <Route path="/guild/:guildId/modlogs" element={<ModLogsPage />} />
             <Route path="/guild/:guildId/music" element={<MusicPage />} />
             <Route path="/guild/:guildId/custom-commands" element={<CustomCommandsPage />} />
