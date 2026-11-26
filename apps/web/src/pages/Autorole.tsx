@@ -193,6 +193,7 @@ export default function AutorolePage() {
                       setConfig({ ...config, delaySeconds: Number.isNaN(parsed) ? 0 : Math.max(0, parsed) })
                     }}
                     placeholder="0"
+                    aria-label="Atraso em segundos para aplicar os cargos"
                   />
                 </div>
               </div>

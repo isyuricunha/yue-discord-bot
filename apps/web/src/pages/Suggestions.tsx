@@ -233,7 +233,7 @@ export default function SuggestionsPage() {
               <div className="text-xs text-muted-foreground">Permite que membros enviem sugestões em um canal específico.</div>
             </div>
 
-            <Switch checked={Boolean(config?.enabled)} onCheckedChange={(checked) => config && set_config({ ...config, enabled: checked })} disabled={is_loading} />
+            <Switch checked={Boolean(config?.enabled)} onCheckedChange={(checked) => config && set_config({ ...config, enabled: checked })} disabled={is_loading} label="Sugestões habilitadas" />
           </div>
 
           {is_loading || !config ? (

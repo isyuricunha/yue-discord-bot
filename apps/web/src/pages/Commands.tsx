@@ -166,7 +166,7 @@ export default function CommandsPage() {
         <CardContent className="space-y-4 p-6">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por nome/descrição" className="pl-9" />
+            <Input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar por nome/descrição" aria-label="Buscar comando por nome ou descrição" className="pl-9" />
           </div>
 
           {isLoading ? (

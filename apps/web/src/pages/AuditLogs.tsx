@@ -234,6 +234,7 @@ export default function AuditLogsPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="Ação, usuário, canal, mensagem..."
+                  aria-label="Buscar no log de auditoria"
                   className="pl-9"
                 />
               </div>

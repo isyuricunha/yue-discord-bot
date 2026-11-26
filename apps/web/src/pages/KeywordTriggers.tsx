@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Edit2, Plus, Radio, Trash2, X } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, FormField, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -219,15 +219,14 @@ export default function KeywordTriggersPage() {
           <div className="text-sm font-semibold">Adicionar gatilho</div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <div className="mb-1.5 text-xs font-medium text-muted-foreground">Palavra-chave</div>
+            <FormField label="Palavra-chave">
               <Input
                 value={keyword}
                 onChange={(e) => setKeyword(e.target.value)}
                 placeholder="ex: bom dia"
                 maxLength={100}
               />
-            </div>
+            </FormField>
 
             <div>
               <div className="mb-1.5 text-xs font-medium text-muted-foreground">
@@ -236,7 +235,7 @@ export default function KeywordTriggersPage() {
               {is_channels_loading ? (
                 <Skeleton className="h-11 w-full" />
               ) : (
-                <Select value={channelId} onValueChange={setChannelId}>
+                <Select value={channelId} onValueChange={setChannelId} aria-label="Canal do gatilho (opcional)">
                   <option value="">Todos os canais</option>
                   {text_channels.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -248,8 +247,7 @@ export default function KeywordTriggersPage() {
             </div>
           </div>
 
-          <div>
-            <div className="mb-1.5 text-xs font-medium text-muted-foreground">Mensagem (Texto)</div>
+          <FormField label="Mensagem (Texto)">
             <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
@@ -257,23 +255,17 @@ export default function KeywordTriggersPage() {
               className="resize-none"
               rows={3}
             />
-          </div>
+          </FormField>
 
-          <div>
-            <div className="mb-1.5 text-xs font-medium text-muted-foreground">URL da mídia (opcional)</div>
+          <FormField label="URL da mídia (opcional)" hint="Domínios aceitos: tenor.com, giphy.com, imgur.com, cdn.discordapp.com, media.discordapp.net, ou qualquer URL com extensão .gif, .png, .jpg, .jpeg, .webp, .mp4">
             <Input
               value={url}
               onChange={(e) => handle_url_change(e.target.value)}
               placeholder="https://media.tenor.com/..."
               className={url_error ? 'border-danger focus:border-danger' : ''}
             />
-            {url_error && <div className="mt-1 text-xs text-danger">{url_error}</div>}
-            <div className="mt-1 text-[11px] text-muted-foreground">
-              Domínios aceitos: tenor.com, giphy.com, imgur.com, cdn.discordapp.com,
-              media.discordapp.net — ou qualquer URL com extensão .gif, .png, .jpg, .jpeg, .webp,
-              .mp4
-            </div>
-          </div>
+          </FormField>
+          {url_error && <div className="-mt-1 text-xs text-danger">{url_error}</div>}
 
           <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface/20 p-3">
             <div className="space-y-0.5">
@@ -282,7 +274,7 @@ export default function KeywordTriggersPage() {
                 Menciona quem ativou o gatilho ao enviar a mídia
               </div>
             </div>
-            <Switch checked={replyToUser} onCheckedChange={setReplyToUser} />
+            <Switch checked={replyToUser} onCheckedChange={setReplyToUser} label="Responder ao usuário" />
           </div>
 
           {/* Preview */}
@@ -530,7 +522,7 @@ export default function KeywordTriggersPage() {
                     Menciona quem ativou o gatilho ao enviar a mídia
                   </div>
                 </div>
-                <Switch checked={edit_reply_to_user} onCheckedChange={set_edit_reply_to_user} />
+                <Switch checked={edit_reply_to_user} onCheckedChange={set_edit_reply_to_user} label="Responder ao usuário" />
               </div>
 
               {/* Preview */}

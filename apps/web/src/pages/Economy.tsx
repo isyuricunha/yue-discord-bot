@@ -4,7 +4,7 @@ import axios from 'axios'
 import { ArrowRightLeft, Coins, RefreshCw, Shield } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, CardHeader, EmptyState, ErrorState, Input, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, CardHeader, EmptyState, ErrorState, FormField, Input, Skeleton } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { useAuthStore } from '../store/auth'
 import { format_luazinhas } from '../lib/luazinhas'
@@ -171,9 +171,15 @@ export default function EconomyPage() {
             <div className="text-xs text-muted-foreground">Envia luazinhas para outro usuário (por ID)</div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Input placeholder="ID do usuário no Discord" value={transfer_to} onChange={(e) => set_transfer_to(e.target.value)} />
-            <Input placeholder="Quantia" value={transfer_amount} onChange={(e) => set_transfer_amount(e.target.value)} />
-            <Input placeholder="Motivo (opcional)" value={transfer_reason} onChange={(e) => set_transfer_reason(e.target.value)} />
+            <FormField label="ID do usuário no Discord">
+              <Input placeholder="ID do usuário no Discord" value={transfer_to} onChange={(e) => set_transfer_to(e.target.value)} />
+            </FormField>
+            <FormField label="Quantia">
+              <Input placeholder="Quantia" value={transfer_amount} onChange={(e) => set_transfer_amount(e.target.value)} />
+            </FormField>
+            <FormField label="Motivo (opcional)">
+              <Input placeholder="Motivo (opcional)" value={transfer_reason} onChange={(e) => set_transfer_reason(e.target.value)} />
+            </FormField>
             <Button className="w-full" isLoading={is_transfer_loading} onClick={() => void do_transfer()} disabled={!transfer_to.trim() || !transfer_amount.trim()}>
               Transferir
             </Button>
@@ -191,9 +197,15 @@ export default function EconomyPage() {
             </div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Input placeholder="Usuário (ID)" value={admin_user_id} onChange={(e) => set_admin_user_id(e.target.value)} />
-            <Input placeholder="Quantia" value={admin_amount} onChange={(e) => set_admin_amount(e.target.value)} />
-            <Input placeholder="Motivo (opcional)" value={admin_reason} onChange={(e) => set_admin_reason(e.target.value)} />
+            <FormField label="Usuário (ID)">
+              <Input placeholder="Usuário (ID)" value={admin_user_id} onChange={(e) => set_admin_user_id(e.target.value)} />
+            </FormField>
+            <FormField label="Quantia">
+              <Input placeholder="Quantia" value={admin_amount} onChange={(e) => set_admin_amount(e.target.value)} />
+            </FormField>
+            <FormField label="Motivo (opcional)">
+              <Input placeholder="Motivo (opcional)" value={admin_reason} onChange={(e) => set_admin_reason(e.target.value)} />
+            </FormField>
 
             <div className="grid grid-cols-2 gap-2">
               <Button

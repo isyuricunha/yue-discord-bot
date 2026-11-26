@@ -215,6 +215,7 @@ export function MessageVariantEditor({
                         onChange={(e) => set_editing_value(e.target.value)}
                         rows={Math.max(3, rows)}
                         disabled={disabled}
+                        aria-label={`Editar mensagem ${index + 1}`}
                       />
                     ) : (
                       <pre className="mt-1 whitespace-pre-wrap break-words text-sm text-foreground">{v}</pre>
@@ -281,6 +282,7 @@ export function MessageVariantEditor({
           onChange={(e) => set_new_value(e.target.value)}
           placeholder={placeholder ?? 'Adicionar nova mensagem...'}
           disabled={disabled}
+          aria-label={label ? `Nova mensagem (${label})` : 'Nova mensagem'}
           onKeyDown={(e) => {
             if (e.key === 'Enter') {
               e.preventDefault()

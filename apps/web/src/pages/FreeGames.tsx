@@ -256,6 +256,7 @@ export default function FreeGamesPage() {
                             checked={Boolean(config?.isEnabled)}
                             onCheckedChange={(checked) => config && set_config({ ...config, isEnabled: checked })}
                             disabled={is_loading}
+                            label="Notificações de jogos grátis habilitadas"
                         />
                     </div>
                 </CardContent>

@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Plus, Save, Sparkles, Trash2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch } from '../components/ui'
+import { Button, Card, CardContent, ErrorState, FormField, Input, Select, Skeleton, Switch } from '../components/ui'
 import { MessageVariantEditor } from '../components/message_variant_editor'
 import { PlaceholderInlineList } from '../components/template_placeholders'
 import { validate_extended_template_variants } from '../lib/message_template'
@@ -535,17 +535,13 @@ export default function XpLevelsPage() {
               </div>
 
               <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px]">
-                <div className="text-sm">
-                  <div className="font-medium">Tamanho (sem repetição)</div>
-                  <div className="text-xs text-muted-foreground">
-                    Use isso para estimar o range de XP para uma mensagem típica.
-                  </div>
-                </div>
-                <Input
-                  value={preview_unique_length}
-                  onChange={(e) => setPreviewUniqueLength(e.target.value)}
-                  placeholder="12"
-                />
+                <FormField label="Tamanho da mensagem (caracteres únicos)" hint="Use isso para estimar o range de XP para uma mensagem típica.">
+                  <Input
+                    value={preview_unique_length}
+                    onChange={(e) => setPreviewUniqueLength(e.target.value)}
+                    placeholder="12"
+                  />
+                </FormField>
               </div>
 
               {!config || !preview_gain ? (
@@ -639,11 +635,13 @@ export default function XpLevelsPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto]">
-              <Input
-                value={reset_confirm}
-                onChange={(e) => setResetConfirm(e.target.value)}
-                placeholder="Digite ZERAR para confirmar"
-              />
+              <FormField label="Confirmação" hint="Digite ZERAR para confirmar">
+                <Input
+                  value={reset_confirm}
+                  onChange={(e) => setResetConfirm(e.target.value)}
+                  placeholder="Digite ZERAR para confirmar"
+                />
+              </FormField>
               <Button
                 variant="outline"
                 isLoading={reset_mutation.isPending}
@@ -665,12 +663,16 @@ export default function XpLevelsPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
-              <Input value={reset_user_id} onChange={(e) => setResetUserId(e.target.value)} placeholder="User ID" />
-              <Input
-                value={reset_user_confirm}
-                onChange={(e) => setResetUserConfirm(e.target.value)}
-                placeholder="Digite ZERAR USUARIO"
-              />
+              <FormField label="ID do usuário">
+                <Input value={reset_user_id} onChange={(e) => setResetUserId(e.target.value)} placeholder="User ID" />
+              </FormField>
+              <FormField label="Confirmação" hint="Digite ZERAR USUARIO">
+                <Input
+                  value={reset_user_confirm}
+                  onChange={(e) => setResetUserConfirm(e.target.value)}
+                  placeholder="Digite ZERAR USUARIO"
+                />
+              </FormField>
               <Button
                 variant="outline"
                 isLoading={reset_user_mutation.isPending}
@@ -692,16 +694,20 @@ export default function XpLevelsPage() {
             </div>
 
             <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_1fr_auto]">
-              <Input
-                value={reset_global_user_id}
-                onChange={(e) => setResetGlobalUserId(e.target.value)}
-                placeholder="(Opcional) User ID para zerar somente 1 usuário"
-              />
-              <Input
-                value={reset_global_confirm}
-                onChange={(e) => setResetGlobalConfirm(e.target.value)}
-                placeholder="Digite ZERAR GLOBAL"
-              />
+              <FormField label="ID do usuário (opcional)" hint="Zere somente 1 usuário ou deixe vazio para todos">
+                <Input
+                  value={reset_global_user_id}
+                  onChange={(e) => setResetGlobalUserId(e.target.value)}
+                  placeholder="(Opcional) User ID para zerar somente 1 usuário"
+                />
+              </FormField>
+              <FormField label="Confirmação" hint="Digite ZERAR GLOBAL">
+                <Input
+                  value={reset_global_confirm}
+                  onChange={(e) => setResetGlobalConfirm(e.target.value)}
+                  placeholder="Digite ZERAR GLOBAL"
+                />
+              </FormField>
               <Button
                 variant="outline"
                 isLoading={reset_global_mutation.isPending}
@@ -991,7 +997,7 @@ export default function XpLevelsPage() {
                   <Switch
                     checked={config.rewardMode === 'stack'}
                     onCheckedChange={(checked) => setConfig({ ...config, rewardMode: checked ? 'stack' : 'highest' })}
-                    label=""
+                    label="Empilhar recompensas anteriores"
                   />
                 </div>
               </div>
@@ -1005,7 +1011,7 @@ export default function XpLevelsPage() {
                   <Switch
                     checked={config.rewardMode === 'highest'}
                     onCheckedChange={(checked) => setConfig({ ...config, rewardMode: checked ? 'highest' : 'stack' })}
-                    label=""
+                    label="Remover recompensas anteriores"
                   />
                 </div>
               </div>
@@ -1023,7 +1029,7 @@ export default function XpLevelsPage() {
           ) : (
             <>
               <div className="grid grid-cols-1 gap-2 md:grid-cols-[1fr_180px_44px]">
-                <Select value={new_multiplier_role} onValueChange={(value) => setNewMultiplierRole(value)}>
+                <Select value={new_multiplier_role} onValueChange={(value) => setNewMultiplierRole(value)} aria-label="Cargo do multiplicador">
                   <option value="">Selecione um cargo</option>
                   {(roles_data?.roles ?? []).filter((r) => !r.managed).map((r) => (
                     <option key={r.id} value={r.id}>
@@ -1035,6 +1041,7 @@ export default function XpLevelsPage() {
                   value={new_multiplier_value}
                   onChange={(e) => setNewMultiplierValue(e.target.value)}
                   placeholder="1.0"
+                  aria-label="Multiplicador de XP"
                 />
                 <Button variant="outline" onClick={add_multiplier} className="px-0" aria-label="Adicionar multiplicador">
                   <Plus className="h-5 w-5" />
@@ -1209,8 +1216,9 @@ export default function XpLevelsPage() {
                   value={new_reward_level}
                   onChange={(e) => setNewRewardLevel(e.target.value)}
                   placeholder="Nível"
+                  aria-label="Nível da recompensa"
                 />
-                <Select value={new_reward_role} onValueChange={(value) => setNewRewardRole(value)}>
+                <Select value={new_reward_role} onValueChange={(value) => setNewRewardRole(value)} aria-label="Cargo da recompensa">
                   <option value="">Selecione um cargo</option>
                   {(roles_data?.roles ?? []).filter((r) => !r.managed).map((r) => (
                     <option key={r.id} value={r.id}>
@@ -1268,65 +1276,47 @@ export default function XpLevelsPage() {
             <Skeleton className="h-24 w-full" />
           ) : (
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-              <div>
-                <div className="text-sm font-medium">Mínimo de caracteres</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.minMessageLength)}
+              <FormField label="Mínimo de caracteres">
+                <Input
+                  value={String(config.minMessageLength)}
                     onChange={(e) => setConfig({ ...config, minMessageLength: Number.parseInt(e.target.value || '0', 10) || 0 })}
-                  />
-                </div>
-              </div>
+                />
+              </FormField>
 
-              <div>
-                <div className="text-sm font-medium">Mínimo (sem repetição)</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.minUniqueLength)}
+              <FormField label="Mínimo (sem repetição)">
+                <Input
+                  value={String(config.minUniqueLength)}
                     onChange={(e) => setConfig({ ...config, minUniqueLength: Number.parseInt(e.target.value || '0', 10) || 0 })}
-                  />
-                </div>
-              </div>
+                />
+              </FormField>
 
-              <div>
-                <div className="text-sm font-medium">Chars/seg (typing)</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.typingCps)}
+              <FormField label="Chars/seg (typing)">
+                <Input
+                  value={String(config.typingCps)}
                     onChange={(e) => setConfig({ ...config, typingCps: Number.parseInt(e.target.value || '1', 10) || 1 })}
-                  />
-                </div>
-              </div>
+                />
+              </FormField>
 
-              <div>
-                <div className="text-sm font-medium">Divisor mínimo</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.xpDivisorMin)}
+              <FormField label="Divisor mínimo">
+                <Input
+                  value={String(config.xpDivisorMin)}
                     onChange={(e) => setConfig({ ...config, xpDivisorMin: Number.parseInt(e.target.value || '1', 10) || 1 })}
-                  />
-                </div>
-              </div>
+                />
+              </FormField>
 
-              <div>
-                <div className="text-sm font-medium">Divisor máximo</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.xpDivisorMax)}
+              <FormField label="Divisor máximo">
+                <Input
+                  value={String(config.xpDivisorMax)}
                     onChange={(e) => setConfig({ ...config, xpDivisorMax: Number.parseInt(e.target.value || '1', 10) || 1 })}
                   />
-                </div>
-              </div>
+              </FormField>
 
-              <div>
-                <div className="text-sm font-medium">Cap de XP</div>
-                <div className="mt-2">
-                  <Input
-                    value={String(config.xpCap)}
-                    onChange={(e) => setConfig({ ...config, xpCap: Number.parseInt(e.target.value || '1', 10) || 1 })}
-                  />
-                </div>
-              </div>
+              <FormField label="Cap de XP">
+                <Input
+                  value={String(config.xpCap)}
+                  onChange={(e) => setConfig({ ...config, xpCap: Number.parseInt(e.target.value || '1', 10) || 1 })}
+                />
+              </FormField>
             </div>
           )}
         </CardContent>

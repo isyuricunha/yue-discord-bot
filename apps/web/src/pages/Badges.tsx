@@ -4,7 +4,7 @@ import axios from 'axios'
 import { Award, RefreshCw, Save, Trash2, UserPlus, UserMinus } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge as UiBadge, Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton, UserDisplay } from '../components/ui'
+import { Badge as UiBadge, Button, Card, CardContent, EmptyState, ErrorState, FormField, Input, Skeleton, UserDisplay } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -276,8 +276,7 @@ export default function BadgesPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">ID</div>
+              <FormField label="ID">
                 <Input value={editing?.id ?? ''} onChange={(e) => setEditing((prev) => ({
                   id: e.target.value,
                   name: prev?.name ?? '',
@@ -286,10 +285,9 @@ export default function BadgesPage() {
                   icon: prev?.icon ?? null,
                   hidden: prev?.hidden ?? false,
                 }))} />
-              </div>
+              </FormField>
 
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">Nome</div>
+              <FormField label="Nome">
                 <Input value={editing?.name ?? ''} onChange={(e) => setEditing((prev) => ({
                   id: prev?.id ?? '',
                   name: e.target.value,
@@ -298,10 +296,9 @@ export default function BadgesPage() {
                   icon: prev?.icon ?? null,
                   hidden: prev?.hidden ?? false,
                 }))} />
-              </div>
+              </FormField>
 
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">Categoria</div>
+              <FormField label="Categoria">
                 <Input value={editing?.category ?? ''} onChange={(e) => setEditing((prev) => ({
                   id: prev?.id ?? '',
                   name: prev?.name ?? '',
@@ -310,10 +307,9 @@ export default function BadgesPage() {
                   icon: prev?.icon ?? null,
                   hidden: prev?.hidden ?? false,
                 }))} />
-              </div>
+              </FormField>
 
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">Ícone (emoji/texto)</div>
+              <FormField label="Ícone (emoji/texto)">
                 <Input value={editing?.icon ?? ''} onChange={(e) => setEditing((prev) => ({
                   id: prev?.id ?? '',
                   name: prev?.name ?? '',
@@ -322,10 +318,9 @@ export default function BadgesPage() {
                   icon: e.target.value || null,
                   hidden: prev?.hidden ?? false,
                 }))} />
-              </div>
+              </FormField>
 
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">Descrição</div>
+              <FormField label="Descrição">
                 <Input value={editing?.description ?? ''} onChange={(e) => setEditing((prev) => ({
                   id: prev?.id ?? '',
                   name: prev?.name ?? '',
@@ -334,7 +329,7 @@ export default function BadgesPage() {
                   icon: prev?.icon ?? null,
                   hidden: prev?.hidden ?? false,
                 }))} />
-              </div>
+              </FormField>
 
               <div className="flex items-center gap-2">
                 <Button
@@ -368,12 +363,12 @@ export default function BadgesPage() {
             <CardContent className="space-y-4 pt-6">
               <div className="text-sm font-semibold">Conceder badge</div>
               <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">User ID</div>
-                <Input value={grant_user_id} onChange={(e) => setGrantUserId(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">Badge ID</div>
-                <Input value={grant_badge_id} onChange={(e) => setGrantBadgeId(e.target.value)} />
+                <FormField label="User ID">
+                  <Input value={grant_user_id} onChange={(e) => setGrantUserId(e.target.value)} />
+                </FormField>
+                <FormField label="Badge ID">
+                  <Input value={grant_badge_id} onChange={(e) => setGrantBadgeId(e.target.value)} />
+                </FormField>
               </div>
               <Button
                 onClick={() => {
@@ -396,12 +391,12 @@ export default function BadgesPage() {
             <CardContent className="space-y-4 pt-6">
               <div className="text-sm font-semibold">Remover badge</div>
               <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">User ID</div>
-                <Input value={revoke_user_id} onChange={(e) => setRevokeUserId(e.target.value)} />
-              </div>
-              <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">Badge ID</div>
-                <Input value={revoke_badge_id} onChange={(e) => setRevokeBadgeId(e.target.value)} />
+                <FormField label="User ID">
+                  <Input value={revoke_user_id} onChange={(e) => setRevokeUserId(e.target.value)} />
+                </FormField>
+                <FormField label="Badge ID">
+                  <Input value={revoke_badge_id} onChange={(e) => setRevokeBadgeId(e.target.value)} />
+                </FormField>
               </div>
               <Button
                 variant="ghost"
@@ -426,8 +421,9 @@ export default function BadgesPage() {
               <div className="text-sm font-semibold">Portadores (admin)</div>
 
               <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">Badge ID</div>
-                <Input value={holders_badge_id} onChange={(e) => setHoldersBadgeId(e.target.value)} />
+                <FormField label="Badge ID">
+                  <Input value={holders_badge_id} onChange={(e) => setHoldersBadgeId(e.target.value)} />
+                </FormField>
               </div>
 
               {!holders_badge_id.trim() && (

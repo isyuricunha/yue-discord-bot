@@ -6,7 +6,7 @@ import { Coins, Dice5, RefreshCw, Swords } from 'lucide-react'
 import { verify_coinflip_result } from '@yuebot/shared'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, CardHeader, EmptyState, ErrorState, Input, Select, Skeleton } from '../components/ui'
+import { Button, Card, CardContent, CardHeader, EmptyState, ErrorState, FormField, Input, Select, Skeleton } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { format_luazinhas } from '../lib/luazinhas'
 
@@ -199,8 +199,12 @@ export default function CoinflipPage() {
             <div className="text-xs text-muted-foreground">Aposta pendente até o oponente aceitar</div>
           </CardHeader>
           <CardContent className="space-y-3">
-            <Input placeholder="ID do usuário no Discord" value={opponent_id} onChange={(e) => set_opponent_id(e.target.value)} />
-            <Input placeholder="Quantia (cada jogador)" value={bet_amount} onChange={(e) => set_bet_amount(e.target.value)} />
+            <FormField label="ID do oponente">
+              <Input placeholder="ID do usuário no Discord" value={opponent_id} onChange={(e) => set_opponent_id(e.target.value)} />
+            </FormField>
+            <FormField label="Quantia (cada jogador)">
+              <Input placeholder="Quantia (cada jogador)" value={bet_amount} onChange={(e) => set_bet_amount(e.target.value)} />
+            </FormField>
 
             <Select
               value={challenger_side}

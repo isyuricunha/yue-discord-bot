@@ -95,6 +95,7 @@ export default function DashboardPage() {
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
                   placeholder="Buscar servidor..."
+                  aria-label="Buscar servidor"
                   value={internalSearchQuery}
                   onChange={(e) => setInternalSearchQuery(e.target.value)}
                   className="w-full sm:w-[250px] pl-9 pr-9"

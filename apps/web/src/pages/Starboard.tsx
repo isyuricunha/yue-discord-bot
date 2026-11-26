@@ -202,7 +202,7 @@ export default function StarboardPage() {
               <div className="text-xs text-muted-foreground">Quando uma mensagem atingir o limite de reações, ela é repostada.</div>
             </div>
 
-            <Switch checked={Boolean(config?.enabled)} onCheckedChange={(checked) => config && set_config({ ...config, enabled: checked })} disabled={is_loading} />
+            <Switch checked={Boolean(config?.enabled)} onCheckedChange={(checked) => config && set_config({ ...config, enabled: checked })} disabled={is_loading} label="Starboard habilitado" />
           </div>
 
           {is_loading || !config ? (
@@ -228,7 +228,7 @@ export default function StarboardPage() {
                 <div className="text-sm font-medium">Emoji</div>
                 <div className="mt-1 text-xs text-muted-foreground">Ex: ⭐, 🌟 ou &lt;:star:123&gt;.</div>
                 <div className="mt-2">
-                  <Input value={config.emoji} onChange={(e) => set_config({ ...config, emoji: e.target.value })} placeholder="⭐" />
+                  <Input value={config.emoji} onChange={(e) => set_config({ ...config, emoji: e.target.value })} placeholder="⭐" aria-label="Emoji do starboard" />
                 </div>
               </div>
 
@@ -243,6 +243,7 @@ export default function StarboardPage() {
                       set_config({ ...config, threshold: Number.isNaN(parsed) ? 1 : parsed })
                     }}
                     placeholder="3"
+                    aria-label="Limite de reações do starboard"
                   />
                 </div>
               </div>
@@ -253,7 +254,7 @@ export default function StarboardPage() {
                   <div className="mt-1 text-xs text-muted-foreground">Não inclui mensagens enviadas por bots.</div>
                 </div>
 
-                <Switch checked={config.ignoreBots} onCheckedChange={(checked) => set_config({ ...config, ignoreBots: checked })} />
+                <Switch checked={config.ignoreBots} onCheckedChange={(checked) => set_config({ ...config, ignoreBots: checked })} label="Ignorar bots" />
               </div>
             </div>
           )}

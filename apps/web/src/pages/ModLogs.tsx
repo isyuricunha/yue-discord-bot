@@ -424,6 +424,7 @@ export default function ModLogsPage() {
                   setPage(1)
                 }}
                 placeholder="Buscar por ação, moderador, usuário, razão..."
+                aria-label="Buscar nos logs de moderação"
                 className="pl-10"
               />
             </div>

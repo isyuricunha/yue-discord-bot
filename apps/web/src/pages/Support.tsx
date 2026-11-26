@@ -5,7 +5,7 @@ import axios, { AxiosError } from 'axios'
 import { ExternalLink, Heart, Plus, RefreshCw, Save, Trash2, Unplug } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, EmptyState, ErrorState, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
+import { Badge, Button, Card, CardContent, EmptyState, ErrorState, FormField, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -416,10 +416,9 @@ export default function SupportPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div>
-              <div className="text-sm font-medium">Título no Discord</div>
-              <Input value={config.title} onChange={(event) => set_config({ ...config, title: event.target.value })} maxLength={100} className="mt-2" />
-            </div>
+            <FormField label="Título no Discord">
+              <Input value={config.title} onChange={(event) => set_config({ ...config, title: event.target.value })} maxLength={100} />
+            </FormField>
             <div>
               <div className="text-sm font-medium">Lembrete antes de expirar</div>
               <div className="mt-2 flex items-center gap-3">
@@ -435,15 +434,15 @@ export default function SupportPage() {
                   value={config.reminderDaysBefore}
                   onChange={(event) => set_config({ ...config, reminderDaysBefore: Number.parseInt(event.target.value, 10) || 1 })}
                   className="w-24"
+                  aria-label="Dias antes de expirar para lembrar"
                 />
               </div>
             </div>
           </div>
 
-          <div>
-            <div className="text-sm font-medium">Descrição no Discord</div>
-            <Textarea value={config.description} onChange={(event) => set_config({ ...config, description: event.target.value })} maxLength={1200} className="mt-2" />
-          </div>
+          <FormField label="Descrição no Discord">
+            <Textarea value={config.description} onChange={(event) => set_config({ ...config, description: event.target.value })} maxLength={1200} />
+          </FormField>
         </CardContent>
       </Card>
 
@@ -531,20 +530,30 @@ export default function SupportPage() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <Input placeholder="Nome" value={draft.name} onChange={(event) => set_draft({ ...draft, name: event.target.value })} maxLength={80} />
-            <Select value={draft.roleId} onValueChange={(roleId) => set_draft({ ...draft, roleId })}>
-              <option value="">Selecione um cargo</option>
-              {roles.filter((role) => !role.managed).map((role) => (
-                <option key={role.id} value={role.id}>
-                  {role.name}
-                </option>
-              ))}
-            </Select>
-            <Input placeholder="Valor em BRL, ex: 10,00" value={draft.amountBrl} onChange={(event) => set_draft({ ...draft, amountBrl: event.target.value })} />
-            <Input placeholder="Duração em dias" type="number" min={1} value={draft.durationDays} onChange={(event) => set_draft({ ...draft, durationDays: event.target.value })} />
+            <FormField label="Nome do plano">
+              <Input placeholder="Nome" value={draft.name} onChange={(event) => set_draft({ ...draft, name: event.target.value })} maxLength={80} />
+            </FormField>
+            <FormField label="Cargo do plano">
+              <Select value={draft.roleId} onValueChange={(roleId) => set_draft({ ...draft, roleId })} aria-label="Cargo do plano">
+                <option value="">Selecione um cargo</option>
+                {roles.filter((role) => !role.managed).map((role) => (
+                  <option key={role.id} value={role.id}>
+                    {role.name}
+                  </option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField label="Valor em BRL">
+              <Input placeholder="Valor em BRL, ex: 10,00" value={draft.amountBrl} onChange={(event) => set_draft({ ...draft, amountBrl: event.target.value })} />
+            </FormField>
+            <FormField label="Duração (dias)">
+              <Input placeholder="Duração em dias" type="number" min={1} value={draft.durationDays} onChange={(event) => set_draft({ ...draft, durationDays: event.target.value })} />
+            </FormField>
           </div>
 
-          <Textarea placeholder="Descrição" value={draft.description} onChange={(event) => set_draft({ ...draft, description: event.target.value })} maxLength={1000} />
+          <FormField label="Descrição do plano">
+            <Textarea placeholder="Descrição" value={draft.description} onChange={(event) => set_draft({ ...draft, description: event.target.value })} maxLength={1000} />
+          </FormField>
 
           <div className="flex flex-wrap items-center gap-3">
             <Switch checked={draft.enabled} onCheckedChange={(enabled) => set_draft({ ...draft, enabled })} label="Plano habilitado" />

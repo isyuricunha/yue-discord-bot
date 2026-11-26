@@ -84,6 +84,7 @@ export default function MembersPage() {
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               placeholder="Buscar por nome ou ID..."
+              aria-label="Buscar membro por nome ou ID"
               value={searchTerm}
               onChange={(event) => {
                 setSearchTerm(event.target.value)

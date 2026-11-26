@@ -566,7 +566,7 @@ export default function SetupWizardPage() {
                 <div className="text-sm font-medium">Ativar tickets</div>
                 <div className="mt-1 text-xs text-muted-foreground">Habilita criação de canais de atendimento</div>
               </div>
-              <Switch checked={tickets_enabled} onCheckedChange={set_tickets_enabled} />
+              <Switch checked={tickets_enabled} onCheckedChange={set_tickets_enabled} label="Tickets habilitados" />
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -884,7 +884,7 @@ export default function SetupWizardPage() {
                 <div className="text-sm font-medium">Ativar autorole</div>
                 <div className="mt-1 text-xs text-muted-foreground">Aplica cargos automaticamente para novos membros</div>
               </div>
-              <Switch checked={autorole_enabled} onCheckedChange={set_autorole_enabled} />
+              <Switch checked={autorole_enabled} onCheckedChange={set_autorole_enabled} label="Autorole habilitado" />
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -1000,7 +1000,7 @@ export default function SetupWizardPage() {
                 <div className="text-sm font-medium">Ativar XP</div>
                 <div className="mt-1 text-xs text-muted-foreground">Habilita ganho de XP e níveis</div>
               </div>
-              <Switch checked={xp_enabled} onCheckedChange={set_xp_enabled} />
+              <Switch checked={xp_enabled} onCheckedChange={set_xp_enabled} label="XP habilitado" />
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">

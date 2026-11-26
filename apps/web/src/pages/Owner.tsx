@@ -5,7 +5,7 @@ import axios from 'axios'
 import { Ban, Crown, ExternalLink, LogOut, RefreshCw, Search, Send, Settings, Shield, Sparkles, Users } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
+import { Badge, Button, Card, CardContent, FormField, Input, Select, Skeleton, Switch, Textarea } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -499,11 +499,10 @@ export default function OwnerPage() {
                 <div className="text-sm font-semibold">Ativar presence</div>
                 <div className="text-xs text-muted-foreground">Liga/desliga atividades e status</div>
               </div>
-              <Switch checked={presence_enabled} onCheckedChange={set_presence_enabled} disabled={isPresenceLoading} />
+              <Switch checked={presence_enabled} onCheckedChange={set_presence_enabled} disabled={isPresenceLoading} label="Presence habilitado" />
             </div>
 
-            <div>
-              <div className="mb-2 text-xs text-muted-foreground">Status</div>
+            <FormField label="Status">
               <Select
                 value={presence_status}
                 onValueChange={(value) => set_presence_status(value as bot_presence_settings['presenceStatus'])}
@@ -514,10 +513,9 @@ export default function OwnerPage() {
                 <option value="dnd">DND</option>
                 <option value="invisible">Invisible</option>
               </Select>
-            </div>
+            </FormField>
 
-            <div>
-              <div className="mb-2 text-xs text-muted-foreground">Activity type</div>
+            <FormField label="Activity type">
               <Select
                 value={activity_type ?? ''}
                 onValueChange={(value) => set_activity_type((value || null) as bot_presence_settings['activityType'])}
@@ -531,27 +529,25 @@ export default function OwnerPage() {
                 <option value="competing">Competing</option>
                 <option value="streaming">Streaming</option>
               </Select>
-            </div>
+            </FormField>
 
-            <div>
-              <div className="mb-2 text-xs text-muted-foreground">Activity name</div>
+            <FormField label="Activity name">
               <Input
                 value={activity_name}
                 onChange={(e) => set_activity_name(e.target.value)}
                 placeholder="Ex: /help"
                 disabled={isPresenceLoading}
               />
-            </div>
+            </FormField>
 
-            <div className="md:col-span-2">
-              <div className="mb-2 text-xs text-muted-foreground">Activity URL (apenas streaming)</div>
+            <FormField label="Activity URL (apenas streaming)" className="md:col-span-2">
               <Input
                 value={activity_url}
                 onChange={(e) => set_activity_url(e.target.value)}
                 placeholder="https://twitch.tv/..."
                 disabled={isPresenceLoading}
               />
-            </div>
+            </FormField>
           </div>
         </CardContent>
       </Card>
@@ -581,6 +577,7 @@ export default function OwnerPage() {
             placeholder="Escreva a bio do bot (máx 4000 caracteres)."
             maxLength={4000}
             disabled={isAppDescriptionLoading}
+            aria-label="Bio do bot"
           />
 
           <div className="text-xs text-muted-foreground">{app_description.trim().length}/4000</div>
@@ -640,6 +637,7 @@ export default function OwnerPage() {
             value={announcement_content}
             onChange={(e) => set_announcement_content(e.target.value)}
             placeholder="Escreva o anúncio (máx 2000 caracteres)."
+            aria-label="Conteúdo do anúncio"
           />
 
           {releaseCheckMutation.data && (
@@ -670,6 +668,7 @@ export default function OwnerPage() {
             value={announcement_image_url}
             onChange={(e) => set_announcement_image_url(e.target.value)}
             placeholder="URL da imagem (opcional)"
+            aria-label="URL da imagem do anúncio (opcional)"
           />
 
           <div className="grid grid-cols-1 gap-3 md:grid-cols-[1fr_auto] md:items-center">
@@ -677,6 +676,7 @@ export default function OwnerPage() {
               value={announcement_confirm}
               onChange={(e) => set_announcement_confirm(e.target.value)}
               placeholder="Digite CONFIRMAR para habilitar o envio"
+              aria-label="Confirmação de envio do anúncio"
             />
             <div className="text-sm text-muted-foreground">
               Usa os filtros acima (busca e datas) para selecionar os alvos.
@@ -715,6 +715,7 @@ export default function OwnerPage() {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar por nome, ID da guild ou ownerId"
+            aria-label="Buscar guild por nome, ID ou ownerId"
             className="pl-10"
           />
         </div>

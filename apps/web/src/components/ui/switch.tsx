@@ -25,7 +25,9 @@ export function Switch({ checked, onCheckedChange, disabled = false, className, 
       type="button"
       role="switch"
       aria-checked={checked}
-      aria-label={label}
+      // Only set aria-label when a label exists; an empty aria-label would
+      // override the accessible name for switches labeled by surrounding text.
+      {...(label ? { 'aria-label': label } : {})}
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(

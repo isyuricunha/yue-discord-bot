@@ -5,7 +5,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import axios from 'axios'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, Input, Skeleton, Textarea } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, FormField, Input, Skeleton, Textarea } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 
 const API_URL = getApiUrl()
@@ -154,36 +154,33 @@ export default function CustomCommandsPage() {
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome do Comando (Gatilho)</label>
-                <Input 
-                   placeholder="Ex: !regras" 
-                   value={name} 
-                   onChange={(e) => setName(e.target.value)} 
+              <FormField label="Nome do Comando (Gatilho)">
+                <Input
+                   placeholder="Ex: !regras"
+                   value={name}
+                   onChange={(e) => setName(e.target.value)}
                    disabled={createMutation.isPending}
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição (Opcional)</label>
-                <Input 
-                   placeholder="Ex: Mostra as regras do servidor" 
-                   value={description} 
-                   onChange={(e) => setDescription(e.target.value)} 
+              <FormField label="Descrição (Opcional)">
+                <Input
+                   placeholder="Ex: Mostra as regras do servidor"
+                   value={description}
+                   onChange={(e) => setDescription(e.target.value)}
                    disabled={createMutation.isPending}
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label className="text-xs font-medium text-muted-foreground mb-1 block">Resposta da Yue</label>
-                <Textarea 
-                   placeholder="Mensagem a ser enviada..." 
-                   className="h-32 resize-none" 
-                   value={response} 
+              <FormField label="Resposta da Yue">
+                <Textarea
+                   placeholder="Mensagem a ser enviada..."
+                   className="h-32 resize-none"
+                   value={response}
                    onChange={(e) => setResponse(e.target.value)}
                    disabled={createMutation.isPending}
                 />
-              </div>
+              </FormField>
 
               <Button type="submit" className="w-full" disabled={createMutation.isPending}>
                 <Plus className="h-4 w-4 shrink-0" />
