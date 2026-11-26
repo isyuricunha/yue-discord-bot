@@ -235,7 +235,7 @@ export default function KeywordTriggersPage() {
               {is_channels_loading ? (
                 <Skeleton className="h-11 w-full" />
               ) : (
-                <Select value={channelId} onValueChange={setChannelId} aria-label="Canal do gatilho (opcional)">
+                <Select value={channelId} onValueChange={setChannelId} aria-label="Canal (opcional)">
                   <option value="">Todos os canais</option>
                   {text_channels.map((c) => (
                     <option key={c.id} value={c.id}>
@@ -274,7 +274,7 @@ export default function KeywordTriggersPage() {
                 Menciona quem ativou o gatilho ao enviar a mídia
               </div>
             </div>
-            <Switch checked={replyToUser} onCheckedChange={setReplyToUser} label="Responder ao usuário" />
+            <Switch checked={replyToUser} onCheckedChange={setReplyToUser} label="Mencionar o usuário que ativou o gatilho" />
           </div>
 
           {/* Preview */}
@@ -470,7 +470,7 @@ export default function KeywordTriggersPage() {
                   {is_channels_loading ? (
                     <Skeleton className="h-11 w-full" />
                   ) : (
-                    <Select value={edit_channel_id} onValueChange={set_edit_channel_id} aria-label="Canal do gatilho (opcional)">
+                    <Select value={edit_channel_id} onValueChange={set_edit_channel_id} aria-label="Canal (opcional)">
                       <option value="">Todos os canais</option>
                       {text_channels.map((c) => (
                         <option key={c.id} value={c.id}>
@@ -516,7 +516,7 @@ export default function KeywordTriggersPage() {
                     Menciona quem ativou o gatilho ao enviar a mídia
                   </div>
                 </div>
-                <Switch checked={edit_reply_to_user} onCheckedChange={set_edit_reply_to_user} label="Responder ao usuário" />
+                <Switch checked={edit_reply_to_user} onCheckedChange={set_edit_reply_to_user} label="Mencionar o usuário que ativou o gatilho" />
               </div>
 
               {/* Preview */}
