@@ -29,7 +29,9 @@ export function Switch({ checked, onCheckedChange, disabled = false, className, 
       disabled={disabled}
       onClick={() => onCheckedChange(!checked)}
       className={cn(
-        'relative inline-flex h-11 w-[66px] items-center rounded-full border border-border/80 bg-input transition-colors duration-150 shadow-innerBorder lg:h-6 lg:w-11',
+        // Visual track is a tidy 52x32 pill; an ::before expands the touch
+        // target to 44px on mobile without stretching the visible control.
+        'switch-control relative inline-flex h-8 w-[52px] items-center rounded-full border border-border/80 bg-input transition-colors duration-150 shadow-innerBorder',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35',
         checked && 'border-success/40 bg-success/20',
         disabled && 'opacity-60 cursor-not-allowed',
@@ -38,8 +40,8 @@ export function Switch({ checked, onCheckedChange, disabled = false, className, 
     >
       <span
         className={cn(
-          'inline-block h-7 w-7 translate-x-[4px] rounded-full bg-muted-foreground shadow-sm transition-transform duration-150 lg:h-[18px] lg:w-[18px] lg:translate-x-1',
-          checked && 'translate-x-[35px] bg-success shadow-[var(--cursor-green-glow)] lg:translate-x-[22px]'
+          'inline-block h-[26px] w-[26px] translate-x-[3px] rounded-full bg-muted-foreground shadow-sm transition-transform duration-150 lg:h-[18px] lg:w-[18px] lg:translate-x-[2px]',
+          checked && 'translate-x-[23px] bg-success shadow-[var(--cursor-green-glow)] lg:translate-x-[31px]'
         )}
       />
     </button>

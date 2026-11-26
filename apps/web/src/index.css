@@ -856,3 +856,17 @@ kbd {
 @media (prefers-reduced-motion: reduce) {
   .yu-dot-matrix > span { animation: none; opacity: 0.35; }
 }
+
+/* Expand the switch tap target to 44px on touch screens without stretching
+   the visible 52x32 track. The pseudo-element is inert to pointer-events. */
+@media (pointer: coarse) {
+  .switch-control::before {
+    content: "";
+    position: absolute;
+    inset: -6px -4px;
+    border-radius: inherit;
+  }
+}
+@media (pointer: fine) {
+  .switch-control::before { content: none; }
+}
