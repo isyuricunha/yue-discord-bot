@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from 'react'
 import { ArrowLeft, User, FileText, Save, Shield, Ban, Timer, Gavel, Undo2 } from 'lucide-react'
 
 import { getApiUrl } from '../env'
-import { Button, Card, CardContent, EmptyState, ErrorState, Input, Skeleton, Textarea, UserDisplay } from '../components/ui'
+import { Button, Card, CardContent, EmptyState, ErrorState, FormField, Input, Skeleton, Textarea, UserDisplay } from '../components/ui'
 import { validate_timeout_duration } from '../lib/duration'
 import { get_modlog_action_label } from '../lib/modlog'
 import { toast_error, toast_success } from '../store/toast'
@@ -256,18 +256,17 @@ export default function MemberDetailsPage() {
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <div className="text-xs text-muted-foreground">Duração do timeout</div>
+                  <FormField
+                    label="Duração do timeout"
+                    error={timeout_validation.error ?? undefined}
+                    hint={timeout_validation.error ? undefined : 'Formato: 30s, 5m, 2h, 1d (máx 28d).'}
+                  >
                     <Input
                       value={timeout_duration}
                       onChange={(e) => setTimeoutDuration(e.target.value)}
                       placeholder="5m"
-                      className={timeout_validation.error ? 'border-danger/60 focus-visible:ring-danger/30 focus-visible:border-danger/60' : undefined}
                     />
-                    <div className={timeout_validation.error ? 'text-xs text-danger' : 'text-xs text-muted-foreground'}>
-                      {timeout_validation.error ?? 'Formato: 30s, 5m, 2h, 1d (máx 28d).'}
-                    </div>
-                  </div>
+                  </FormField>
 
                   <div className="space-y-2">
                     <div className="text-xs text-muted-foreground">Confirmação</div>
