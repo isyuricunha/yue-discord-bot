@@ -218,7 +218,7 @@ export default function TicketsPage() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-10"
+            className="h-11 lg:h-10"
             onClick={() => {
               refetch_channels()
               refetch_roles()

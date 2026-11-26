@@ -61,11 +61,11 @@ export function PublicShell() {
       <footer className="border-t border-border/80 bg-window">
         <div className="mx-auto flex max-w-6xl flex-col gap-2 px-5 py-4 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between">
           <div>© {new Date().getFullYear()} Yue</div>
-          <div className="flex flex-wrap gap-x-4 gap-y-2">
-            <NavLink to="/termos" className="underline underline-offset-4 hover:text-foreground">
+          <div className="flex flex-wrap items-center gap-y-1">
+            <NavLink to="/termos" className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-foreground">
               Termos
             </NavLink>
-            <NavLink to="/privacidade" className="underline underline-offset-4 hover:text-foreground">
+            <NavLink to="/privacidade" className="inline-flex min-h-11 items-center underline underline-offset-4 hover:text-foreground">
               Privacidade
             </NavLink>
           </div>

@@ -160,7 +160,7 @@ export default function BadgesPage() {
           </div>
         </div>
 
-        <Button variant="outline" size="sm" onClick={() => refetch()} className="h-10">
+        <Button variant="outline" size="sm" onClick={() => refetch()} className="h-11 lg:h-10">
           <RefreshCw className="h-4 w-4" />
           Atualizar
         </Button>
@@ -250,7 +250,7 @@ export default function BadgesPage() {
                   <Button
                     variant="outline"
                     size="sm"
-                    className="h-10"
+                    className="h-11 lg:h-10"
                     onClick={() =>
                       setEditing({
                         id: '',
@@ -267,7 +267,7 @@ export default function BadgesPage() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-10"
+                    className="h-11 lg:h-10"
                     onClick={() => setEditing(null)}
                     disabled={!editing}
                   >
@@ -356,7 +356,7 @@ export default function BadgesPage() {
                   variant="ghost"
                   onClick={() => setEditing(null)}
                   disabled={!editing}
-                  className="h-10 px-3 text-danger hover:bg-danger/10"
+                  className="h-11 lg:h-10 px-3 text-danger hover:bg-danger/10"
                 >
                   <Trash2 className="h-4 w-4" />
                 </Button>

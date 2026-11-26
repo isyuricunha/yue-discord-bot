@@ -116,7 +116,7 @@ export default function MembersPage() {
                   setWarningFilter('all')
                   setPage(1)
                 }}
-                className="h-10"
+                className="h-11 lg:h-10"
               >
                 Limpar
               </Button>

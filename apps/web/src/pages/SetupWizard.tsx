@@ -494,7 +494,7 @@ export default function SetupWizardPage() {
     <div className="mx-auto w-full max-w-5xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/guild/${guildId}`)} className="h-10">
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/guild/${guildId}`)} className="h-11 lg:h-10">
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Voltar</span>
           </Button>
@@ -814,7 +814,7 @@ export default function SetupWizardPage() {
                 </div>
               </div>
 
-              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
+              <div className="flex items-start flex-wrap justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
                 <div>
                   <div className="text-sm font-medium">Filtro de links</div>
                   <div className="mt-1 text-xs text-muted-foreground">Deleta mensagens com links e aplica a punição escolhida.</div>
@@ -824,7 +824,7 @@ export default function SetupWizardPage() {
 
               {automod_link_enabled && (
                 <>
-                  <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
+                  <div className="flex items-start flex-wrap justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
                     <div>
                       <div className="text-sm font-medium">Bloquear todos os links</div>
                       <div className="mt-1 text-xs text-muted-foreground">Quando desativado, você pode permitir domínios na página de AutoMod.</div>
@@ -902,7 +902,7 @@ export default function SetupWizardPage() {
                 </div>
               </div>
 
-              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
+              <div className="flex items-start flex-wrap justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
                 <div>
                   <div className="text-sm font-medium">Somente após primeira mensagem</div>
                   <div className="mt-1 text-xs text-muted-foreground">Recomendado em servidores com verificação alta.</div>

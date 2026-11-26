@@ -114,7 +114,7 @@ export default function DashboardPage() {
             <Button
               variant="outline"
               size="sm"
-              className="h-10 w-full sm:w-auto sm:px-3"
+              className="min-h-11 w-full sm:w-auto sm:px-3"
               onClick={() => inviteUrl ? window.open(inviteUrl, '_blank') : undefined}
             >
               <Plus className="h-4 w-4 sm:mr-2" />

@@ -112,7 +112,7 @@ export default function EconomyPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start flex-wrap justify-between gap-4">
         <div>
           <div className="text-2xl font-semibold tracking-tight">Economia</div>
           <div className="mt-1 text-sm text-muted-foreground">Saldo e transações (luazinhas)</div>
@@ -122,7 +122,7 @@ export default function EconomyPage() {
           <Button
             variant="outline"
             size="sm"
-            className="h-10"
+            className="h-11 lg:h-10"
             onClick={() => {
               void refetch_me()
               void refetch_txs()

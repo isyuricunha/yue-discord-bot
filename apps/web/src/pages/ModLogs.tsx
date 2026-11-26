@@ -242,7 +242,7 @@ export default function ModLogsPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/guild/${guildId}/overview`)} className="h-10">
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/guild/${guildId}/overview`)} className="h-11 lg:h-10">
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Voltar</span>
           </Button>
@@ -256,7 +256,7 @@ export default function ModLogsPage() {
           <a
             href={`${API_URL}/api/guilds/${guildId}/modlogs/export?format=json&action=all`}
             download
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+            className="inline-flex h-11 lg:h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
           >
             <Download className="h-4 w-4" />
             JSON
@@ -264,7 +264,7 @@ export default function ModLogsPage() {
           <a
             href={`${API_URL}/api/guilds/${guildId}/modlogs/export?format=csv&action=all`}
             download
-            className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+            className="inline-flex h-11 lg:h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
           >
             <Download className="h-4 w-4" />
             CSV
@@ -462,7 +462,7 @@ export default function ModLogsPage() {
                   setActionFilter('all')
                   setPage(1)
                 }}
-                className="h-10"
+                className="h-11 lg:h-10"
               >
                 Limpar
               </Button>

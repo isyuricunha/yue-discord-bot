@@ -68,7 +68,7 @@ export default function DocsCommandsPage() {
             onChange={(event) => set_query(event.target.value)}
             placeholder="Buscar comando, opção ou descrição..."
             aria-label="Buscar comandos"
-            className="h-10 w-full rounded-xl border border-border/70 bg-surface px-3 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-accent/50"
+            className="min-h-11 w-full rounded-xl border border-border/70 bg-surface px-3 text-sm outline-none placeholder:text-muted-foreground/60 focus:border-accent/50"
           />
           <div className="text-xs text-muted-foreground sm:self-center">
             {filtered.length} de {catalog.commands.length} comandos · atualizado em{' '}

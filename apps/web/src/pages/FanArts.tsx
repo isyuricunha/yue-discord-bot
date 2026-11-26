@@ -116,7 +116,7 @@ export default function FanArtsPage() {
             approved_query.refetch()
             pending_query.refetch()
           }}
-          className="h-10"
+          className="h-11 lg:h-10"
         >
           <RefreshCcw className="h-4 w-4" />
           Atualizar

@@ -166,7 +166,7 @@ export default function StarboardPage() {
           <Button
             variant="ghost"
             size="sm"
-            className="h-10"
+            className="h-11 lg:h-10"
             onClick={() => {
               refetch_channels()
               refetch_config()
@@ -247,7 +247,7 @@ export default function StarboardPage() {
                 </div>
               </div>
 
-              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
+              <div className="flex items-start flex-wrap justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
                 <div>
                   <div className="text-sm font-medium">Ignorar bots</div>
                   <div className="mt-1 text-xs text-muted-foreground">Não inclui mensagens enviadas por bots.</div>

@@ -398,7 +398,7 @@ export default function OwnerPage() {
 
   return (
     <div className="mx-auto w-full max-w-7xl space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start flex-wrap justify-between gap-4">
         <div>
           <div className="text-2xl font-semibold tracking-tight">Admin</div>
           <div className="mt-1 text-sm text-muted-foreground">

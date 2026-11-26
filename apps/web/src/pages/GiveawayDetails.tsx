@@ -158,7 +158,7 @@ export default function GiveawayDetailsPage() {
     <div className="mx-auto w-full max-w-7xl space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={() => navigate(`/guild/${guildId}/giveaways`)} className="h-10">
+          <Button variant="ghost" size="sm" onClick={() => navigate(`/guild/${guildId}/giveaways`)} className="h-11 lg:h-10">
             <ArrowLeft className="h-4 w-4" />
             <span className="hidden sm:inline">Voltar</span>
           </Button>
@@ -173,7 +173,7 @@ export default function GiveawayDetailsPage() {
           <div className="flex items-center gap-2">
             <a
               href={`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/export?format=json`}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+              className="inline-flex h-11 lg:h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
               download
             >
               <Download className="h-4 w-4" />
@@ -181,7 +181,7 @@ export default function GiveawayDetailsPage() {
             </a>
             <a
               href={`${API_URL}/api/guilds/${guildId}/giveaways/${resolved_id}/export?format=csv`}
-              className="inline-flex h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
+              className="inline-flex h-11 lg:h-10 items-center gap-2 rounded-xl border border-border/80 bg-surface/50 px-4 text-sm text-muted-foreground hover:bg-surface/70 hover:text-foreground"
               download
             >
               <Download className="h-4 w-4" />
@@ -224,7 +224,7 @@ export default function GiveawayDetailsPage() {
         <div className="space-y-6">
           <Card>
             <CardContent className="p-6">
-              <div className="flex items-start justify-between gap-4">
+              <div className="flex items-start flex-wrap justify-between gap-4">
                 <div className="min-w-0">
                   <div className="text-2xl font-semibold tracking-tight">{giveaway.title}</div>
                   <div className="mt-2 text-sm text-muted-foreground">{giveaway.description}</div>
@@ -476,7 +476,7 @@ export default function GiveawayDetailsPage() {
                           : 'rounded-2xl border border-border/70 bg-surface/40 px-4 py-3'
                       }
                     >
-                      <div className="flex items-start justify-between gap-4">
+                      <div className="flex items-start flex-wrap justify-between gap-4">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
                             <div className="truncate text-sm font-semibold">{entry.username}</div>

@@ -197,7 +197,7 @@ export default function AutorolePage() {
                 </div>
               </div>
 
-              <div className="flex items-start justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
+              <div className="flex items-start flex-wrap justify-between gap-4 rounded-2xl border border-border/70 bg-surface/30 p-4">
                 <div>
                   <div className="text-sm font-medium">Somente após primeira mensagem</div>
                   <div className="mt-1 text-xs text-muted-foreground">
@@ -272,7 +272,7 @@ export default function AutorolePage() {
                             </div>
                           </div>
 
-                          <Button variant="outline" size="sm" className="h-9 w-9 px-0" onClick={() => remove_role(role_id)}>
+                          <Button variant="outline" size="sm" className="h-11 w-11 lg:h-9 lg:w-9 px-0" onClick={() => remove_role(role_id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>

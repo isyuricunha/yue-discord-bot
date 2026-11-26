@@ -111,7 +111,7 @@ export const PanelAssistantComposer = React.forwardRef<HTMLTextAreaElement, Pane
           onClick={handleSendClick}
           disabled={disabled}
           className={cn(
-            'grid h-8 w-8 shrink-0 place-items-center rounded-xl transition-colors',
+            'grid h-11 w-11 shrink-0 place-items-center rounded-xl transition-colors',
             'bg-accent text-accent-foreground hover:bg-accent-hover',
             'disabled:cursor-not-allowed disabled:opacity-40',
             'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/35'

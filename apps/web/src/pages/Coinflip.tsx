@@ -164,7 +164,7 @@ export default function CoinflipPage() {
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-start flex-wrap justify-between gap-4">
         <div className="flex items-center gap-3">
           <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">
             <Dice5 className="h-5 w-5" />
@@ -178,7 +178,7 @@ export default function CoinflipPage() {
         <Button
           variant="outline"
           size="sm"
-          className="h-10"
+          className="h-11 lg:h-10"
           onClick={() => {
             void refetch_stats()
             void refetch_games()
@@ -281,7 +281,7 @@ export default function CoinflipPage() {
                 const can_verify = g.status === 'completed' && !!g.serverSeed && !!g.serverSeedHash && !!g.resultSide
                 return (
                   <div key={g.id} className="rounded-xl border border-border/70 bg-surface/40 px-3 py-3">
-                    <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start flex-wrap justify-between gap-4">
                     <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className={[

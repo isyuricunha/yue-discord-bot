@@ -456,7 +456,7 @@ export default function KeywordTriggersPage() {
                 variant="ghost"
                 size="sm"
                 onClick={() => set_editing_trigger(null)}
-                className="text-muted-foreground hover:text-foreground"
+                className="h-11 w-11 px-0 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-5 w-5" />
               </Button>

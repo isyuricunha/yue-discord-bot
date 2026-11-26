@@ -29,7 +29,7 @@ export default function TokenLoginPage() {
     <div className="flex min-h-screen items-center justify-center px-4">
       <Card className="w-full max-w-xl">
         <CardContent className="p-6">
-          <div className="flex items-start justify-between gap-4">
+          <div className="flex items-start flex-wrap justify-between gap-4">
             <div>
               <div className="flex items-center gap-2 text-xl font-semibold tracking-tight">
                 <KeyRound className="h-5 w-5 text-accent" />
