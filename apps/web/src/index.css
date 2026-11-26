@@ -780,15 +780,33 @@ kbd {
 
 /* Card hover elevation: interactive cards lift on hover */
 .card-hover {
+  position: relative;
+  overflow: hidden;
   transition: transform var(--yu-duration-base) var(--yu-ease), box-shadow var(--yu-duration-base) var(--yu-ease);
 }
 .card-hover:hover {
   transform: var(--yu-card-lift);
   box-shadow: var(--yu-card-shadow-hover);
 }
+/* Light sweep: a soft diagonal highlight crosses the card once on hover. */
+.card-hover::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 30%, rgba(70, 194, 179, 0.08) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.7s var(--yu-ease);
+  pointer-events: none;
+}
+.card-hover:hover::after {
+  transform: translateX(120%);
+}
 @media (prefers-reduced-motion: reduce) {
   .card-hover:hover {
     transform: none;
+  }
+  .card-hover::after {
+    display: none;
   }
 }
 
