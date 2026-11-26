@@ -8,8 +8,8 @@
  *
  * Falls back to the child's existing id when one is provided.
  *
- * @param {string} props.label - Visible label text for the control
- * @param {string} [props.hint] - Optional secondary hint rendered under the label
+ * @param {React.ReactNode} props.label - Visible label text for the control
+ * @param {React.ReactNode} [props.hint] - Optional secondary hint rendered under the label
  * @param {React.ReactNode} props.children - The form control to label
  * @param {string} [props.className] - Classes for the wrapper
  * @returns {JSX.Element} Labeled form field

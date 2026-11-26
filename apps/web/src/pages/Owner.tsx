@@ -507,6 +507,7 @@ export default function OwnerPage() {
                 value={presence_status}
                 onValueChange={(value) => set_presence_status(value as bot_presence_settings['presenceStatus'])}
                 disabled={isPresenceLoading}
+                aria-label="Status"
               >
                 <option value="online">Online</option>
                 <option value="idle">Idle</option>
@@ -521,6 +522,7 @@ export default function OwnerPage() {
                 onValueChange={(value) => set_activity_type((value || null) as bot_presence_settings['activityType'])}
                 disabled={isPresenceLoading}
                 placeholder="Nenhuma"
+                aria-label="Activity type"
               >
                 <option value="">Nenhuma</option>
                 <option value="playing">Playing</option>

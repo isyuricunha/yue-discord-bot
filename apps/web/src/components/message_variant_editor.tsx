@@ -333,6 +333,7 @@ export function MessageVariantEditor({
               }}
               rows={Math.max(6, rows)}
               disabled={disabled}
+              aria-label="Editar template completo"
               className="mt-3"
               placeholder={placeholder}
             />

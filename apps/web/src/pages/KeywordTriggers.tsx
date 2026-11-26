@@ -456,8 +456,7 @@ export default function KeywordTriggersPage() {
 
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                <div>
-                  <div className="mb-1.5 text-xs font-medium text-muted-foreground">Palavras-chave (uma por linha)</div>
+                <FormField label="Palavras-chave (uma por linha)">
                   <Textarea
                     value={edit_keywords}
                     onChange={(e) => set_edit_keywords(e.target.value)}
@@ -465,16 +464,13 @@ export default function KeywordTriggersPage() {
                     rows={3}
                     className="resize-none"
                   />
-                </div>
+                </FormField>
 
-                <div>
-                  <div className="mb-1.5 text-xs font-medium text-muted-foreground">
-                    Canal (opcional)
-                  </div>
+                <FormField label="Canal (opcional)">
                   {is_channels_loading ? (
                     <Skeleton className="h-11 w-full" />
                   ) : (
-                    <Select value={edit_channel_id} onValueChange={set_edit_channel_id}>
+                    <Select value={edit_channel_id} onValueChange={set_edit_channel_id} aria-label="Canal do gatilho (opcional)">
                       <option value="">Todos os canais</option>
                       {text_channels.map((c) => (
                         <option key={c.id} value={c.id}>
@@ -483,11 +479,10 @@ export default function KeywordTriggersPage() {
                       ))}
                     </Select>
                   )}
-                </div>
+                </FormField>
               </div>
 
-              <div>
-                <div className="mb-1.5 text-xs font-medium text-muted-foreground">Mensagem (Texto)</div>
+              <FormField label="Mensagem (Texto)">
                 <Textarea
                   value={edit_content}
                   onChange={(e) => set_edit_content(e.target.value)}
@@ -495,10 +490,9 @@ export default function KeywordTriggersPage() {
                   className="resize-none"
                   rows={3}
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <div className="mb-1.5 text-xs font-medium text-muted-foreground">URL da mídia (opcional)</div>
+              <FormField label="URL da mídia (opcional)">
                 <Input
                   value={edit_url}
                   onChange={(e) => {
@@ -512,8 +506,8 @@ export default function KeywordTriggersPage() {
                   placeholder="https://media.tenor.com/..."
                   className={edit_url_error ? 'border-danger focus:border-danger' : ''}
                 />
-                {edit_url_error && <div className="mt-1 text-xs text-danger">{edit_url_error}</div>}
-              </div>
+              </FormField>
+              {edit_url_error && <div className="-mt-1 text-xs text-danger">{edit_url_error}</div>}
 
               <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface/20 p-3">
                 <div className="space-y-0.5">

@@ -204,6 +204,7 @@ export default function CommandsPage() {
                               checked={is_enabled('slash', cmd.name)}
                               onCheckedChange={(checked) => update_enabled('slash', cmd.name, checked)}
                               disabled={is_commands_config_loading || update_overrides_mutation.isPending}
+                              label={`Habilitar /${cmd.name}`}
                             />
                           </div>
                         </div>
@@ -234,6 +235,7 @@ export default function CommandsPage() {
                             checked={is_enabled('context', cmd.name)}
                             onCheckedChange={(checked) => update_enabled('context', cmd.name, checked)}
                             disabled={is_commands_config_loading || update_overrides_mutation.isPending}
+                            label={`Habilitar comando de contexto ${cmd.name}`}
                           />
                         </div>
 

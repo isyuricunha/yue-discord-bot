@@ -534,7 +534,7 @@ export default function XpLevelsPage() {
                 </div>
               </div>
 
-              <div className="mt-4 grid grid-cols-1 gap-3 md:grid-cols-[1fr_180px]">
+              <div className="mt-4">
                 <FormField label="Tamanho da mensagem (caracteres únicos)" hint="Use isso para estimar o range de XP para uma mensagem típica.">
                   <Input
                     value={preview_unique_length}

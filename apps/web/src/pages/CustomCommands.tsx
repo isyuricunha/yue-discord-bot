@@ -212,32 +212,29 @@ export default function CustomCommandsPage() {
                     {editingId === cmd.id ? (
                       <form onSubmit={(e) => handleUpdate(e, cmd.id)} className="space-y-3">
                         <div className="grid gap-3 md:grid-cols-2">
-                          <div>
-                            <label className="text-xs font-medium text-muted-foreground mb-1 block">Nome do Comando</label>
+                          <FormField label="Nome do Comando">
                             <Input
                               value={editName}
                               onChange={(e) => setEditName(e.target.value)}
                               disabled={updateMutation.isPending}
                             />
-                          </div>
-                          <div>
-                            <label className="text-xs font-medium text-muted-foreground mb-1 block">Descrição</label>
+                          </FormField>
+                          <FormField label="Descrição">
                             <Input
                               value={editDescription}
                               onChange={(e) => setEditDescription(e.target.value)}
                               disabled={updateMutation.isPending}
                             />
-                          </div>
+                          </FormField>
                         </div>
-                        <div>
-                          <label className="text-xs font-medium text-muted-foreground mb-1 block">Resposta da Yue</label>
+                        <FormField label="Resposta da Yue">
                           <Textarea
                             className="h-28 resize-none"
                             value={editResponse}
                             onChange={(e) => setEditResponse(e.target.value)}
                             disabled={updateMutation.isPending}
                           />
-                        </div>
+                        </FormField>
                         <div className="flex flex-wrap justify-end gap-2">
                           <Button
                             type="button"
