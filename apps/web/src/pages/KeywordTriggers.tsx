@@ -385,7 +385,7 @@ export default function KeywordTriggersPage() {
                             #{channel.name}
                           </span>
                         ) : (
-                          <span className="text-[10px] text-muted-foreground uppercase tracking-wider font-medium">
+                          <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
                             {t.replyToUser ? 'Responde' : 'Envia'}
                           </span>
                         )}
@@ -396,7 +396,7 @@ export default function KeywordTriggersPage() {
                             {t.content}
                           </div>
                         )}
-                        <div className="truncate text-[10px] text-muted-foreground/60 italic">
+                        <div className="truncate text-[11px] text-muted-foreground/60 italic">
                           {t.mediaUrl ? (
                             t.mediaUrl.length > 60 ? `${t.mediaUrl.slice(0, 57)}…` : t.mediaUrl
                           ) : (

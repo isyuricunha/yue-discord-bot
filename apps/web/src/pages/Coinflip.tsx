@@ -309,12 +309,12 @@ export default function CoinflipPage() {
                           </div>
                         )}
                         {!!g.serverSeedHash && (
-                          <div className="mt-1 font-mono text-[10px] text-muted-foreground/60 break-all">
+                          <div className="mt-1 font-mono text-[11px] text-muted-foreground/60 break-all">
                             Hash: {g.serverSeedHash.slice(0, 16)}…
                           </div>
                         )}
                         {g.status === 'completed' && !!g.serverSeed && (
-                          <div className="mt-0.5 font-mono text-[10px] text-muted-foreground/60 break-all">
+                          <div className="mt-0.5 font-mono text-[11px] text-muted-foreground/60 break-all">
                             Seed: {g.serverSeed.slice(0, 16)}…
                           </div>
                         )}

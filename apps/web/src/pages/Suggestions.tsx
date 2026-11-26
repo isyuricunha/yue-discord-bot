@@ -314,7 +314,7 @@ export default function SuggestionsPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <div className="truncate text-sm font-medium">{s.content}</div>
-                        <Badge variant={s.status === 'accepted' ? 'accent' : 'neutral'} className="uppercase text-[10px]">
+                        <Badge variant={s.status === 'accepted' ? 'accent' : 'neutral'} className="uppercase text-[11px]">
                           {s.status === 'accepted' ? 'Aceita' : s.status === 'denied' ? 'Negada' : 'Pendente'}
                         </Badge>
                       </div>

@@ -66,7 +66,7 @@ export function GuildCard({ guild, className = '' }: GuildCardProps) {
                                 {guild.name}
                             </div>
                             {guild.owner && (
-                                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-1.5 py-0.5 text-[10px] font-medium text-accent">
+                                <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-1.5 py-0.5 text-[11px] font-medium text-accent">
                                     <Crown className="h-2.5 w-2.5" aria-hidden="true" />
                                     Dono
                                 </span>
@@ -95,7 +95,7 @@ export function GuildCard({ guild, className = '' }: GuildCardProps) {
                         }}
                     >
                         <Shield className="mx-auto h-4 w-4 text-accent" aria-hidden="true" />
-                        <div className="mt-1 text-[10px] font-medium uppercase text-muted-foreground">AutoMod</div>
+                        <div className="mt-1 text-[11px] font-medium uppercase text-muted-foreground">AutoMod</div>
                     </div>
                     <div
                         role="button"
@@ -115,7 +115,7 @@ export function GuildCard({ guild, className = '' }: GuildCardProps) {
                         }}
                     >
                         <Trophy className="mx-auto h-4 w-4 text-accent" aria-hidden="true" />
-                        <div className="mt-1 text-[10px] font-medium uppercase text-muted-foreground">Sorteios</div>
+                        <div className="mt-1 text-[11px] font-medium uppercase text-muted-foreground">Sorteios</div>
                     </div>
                     <div
                         role="button"
@@ -135,7 +135,7 @@ export function GuildCard({ guild, className = '' }: GuildCardProps) {
                         }}
                     >
                         <Settings className="mx-auto h-4 w-4 text-accent" aria-hidden="true" />
-                        <div className="mt-1 text-[10px] font-medium uppercase text-muted-foreground">Config</div>
+                        <div className="mt-1 text-[11px] font-medium uppercase text-muted-foreground">Config</div>
                     </div>
                 </div>
             </CardContent>

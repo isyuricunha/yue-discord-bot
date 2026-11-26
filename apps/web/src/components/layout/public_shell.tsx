@@ -7,7 +7,7 @@ import { RouteLoading } from './route_loading'
 
 function nav_link_class({ isActive }: { isActive: boolean }) {
   return cn(
-    'inline-flex h-8 items-center rounded-xl border px-3 text-sm transition-colors',
+    'inline-flex h-11 items-center rounded-xl border px-3 text-sm transition-colors',
     'hover:border-accent/35 hover:bg-accent/10 hover:text-foreground',
     isActive ? 'border-accent/35 bg-accent/10 text-foreground' : 'border-transparent text-muted-foreground'
   )
@@ -22,7 +22,7 @@ export function PublicShell() {
       <Seo />
 
       <header className="sticky top-0 z-20 border-b border-border/80 bg-window">
-        <div className="flex h-12 items-center justify-between px-5">
+        <div className="flex h-16 items-center justify-between px-5">
           <div className="flex items-center gap-3">
             <div className="grid h-8 w-8 place-items-center rounded-2xl border border-border/80 bg-surface-raised shadow-innerBorder">
               <img src="/icon-192.png" alt="Yue" className="h-5 w-5 rounded" />

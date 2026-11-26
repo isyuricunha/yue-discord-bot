@@ -46,7 +46,7 @@ export function GuildCard({ guild, isLoading = false }: GuildCardProps) {
                         </h1>
                     )}
                     {!isLoading && (
-                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[10px] font-semibold text-accent">
+                        <span className="inline-flex shrink-0 items-center gap-1 rounded-full border border-accent/20 bg-accent/10 px-2 py-0.5 text-[11px] font-semibold text-accent">
                             <Crown className="h-3 w-3" aria-hidden="true" />
                             Dono
                         </span>

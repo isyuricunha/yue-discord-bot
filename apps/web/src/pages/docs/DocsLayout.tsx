@@ -31,7 +31,7 @@ function DocsLayout() {
                 end={link.end}
                 className={({ isActive }) =>
                   cn(
-                    'whitespace-nowrap rounded-xl px-3 py-2 text-sm transition-colors',
+                    'flex h-11 items-center whitespace-nowrap rounded-xl px-3 py-2 text-sm transition-colors',
                     isActive
                       ? 'bg-accent/10 font-medium text-foreground'
                       : 'text-muted-foreground hover:bg-surface/60 hover:text-foreground',

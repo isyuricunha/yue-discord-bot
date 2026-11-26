@@ -437,7 +437,7 @@ export default function TicketsPage() {
                     <div className="min-w-0">
                       <div className="flex items-center gap-2">
                         <div className="truncate text-sm font-semibold">Tíquete</div>
-                        <Badge variant={t.status === 'open' ? 'accent' : 'neutral'} className="uppercase text-[10px]">
+                        <Badge variant={t.status === 'open' ? 'accent' : 'neutral'} className="uppercase text-[11px]">
                           {t.status === 'open' ? 'Aberto' : 'Fechado'}
                         </Badge>
                       </div>

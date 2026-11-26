@@ -136,7 +136,7 @@ function Badge({ children, tone = 'neutral' }: { children: React.ReactNode; tone
   return (
     <span
       className={cn(
-        'inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide',
+        'inline-flex items-center rounded-full border px-2 py-0.5 text-xs font-medium uppercase tracking-wide',
         tone === 'accent' ? 'border-accent/40 bg-accent/10 text-foreground' : 'border-border/70 bg-surface text-muted-foreground',
       )}
     >
@@ -191,7 +191,7 @@ function SubcommandBlock({ command, subcommand }: { command: catalog_command; su
         <CodeInline>{`/${command.name} ${subcommand.name}`}</CodeInline>
         <span className="text-xs text-muted-foreground">{subcommand.description}</span>
       </div>
-      <div className="mt-2 font-mono text-[11px] text-muted-foreground">
+      <div className="mt-2 font-mono text-xs text-muted-foreground">
         <span className="select-all">{usage_example(command, subcommand)}</span>
       </div>
       <div className="mt-2">
@@ -225,7 +225,7 @@ export function CommandCard({ command }: { command: catalog_command }) {
 
       <p className="mt-2 text-sm text-foreground/90">{command.description}</p>
 
-      <div className="mt-3 overflow-x-auto font-mono text-[11px] text-muted-foreground">
+      <div className="mt-3 overflow-x-auto font-mono text-xs text-muted-foreground">
         <span className="block whitespace-pre-wrap break-words select-all">{usage_example(command)}</span>
       </div>
 
@@ -236,7 +236,7 @@ export function CommandCard({ command }: { command: catalog_command }) {
         ))}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
         <Badge>{category.label}</Badge>
         {command.dm_permission === false && <Badge>servidor apenas</Badge>}
       </div>

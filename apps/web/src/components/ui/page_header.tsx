@@ -25,17 +25,17 @@ interface PageHeaderProps {
 
 export function PageHeader({ icon: Icon, title, description, color = 'gold', children, className }: PageHeaderProps) {
     return (
-        <div className={cn('flex items-center justify-between gap-4', className)}>
-            <div className="flex items-center gap-3">
+        <div className={cn('flex flex-wrap items-center justify-between gap-3 sm:gap-4', className)}>
+            <div className="flex min-w-0 items-center gap-3">
                 <span className={cn(
-                    'grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface-raised shadow-innerBorder',
+                    'grid h-10 w-10 shrink-0 place-items-center rounded-2xl border border-border/80 bg-surface-raised shadow-innerBorder',
                     semantic_icon_classes[color]
                 )}>
-                    <Icon className="h-5 w-5" />
+                    <Icon className="h-5 w-5 shrink-0" />
                 </span>
-                <div>
-                    <div className="text-xl font-semibold tracking-tight text-foreground">{title}</div>
-                    <div className="text-sm text-muted-foreground">{description}</div>
+                <div className="min-w-0">
+                    <div className="truncate text-xl font-semibold tracking-tight text-foreground">{title}</div>
+                    <div className="truncate text-sm text-muted-foreground">{description}</div>
                 </div>
             </div>
             {children}

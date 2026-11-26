@@ -85,14 +85,14 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
               <button 
                 onClick={() => modMutation.mutate({ action: 'timeout', targetId: userId })}
                 disabled={modMutation.isPending}
-                className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-accent-hover bg-accent-hover/10 hover:bg-accent-hover/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
+                className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-accent-hover bg-accent-hover/10 hover:bg-accent-hover/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
               >
                 Mutar (1h)
               </button>
               <button 
                 onClick={() => modMutation.mutate({ action: 'ban', targetId: userId })}
                 disabled={modMutation.isPending}
-                className="px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-danger bg-danger/10 hover:bg-danger/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
+                className="px-2 py-1 text-[11px] font-bold uppercase tracking-wider text-danger bg-danger/10 hover:bg-danger/20 rounded transition-colors whitespace-nowrap disabled:opacity-50"
               >
                 Banir
               </button>
@@ -128,7 +128,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
         </div>
         <div className="text-right flex items-center h-8">
           <Tooltip content={`ID: ${log.id}`}>
-            <div className="text-[10px] font-mono text-muted-foreground/40 cursor-help hover:text-muted-foreground transition-colors">#{log.id.slice(-8)}</div>
+            <div className="text-[11px] font-mono text-muted-foreground/40 cursor-help hover:text-muted-foreground transition-colors">#{log.id.slice(-8)}</div>
           </Tooltip>
         </div>
       </div>
@@ -152,7 +152,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
             href={`https://discord.com/channels/${log.guildId}/${log.targetChannelId}/${log.targetMessageId}`}
             target="_blank"
             rel="noreferrer"
-            className="inline-flex items-center gap-1 text-[10px] font-bold uppercase text-info bg-info/10 hover:bg-info/20 px-2 py-1 rounded transition-colors"
+            className="inline-flex items-center gap-1 text-[11px] font-bold uppercase text-info bg-info/10 hover:bg-info/20 px-2 py-1 rounded transition-colors"
           >
             <ExternalLink className="w-3 h-3" />
             Ver Mensagem
@@ -173,7 +173,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
             </div>
             {Array.isArray(data.attachments) && data.attachments.length > 0 && (
               <div className="mt-3">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Anexos Vinculados ({data.attachments.length})</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Anexos Vinculados ({data.attachments.length})</div>
                 <div className="flex flex-wrap gap-2">
                   {data.attachments.map((url: string, i: number) => (
                     <img key={i} src={url} alt={`Anexo ${i + 1}`} className="max-h-32 sm:max-h-48 rounded-lg border border-border/50 object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(url, '_blank')} />
@@ -185,13 +185,13 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
         ) : log.action === 'message_update' && data ? (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
             <div className="rounded-xl border border-border/60 bg-surface/50 p-3.5 shadow-sm">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Previamente</div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Previamente</div>
               <div className="text-sm text-foreground/80 italic break-words line-through decoration-red-500/30 bg-background/40 p-3 rounded-lg border border-border/40">
                 {data.oldContent || <span className="opacity-50">(Vazio)</span>}
               </div>
             </div>
             <div className="rounded-xl border border-info/10 bg-info/5 p-3.5 shadow-sm relative overflow-hidden">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-info/90 mb-2 relative z-10">Atualmente</div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-info/90 mb-2 relative z-10">Atualmente</div>
               <div className="text-sm text-foreground/90 break-words bg-background/60 p-3 rounded-lg border border-info/20 relative z-10">
                 {data.newContent || <span className="opacity-50">(Vazio)</span>}
               </div>
@@ -200,7 +200,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
             
             {Array.isArray(data.attachments) && data.attachments.length > 0 && (
               <div className="mt-3 col-span-1 lg:col-span-2">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Anexos Vinculados ({data.attachments.length})</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground mb-2">Anexos Vinculados ({data.attachments.length})</div>
                 <div className="flex flex-wrap gap-2">
                   {data.attachments.map((url: string, i: number) => (
                     <img key={i} src={url} alt={`Anexo ${i + 1}`} className="max-h-32 sm:max-h-48 rounded-lg border border-border/50 object-contain shadow-sm cursor-pointer hover:opacity-90 transition-opacity" onClick={() => window.open(url, '_blank')} />
@@ -213,7 +213,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
           <div className="rounded-xl border border-accent-hover/10 bg-accent-hover/5 p-3.5 shadow-sm">
             {Array.isArray(data.addedRoleIds) && data.addedRoleIds.length > 0 && (
               <div className={Array.isArray(data.removedRoleIds) && data.removedRoleIds.length > 0 ? "mb-3" : ""}>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-success/80 mb-2">Cargos Adicionados</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-success/80 mb-2">Cargos Adicionados</div>
                 <div className="flex flex-wrap gap-1.5">
                   {data.addedRoleIds.map((r: string) => renderRoleBadge(r, true))}
                 </div>
@@ -221,7 +221,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
             )}
             {Array.isArray(data.removedRoleIds) && data.removedRoleIds.length > 0 && (
               <div>
-                <div className="text-[10px] font-bold uppercase tracking-wider text-danger/80 mb-2">Cargos Removidos</div>
+                <div className="text-[11px] font-bold uppercase tracking-wider text-danger/80 mb-2">Cargos Removidos</div>
                 <div className="flex flex-wrap gap-1.5">
                   {data.removedRoleIds.map((r: string) => renderRoleBadge(r, false))}
                 </div>
@@ -236,11 +236,11 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-background/50 p-3 rounded-lg border border-border/40">
-                <div className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Antes</div>
+                <div className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1">Antes</div>
                 <div className="text-sm line-through decoration-red-500/40 text-muted-foreground/80 break-words">{data.oldNick || <span className="italic opacity-50 text-xs">(Nenhum)</span>}</div>
               </div>
               <div className="bg-background/50 p-3 rounded-lg border border-info/20 shadow-sm relative overflow-hidden">
-                <div className="text-[10px] uppercase tracking-wider text-info/80 mb-1 relative z-10">Depois</div>
+                <div className="text-[11px] uppercase tracking-wider text-info/80 mb-1 relative z-10">Depois</div>
                 <div className="text-sm font-medium text-foreground relative z-10 break-words">{data.newNick || <span className="italic opacity-50 text-muted-foreground text-xs">(Nenhum)</span>}</div>
               </div>
             </div>
@@ -253,7 +253,7 @@ export function AuditLogItem({ log, membersMap, rolesMap, channelsMap }: { log: 
             </div>
             <div className="bg-background/50 p-3 rounded-lg border border-success/10 space-y-1.5">
               {data.name && <div className="text-[13px] text-foreground/80">Nome: <span className="font-semibold text-foreground ml-1">#{data.name}</span></div>}
-              {data.type !== undefined && <div className="text-xs text-muted-foreground/80">Tipo: <span className="font-mono text-[10px] bg-background/80 px-1.5 py-0.5 rounded border border-border/50 ml-1">{data.type}</span></div>}
+              {data.type !== undefined && <div className="text-xs text-muted-foreground/80">Tipo: <span className="font-mono text-[11px] bg-background/80 px-1.5 py-0.5 rounded border border-border/50 ml-1">{data.type}</span></div>}
             </div>
           </div>
         ) : data && Object.keys(data).length > 0 ? (

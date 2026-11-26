@@ -33,7 +33,7 @@ export function UserDisplay({ userId, username, className }: user_display_props)
       <span className={cn('min-w-0 truncate font-medium', !resolved && 'font-mono text-xs')}>
         {display_name}
       </span>
-      {!resolved && <span className="shrink-0 text-[10px] text-muted-foreground/70">(saiu)</span>}
+      {!resolved && <span className="shrink-0 text-[11px] text-muted-foreground/70">(saiu)</span>}
       <button
         type="button"
         onClick={() => void copy_id()}

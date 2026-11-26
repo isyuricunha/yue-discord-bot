@@ -214,7 +214,7 @@ export function Topbar({
             >
               <Search className="h-4 w-4" />
               <span className="hidden lg:inline text-sm">Buscar</span>
-              <kbd className="hidden rounded bg-surface-raised px-1 py-0.5 text-[10px] font-mono lg:inline">
+              <kbd className="hidden rounded bg-surface-raised px-1 py-0.5 text-[11px] font-mono lg:inline">
                 {typeof navigator !== 'undefined' && navigator.platform.toLowerCase().includes('win') ? 'Ctrl+K' : '⌘K'}
               </kbd>
             </Button>

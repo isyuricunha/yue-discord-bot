@@ -36,9 +36,9 @@ const variants: Record<button_variant, string> = {
 }
 
 const sizes: Record<button_size, string> = {
-  sm: 'h-8 px-3 text-xs',
-  md: 'h-9 px-4 text-sm',
-  lg: 'h-10 px-5 text-sm',
+  sm: 'h-11 lg:h-8 px-3 text-xs',
+  md: 'h-11 lg:h-9 px-4 text-sm',
+  lg: 'h-11 lg:h-10 px-5 text-sm',
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, button_props>(
