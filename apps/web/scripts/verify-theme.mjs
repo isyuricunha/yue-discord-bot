@@ -33,37 +33,37 @@ for (const m of block.matchAll(/--(yu-[a-z0-9-]+):\s*([^;]+);/g)) {
   tokens[m[1]] = m[2].trim()
 }
 
-// Canonical YuTheme v2 (AMOLED) base tokens. Source: yutheme-design-system
+// Canonical YuTheme (Dark default) base tokens. Source: yutheme-design-system
 // skill, references/tokens.md. Names are the panel's own --yu-* surface.
 const canonical = {
-  'yu-bg-base': '#000000',
-  'yu-bg-canvas': '#000000',
-  'yu-bg-page': '#000000',
-  'yu-bg-window': '#0b0b0a',
-  'yu-bg-panel': '#0b0b0a',
-  'yu-bg-sidebar': '#000000',
-  'yu-bg-titlebar': '#121211',
-  'yu-bg-editor': '#10100f',
-  'yu-bg-terminal': '#10100f',
-  'yu-bg-composer': '#121211',
-  'yu-bg-modal': '#0f0f0e',
-  'yu-bg-hover': '#141413',
-  'yu-bg-active': '#1f1f1d',
-  'yu-bg-input': '#121211',
-  'yu-bg-input-hover': '#1a1a18',
-  'yu-bg-popover': '#151514',
-  'yu-bg-tooltip': '#151514',
-  'yu-bg-chip': '#1a1a18',
-  'yu-text-primary': '#f4f1e8',
-  'yu-text-strong': '#fffdf7',
-  'yu-text-secondary': '#b3ad9f',
-  'yu-text-muted': '#8e887c',
-  'yu-text-dim': '#666157',
-  'yu-text-disabled': '#54504a',
-  'yu-text-on-accent': '#15130f',
-  'yu-accent': '#d6a84f',
-  'yu-accent-hover': '#e0b760',
-  'yu-accent-glow': 'rgba(214, 168, 79, 0.08)',
+  'yu-bg-base': '#17191c',
+  'yu-bg-canvas': '#17191c',
+  'yu-bg-page': '#17191c',
+  'yu-bg-window': '#0f1113',
+  'yu-bg-panel': '#0f1113',
+  'yu-bg-sidebar': '#17191c',
+  'yu-bg-titlebar': '#1c2023',
+  'yu-bg-editor': '#101214',
+  'yu-bg-terminal': '#101214',
+  'yu-bg-composer': '#1c2023',
+  'yu-bg-modal': '#1c2023',
+  'yu-bg-hover': '#22272b',
+  'yu-bg-active': '#2d3439',
+  'yu-bg-input': '#1c2023',
+  'yu-bg-input-hover': '#242a2f',
+  'yu-bg-popover': '#22272b',
+  'yu-bg-tooltip': '#22272b',
+  'yu-bg-chip': '#242a2f',
+  'yu-text-primary': '#e8e4dc',
+  'yu-text-strong': '#f7f4ed',
+  'yu-text-secondary': '#adb5b8',
+  'yu-text-muted': '#8d989f',
+  'yu-text-dim': '#727d83',
+  'yu-text-disabled': '#5c666c',
+  'yu-text-on-accent': '#0f1113',
+  'yu-accent': '#46c2b3',
+  'yu-accent-hover': '#63d4c7',
+  'yu-accent-glow': 'rgba(70, 194, 179, 0.10)',
   'yu-link': '#64d2ff',
   'yu-link-hover': '#7cd9ff',
   'yu-success': '#31d158',
@@ -71,26 +71,27 @@ const canonical = {
   'yu-danger': '#ff6961',
   'yu-info': '#64d2ff',
   'yu-info-hover': '#7cd9ff',
-  'yu-border-default': 'rgba(232, 228, 216, 0.20)',
+  'yu-border-default': 'rgba(60, 66, 72, 1.0)',
   'yu-radius-window': '14px',
   'yu-radius-lg': '12px',
   'yu-radius-md': '8px',
   'yu-duration-base': '160ms',
 }
-const norm = (value) => value.toLowerCase().replace(/\s+/g, '')
+const norm = (value) => value.toLowerCase().replace(/\s+/g, '').replace(/(\.\d*?)0+(?=[a-z)]|$)/g, '$1').replace(/\.(?=[a-z)]|$)/g, '')
 
 for (const [name, want] of Object.entries(canonical)) {
   const got = tokens[name]
   check(`token --${name} matches YuTheme v2`, got !== undefined && norm(got) === norm(want), got ? `got ${got}, want ${want}` : 'missing')
 }
 
-// v1 legacy palette must not come back anywhere in the frontend source.
+// Retired palettes must not come back in the frontend source. With Dark as the
+// default, the retired AMOLED black/gold surfaces and the old warm-brown
+// Swarm/AMOLED border rgb are the legacy values to guard against.
 const legacyHexes = [
-  '#1a1813', '#191811', '#1b1913', '#201e17', '#24211b', '#17160f', '#18170f',
-  '#2a271f', '#332f25', '#1e1c16', '#26231c', '#1f1d17', '#b8b2a4', '#827c70',
-  '#5f5a50', '#4f4a42',
+  '#0b0b0a', '#121211', '#10100f', '#0f0f0e', '#141413', '#151514',
+  '#1a1a18', '#1f1f1d', '#d6a84f', '#e0b760',
+  '#1a1813', '#191811', '#1b1913', '#201e17', '#24211b', '#b8b2a4', '#827c70',
 ]
-const legacyRgb = /rgba\(\s*214,\s*204,\s*176/
 
 function walk(dir, files = []) {
   for (const entry of readdirSync(dir)) {
@@ -122,16 +123,12 @@ for (const file of sourceFiles) {
   const content = readFileSync(file, 'utf8')
   for (const hex of legacyHexes) {
     if (content.toLowerCase().includes(hex)) {
-      failures.push(`legacy v1 color ${hex} in ${file.replace(webRoot, 'apps/web')}`)
+      failures.push(`retired palette color ${hex} in ${file.replace(webRoot, 'apps/web')}`)
       legacyHits += 1
     }
   }
-  if (legacyRgb.test(content)) {
-    failures.push(`legacy v1 border base rgba(214, 204, 176, ...) in ${file.replace(webRoot, 'apps/web')}`)
-    legacyHits += 1
-  }
 }
-check('no legacy v1 colors in frontend source', legacyHits === 0, `${legacyHits} hit(s)`)
+check('no retired palette colors in frontend source', legacyHits === 0, `${legacyHits} hit(s)`)
 
 // Tailwind color-alias classes from the v1 era are gone: the panel must use
 // the semantic token names (success/agent/info/danger/accent*) directly.
@@ -160,4 +157,4 @@ if (failures.length) {
   for (const failure of failures) console.error(`  - ${failure}`)
   process.exit(1)
 }
-console.log('YuTheme v2 guard: all checks passed.')
+console.log('YuTheme guard: all checks passed.')

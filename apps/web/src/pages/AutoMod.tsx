@@ -751,7 +751,7 @@ export default function AutoModPage() {
                     </Select>
                     <div className="mt-2 text-xs text-muted-foreground">{ai_provider_description[ai_provider]}</div>
                     {!providers_available[ai_provider] && (
-                      <div className="mt-2 flex items-start gap-2 text-xs text-amber-600">
+                      <div className="mt-2 flex items-start gap-2 text-xs text-warning">
                         <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                         <span>
                           A chave deste provedor não está configurada no bot. Enquanto isso, a moderação falha aberta
@@ -760,7 +760,7 @@ export default function AutoModPage() {
                       </div>
                     )}
                     {ai_provider === 'mistral' && !providers_available.openai && (
-                      <div className="mt-2 flex items-start gap-2 text-xs text-amber-600">
+                      <div className="mt-2 flex items-start gap-2 text-xs text-warning">
                         <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                         <span>As imagens não serão moderadas: a chave OpenAI não está configurada.</span>
                       </div>
@@ -784,7 +784,7 @@ export default function AutoModPage() {
                       : 'Se a Mistral falhar, a OpenAI assume texto e imagens. Requer as duas chaves configuradas.'}
                   </div>
                   {Boolean(config.aiModerationFallback) && !providers_available[ai_provider === 'openai' ? 'mistral' : 'openai'] && (
-                    <div className="mt-2 flex items-start gap-2 text-xs text-amber-600">
+                    <div className="mt-2 flex items-start gap-2 text-xs text-warning">
                       <AlertTriangle className="mt-0.5 h-3 w-3 shrink-0" />
                       <span>O provedor de fallback não tem chave configurada; o fallback não terá efeito.</span>
                     </div>

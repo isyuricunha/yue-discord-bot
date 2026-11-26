@@ -1,7 +1,7 @@
 @config "../tailwind.config.js";
 @import "tailwindcss";
 
-/* YuTheme v2 (AMOLED): Geist, locally hosted (SIL OFL). */
+/* YuTheme (Dark default): Geist, locally hosted (SIL OFL). */
 @font-face {
   font-family: "Geist";
   src: url("/fonts/Geist-Regular.woff2") format("woff2");
@@ -23,45 +23,45 @@
 [data-theme="yu-dark"] {
   color-scheme: dark;
 
-  --yu-bg-base: #1a1813;
-  --yu-bg-canvas: #1a1813;
-  --yu-bg-page: #1a1813;
-  --yu-bg-surface-1: #1c1913;
-  --yu-bg-surface-2: #1c1913;
-  --yu-bg-surface-3: #1f1c16;
-  --yu-bg-surface-4: #211e17;
-  --yu-bg-surface-5: #28251d;
-  --yu-bg-window: #1c1913;
-  --yu-bg-titlebar: #211e17;
-  --yu-bg-sidebar: #1a1813;
-  --yu-bg-panel: #1c1913;
-  --yu-bg-editor: #1d1b15;
-  --yu-bg-terminal: #1d1b15;
-  --yu-bg-composer: #211e17;
-  --yu-bg-hover: #232019;
-  --yu-bg-active: #2d2921;
-  --yu-bg-selected: rgba(214, 168, 79, 0.10);
-  --yu-bg-input: #211e17;
-  --yu-bg-input-hover: #28251d;
-  --yu-bg-popover: #23211a;
-  --yu-bg-modal: #1f1c16;
-  --yu-bg-tooltip: #23211a;
-  --yu-bg-code: #28251d;
-  --yu-bg-code-block: #1d1b15;
-  --yu-bg-toc: #23211a;
-  --yu-bg-chip: #28251d;
-  --yu-bg-showcase-backdrop: #1f1c16;
+  --yu-bg-base: #17191c;
+  --yu-bg-canvas: #17191c;
+  --yu-bg-page: #17191c;
+  --yu-bg-surface-1: #0f1113;
+  --yu-bg-surface-2: #0f1113;
+  --yu-bg-surface-3: #1c2023;
+  --yu-bg-surface-4: #1c2023;
+  --yu-bg-surface-5: #242a2f;
+  --yu-bg-window: #0f1113;
+  --yu-bg-titlebar: #1c2023;
+  --yu-bg-sidebar: #17191c;
+  --yu-bg-panel: #0f1113;
+  --yu-bg-editor: #101214;
+  --yu-bg-terminal: #101214;
+  --yu-bg-composer: #1c2023;
+  --yu-bg-hover: #22272b;
+  --yu-bg-active: #2d3439;
+  --yu-bg-selected: rgba(70, 194, 179, 0.12);
+  --yu-bg-input: #1c2023;
+  --yu-bg-input-hover: #242a2f;
+  --yu-bg-popover: #22272b;
+  --yu-bg-modal: #1c2023;
+  --yu-bg-tooltip: #22272b;
+  --yu-bg-code: #242a2f;
+  --yu-bg-code-block: #101214;
+  --yu-bg-toc: #22272b;
+  --yu-bg-chip: #242a2f;
+  --yu-bg-showcase-backdrop: #1c2023;
   --yu-bg-showcase-overlay: rgba(0, 0, 0, 0.32);
 
-  --yu-text-primary: #f4f1e8;
-  --yu-text-strong: #fffdf7;
-  --yu-text-normal: #f4f1e8;
-  --yu-text-secondary: #b3ad9f;
-  --yu-text-accent: #d6a84f;
-  --yu-text-muted: #8e887c;
-  --yu-text-dim: #666157;
-  --yu-text-disabled: #54504a;
-  --yu-text-on-accent: #15130f;
+  --yu-text-primary: #e8e4dc;
+  --yu-text-strong: #f7f4ed;
+  --yu-text-normal: #e8e4dc;
+  --yu-text-secondary: #adb5b8;
+  --yu-text-accent: #46c2b3;
+  --yu-text-muted: #8d989f;
+  --yu-text-dim: #727d83;
+  --yu-text-disabled: #5c666c;
+  --yu-text-on-accent: #0f1113;
 
   --yu-icon-primary: var(--yu-text-normal);
   --yu-icon-secondary: var(--yu-text-secondary);
@@ -71,20 +71,20 @@
   --yu-link: #64d2ff;
   --yu-link-hover: #7cd9ff;
   --yu-link-active: #7cd9ff;
-  --yu-accent: #d6a84f;
-  --yu-accent-hover: #e0b760;
-  --yu-accent-active: #c2953f;
-  --yu-accent-dark: #a37e3a;
-  --yu-accent-soft: rgba(214, 168, 79, 0.18);
-  --yu-accent-softer: rgba(214, 168, 79, 0.08);
-  --yu-accent-border: rgba(214, 168, 79, 0.30);
-  --yu-accent-glow: rgba(214, 168, 79, 0.08);
+  --yu-accent: #46c2b3;
+  --yu-accent-hover: #63d4c7;
+  --yu-accent-active: #3aa99c;
+  --yu-accent-dark: #2f8e83;
+  --yu-accent-soft: rgba(70, 194, 179, 0.16);
+  --yu-accent-softer: rgba(70, 194, 179, 0.1);
+  --yu-accent-border: rgba(70, 194, 179, 0.30);
+  --yu-accent-glow: rgba(70, 194, 179, 0.1);
 
-  --yu-border-faint: rgba(214, 204, 176, 0.08);
-  --yu-border-subtle: rgba(214, 204, 176, 0.13);
-  --yu-border-default: rgba(214, 204, 176, 0.20);
-  --yu-border-strong: rgba(214, 204, 176, 0.32);
-  --yu-border-accent: rgba(214, 168, 79, 0.30);
+  --yu-border-faint: rgba(60, 66, 72, 0.45);
+  --yu-border-subtle: rgba(60, 66, 72, 0.7);
+  --yu-border-default: rgba(60, 66, 72, 1.0);
+  --yu-border-strong: rgba(88, 97, 104, 1);
+  --yu-border-accent: rgba(70, 194, 179, 0.30);
   --yu-border-neutral: rgba(232, 228, 216, 0.13);
   --yu-border-neutral-strong: rgba(232, 228, 216, 0.20);
 
@@ -94,8 +94,8 @@
   --yu-agent: #bf5af2;
   --yu-agent-hover: #cb74f5;
   --yu-agent-soft: rgba(191, 90, 242, 0.18);
-  --yu-warning: #d6a84f;
-  --yu-warning-soft: rgba(214, 168, 79, 0.18);
+  --yu-warning: #f0b35a;
+  --yu-warning-soft: rgba(240, 179, 90, 0.18);
   --yu-danger: #ff6961;
   --yu-danger-hover: #ff7d76;
   --yu-danger-soft: rgba(255, 105, 97, 0.18);
@@ -103,27 +103,27 @@
   --yu-info-hover: #7cd9ff;
   --yu-info-soft: rgba(100, 210, 255, 0.18);
 
-  --yu-code-inline-text: #d6a84f;
-  --yu-code-inline-bg: #28251d;
-  --yu-code-block-bg: #1d1b15;
-  --yu-code-border: rgba(214, 168, 79, 0.12);
-  --yu-blockquote-border: #a37e3a;
-  --yu-blockquote-text: #b3ad9f;
-  --yu-blockquote-bg: rgba(214, 168, 79, 0.06);
-  --yu-go-top-bg: rgba(214, 168, 79, 0.70);
-  --yu-go-top-bg-hover: #e0b760;
+  --yu-code-inline-text: #46c2b3;
+  --yu-code-inline-bg: #242a2f;
+  --yu-code-block-bg: #101214;
+  --yu-code-border: rgba(70, 194, 179, 0.14);
+  --yu-blockquote-border: #2f8e83;
+  --yu-blockquote-text: #adb5b8;
+  --yu-blockquote-bg: rgba(70, 194, 179, 0.08);
+  --yu-go-top-bg: rgba(70, 194, 179, 0.70);
+  --yu-go-top-bg-hover: #63d4c7;
 
   --yu-shadow-sm: 0 8px 24px rgba(0, 0, 0, 0.35);
   --yu-shadow-md: 0 18px 48px rgba(0, 0, 0, 0.42);
   --yu-shadow-lg: 0 32px 80px rgba(0, 0, 0, 0.48);
-  --yu-highlight: inset 0 1px 0 rgba(255, 253, 247, 0.05);
+  --yu-highlight: inset 0 1px 0 rgba(232, 228, 220, 0.04);
   --yu-window-shadow: none;
   --yu-floating-shadow: var(--yu-shadow-md);
   --yu-tooltip-shadow: var(--yu-shadow-sm);
   --yu-overlay: rgba(0, 0, 0, 0.32);
   --yu-inner-border: inset 0 0 0 1px rgba(232, 228, 216, 0.08);
-  --yu-focus-glow: 0 0 0 2px rgba(214, 168, 79, 0.22);
-  --yu-accent-glow-shadow: 0 0 24px rgba(214, 168, 79, 0.08);
+  --yu-focus-glow: 0 0 0 2px rgba(70, 194, 179, 0.24);
+  --yu-accent-glow-shadow: 0 0 24px rgba(70, 194, 179, 0.1);
   --yu-success-glow-shadow: 0 0 20px rgba(49, 209, 88, 0.08);
 
   --yu-radius-xs: 4px;
@@ -168,8 +168,8 @@
   --yu-duration-slow: 260ms;
   --yu-ease: cubic-bezier(0.2, 0, 0, 1);
   --yu-ease-shimmer: cubic-bezier(0.4, 0, 0.2, 1);
-  --yu-scrollbar: #2c2920;
-  --yu-scrollbar-hover: #3d392e;
+  --yu-scrollbar: #3c4248;
+  --yu-scrollbar-hover: #586168;
 
   --yu-stagger-step: 50ms;
   --yu-card-lift: translateY(-3px);
@@ -177,60 +177,60 @@
 
 
   --syntax-fg: #e0e0e0;
-  --syntax-comment: #7f755f;
+  --syntax-comment: #87826f;
   --syntax-keyword: #ffb74d;
-  --syntax-keyword-alt: #d79a35;
-  --syntax-string: #d4b483;
-  --syntax-number: #c7a45d;
-  --syntax-boolean: #d79a35;
-  --syntax-constant: #e8d4a0;
-  --syntax-function: #ffd180;
-  --syntax-method: #ffd180;
+  --syntax-keyword-alt: #63d4c7;
+  --syntax-string: #8fd6a0;
+  --syntax-number: #e8c07a;
+  --syntax-boolean: #63d4c7;
+  --syntax-constant: #63d4c7;
+  --syntax-function: #7fdcff;
+  --syntax-method: #7fdcff;
   --syntax-variable: #e0e0e0;
-  --syntax-parameter: #c9b98f;
-  --syntax-property: #f0c36a;
-  --syntax-class: #d6a84f;
-  --syntax-interface: #d6a84f;
-  --syntax-type: #d6a84f;
-  --syntax-namespace: #b8924b;
-  --syntax-module: #b8924b;
-  --syntax-operator: #d0c6ac;
-  --syntax-punctuation: #b8ad94;
+  --syntax-parameter: #adb5b8;
+  --syntax-property: #e8c07a;
+  --syntax-class: #46c2b3;
+  --syntax-interface: #46c2b3;
+  --syntax-type: #46c2b3;
+  --syntax-namespace: #2f8e83;
+  --syntax-module: #2f8e83;
+  --syntax-operator: #adb5b8;
+  --syntax-punctuation: #8d989f;
   --syntax-regex: #ff8a65;
   --syntax-decorator: #ffb74d;
   --syntax-invalid: #ff6b5f;
   --syntax-warning: #ffa726;
-  --syntax-git-added: #8bc34a;
+  --syntax-git-added: #8fd6a0;
   --syntax-git-modified: #ffa726;
   --syntax-git-deleted: #ff6b5f;
-  --syntax-selection: rgba(255, 167, 38, 0.18);
+  --syntax-selection: rgba(70, 194, 179, 0.16);
   --syntax-cursor-line: rgba(255, 255, 255, 0.03);
-  --syntax-bracket-match: rgba(255, 167, 38, 0.24);
-  --syntax-find-match: rgba(255, 167, 38, 0.30);
+  --syntax-bracket-match: rgba(70, 194, 179, 0.24);
+  --syntax-find-match: rgba(70, 194, 179, 0.30);
 
-  --yu-rgb-background: 0 0 0;
-  --yu-rgb-canvas: 0 0 0;
-  --yu-rgb-window: 11 11 10;
-  --yu-rgb-sidebar: 0 0 0;
-  --yu-rgb-surface: 11 11 10;
-  --yu-rgb-surface-raised: 21 21 20;
-  --yu-rgb-surface-hover: 20 20 19;
-  --yu-rgb-surface-active: 31 31 29;
-  --yu-rgb-card: 11 11 10;
-  --yu-rgb-panel: 11 11 10;
-  --yu-rgb-popover: 21 21 20;
-  --yu-rgb-input: 21 21 20;
-  --yu-rgb-tooltip: 21 21 20;
-  --yu-rgb-chip: 26 26 24;
-  --yu-rgb-foreground: 244 241 232;
-  --yu-rgb-strong: 255 253 247;
-  --yu-rgb-muted: 142 136 124;
-  --yu-rgb-dim: 102 97 87;
-  --yu-rgb-border: 46 46 43;
-  --yu-rgb-accent: 214 168 79;
-  --yu-rgb-accent-hover: 224 183 96;
-  --yu-rgb-accent-active: 194 149 63;
-  --yu-rgb-accent-foreground: 21 19 15;
+  --yu-rgb-background: 23 25 28;
+  --yu-rgb-canvas: 23 25 28;
+  --yu-rgb-window: 15 17 19;
+  --yu-rgb-sidebar: 15 17 19;
+  --yu-rgb-surface: 15 17 19;
+  --yu-rgb-surface-raised: 34 39 43;
+  --yu-rgb-surface-hover: 34 39 43;
+  --yu-rgb-surface-active: 45 52 57;
+  --yu-rgb-card: 15 17 19;
+  --yu-rgb-panel: 15 17 19;
+  --yu-rgb-popover: 34 39 43;
+  --yu-rgb-input: 28 32 35;
+  --yu-rgb-tooltip: 34 39 43;
+  --yu-rgb-chip: 36 42 47;
+  --yu-rgb-foreground: 232 228 220;
+  --yu-rgb-strong: 247 244 237;
+  --yu-rgb-muted: 141 152 159;
+  --yu-rgb-dim: 114 125 131;
+  --yu-rgb-border: 60 66 72;
+  --yu-rgb-accent: 70 194 179;
+  --yu-rgb-accent-hover: 99 212 199;
+  --yu-rgb-accent-active: 58 169 156;
+  --yu-rgb-accent-foreground: 15 17 19;
   --yu-rgb-success: 49 209 88;
   --yu-rgb-agent: 191 90 242;
   --yu-rgb-info: 100 210 255;
@@ -445,7 +445,7 @@ button {
 
 a:not([class]) {
   color: var(--cursor-link);
-  text-decoration-color: rgba(255, 167, 38, 0.35);
+  text-decoration-color: rgba(70, 194, 179, 0.35);
   text-underline-offset: 4px;
   transition:
     color var(--cursor-duration-fast) var(--cursor-ease),
@@ -454,7 +454,7 @@ a:not([class]) {
 
 a:not([class]):hover {
   color: var(--cursor-link-hover);
-  text-decoration-color: rgba(255, 152, 0, 0.75);
+  text-decoration-color: rgba(99, 212, 199, 0.75);
 }
 
 code,
@@ -636,7 +636,7 @@ kbd {
   inset: 0;
   content: "";
   pointer-events: none;
-  background: linear-gradient(90deg, transparent 30%, rgba(255, 253, 247, 0.06) 45%, transparent 60%);
+  background: linear-gradient(90deg, transparent 30%, rgba(232, 228, 220, 0.06) 45%, transparent 60%);
   transform: translateX(-120%);
   animation: yu-sheen 0.9s var(--yu-ease) infinite;
 }

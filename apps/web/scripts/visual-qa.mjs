@@ -2,7 +2,7 @@
  * YuTheme v2 visual QA for the yue web panel (test:visual).
  *
  * Boots `vite preview` on the built dist (or reuses a running preview when
- * PORT is set), then asserts computed YuTheme tokens, AMOLED surfaces, no
+ * PORT is set), then asserts computed YuTheme tokens, Dark surfaces, no
  * horizontal overflow at 1440/768/375, reduced-motion behavior, and captures
  * screenshots of the public shell + login as artifacts.
  *
@@ -19,17 +19,17 @@ const OUT = new URL('../e2e-output/visual-qa/', import.meta.url).pathname
 mkdirSync(OUT, { recursive: true })
 
 const TOKENS = {
-  '--yu-bg-canvas': '#000000',
-  '--yu-bg-window': '#0b0b0a',
-  '--yu-bg-titlebar': '#121211',
-  '--yu-bg-input': '#121211',
-  '--yu-bg-popover': '#151514',
-  '--yu-bg-chip': '#1a1a18',
-  '--yu-text-primary': '#f4f1e8',
-  '--yu-text-secondary': '#b3ad9f',
-  '--yu-accent': '#d6a84f',
-  '--yu-accent-glow': 'rgba(214, 168, 79, 0.08)',
-  '--yu-border-default': 'rgba(232, 228, 216, 0.20)',
+  '--yu-bg-canvas': '#17191c',
+  '--yu-bg-window': '#0f1113',
+  '--yu-bg-titlebar': '#1c2023',
+  '--yu-bg-input': '#1c2023',
+  '--yu-bg-popover': '#22272b',
+  '--yu-bg-chip': '#242a2f',
+  '--yu-text-primary': '#e8e4dc',
+  '--yu-text-secondary': '#adb5b8',
+  '--yu-accent': '#46c2b3',
+  '--yu-accent-glow': 'rgba(70, 194, 179, 0.10)',
+  '--yu-border-default': '#3c4248',
   '--yu-radius-window': '14px',
   '--yu-radius-lg': '12px',
 }
@@ -88,7 +88,7 @@ try {
     await page.waitForTimeout(900)
     await page.screenshot({ path: `${OUT}/shell-${label}.png` })
     const shellBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor)
-    check(`shell body bg AMOLED @${label}`, shellBg === 'rgb(0, 0, 0)', `got ${shellBg}`)
+    check(`shell body bg Dark @${label}`, shellBg === 'rgb(23, 25, 28)', `got ${shellBg}`)
 
     const got = await page.evaluate((names) => {
       const s = getComputedStyle(document.documentElement)
@@ -105,7 +105,7 @@ try {
     check(`no horizontal overflow @${label}`, ovf <= 0, `delta ${ovf}px`)
 
     const bg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor)
-    check(`body bg AMOLED @${label}`, bg === 'rgb(0, 0, 0)', `got ${bg}`)
+    check(`body bg Dark @${label}`, bg === 'rgb(23, 25, 28)', `got ${bg}`)
 
     check(`no page errors @${label}`, errors.length === 0, errors.join(' | ').slice(0, 160))
     await ctx.close()
