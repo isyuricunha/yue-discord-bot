@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useParams } from 'react-router-dom'
 import axios from 'axios'
@@ -72,6 +72,16 @@ export default function KeywordTriggersPage() {
 
   // Edit modal state
   const [editing_trigger, set_editing_trigger] = useState<keyword_trigger | null>(null)
+
+  // Close the edit dialog with Escape for keyboard users.
+  useEffect(() => {
+    if (!editing_trigger) return
+    const on_keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') set_editing_trigger(null)
+    }
+    window.addEventListener('keydown', on_keydown)
+    return () => window.removeEventListener('keydown', on_keydown)
+  }, [editing_trigger])
   const [edit_keywords, set_edit_keywords] = useState('')
   const [edit_content, set_edit_content] = useState('')
   const [edit_url, set_edit_url] = useState('')
@@ -440,14 +450,24 @@ export default function KeywordTriggersPage() {
 
       {/* Edit Modal */}
       {editing_trigger && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
-          <div className="cursor-floating mx-4 w-full max-w-2xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60"
+          onClick={() => set_editing_trigger(null)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-trigger-title"
+            className="cursor-floating mx-4 w-full max-w-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className="flex items-center justify-between border-b border-border/50 px-6 py-4">
-              <div className="text-lg font-semibold">Editar Gatilho</div>
+              <div id="edit-trigger-title" className="text-lg font-semibold">Editar Gatilho</div>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => set_editing_trigger(null)}
+                aria-label="Fechar edição do gatilho"
                 className="h-11 w-11 px-0 text-muted-foreground hover:text-foreground"
               >
                 <X className="h-5 w-5" />
