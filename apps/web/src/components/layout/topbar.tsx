@@ -157,24 +157,24 @@ export function Topbar({
           >
             <Menu className="h-4 w-4" />
           </button>
-          <nav aria-label="Breadcrumb navigation" className="flex flex-wrap items-center gap-1 font-mono text-[11px] text-muted-foreground">
+          <nav aria-label="Breadcrumb navigation" className="flex min-w-0 flex-nowrap items-center gap-1 overflow-hidden font-mono text-[11px] text-muted-foreground">
             {breadcrumbs.map((crumb, idx) => {
               const isLast = idx === breadcrumbs.length - 1
               return (
-                <div key={crumb.label} className="flex items-center gap-1">
-                  {idx > 0 && <ChevronRight className="h-3 w-3" />}
+                <div key={crumb.label} className="flex min-w-0 items-center gap-1">
+                  {idx > 0 && <ChevronRight className="h-3 w-3 shrink-0" />}
                   {crumb.to && !isLast ? (
                     <Link
                       to={crumb.to}
-                      className="flex items-center gap-1 transition-colors hover:text-accent"
+                      className="flex min-w-0 items-center gap-1 transition-colors hover:text-accent"
                     >
                       {crumb.icon}
-                      <span className="hidden sm:inline">{crumb.label}</span>
+                      <span className="hidden truncate sm:inline">{crumb.label}</span>
                     </Link>
                   ) : (
-                    <span className={cn('flex items-center gap-1', isLast && 'font-medium text-foreground')}>
+                    <span className={cn('flex min-w-0 items-center gap-1', isLast && 'truncate font-medium text-foreground')}>
                       {crumb.icon}
-                      {crumb.label}
+                      <span className="truncate">{crumb.label}</span>
                     </span>
                   )}
                 </div>

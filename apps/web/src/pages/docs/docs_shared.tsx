@@ -150,8 +150,8 @@ function OptionsTable({ options }: { options: catalog_option[] }) {
   if (visible.length === 0) return null
 
   return (
-    <div className="overflow-hidden rounded-xl border border-border/70">
-      <table className="w-full text-left text-xs">
+    <div className="overflow-x-auto rounded-xl border border-border/70">
+      <table className="w-full min-w-[28rem] text-left text-xs">
         <thead className="bg-surface/60 text-muted-foreground">
           <tr>
             <th className="px-3 py-2 font-medium">Opção</th>
@@ -208,7 +208,7 @@ export function CommandCard({ command }: { command: catalog_command }) {
   const subcommands = (command.options ?? []).filter((option) => option.type === 1)
 
   return (
-    <div className="rounded-2xl border border-border/70 bg-surface p-4 shadow-innerBorder">
+    <div className="min-w-0 rounded-2xl border border-border/70 bg-surface p-4 shadow-innerBorder">
       <div className="flex flex-wrap items-center gap-2">
         <CodeInline>{`/${command.name}`}</CodeInline>
         {local_name && local_name !== command.name && (
@@ -225,8 +225,8 @@ export function CommandCard({ command }: { command: catalog_command }) {
 
       <p className="mt-2 text-sm text-foreground/90">{command.description}</p>
 
-      <div className="mt-3 font-mono text-[11px] text-muted-foreground">
-        <span className="select-all">{usage_example(command)}</span>
+      <div className="mt-3 overflow-x-auto font-mono text-[11px] text-muted-foreground">
+        <span className="block whitespace-pre-wrap break-words select-all">{usage_example(command)}</span>
       </div>
 
       <div className="mt-3 space-y-2">
