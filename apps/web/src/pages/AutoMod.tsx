@@ -20,7 +20,7 @@ import {
 import { normalize_link_domain } from '@yuebot/shared'
 
 import { getApiUrl } from '../env'
-import { Badge, Button, Card, CardContent, ErrorState, Input, Select, Skeleton, Switch, PageHeader, ModuleLayout } from '../components/ui'
+import { Badge, Button, Card, CardContent, ErrorState, FormField, Input, Select, Skeleton, Switch, PageHeader, ModuleLayout } from '../components/ui'
 import { toast_error, toast_success } from '../store/toast'
 import { use_unsaved_changes_warning } from '../lib/use_unsaved_changes_warning'
 import { validate_timeout_duration } from '../lib/duration'
@@ -487,22 +487,19 @@ export default function AutoModPage() {
                 </div>
 
                 {link_no_role_action === 'mute' && (
-                  <div>
-                    <div className="text-sm font-medium">Duração do timeout</div>
-                    <div className="mt-2">
-                      <Input
-                        value={link_no_role_timeout_duration}
-                        onChange={(event) =>
-                          setConfig({ ...config, linkNoRoleTimeoutDuration: event.target.value })
-                        }
-                        placeholder="10m"
-                        className={link_no_role_timeout_validation.error ? 'border-danger/60 focus-visible:ring-danger/30 focus-visible:border-danger/60' : undefined}
-                      />
-                      <div className={link_no_role_timeout_validation.error ? 'mt-2 text-xs text-danger' : 'mt-2 text-xs text-muted-foreground'}>
-                        {link_no_role_timeout_validation.error ?? 'Use 30s, 5m, 2h, 1d ou 1w. Máximo: 28d.'}
-                      </div>
-                    </div>
-                  </div>
+                  <FormField
+                    label="Duração do timeout"
+                    error={link_no_role_timeout_validation.error ?? undefined}
+                    hint={link_no_role_timeout_validation.error ? undefined : 'Use 30s, 5m, 2h, 1d ou 1w. Máximo: 28d.'}
+                  >
+                    <Input
+                      value={link_no_role_timeout_duration}
+                      onChange={(event) =>
+                        setConfig({ ...config, linkNoRoleTimeoutDuration: event.target.value })
+                      }
+                      placeholder="10m"
+                    />
+                  </FormField>
                 )}
               </div>
             )}
@@ -561,22 +558,19 @@ export default function AutoModPage() {
                   </div>
 
                   {link_action === 'mute' && (
-                    <div>
-                      <div className="text-sm font-medium">Duração do timeout</div>
-                      <div className="mt-2">
-                        <Input
-                          value={link_timeout_duration}
-                          onChange={(event) =>
-                            setConfig({ ...config, linkTimeoutDuration: event.target.value })
-                          }
-                          placeholder="5m"
-                          className={link_timeout_validation.error ? 'border-danger/60 focus-visible:ring-danger/30 focus-visible:border-danger/60' : undefined}
-                        />
-                        <div className={link_timeout_validation.error ? 'mt-2 text-xs text-danger' : 'mt-2 text-xs text-muted-foreground'}>
-                          {link_timeout_validation.error ?? 'Use 30s, 5m, 2h, 1d ou 1w. Máximo: 28d.'}
-                        </div>
-                      </div>
-                    </div>
+                    <FormField
+                      label="Duração do timeout"
+                      error={link_timeout_validation.error ?? undefined}
+                      hint={link_timeout_validation.error ? undefined : 'Use 30s, 5m, 2h, 1d ou 1w. Máximo: 28d.'}
+                    >
+                      <Input
+                        value={link_timeout_duration}
+                        onChange={(event) =>
+                          setConfig({ ...config, linkTimeoutDuration: event.target.value })
+                        }
+                        placeholder="5m"
+                      />
+                    </FormField>
                   )}
                 </div>
               </div>
