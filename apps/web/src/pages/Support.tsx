@@ -634,7 +634,7 @@ export default function SupportPage() {
       </Card>
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-        <Card>
+        <Card className="stagger-item">
           <CardContent className="space-y-4 p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>
@@ -680,7 +680,7 @@ export default function SupportPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="stagger-item">
           <CardContent className="space-y-4 p-6">
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
               <div>

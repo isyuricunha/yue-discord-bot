@@ -175,7 +175,7 @@ export default function BadgesPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="min-w-0 overflow-hidden border-accent/20 lg:col-span-2">
+        <Card className="stagger-item min-w-0 overflow-hidden border-accent/20 lg:col-span-2">
           <CardContent className="space-y-4 pt-6">
             <div className="text-sm font-medium">Catálogo</div>
 

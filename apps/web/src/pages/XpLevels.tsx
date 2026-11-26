@@ -573,7 +573,7 @@ export default function XpLevelsPage() {
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-1">
+        <Card className="stagger-item lg:col-span-1">
           <CardContent className="space-y-3 p-6">
             <div className="text-sm font-semibold">Seu progresso (local)</div>
             {!my_xp ? (
@@ -601,7 +601,7 @@ export default function XpLevelsPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-1">
+        <Card className="stagger-item lg:col-span-1">
           <CardContent className="space-y-3 p-6">
             <div className="text-sm font-semibold">Seu progresso (global)</div>
             {!my_global_xp ? (
@@ -629,7 +629,7 @@ export default function XpLevelsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="stagger-item">
           <CardContent className="space-y-5 p-6">
             <div>
               <div className="text-sm font-semibold text-danger">Zerar XP (guild)</div>
@@ -721,7 +721,7 @@ export default function XpLevelsPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-1">
+        <Card className="stagger-item lg:col-span-1">
           <CardContent className="space-y-3 p-6">
             <div className="text-sm font-semibold">Top 10 (XP local)</div>
             {!leaderboard ? (
@@ -749,7 +749,7 @@ export default function XpLevelsPage() {
           </CardContent>
         </Card>
 
-        <Card className="lg:col-span-1">
+        <Card className="stagger-item lg:col-span-1">
           <CardContent className="space-y-3 p-6">
             <div className="text-sm font-semibold">Top 10 (XP global)</div>
             {!global_leaderboard ? (
@@ -1079,7 +1079,7 @@ export default function XpLevelsPage() {
       </Card>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="stagger-item">
           <CardContent className="space-y-4 p-6">
             <div className="text-sm font-semibold">Cargos que não irão receber experiência</div>
 
@@ -1133,7 +1133,7 @@ export default function XpLevelsPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="stagger-item">
           <CardContent className="space-y-4 p-6">
             <div className="text-sm font-semibold">Canais que não irão dar experiência</div>
 

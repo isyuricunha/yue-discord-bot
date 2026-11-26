@@ -131,12 +131,14 @@ export default function DashboardPage() {
           aria-live="polite"
         >
           <StatCard
+            className="stagger-item"
             icon={<Server className="h-5 w-5" />}
             value={stats ? formatNumber(stats.servers) : '---'}
             label="Servidores"
             isLoading={statsLoading}
           />
           <StatCard
+            className="stagger-item"
             icon={<Users className="h-5 w-5" />}
             value={stats ? formatNumber(stats.users) : '---'}
             label="Usuários"
@@ -151,7 +153,7 @@ export default function DashboardPage() {
             {filteredGuilds && filteredGuilds.length > 0 ? (
               <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {filteredGuilds.map((guild: Guild) => (
-                  <GuildCard key={guild.id} guild={guild} />
+                  <GuildCard key={guild.id} guild={guild} className="stagger-item" />
                 ))}
               </div>
             ) : null}

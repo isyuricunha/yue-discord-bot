@@ -190,7 +190,7 @@ export default function CoinflipPage() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <Card className="border-accent/20 lg:col-span-2">
+        <Card className="stagger-item border-accent/20 lg:col-span-2">
           <CardHeader className="space-y-1">
             <div className="flex items-center gap-2">
               <Swords className="h-4 w-4 text-accent" />
@@ -221,7 +221,7 @@ export default function CoinflipPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-accent/20">
+        <Card className="stagger-item border-accent/20">
           <CardContent className="p-4">
             <div className="flex items-center gap-3">
               <span className="grid h-10 w-10 place-items-center rounded-2xl border border-border/80 bg-surface/60 text-accent">

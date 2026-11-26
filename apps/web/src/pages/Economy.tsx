@@ -162,7 +162,7 @@ export default function EconomyPage() {
       )}
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Card>
+        <Card className="stagger-item">
           <CardHeader className="space-y-1">
             <div className="flex items-center gap-2">
               <ArrowRightLeft className="h-4 w-4 text-accent" />
@@ -180,7 +180,7 @@ export default function EconomyPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="stagger-item">
           <CardHeader className="space-y-1">
             <div className="flex items-center gap-2">
               <Shield className="h-4 w-4 text-accent" />

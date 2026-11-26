@@ -135,7 +135,7 @@ export default function FanArtsPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-3">
-        <Card className="border-accent/20 lg:col-span-2">
+        <Card className="stagger-item border-accent/20 lg:col-span-2">
           <CardContent className="space-y-4 pt-6">
             <div className="text-sm font-medium">Aprovadas</div>
 

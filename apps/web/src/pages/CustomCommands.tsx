@@ -146,7 +146,7 @@ export default function CustomCommandsPage() {
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-5">
-        <Card className="border-accent/20 lg:col-span-2 h-fit">
+        <Card className="stagger-item border-accent/20 lg:col-span-2 h-fit">
           <CardContent className="space-y-4 p-6">
             <div>
               <div className="text-sm font-semibold">Novo Comando</div>
@@ -193,7 +193,7 @@ export default function CustomCommandsPage() {
           </CardContent>
         </Card>
 
-        <Card className="border-accent/20 lg:col-span-3">
+        <Card className="stagger-item border-accent/20 lg:col-span-3">
           <CardContent className="space-y-4 p-6">
             <div>
               <div className="text-sm font-semibold">Comandos Ativos</div>

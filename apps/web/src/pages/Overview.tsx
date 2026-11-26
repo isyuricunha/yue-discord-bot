@@ -186,7 +186,7 @@ export default function OverviewPage() {
         </div>
       ) : (
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
-          <Card>
+          <Card className="stagger-item">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">Total de membros</div>
@@ -196,7 +196,7 @@ export default function OverviewPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="stagger-item">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">Ações (7 dias)</div>
@@ -206,7 +206,7 @@ export default function OverviewPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="stagger-item">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">Sorteios ativos</div>
@@ -216,7 +216,7 @@ export default function OverviewPage() {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="stagger-item">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="text-sm text-muted-foreground">Palavras bloqueadas</div>
