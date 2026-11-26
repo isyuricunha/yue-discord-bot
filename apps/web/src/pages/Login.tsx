@@ -5,6 +5,7 @@ import { Users, Server, ExternalLink, Info } from 'lucide-react'
 
 import { getApiUrl, getDiscordClientId } from '../env'
 import { Button, StatCard, Card, CardContent } from '../components/ui'
+import { Starfield } from '../components/ui/Starfield'
 import { Seo } from '../components/seo/seo'
 import { useBotStats } from '../hooks/useBotStats'
 import { formatNumber } from '../lib/format_number'
@@ -47,8 +48,11 @@ export default function LoginPage() {
   return (
     <>
       <Seo />
-      <div data-theme="yudark" className="flex min-h-screen flex-col bg-canvas">
-        <div className="flex min-h-screen flex-col">
+      <div data-theme="yudark" className="relative flex min-h-screen flex-col overflow-x-clip bg-canvas">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+          <Starfield />
+        </div>
+        <div className="relative z-10 flex min-h-screen flex-col">
           {/* Header com logo e navegação */}
           <header className="flex w-full items-center justify-between px-6 py-5" role="banner">
             <NavLink

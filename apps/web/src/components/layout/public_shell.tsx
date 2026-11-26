@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation } from 'react-router-dom'
 
 import { cn } from '../../lib/cn'
 import { Seo } from '../seo/seo'
+import { Starfield } from '../ui/Starfield'
 import { RouteLoading } from './route_loading'
 
 function nav_link_class({ isActive }: { isActive: boolean }) {
@@ -18,7 +19,11 @@ export function PublicShell() {
   const content_key = useMemo(() => location.pathname, [location.pathname])
 
   return (
-    <div data-theme="yudark" className="min-h-screen bg-canvas text-foreground">
+    <div data-theme="yudark" className="relative min-h-screen overflow-x-clip bg-canvas text-foreground">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+        <Starfield />
+      </div>
+      <div className="relative z-10">
       <Seo />
 
       <header className="sticky top-0 z-20 border-b border-border/80 bg-window">
@@ -47,7 +52,7 @@ export function PublicShell() {
         </div>
       </header>
 
-      <main className={cn('px-5 py-6', 'animate-fadeIn')} key={content_key}>
+      <main className={cn('px-5 py-6', 'yu-rise')} key={content_key}>
         <Suspense fallback={<RouteLoading />}>
           <Outlet />
         </Suspense>
@@ -66,6 +71,7 @@ export function PublicShell() {
           </div>
         </div>
       </footer>
+      </div>
     </div>
   )
 }
