@@ -267,15 +267,17 @@ export default function KeywordTriggersPage() {
             />
           </FormField>
 
-          <FormField label="URL da mídia (opcional)" hint="Domínios aceitos: tenor.com, giphy.com, imgur.com, cdn.discordapp.com, media.discordapp.net, ou qualquer URL com extensão .gif, .png, .jpg, .jpeg, .webp, .mp4">
+          <FormField
+            label="URL da mídia (opcional)"
+            error={url_error ?? undefined}
+            hint={url_error ? undefined : 'Domínios aceitos: tenor.com, giphy.com, imgur.com, cdn.discordapp.com, media.discordapp.net, ou qualquer URL com extensão .gif, .png, .jpg, .jpeg, .webp, .mp4'}
+          >
             <Input
               value={url}
               onChange={(e) => handle_url_change(e.target.value)}
               placeholder="https://media.tenor.com/..."
-              className={url_error ? 'border-danger focus:border-danger' : ''}
             />
           </FormField>
-          {url_error && <div className="-mt-1 text-xs text-danger">{url_error}</div>}
 
           <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface/20 p-3">
             <div className="space-y-0.5">
@@ -512,7 +514,7 @@ export default function KeywordTriggersPage() {
                 />
               </FormField>
 
-              <FormField label="URL da mídia (opcional)">
+              <FormField label="URL da mídia (opcional)" error={edit_url_error ?? undefined}>
                 <Input
                   value={edit_url}
                   onChange={(e) => {
@@ -524,10 +526,8 @@ export default function KeywordTriggersPage() {
                     }
                   }}
                   placeholder="https://media.tenor.com/..."
-                  className={edit_url_error ? 'border-danger focus:border-danger' : ''}
                 />
               </FormField>
-              {edit_url_error && <div className="-mt-1 text-xs text-danger">{edit_url_error}</div>}
 
               <div className="flex items-center justify-between rounded-xl border border-border/50 bg-surface/20 p-3">
                 <div className="space-y-0.5">

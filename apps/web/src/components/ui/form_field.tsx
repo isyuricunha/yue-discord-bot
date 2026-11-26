@@ -21,20 +21,30 @@ import { cn } from '../../lib/cn'
 type form_field_props = {
   label: React.ReactNode
   hint?: React.ReactNode
-  children: React.ReactElement<{ id?: string; 'aria-describedby'?: string }>
+  error?: React.ReactNode
+  children: React.ReactElement<{ id?: string; 'aria-describedby'?: string; 'aria-invalid'?: boolean }>
   className?: string
 }
 
-export function FormField({ label, hint, children, className }: form_field_props) {
+export function FormField({ label, hint, error, children, className }: form_field_props) {
   const generated_id = React.useId()
   const hint_id = React.useId()
+  const error_id = React.useId()
 
   const child_id = children.props.id ?? generated_id
-  const describedby = hint ? [children.props['aria-describedby'], hint_id].filter(Boolean).join(' ') : children.props['aria-describedby']
+  const has_error = Boolean(error)
+  // The error message takes precedence over the hint in both the visible
+  // sub-text and the aria-describedby association.
+  const sub_text = error ?? hint
+  const describedby = [
+    children.props['aria-describedby'],
+    has_error ? error_id : hint ? hint_id : undefined,
+  ].filter(Boolean).join(' ')
 
   const control = React.cloneElement(children, {
     id: child_id,
     ...(describedby ? { 'aria-describedby': describedby } : {}),
+    ...(has_error ? { 'aria-invalid': true } : {}),
   })
 
   return (
@@ -43,9 +53,13 @@ export function FormField({ label, hint, children, className }: form_field_props
         {label}
       </label>
       {control}
-      {hint && (
-        <span id={hint_id} className="text-xs text-muted-foreground/80">
-          {hint}
+      {sub_text && (
+        <span
+          id={has_error ? error_id : hint_id}
+          className={cn('text-xs', has_error ? 'text-danger' : 'text-muted-foreground/80')}
+          role={has_error ? 'alert' : undefined}
+        >
+          {sub_text}
         </span>
       )}
     </div>
