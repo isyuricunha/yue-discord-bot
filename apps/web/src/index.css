@@ -870,3 +870,40 @@ kbd {
 @media (pointer: fine) {
   .switch-control::before { content: none; }
 }
+
+/* ---------- premium entrance: rise + de-blur (YuTheme v2) ---------- */
+/* 12px up + 6px blur -> sharp, 0.9s, once. Used for page and hero
+   entrances; below-the-fold repeats and long lists should not use it.
+   Delays come from --rise-i (stagger index), so one utility covers any
+   number of children without a fixed nth-child ladder. */
+@keyframes yu-rise {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+    filter: blur(0);
+  }
+}
+.yu-rise {
+  animation: yu-rise 0.9s var(--yu-ease) both;
+  animation-delay: calc(var(--rise-i, 0) * 100ms);
+}
+.yu-rise-d1 { --rise-i: 1; }
+.yu-rise-d2 { --rise-i: 2; }
+.yu-rise-d3 { --rise-i: 3; }
+.yu-rise-d4 { --rise-i: 4; }
+.yu-rise-d5 { --rise-i: 5; }
+.yu-rise-d6 { --rise-i: 6; }
+.yu-rise-d7 { --rise-i: 7; }
+.yu-rise-d8 { --rise-i: 8; }
+@media (prefers-reduced-motion: reduce) {
+  .yu-rise {
+    animation: none;
+    opacity: 1;
+    filter: none;
+  }
+}

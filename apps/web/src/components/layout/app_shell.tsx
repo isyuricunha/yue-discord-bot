@@ -8,6 +8,7 @@ import { matchPath, Outlet, useLocation } from 'react-router-dom'
 
 import { cn } from '../../lib/cn'
 import { ToastViewport } from '../ui'
+import { Starfield } from '../ui/Starfield'
 import { Seo } from '../seo/seo'
 import { Sidebar } from './sidebar'
 import { Topbar } from './topbar'
@@ -88,7 +89,11 @@ export function AppShell() {
       <div data-theme="yudark" className="h-screen overflow-hidden bg-canvas text-foreground">
         <Seo />
 
-        <div className="relative flex h-full">
+        <div className="relative flex h-full overflow-hidden">
+          <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-0">
+            <Starfield />
+          </div>
+
           {mobileNavOpen && (
             <button
               type="button"
@@ -98,15 +103,16 @@ export function AppShell() {
             />
           )}
 
-          <Sidebar
-            collapsed={collapsed}
-            onToggle={toggle}
-            mobileOpen={mobileNavOpen}
-            onMobileClose={() => setMobileNavOpen(false)}
-          />
+          <div className="relative z-10 flex h-full min-w-0 flex-1">
+            <Sidebar
+              collapsed={collapsed}
+              onToggle={toggle}
+              mobileOpen={mobileNavOpen}
+              onMobileClose={() => setMobileNavOpen(false)}
+            />
 
-          <div className="min-w-0 flex flex-1 flex-col">
-            <div className="scrollbar-yue min-h-0 flex-1 overflow-y-auto">
+            <div className="flex min-w-0 flex-1 flex-col">
+              <div className="scrollbar-yue min-h-0 flex-1 overflow-y-auto">
               <Topbar
                 ellaDrawerOpen={visibleEllaDrawer}
                 onToggleEllaDrawer={() => setEllaDrawerOpen((open) => !open)}
@@ -115,11 +121,12 @@ export function AppShell() {
                 mobileNavOpen={mobileNavOpen}
                 mobileNavTriggerRef={mobileNavTriggerRef}
               />
-              <main id="main-content" className={cn('px-4 py-5 sm:px-5', 'animate-fadeIn')} key={content_key} tabIndex={-1}>
+              <main id="main-content" className={cn('px-4 py-5 sm:px-5', 'yu-rise')} key={content_key} tabIndex={-1}>
                 <Suspense fallback={<RouteLoading />}>
                   <Outlet />
                 </Suspense>
               </main>
+              </div>
             </div>
           </div>
         </div>
