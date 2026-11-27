@@ -1,6 +1,7 @@
 import type { FastifyInstance } from 'fastify';
 import axios from 'axios';
 import crypto from 'node:crypto';
+import fs from 'node:fs/promises';
 import { CONFIG } from '../config';
 import { is_owner } from '../utils/permissions';
 import { safe_error_details } from '../utils/safe_error'
@@ -275,5 +276,43 @@ export default async function authRoutes(fastify: FastifyInstance) {
     })
 
     return { success: true }
+  });
+
+  // Dev-only one-click login: reads a pre-minted JWT from a local file and sets
+  // the session cookie, so a developer can open a single link on any device
+  // (e.g. a phone on the tailnet) without pasting the token by hand.
+  fastify.get('/dev-login', async (_request, reply) => {
+    if (CONFIG.environment !== 'development') {
+      return reply.code(403).send({ error: 'Not available in production' })
+    }
+
+    const token_path = process.env.DEV_LOGIN_TOKEN_PATH
+    if (!token_path) {
+      return reply.code(404).send({ error: 'Dev login disabled' })
+    }
+
+    let token: string
+    try {
+      token = (await fs.readFile(token_path, 'utf8')).trim()
+    } catch {
+      return reply.code(404).send({ error: 'Dev token file not found' })
+    }
+
+    try {
+      await fastify.jwt.verify(token)
+    } catch {
+      return reply.code(401).send({ error: 'Dev token invalid or expired' })
+    }
+
+    reply.setCookie('yuebot_token', token, {
+      httpOnly: true,
+      secure: CONFIG.cookies.secure,
+      sameSite: CONFIG.cookies.sameSite,
+      domain: CONFIG.cookies.domain,
+      path: '/',
+      maxAge: 60 * 60 * 24 * 7,
+    })
+
+    reply.redirect(CONFIG.web.url)
   });
 }
