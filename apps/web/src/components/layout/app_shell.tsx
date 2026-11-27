@@ -94,16 +94,20 @@ export function AppShell() {
             <Starfield />
           </div>
 
-          {mobileNavOpen && (
-            <button
-              type="button"
-              aria-label="Fechar menu de navegação"
-              onClick={() => setMobileNavOpen(false)}
-              className="fixed inset-0 z-40 bg-black/40 lg:hidden"
-            />
-          )}
-
           <div className="relative z-10 flex h-full min-w-0 flex-1">
+            {/* Backdrop lives inside this stacking context so the Sidebar's
+                z-50 stays above it. Outside this container the Sidebar's
+                ancestor z-10 would cap it below the z-40 backdrop, making
+                taps land on the backdrop instead of the nav links. */}
+            {mobileNavOpen && (
+              <button
+                type="button"
+                aria-label="Fechar menu de navegação"
+                onClick={() => setMobileNavOpen(false)}
+                className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+              />
+            )}
+
             <Sidebar
               collapsed={collapsed}
               onToggle={toggle}
