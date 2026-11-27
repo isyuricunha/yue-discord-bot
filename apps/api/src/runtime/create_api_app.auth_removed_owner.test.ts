@@ -21,6 +21,11 @@ process.env.JWT_SECRET = 'abcdefghijklmnopqrstuvwxyz123456'
 process.env.DATABASE_URL = 'postgresql://u:p@localhost:5432/x'
 process.env.INTERNAL_API_SECRET = 'abcdefghijklmnopqrstuvwxyz123456'
 process.env.NODE_ENV = 'production'
+// Pin REDIS_URL to the default sentinel so the rate limiter uses its
+// in-memory fallback (same as CI, where REDIS_URL is unset). Without this,
+// a developer's local .env pointing REDIS_URL at a stopped dev Redis makes
+// the refresh route fail with 500 even though the owner logic is correct.
+process.env.REDIS_URL = 'redis://localhost:6379'
 
 test('a former owner cannot refresh a still-owner JWT after removal from OWNER_USER_IDS', async () => {
   const { createApiApp } = await import('./create_api_app')
